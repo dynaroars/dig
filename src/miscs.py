@@ -105,7 +105,6 @@ class Miscs(object):
         Convert the input 's' to a rational number if possible.
 
         Examples:
-        sage: mlog.printtime = False
         sage: assert Miscs.ratOfStr('.3333333') == 3333333/10000000
         sage: assert Miscs.ratOfStr('3/7') == 3/7
         sage: assert Miscs.ratOfStr('1.') == 1

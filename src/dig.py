@@ -14,10 +14,6 @@ if __name__ == "__main__":
        default=2,
        help="set logger info")
 
-    ag("--noprinttime", "-noprinttime",
-       default=False,
-       action="store_true")
-
     ag("--seed", "-seed",
        type=float,
        help="use this seed")
@@ -58,10 +54,6 @@ if __name__ == "__main__":
        action="store_true",
        help="don't use multiprocessing")
 
-    ag("--noincr", "-noincr",
-       action="store_true",
-       help="don't use incremental symbolic states")
-
     ag("--normtmp", "-normtmp",
        action="store_true")
 
@@ -70,7 +62,6 @@ if __name__ == "__main__":
 
     import settings
     settings.doMP = not args.nomp
-    settings.doIncr = not args.noincr
 
     if args.log_level != settings.logger_level and 0 <= args.log_level <= 4:
         settings.logger_level = args.log_level
