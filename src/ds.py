@@ -159,13 +159,13 @@ class _Trace(tuple):
     def test(self, inv):
         assert inv.is_relational()
 
-        # VU: todo, temp fix,  disable traces that wih extreme large values
+        # temp fix: disable traces that wih extreme large values
         # (see geo1 e.g., 435848050)
         if any(x > self.maxVal for x in self.vs):
             mlog.debug("skip trace with large val: {}".format(self))
             return True
 
-        # Vu: todo, temp fix, disable repeating rational when testing equality
+        # temp fix: disable repeating rational when testing equality
         if (Miscs.isEq(inv) and
             any(not x.is_integer() and Miscs.isRepeatingRational(x)
                 for x in self.vs)):
@@ -213,6 +213,8 @@ class _Trace(tuple):
 
 
 class Traces(set):
+    trace_multiplier = settings.trace_multipler
+
     def __init__(self, myset=set()):
         assert all(isinstance(t, _Trace) for t in myset), myset
         super(Traces, self).__init__(myset)
@@ -270,7 +272,7 @@ class Traces(set):
             for t in self.mydicts:
                 exprs = set(term.subs(t) for t in self.mydicts)
         else:
-            nTracesExtra = nTraces*5
+            nTracesExtra = nTraces * self.trace_multiplier
             exprs = set()
             for i, t in enumerate(self.mydicts):
                 expr = term.subs(t)

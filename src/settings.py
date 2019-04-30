@@ -10,3 +10,4 @@ maxLargeCoefs = 50
 maxterm = 200
 octMaxV = 10  # t <= 10
 largeN = 200000  # powersum programs can go up to very large vals
+trace_multipler = 5

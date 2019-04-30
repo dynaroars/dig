@@ -577,8 +577,8 @@ class Z3(object):
             if cls.isVar(f):
                 rs.add(f)
         else:
-            for f_ in f.children():
-                cls._getVars(f_, rs)
+            for c in f.children():
+                cls._getVars(c, rs)
 
     @classmethod
     @cached_function
