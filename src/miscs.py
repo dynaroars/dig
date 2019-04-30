@@ -1,10 +1,9 @@
-import random
 import itertools
 import operator
 from collections import Iterable
 
 import sage.all
-from sage.all import cached_function, operator
+from sage.all import cached_function
 
 import z3
 import vcommon as CM
@@ -210,35 +209,6 @@ class Miscs(object):
             mlog.debug("autodeg {}".format(deg))
 
         return deg
-
-    @staticmethod
-    def genInitInps(inpSiz, maxV):
-        # 15,75=   0...15, 15..75, 75..100
-
-        assert maxV >= 10, maxV
-        assert inpSiz >= 1, inpSiz
-
-        small = 0.10
-        large = 1 - small
-        minV = -1 * maxV
-        ranges = [(0, int(maxV * small)), (int(maxV * large), maxV)]
-        # , (int(minV * small), 0)]
-        #
-        #
-        # , (minV, int(minV * large))]
-        #print ranges
-        #test = list(itertools.repeat(range(len(ranges)), inpSiz))
-        #print test
-        #print list(itertools.product(*test))
-        inps = list(itertools.product(
-            *itertools.repeat(range(len(ranges)), inpSiz)))
-        #print inps
-        #print '|inps|' , len(inps)
-        rinps = [tuple(random.randrange(ranges[p][0], ranges[p][1]) for p in inp)
-                 for inp in inps]
-        #print rinps
-        #print '|rinps|' , len(rinps)
-        return set(rinps)
 
     @staticmethod
     def getTermsFixedCoefs(ss, subsetSiz):
@@ -752,7 +722,6 @@ class Z3(object):
                 continue
             xclude = [p_ for p_ in rs if p_ != p]
             if cls.imply(xclude, p, useReals):
-                #print xclude, '=>' ,p
                 rs = xclude
 
         rs.extend(eqtsLargeCoefs)

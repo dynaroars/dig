@@ -29,12 +29,7 @@ class Cegir(object):
         inps = Inps()
 
         # use some initial inps first
-        # st = time()
-        # rinps = Miscs.genInitInps(len(self.inpDecls.names), DTraces.inpMaxV)
         rinps = self.symstates.genRandInps(self.prog)
-        # rinps = self.symstates.genInps(len(self.inpDecls.names))
-        # print 'done', time() - st
-        # CM.pause()
 
         mlog.debug("gen {} random inps".format(len(rinps)))
         _ = inps.myupdate(rinps, self.inpDecls.names)

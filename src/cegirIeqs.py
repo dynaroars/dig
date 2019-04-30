@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 import math
 import vcommon as CM
 from miscs import Miscs
@@ -150,7 +149,6 @@ class CegirIeqs(Cegir):
         assert v not in statsd
         statsd[v] = inv.stat
 
-        #print inv, statsd[v]
         if loc in cexs:  # disproved
             cexs = Traces.extract(cexs[loc], useOne=False)
             minV = int(max(cexs.myeval(term)))

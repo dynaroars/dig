@@ -1,8 +1,4 @@
-import os
-import os.path as path
 import subprocess as sp
-from time import time
-import itertools
 import logging
 """
 To run doctest

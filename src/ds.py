@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import os.path
 import sage.all
 from sage.all import cached_function
@@ -152,8 +151,9 @@ class _Trace(tuple):
         try:
             return self._mydict
         except AttributeError:
-            self._mydict = {sage.all.var(s): v for s, v in zip(self.ss, self.vs)
-                            if "!" not in s}
+            self._mydict = {sage.all.var(s): v for s, v
+                            in zip(self.ss, self.vs) if "!" not in s}
+
             return self._mydict
 
     def test(self, inv):
@@ -195,7 +195,7 @@ class _Trace(tuple):
 
     @classmethod
     def fromDict(cls, d):
-        #{'y': 1, 'x': 2, 'r': 2, 'b': 2}
+        # {'y': 1, 'x': 2, 'r': 2, 'b': 2}
         ss = tuple(sorted(d))
         vs = tuple(d[s] for s in ss)
         return _Trace(ss, vs)
@@ -425,7 +425,7 @@ class Inv(object):
         if Miscs.isExpr(self.inv):
             s = Inv.strOfExp(self.inv)
         else:
-            #inv = 0
+            # inv = 0
             s = str(self.inv)
 
         if printStat:
@@ -452,7 +452,7 @@ class Inv(object):
 
     def expr(self, useReals):
         """
-        cannot make this as property because z3 expr is ctype, 
+        cannot make this as property because z3 expr is ctype,
         not compat with multiprocessing Queue
         """
         if self.inv == 0:
