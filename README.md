@@ -84,7 +84,7 @@ $ make
 #~/.bash_profile
 export Z3=PATH/TO/z3   #Z3 dir
 export SAGE=PATH/TO/sage  #where your SAGE dir is
-export SAGE_PATH=$Z3/src/api/python
+export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
 export JAVA_HOME=/PATH/TO/JAVA
 export PATH=$SAGE:$JAVA_HOME/bin:$PATH
 export JPF_HOME=/PATH/TO/JPF
