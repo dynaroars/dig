@@ -67,7 +67,7 @@ ant
 ```shell
 # in DIG's path
 $ cd src/java
-$ sh compile.sh
+$ make
 ```
 
 ### Setup Paths
