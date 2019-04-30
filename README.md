@@ -1,1 +1,215 @@
-# dig
+# DIG #
+DIG is a tool for generating numerical invariants using symbolic states extracted from a symbolic execution tool. By default DIG works with Java programs.
+
+## Setup ##
+
+DIG is written in Python using the *SAGE* mathematics system. Symbolic states are obtained using *Symbolic PathFinder*. Verification tasks are done using the *Z3 SMT* solver. The tool has been tested using the following setup:
+
+* Debian Linux 10 (64 bit)
+* SageMath 8.7 (64 bit)
+* Microsoft Z3 SMT solver 4.8.3
+* Oracle Java JDK 1.8.0_121
+* Java PathFinder and Symbolic Finder: 
+  * JPF (changeset `32:05294e96a284`) 
+  * SPF (changeset `613:0f3b21c15996`)
+
+### Obtain DIG (SymInfer) ###
+
+```
+git clone https://github.com/nguyenthanhvuh/dig.git
+```
+
+### Installing SAGE and Z3###
+* Setup SAGE: download a precompiled [SageMath](http://www.sagemath.org/) binary
+* Setup Z3: [download](https://github.com/Z3Prover/z3/releases) and build Z3 by following the instructions in its README file 
+* To check that you have all needed stuff
+
+```
+# in DIG's path
+$ cd src
+$ sage check_requirements.py
+...
+...
+Everything seems OK. Have fun with DIG!
+```
+
+### Installing Java and PathFinder ###
+* Install Oracle Java JDK 
+
+* Install both Java PathFinder and the Symbolic Pathfinder extension
+
+```
+mkdir /PATH/TO/JPF; 
+cd /PATH/TO/JPF
+hg clone http://babelfish.arc.nasa.gov/hg/jpf/jpf-core  #JPF
+hg clone http://babelfish.arc.nasa.gov/hg/jpf/jpf-symbc #Symbolic extension
+
+#then add the following to `~/.jpf/site.properties` (create ~/.jpf if it doesn't exist)
+jpf-core = /PATH/TO/JPF/jpf-core
+jpf-symbc = /PATH/TO/JPF/jpf-symbc
+extensions=${jpf-core},${jpf-symbc}
+
+
+#copy patched file
+cp /PATH/TO/symtraces/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/jpf/symbc
+
+#build jpf
+cd jpf-core
+ant  
+#build spf
+cd ..
+cd jpf-symbc
+ant
+```
+
+* Compile Java files in `java` directory for instrumenting Java byte classes
+
+```
+# in DIG's path
+$ cd src/java
+$ sh compile.sh
+```
+
+### Setup Paths ###
+
+* Put the following in your `~/.bash_profile`
+
+```
+#~/.bash_profile
+export Z3=PATH/TO/z3   #Z3 dir
+export SAGE=PATH/TO/sage  #where your SAGE dir is
+export SAGE_PATH=$Z3/src/api/python
+export JAVA_HOME=/PATH/TO/JAVA
+export PATH=$SAGE:$JAVA_HOME/bin:$PATH
+export JPF_HOME=/PATH/TO/JPF
+```
+
+* Somet troubleshooting tips:
+  *  Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
+  *  Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
+
+
+## Usage ##
+
+### Generating invariants ###
+
+Consider the following `CohenDiv.java` program
+
+```
+public class CohenDiv {
+     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
+     public static void vtrace2(int x, int y, int q, int r){}
+
+     public static void main (String[] args) {}
+
+
+     public static int mainQ_cohendiv(int x, int y) {
+          assert(x>0 && y>0);
+
+          int q=0;
+          int r=x;
+          int a=0;
+          int b=0;
+
+          while(true) {
+               if(!(r>=y)) break;
+               a=1;
+               b=y;
+
+               while (true) {
+                    vtrace1(q,r,a,b,x,y);
+                    if(!(r >= 2*b)) break;
+
+                    a = 2*a;
+                    b = 2*b;
+               }
+               r=r-b;
+               q=q+a;
+          }
+          vtrace2(x,y,q,r);
+          return q;
+     }
+}
+```
+* To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
+  * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
+  * Notice that `vtraceX` takes a list of arguments, which are variables in scope at the desired location. This tells DIG to only find relations over these input arguments.
+
+* Next, we run DIG on `CohenDiv.java` and discover equality and inequality invariants at locations calling `vtracesX`:
+
+```
+#in DIG's path
+$ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
+alg:INFO:analyze '../tests/nla/CohenDiv.java'
+alg:INFO:gen eqts at 2 locs
+^X^G^Galg:INFO:infer 3 eqts in 13.8612298965s
+alg:INFO:gen ieqs at 2 locs
+cegirIeqs:INFO:check upperbounds for 104 terms at 2 locs
+alg:INFO:infer 52 ieqs in 9.20348906517s
+alg:INFO:test 55 invs on 291 traces
+alg:INFO:uniqify 47 invs
+*** '../tests/nla/CohenDiv.java', 2 locs, invs 10 (3 eqts), inps 83 time 26.650242 s, rand 63:
+vtrace1: q*y + r - x == 0 p, a*y - b == 0 p, r - x <= 0 p, -a - q <= -1 p, -b <= -1 p, b - r <= 0 p
+vtrace2: q*y + r - x == 0 p, -q - x <= -1 p, -r <= 0 p, r - y <= -1 p
+```
+
+
+
+### Other programs
+The directory `../tests/nla/` contains many programs having such nonlinear invariants.
+
+### Additional Info
+To run doctests, use `sage -t`
+```
+$ export SAGE_PATH=$Z3/src/api/python:.
+$ sage -t miscs.py
+```
+
+## Publications ##
+Additional information on DIG can be found from these papers:
+
+* ThanhVu Nguyen, Matthew Dwyer, and William Visser. SymInfer: Inferring Program Invariants using Symbolic States. In Automated Software Engineering (ASE). IEEE, 2017.
+
+
+# For C programs
+DIG also supports C programs, but has a differently underlying algorithm.  More specifically, the tool doesn't compute symbolic states and instead directly calls a symbolic execution tool to check candidate invariants.  
+
+### Install KLEE ###
+
+To setup DIG to work with C, **do all the above steps for Java** and then install KLEE.  DIG has been tested with 
+
+* KLEE 1.3.0.0
+
+
+Then build KLEE using these [instructions](http://klee.github.io/build-llvm34/).  **Important**: build KLEE with Z3 support !
+
+```
+#!shell
+
+#command to build klee
+cmake -DENABLE_SOLVER_Z3=ON -DENABLE_SOLVER_STP=OFF -DENABLE_POSIX_RUNTIME=ON -DENABLE_KLEE_UCLIBC=ON  -DENABLE_UNIT_TESTS=OFF -DENABLE_SYSTEM_TESTS=OFF -DKLEE_UCLIBC_PATH=/home/tnguyen/Src/Devel/KLEE/klee-uclibc /home/tnguyen/Src/Devel/KLEE/klee
+```
+
+### Setup Paths ###
+* Append the following in your `~/.bash_profile`
+```
+#!shell
+# ~/.bash_profile
+...
+export KLEE=$DEVEL/KLEE/
+export PATH=$KLEE/klee_build_dir/bin:$SAGE:$PATH
+```
+*  Make sure KLEE works, e.g., `klee --help | grep z3' should say something that Z3 is the default solver
+
+## Usage ##
+Here's the equivalent C program of the above CohenDiv.java. Again the following assumes we are currently in the `symtraces` directory.
+
+### Generating invariants ###
+```
+#!shell
+
+mu1k4sfag@debian:~/symtraces$ sage -python -O dig.py programs/nla/cohendiv.c -log 3
+alg:INFO:analyze 'programs/nla/cohendiv.c'
+...
+```
+
