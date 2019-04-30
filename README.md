@@ -1,17 +1,22 @@
 # DIG
-DIG is a tool for generating numerical invariants using symbolic states extracted from a symbolic execution tool. By default DIG works with Java programs.
+DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.  
+
+The current version of DIG works with Java programs and raw program execution traces.  Previous versions also work with C and raw traces.
 
 ## Setup
 
-DIG is written in Python using the *SAGE* mathematics system. Symbolic states are obtained using *Symbolic PathFinder*. Verification tasks are done using the *Z3 SMT* solver. The tool has been tested using the following setup:
+DIG is written in Python using the **SAGE** mathematics system. It infer invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
+DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
 
-* Debian Linux 10 (64 bit)
-* SageMath 8.7 (64 bit)
-* Microsoft Z3 SMT solver 4.8.3
-* Oracle Java JDK 1.8.0_121
+More specifically, the tool has been tested using the following setup:
+
+* Debian Linux 9 or 10 (64 bit)
+* SageMath `8.7` (64 bit)
+* Microsoft Z3 SMT solver `4.8.3`
+* Oracle Java JDK `1.8.0_121`
 * Java PathFinder and Symbolic Finder: 
-  * JPF (changeset `32:05294e96a284`) 
-  * SPF (changeset `613:0f3b21c15996`)
+  * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
+  * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
 
 ### Obtain DIG (SymInfer) ###
 
@@ -39,10 +44,10 @@ Everything seems OK. Have fun with DIG!
 * Install both Java PathFinder and the Symbolic Pathfinder extension
 
 ```shell
-mkdir /PATH/TO/JPF; 
-cd /PATH/TO/JPF
-hg clone http://babelfish.arc.nasa.gov/hg/jpf/jpf-core  #JPF
-hg clone http://babelfish.arc.nasa.gov/hg/jpf/jpf-symbc #Symbolic extension
+$ mkdir /PATH/TO/JPF; 
+$ cd /PATH/TO/JPF
+$ git clone https://github.com/javapathfinder/jpf-core #JPF
+$ git clone https://github.com/SymbolicPathFinder/jpf-symbc #Symbolic extension
 
 #then add the following to `~/.jpf/site.properties` (create ~/.jpf if it doesn't exist)
 jpf-core = /PATH/TO/JPF/jpf-core
@@ -50,16 +55,17 @@ jpf-symbc = /PATH/TO/JPF/jpf-symbc
 extensions=${jpf-core},${jpf-symbc}
 
 
-#copy patched file
-cp /PATH/TO/symtraces/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/jpf/symbc
-
 #build jpf
-cd jpf-core
-ant  
+$ cd jpf-core
+$ git checkout java-8  #switch to the java-8 branch
+$ ant
+
+#copy patched Listener file to SPF
+$ cp /PATH/TO/dig/src/java/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/jpf/symbc
+
 #build spf
-cd ..
-cd jpf-symbc
-ant
+$ cd jpf-symbc
+$ ant
 ```
 
 * Compile Java files in `java` directory for instrumenting Java byte classes
@@ -134,16 +140,16 @@ public class CohenDiv {
 
 * To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
   * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
-  * Notice that `vtraceX` takes a list of arguments, which are variables in scope at the desired location. This tells DIG to only find relations over these input arguments.
+  * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these specific variables.
 
-* Next, we run DIG on `CohenDiv.java` and discover equality and inequality invariants at locations calling `vtracesX`:
+* Next, we run DIG on `CohenDiv.java` and discover the following equality and inequality invariants at `vtracesX` locations:
 
 ```
 #in DIG's path
 $ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/nla/CohenDiv.java'
 alg:INFO:gen eqts at 2 locs
-^X^G^Galg:INFO:infer 3 eqts in 13.8612298965s
+alg:INFO:infer 3 eqts in 13.8612298965s
 alg:INFO:gen ieqs at 2 locs
 cegirIeqs:INFO:check upperbounds for 104 terms at 2 locs
 alg:INFO:infer 52 ieqs in 9.20348906517s
