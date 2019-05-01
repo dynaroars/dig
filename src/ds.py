@@ -1,10 +1,12 @@
+import settings
+from miscs import Miscs, Z3
+import vcommon as CM
+import z3
 import os.path
 import sage.all
 from sage.all import cached_function
-import z3
-import vcommon as CM
-from miscs import Miscs, Z3
-import settings
+import pdb
+trace = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 """
@@ -21,27 +23,31 @@ class Prog(object):
         self.exeCmd = exeCmd
         self.traceDir = traceDir
         self.invDecls = invDecls
+        self.cache = {}  # inp -> traces (str)
 
     def getTraces(self, inps):
         """
         Run program on inps and get traces
         """
         assert isinstance(inps, Inps) and inps, inps
-
-        tcsFile = str(hash(inps.__str__(printDetails=True))
-                      ).replace("-", "_") + ".tcs"
-        tcsFile = os.path.join(self.traceDir, tcsFile)
-        if os.path.isfile(tcsFile):
-            traces = DTraces.parse(tcsFile, self.invDecls)
-        else:
-            for inp in inps:
+        trace_str = []
+        for inp in inps:
+            if inp in self.cache:
+                mlog.warn("inp {} already in cache".format(inp))
+                results = self.cache[inp]
+            else:
                 inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                         for v in inp.vs)
                 inp_ = ' '.join(map(str, inp_))
-                cmd = "{} {} >> {}".format(self.exeCmd, inp_, tcsFile)
+                cmd = "{} {}".format(self.exeCmd, inp_)
                 mlog.debug(cmd)
-                CM.vcmd(cmd)
-            traces = DTraces.parse(tcsFile, self.invDecls)
+                results, _ = CM.vcmd(cmd)
+                results = results.splitlines()
+                self.cache[inp] = results
+
+            trace_str.extend(results)
+
+        traces = DTraces.parse(trace_str, self.invDecls)
 
         assert all(loc in self.invDecls for loc in traces), traces.keys()
         return traces
@@ -380,15 +386,18 @@ class DTraces(dict):
         return newTraces
 
     @classmethod
-    def parse(cls, tracefile, invdecls):
+    def parse(cls, trace_str, invdecls):
         """
         parse trace for new traces
         """
-        assert isinstance(tracefile, str), tracefile
+        assert isinstance(trace_str, list), trace_str
         assert isinstance(invdecls, dict) and invdecls, invdecls
 
+        lines = [l.strip() for l in trace_str]
+        lines = [l for l in lines if l]
+
         dtraces = DTraces()
-        for l in CM.iread_strip(tracefile):
+        for l in lines:
             # 22: 8460 16 0 1 16 8460
             parts = l.split(':')
             assert len(parts) == 2, parts
