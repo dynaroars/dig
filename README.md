@@ -25,7 +25,7 @@ git clone https://github.com/nguyenthanhvuh/dig.git
 ```
 
 ### Installing SAGE and Z3
-* Setup SAGE: download a precompiled [SageMath](http://www.sagemath.org/) binary
+* Setup SAGE: download a precompiled [SageMath](http://mirrors.mit.edu/sage/linux/64bit/index.html) binary
 * Setup Z3: [download](https://github.com/Z3Prover/z3/releases) and build Z3 by following the instructions in its README file 
 * To check that you have all needed stuff
 
