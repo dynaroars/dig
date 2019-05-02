@@ -30,7 +30,10 @@ def parse(filename, tmpdir):
     tracedir, tracefile = mkdir("traces")
     jpfdir, jpffile = mkdir("jpf")
 
-    cp = "java:java/asm-all-5.2.jar"
+    java_src_dir = os.path.join(settings.src_dir, 'java')
+    assert os.path.isdir(java_src_dir), java_src_dir
+
+    cp = "{}:{}/asm-all-5.2.jar".format(java_src_dir, java_src_dir)
     cmd = ("java -cp {} Instrument {} {} {}"
            .format(cp, filename, tracefile, jpffile))
 

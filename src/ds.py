@@ -15,13 +15,11 @@ Data structures
 
 
 class Prog(object):
-    def __init__(self, exeCmd, traceDir, invDecls):
+    def __init__(self, exeCmd, invDecls):
         assert isinstance(exeCmd, str), exeCmd
-        assert os.path.isdir(traceDir), traceDir
         assert isinstance(invDecls, dict), invDecls
 
         self.exeCmd = exeCmd
-        self.traceDir = traceDir
         self.invDecls = invDecls
         self.cache = {}  # inp -> traces (str)
 
@@ -33,7 +31,6 @@ class Prog(object):
         trace_str = []
         for inp in inps:
             if inp in self.cache:
-                mlog.warn("inp {} already in cache".format(inp))
                 results = self.cache[inp]
             else:
                 inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
@@ -44,7 +41,6 @@ class Prog(object):
                 results, _ = CM.vcmd(cmd)
                 results = results.splitlines()
                 self.cache[inp] = results
-
             trace_str.extend(results)
 
         traces = DTraces.parse(trace_str, self.invDecls)

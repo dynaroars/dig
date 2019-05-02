@@ -1,3 +1,4 @@
+src_dir = None
 tmpdir = "/var/tmp/"
 logger_level = 3
 doMP = True
@@ -10,4 +11,7 @@ maxLargeCoefs = 50
 maxterm = 200
 octMaxV = 10  # t <= 10
 largeN = 200000  # powersum programs can go up to very large vals
+
+
 trace_multipler = 5
+counter_var = 'Ct'  # counter variable contains this string

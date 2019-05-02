@@ -1,3 +1,4 @@
+import settings
 from abc import ABCMeta
 import os.path
 from time import time
@@ -10,8 +11,9 @@ from symstates import SymStates
 from cegir import Cegir
 from cegirEqts import CegirEqts
 from cegirIeqs import CegirIeqs
+import pdb
+trace = pdb.set_trace
 
-import settings
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -74,23 +76,27 @@ class Dig(object):
                    .format(oldSiz - dinvs.siz, time() - st))
         return dinvs
 
-    def postprocess(self, dinvs, traces, inps, st):
+    def check(self, dinvs, traces, inps, st):
         assert isinstance(dinvs, DInvs), dinvs
         assert isinstance(traces, DTraces), traces
         assert isinstance(inps, Inps), inps
         assert st >= 0.0, st
 
-        mlog.info("test {} invs on {} traces".format(dinvs.siz, traces.siz))
+        mlog.info("check {} invs on {} traces".format(dinvs.siz, traces.siz))
         dinvs = dinvs.testTraces(traces)
         dinvs = self.uniqify(dinvs)
 
         # print results
-        result_str = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
-                      "time {:02f} s, rand {}:\n{}")
-        print(result_str.format(self.filename, len(dinvs),
-                                dinvs.siz, dinvs.nEqs, len(inps),
-                                time() - st, sage.all.randint(0, 100),
-                                dinvs.__str__(printStat=True)))
+        result = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
+                  "time {:02f} s, rand {}:\n{}")
+        print(result.format(self.filename, len(dinvs),
+                            dinvs.siz, dinvs.nEqs, len(inps),
+                            time() - st, sage.all.randint(0, 100),
+                            dinvs.__str__(printStat=True)))
+
+        # fs_analysis = FullSpecsAnalysis(
+        #     dinvs, traces, self.inpDecls, self.symstates)
+        # fs_analysis.go()
 
 
 class DigCegir(Dig):
@@ -106,7 +112,7 @@ class DigCegir(Dig):
         self.useRandInit = True
 
         exeCmd = "java -ea -cp {} {}".format(traceDir, clsName)
-        self.prog = Prog(exeCmd, traceDir, invDecls)
+        self.prog = Prog(exeCmd, invDecls)
 
         self.symstates = SymStates(inpDecls, invDecls)
         self.symstates.compute(self.filename, mainQName, clsName, jpfDir)
@@ -152,7 +158,7 @@ class DigCegir(Dig):
         if doIeqs:
             _gen('ieqs')
 
-        self.postprocess(dinvs, traces, inps, st)
+        self.check(dinvs, traces, inps, st)
         return dinvs, traces, self.tmpdir
 
 
@@ -196,6 +202,6 @@ class DigTraces(Dig):
         dtraces = DTraces()
         dtraces[loc] = traces
         inps = Inps()
-        self.postprocess(dinvs, dtraces, inps, st)
+        self.check(dinvs, dtraces, inps, st)
 
         return dinvs, None, self.tmpdir

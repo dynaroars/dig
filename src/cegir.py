@@ -27,7 +27,6 @@ class Cegir(object):
         # check for reachability using inv False (0)
         dinvs = DInvs.mkFalses(self.invDecls)
         inps = Inps()
-
         # use some initial inps first
         rinps = self.symstates.genRandInps(self.prog)
 
