@@ -9,8 +9,6 @@ import srcJava
 from ds import Inps, Traces, DTraces, Inv, Invs, DInvs, Prog
 from symstates import SymStates
 from cegir import Cegir
-from cegirEqts import CegirEqts
-from cegirIeqs import CegirIeqs
 import pdb
 trace = pdb.set_trace
 
@@ -28,10 +26,8 @@ class Dig(object):
         self.tmpdir = tempfile.mkdtemp(dir=settings.tmpdir, prefix="Dig_")
         self.filename = filename
 
-    def start(self, seed, maxdeg, doEqts, doIeqs):
+    def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
-        assert isinstance(doEqts, bool), doEqts
-        assert isinstance(doIeqs, bool), doIeqs
 
         import random
         random.seed(seed)
@@ -96,6 +92,9 @@ class Dig(object):
 
 
 class DigCegir(Dig):
+    OPT_EQTS = 1
+    OPT_IEQS = 2
+
     def __init__(self, filename):
         super(DigCegir, self).__init__(filename)
 
@@ -119,8 +118,8 @@ class DigCegir(Dig):
     def strOfLocs(self, locs):
         return '; '.join("{} ({})".format(l, self.invDecls[l]) for l in locs)
 
-    def start(self, seed, maxdeg, doEqts, doIeqs):
-        deg = super(DigCegir, self).start(seed, maxdeg, doEqts, doIeqs)
+    def start(self, seed, maxdeg, doEqts, doIeqs, doFullSpecs):
+        deg = super(DigCegir, self).start(seed, maxdeg)
         st = time()
         solver = Cegir(self.symstates, self.prog)
         mlog.debug("check reachability")
@@ -131,7 +130,13 @@ class DigCegir(Dig):
         def _gen(typ):
 
             st_gen = time()
-            cls = CegirEqts if typ == 'eqts' else CegirIeqs
+            if typ == self.OPT_EQTS:
+                from cegirEqts import CegirEqts
+                cls = CegirEqts
+            else:
+                from cegirIeqs import CegirIeqs
+                cls = CegirIeqs
+
             mlog.info("gen {} at {} locs".format(typ, len(traces)))
             mlog.debug(self.strOfLocs(traces.keys()))
             solver = cls(self.symstates, self.prog)
@@ -150,11 +155,16 @@ class DigCegir(Dig):
                 mlog.debug("{}".format(dinvs.__str__(printStat=True)))
 
         if doEqts:
-            _gen('eqts')
+            _gen(self.OPT_EQTS)
         if doIeqs:
-            _gen('ieqs')
+            _gen(self.OPT_IEQS)
 
         self.check(dinvs, traces, inps, st)
+
+        if doFullSpecs:
+            from cegirFullSpecs import CegirFullSpecs
+            solver = CegirFullSpecs(self.symstates, self.prog)
+            invs = solver.gen(dinvs, traces)
         return dinvs, traces, self.tmpdir
 
 

@@ -1,8 +1,3 @@
-from time import time
-from abc import ABCMeta, abstractmethod
-import math
-import os.path
-import sage.all
 import vcommon as CM
 from miscs import Miscs
 from ds import Inps, Traces, DTraces, Inv, Invs, DInvs
@@ -16,6 +11,40 @@ class CegirEqts(Cegir):
     def __init__(self, symstates, prog):
         super(CegirEqts, self).__init__(symstates, prog)
         self.useRandInit = False  # use symstates or random to get init inps
+
+    def gen(self, deg, traces, inps):
+        assert deg >= 1, deg
+        assert isinstance(traces, DTraces) and traces, traces
+        assert isinstance(inps, Inps), inps
+
+        # first obtain enough traces
+        initrs = [self.getInitTraces(loc, deg, traces, inps, settings.EQT_RATE)
+                  for loc in traces]
+        tasks = [(loc, rs) for loc, rs in zip(traces, initrs) if rs]
+        if not tasks:  # e.g., cannot obtain enough traces
+            return
+
+        # then solve/prove in parallel
+        def wprocess(tasks, Q):
+            rs = [(loc, self.infer(loc, template, uks, exprs, traces, inps))
+                  for loc, (template, uks, exprs) in tasks]
+            if Q is None:
+                return rs
+            else:
+                Q.put(rs)
+        wrs = Miscs.runMP('find eqts', tasks, wprocess, chunksiz=1,
+                          doMP=settings.doMP and len(tasks) >= 2)
+
+        dinvs = DInvs()
+        for loc, (eqts, newCexs) in wrs:
+            newInps = inps.myupdate(newCexs, self.inpDecls.names)
+            mlog.debug("{}: got {} eqts, {} new inps"
+                       .format(loc, len(eqts), len(newInps)))
+            if eqts:
+                mlog.debug('\n'.join(map(str, eqts)))
+            dinvs[loc] = Invs.mk(eqts)
+
+        return dinvs
 
     def whileRand(self, loc, template, nEqtsNeeded, inps, traces):
         """
@@ -184,37 +213,3 @@ class CegirEqts(Cegir):
             exprs.extend(exprs_)
 
         return eqts, newCexs
-
-    def gen(self, deg, traces, inps):
-        assert deg >= 1, deg
-        assert isinstance(traces, DTraces) and traces, traces
-        assert isinstance(inps, Inps), inps
-
-        # first obtain enough traces
-        initrs = [self.getInitTraces(loc, deg, traces, inps, settings.EQT_RATE)
-                  for loc in traces]
-        tasks = [(loc, rs) for loc, rs in zip(traces, initrs) if rs]
-        if not tasks:  # e.g., cannot obtain enough traces
-            return
-
-        # then solve/prove in parallel
-        def wprocess(tasks, Q):
-            rs = [(loc, self.infer(loc, template, uks, exprs, traces, inps))
-                  for loc, (template, uks, exprs) in tasks]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
-        wrs = Miscs.runMP('find eqts', tasks, wprocess, chunksiz=1,
-                          doMP=settings.doMP and len(tasks) >= 2)
-
-        dinvs = DInvs()
-        for loc, (eqts, newCexs) in wrs:
-            newInps = inps.myupdate(newCexs, self.inpDecls.names)
-            mlog.debug("{}: got {} eqts, {} new inps"
-                       .format(loc, len(eqts), len(newInps)))
-            if eqts:
-                mlog.debug('\n'.join(map(str, eqts)))
-            dinvs[loc] = Invs.mk(eqts)
-
-        return dinvs

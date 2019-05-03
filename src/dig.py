@@ -51,6 +51,9 @@ if __name__ == "__main__":
     ag("--noieqs", "-noieqs",
        action="store_true")
 
+    ag("--nofullspecs", "-nofullspecs",
+       action="store_true")
+
     ag("--nomp", "-nomp",
        action="store_true",
        help="don't use multiprocessing")
@@ -103,7 +106,9 @@ if __name__ == "__main__":
 
     invs, traces, tmpdir = dig.start(
         seed=seed, maxdeg=args.maxdeg,
-        doEqts=not args.noeqts, doIeqs=not args.noieqs)
+        doEqts=not args.noeqts,
+        doIeqs=not args.noieqs,
+        doFullSpecs=not args.nofullspecs)
 
     if not args.normtmp:
         import shutil

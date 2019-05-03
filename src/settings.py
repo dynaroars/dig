@@ -14,5 +14,5 @@ LARGE_N = 200000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 
 # options for full specs analysis
-counterVar = 'Ct'  # counter variable contains this string
-postLoc = 'post'  # vtraceX_post  indicates postconditions
+CTR_VAR = 'Ct'  # counter variable contains this string
+POST_LOC = 'post'  # vtraceX_post  indicates postconditions
