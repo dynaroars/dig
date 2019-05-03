@@ -1,9 +1,41 @@
 # DIG
-DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.  
+DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.
 
 The current version of DIG works with Java programs and raw program execution traces.  Previous versions also work with C and raw traces.
 
+
 ## Setup
+
+First, clone DIG
+
+```shell
+git clone https://github.com/nguyenthanhvuh/dig.git
+```
+Then go to DIG's directory (`cd dig`).  Also make sure that you're in the `master` branch (if not, do `git checkouter master`).
+To install DIG, you can either use the provided *docker* script (easiest way) or installing DIG yourself.
+
+### Using DOCKER
+
+```
+# in DIG's directory
+
+# build the docker image, 
+$ docker build . -t='dig'
+... 
+... 
+# this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
+
+# then run dig
+$ docker run -it dig
+
+# docker will drop you into a Linux prompt like below.
+$ root@b53e0bd86c11:/dig/src# 
+```
+
+You are now ready to use DIG, see instructions in [USAGE](## Usage)
+
+### Installing DIG
+
 
 DIG is written in Python using the **SAGE** mathematics system. It infer invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
@@ -18,11 +50,7 @@ More specifically, the tool has been tested using the following setup:
   * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
   * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
 
-### Obtain DIG (SymInfer) ###
 
-```shell
-git clone https://github.com/nguyenthanhvuh/dig.git
-```
 
 ### Installing SAGE and Z3
 * Setup SAGE: download a precompiled [SageMath](http://mirrors.mit.edu/sage/linux/64bit/index.html) binary
@@ -30,7 +58,7 @@ git clone https://github.com/nguyenthanhvuh/dig.git
 * To check that you have all needed stuff
 
 ```shell
-# in DIG's path
+# in DIG's directory
 $ cd src
 $ sage check_requirements.py
 ...
@@ -71,7 +99,7 @@ $ ant
 * Compile Java files in `java` directory for instrumenting Java byte classes
 
 ```shell
-# in DIG's path
+# in DIG's directory
 $ cd src/java
 $ make
 ```
@@ -145,7 +173,7 @@ public class CohenDiv {
 * Next, we run DIG on `CohenDiv.java` and discover the following equality and inequality invariants at `vtracesX` locations:
 
 ```
-#in DIG's path
+#in DIG's directory
 $ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/nla/CohenDiv.java'
 alg:INFO:gen eqts at 2 locs
