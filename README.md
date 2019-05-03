@@ -1,6 +1,9 @@
 # DIG
 DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.
 
+DIG is written in Python using the **SAGE** mathematics system. It infer invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
+DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
+
 The current version of DIG works with Java programs and raw program execution traces.  Previous versions also work with C and raw traces.
 
 
@@ -11,8 +14,8 @@ First, clone DIG
 ```shell
 git clone https://github.com/nguyenthanhvuh/dig.git
 ```
-Then go to DIG's directory (`cd dig`).  Also make sure that you're in the `master` branch (if not, do `git checkouter master`).
-To install DIG, you can either use the provided *docker* script (easiest way) or installing DIG yourself.
+Then go to DIG's directory (`cd dig`).  Also make sure that you're in the `master` branch (if not, do `git checkout master`).
+To run DIG, you can either use the [provided  *docker* script](#using-docker) (easiest way) or [install DIG yourself](#installing-dig).
 
 ### Using DOCKER
 
@@ -32,33 +35,29 @@ $ docker run -it dig
 $ root@b53e0bd86c11:/dig/src# 
 ```
 
-You are now ready to use DIG, see instructions in [USAGE](## Usage)
+You are now ready to use DIG, see instructions in [USAGE](##usage)
 
 ### Installing DIG
 
-
-DIG is written in Python using the **SAGE** mathematics system. It infer invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
-DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
-
-More specifically, the tool has been tested using the following setup:
+You can install DIG yourself.  The tool has been tested using the following setup:
 
 * Debian Linux 9 or 10 (64 bit)
 * SageMath `8.7` (64 bit)
 * Microsoft Z3 SMT solver `4.8.3`
-* Oracle Java JDK `1.8.0_121`
+* Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
 * Java PathFinder and Symbolic Finder: 
   * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
   * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
 
 
 
-### Installing SAGE and Z3
+#### Installing SAGE and Z3
 * Setup SAGE: download a precompiled [SageMath](http://mirrors.mit.edu/sage/linux/64bit/index.html) binary
 * Setup Z3: [download](https://github.com/Z3Prover/z3/releases) and build Z3 by following the instructions in its README file 
 * To check that you have all needed stuff
 
 ```shell
-# in DIG's directory
+# in DIG's src directory
 $ cd src
 $ sage check_requirements.py
 ...
@@ -66,8 +65,8 @@ $ sage check_requirements.py
 Everything seems OK. Have fun with DIG!
 ```
 
-### Installing Java and PathFinder
-* Install Oracle Java JDK 
+#### Installing Java and PathFinder
+* Install Java 8: either the JDK from Oracle 1.8.0_121 or the OpenJDK packaged in Debian (`apt-get install -y default-jdk`, besure the version is 1.8.0_121 or 1.8.0_122).
 
 * Install both Java PathFinder and the Symbolic Pathfinder extension
 
@@ -99,12 +98,12 @@ $ ant
 * Compile Java files in `java` directory for instrumenting Java byte classes
 
 ```shell
-# in DIG's directory
+# in DIG's src directory
 $ cd src/java
 $ make
 ```
 
-### Setup Paths
+#### Setup Paths
 
 * Put the following in your `~/.bash_profile`
 
@@ -118,7 +117,7 @@ export PATH=$SAGE:$JAVA_HOME/bin:$PATH
 export JPF_HOME=/PATH/TO/JPF
 ```
 
-* Somet troubleshooting tips:
+* Some troubleshooting tips:
   *  Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
   *  Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
 
@@ -173,7 +172,7 @@ public class CohenDiv {
 * Next, we run DIG on `CohenDiv.java` and discover the following equality and inequality invariants at `vtracesX` locations:
 
 ```
-#in DIG's directory
+#in DIG's src directory
 $ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/nla/CohenDiv.java'
 alg:INFO:gen eqts at 2 locs
@@ -191,7 +190,7 @@ vtrace2: q*y + r - x == 0 p, -q - x <= -1 p, -r <= 0 p, r - y <= -1 p
 
 
 ### Other programs
-The directory `../tests/nla/` contains many programs having nonlinear invariants.
+The directory `tests/nla/` contains many programs having nonlinear invariants.
 
 ### Additional Info
 To run doctests, use `sage -t`
