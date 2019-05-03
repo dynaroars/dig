@@ -1,7 +1,7 @@
 # DIG
 DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.
 
-DIG is written in Python using the **SAGE** mathematics system. It infer invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
+DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
 
 The current version of DIG works with Java programs and raw program execution traces.  Previous versions also work with C and raw traces.
