@@ -155,9 +155,9 @@ class PC(object):
             ps = p.split('=')
             assert len(ps) == 2
             v = sage.all.sage_eval(ps[1])
-            if Miscs.isNum(v) and v >= settings.largeN:
+            if Miscs.isNum(v) and v >= settings.LARGE_N:
                 mlog.warn("ignore {} (larger than {})".format(
-                    p, settings.largeN))
+                    p, settings.LARGE_N))
                 return True
             else:
                 return False
@@ -275,8 +275,8 @@ class SymStates(object):
             else:
                 Q.put(rs)
 
-        mindepth = settings.jpfmindepth
-        maxdepth = mindepth + settings.jpfdepth_incr
+        mindepth = settings.JPF_MIN_DEPTH
+        maxdepth = mindepth + settings.JPF_DEPTH_INCR
         tasks = [depth for depth in range(mindepth, maxdepth)]
         wrs = Miscs.runMP("get symstates", tasks, wprocess, chunksiz=1,
                           doMP=settings.doMP and len(tasks) >= 2)

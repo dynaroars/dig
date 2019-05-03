@@ -199,12 +199,12 @@ class Miscs(object):
                 return d
 
     @classmethod
-    def getAutoDeg(cls, maxdeg, nvars):
+    def getAutoDeg(cls, maxdeg, nvars, maxterm):
         if maxdeg:
             deg = maxdeg
             mlog.debug("using deg {}".format(deg))
         else:
-            deg = cls.getDeg(nvars, settings.maxterm)
+            deg = cls.getDeg(nvars, maxterm)
             mlog.debug("autodeg {}".format(deg))
 
         return deg
@@ -328,7 +328,7 @@ class Miscs(object):
         sols = [cls.elimDenom(s) for s in sols]
 
         def okCoefs(s): return all(
-            abs(c) <= settings.maxLargeCoefs or
+            abs(c) <= settings.MAX_LARGE_COEFS or
             sage.all.mod(c, 10) == 0 or
             sage.all.mod(c, 5) == 0
             for c in cls.getCoefs(s))
@@ -597,7 +597,7 @@ class Z3(object):
     @classmethod
     def createSolver(cls):
         solver = z3.Solver()
-        timeout = settings.solver_timeout * 1000
+        timeout = settings.SOLVER_TIMEOUT * 1000
         solver.set(timeout=timeout)  # secs
         return solver
 

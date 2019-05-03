@@ -21,7 +21,7 @@ def run(dir_, ntimes):
             print "File {} does not exist".format(f)
             continue
 
-        run_cmd = "sage -python -O dig.py {} -log 2 -octMaxV 20 -seed {}"
+        run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {}"
         for i in range(ntimes):
             print "##### Running {} with seed {}, {}".format(
                 f, i, time.strftime("%c"))

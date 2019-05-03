@@ -41,7 +41,7 @@ class Dig(object):
 
         # determine degree
         maxvars = max(self.invDecls.itervalues(), key=lambda d: len(d))
-        deg = Miscs.getAutoDeg(maxdeg, len(maxvars))
+        deg = Miscs.getAutoDeg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
     def uniqify(self, dinvs):
@@ -93,10 +93,6 @@ class Dig(object):
                             dinvs.siz, dinvs.nEqs, len(inps),
                             time() - st, sage.all.randint(0, 100),
                             dinvs.__str__(printStat=True)))
-
-        # fs_analysis = FullSpecsAnalysis(
-        #     dinvs, traces, self.inpDecls, self.symstates)
-        # fs_analysis.go()
 
 
 class DigCegir(Dig):
@@ -190,9 +186,8 @@ class DigTraces(Dig):
         traces = [_Trace.parse(vs, t) for t in traces]
         traces = Traces(set(traces))
 
-        eqtrate = settings.eqtrate
         terms, template, uks, nEqtsNeeded = Miscs.initTerms(
-            vs, deg, eqtrate)
+            vs, deg, settings.EQT_RATE)
 
         exprs = list(traces.instantiate(template, nEqtsNeeded))
         eqts = Miscs.solveEqts(exprs, uks, template)

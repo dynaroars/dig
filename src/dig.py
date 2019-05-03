@@ -37,7 +37,7 @@ if __name__ == "__main__":
        type=int,
        help="JPF depthlimit")
 
-    ag("--octMaxV", "-octMaxV",
+    ag("--octmaxv", "-octmaxv",
        type=int,
        help="max val for oct ieqs")
 
@@ -64,26 +64,26 @@ if __name__ == "__main__":
     import settings
     settings.doMP = not args.nomp
 
-    if args.log_level != settings.logger_level and 0 <= args.log_level <= 4:
+    if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
         settings.logger_level = args.log_level
     settings.logger_level = getLogLevel(settings.logger_level)
 
     mlog = getLogger(__name__, settings.logger_level)
 
-    if args.inpMaxV != settings.inpMaxV and args.inpMaxV >= 1:
-        settings.inpMaxV = args.inpMaxV
+    if args.inpMaxV >= 1 and args.inpMaxV != settings.INP_MAX_V:
+        settings.INP_MAX_V = args.inpMaxV
 
-    if args.eqtrate != settings.eqtrate and args.eqtrate >= 1:
-        settings.eqtrate = args.eqtrate
+    if args.eqtrate >= 1 and args.eqtrate != settings.EQT_RATE:
+        settings.EQT_RATE = args.eqtrate
 
-    if args.jpfmindepth != settings.jpfmindepth and args.jpfmindepth >= 1:
-        settings.jpfmindepth = args.jpfmindepth
+    if args.jpfmindepth >= 1 and args.jpfmindepth != settings.JPF_MIN_DEPTH:
+        settings.JPF_MIN_DEPTH = args.jpfmindepth
 
-    if args.octMaxV != settings.octMaxV and args.octMaxV >= 1:
-        settings.octMaxV = args.octMaxV
+    if args.octmaxv >= 1 and args.octmaxv != settings.OCT_MAX_V:
+        settings.OCT_MAX_V = args.octmaxv
 
-    if args.maxterm != settings.maxterm and args.maxterm >= 1:
-        settings.maxterm = args.maxterm
+    if args.maxterm >= 1 and args.maxterm != settings.MAX_TERM:
+        settings.MAX_TERM = args.maxterm
 
     if __debug__:
         mlog.warn("DEBUG MODE ON. Can be slow !")

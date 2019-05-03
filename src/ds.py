@@ -215,8 +215,6 @@ class _Trace(tuple):
 
 
 class Traces(set):
-    trace_multiplier = settings.trace_multipler
-
     def __init__(self, myset=set()):
         assert all(isinstance(t, _Trace) for t in myset), myset
         super(Traces, self).__init__(myset)
@@ -274,7 +272,7 @@ class Traces(set):
             for t in self.mydicts:
                 exprs = set(term.subs(t) for t in self.mydicts)
         else:
-            nTracesExtra = nTraces * self.trace_multiplier
+            nTracesExtra = nTraces * settings.TRACE_MULTIPLIER
             exprs = set()
             for i, t in enumerate(self.mydicts):
                 expr = term.subs(t)
@@ -346,7 +344,7 @@ class DTraces(dict):
     """
     {loc: Traces}
     """
-    inpMaxV = settings.inpMaxV
+    inpMaxV = settings.INP_MAX_V
 
     @property
     def siz(self): return sum(map(len, self.itervalues()))

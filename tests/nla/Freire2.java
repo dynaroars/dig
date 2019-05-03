@@ -1,5 +1,6 @@
 public class Freire2 {
-     public static void vtrace1(float a, float x, int r, float s){}
+    public static void vtrace1(float a, float x, int r, float s){}
+    public static void vtrace2(float a, float x, int r, float s){}
      public static void main (String[] args) {}
 
      public static int mainQ(float a){
@@ -18,7 +19,7 @@ public class Freire2 {
 	       s = s + 6 * r + 3;
 	       r = r + 1;
 	  }
-     
+	  vtrace2(a, x, r, s);
 	  return r;
      }
 }

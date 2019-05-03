@@ -17,7 +17,7 @@ class CegirIeqs(Cegir):
         assert isinstance(traces, DTraces) and traces, traces
         assert isinstance(inps, Inps), inps
 
-        maxV = settings.octMaxV
+        maxV = settings.OCT_MAX_V
         minV = -1*maxV
 
         locs = traces.keys()

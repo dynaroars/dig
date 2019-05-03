@@ -191,7 +191,7 @@ class CegirEqts(Cegir):
         assert isinstance(inps, Inps), inps
 
         # first obtain enough traces
-        initrs = [self.getInitTraces(loc, deg, traces, inps, settings.eqtrate)
+        initrs = [self.getInitTraces(loc, deg, traces, inps, settings.EQT_RATE)
                   for loc in traces]
         tasks = [(loc, rs) for loc, rs in zip(traces, initrs) if rs]
         if not tasks:  # e.g., cannot obtain enough traces
