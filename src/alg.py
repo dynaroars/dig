@@ -82,18 +82,11 @@ class Dig(object):
         dinvs = dinvs.testTraces(traces)
         dinvs = self.uniqify(dinvs)
 
-        # print results
-        result = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
-                  "time {:02f} s, rand {}:\n{}")
-        print(result.format(self.filename, len(dinvs),
-                            dinvs.siz, dinvs.nEqs, len(inps),
-                            time() - st, sage.all.randint(0, 100),
-                            dinvs.__str__(printStat=True)))
-
 
 class DigCegir(Dig):
-    OPT_EQTS = 1
-    OPT_IEQS = 2
+    OPT_EQTS = "eqts"
+    OPT_IEQS = "ieqs"
+    OPT_PREPOSTS = "preposts"
 
     def __init__(self, filename):
         super(DigCegir, self).__init__(filename)
@@ -115,10 +108,10 @@ class DigCegir(Dig):
         for loc in invalidLocs:
             self.invDecls.pop(loc)
 
-    def strOfLocs(self, locs):
+    def str_of_locs(self, locs):
         return '; '.join("{} ({})".format(l, self.invDecls[l]) for l in locs)
 
-    def start(self, seed, maxdeg, doEqts, doIeqs, doFullSpecs):
+    def start(self, seed, maxdeg, doEqts, doIeqs, doPrePosts):
         deg = super(DigCegir, self).start(seed, maxdeg)
         st = time()
         solver = Cegir(self.symstates, self.prog)
@@ -130,19 +123,30 @@ class DigCegir(Dig):
         def _gen(typ):
 
             st_gen = time()
+
             if typ == self.OPT_EQTS:
                 from cegirEqts import CegirEqts
                 cls = CegirEqts
-            else:
+            elif typ == self.OPT_IEQS:
                 from cegirIeqs import CegirIeqs
                 cls = CegirIeqs
+            else:
+                assert typ == self.OPT_PREPOSTS
+                from cegirPrePosts import CegirPrePosts
+                cls = CegirPrePosts
 
-            mlog.info("gen {} at {} locs".format(typ, len(traces)))
-            mlog.debug(self.strOfLocs(traces.keys()))
+            if not cls:
+                return
+
             solver = cls(self.symstates, self.prog)
-
-            solver.useRandInit = self.useRandInit
-            invs = solver.gen(deg, traces, inps)
+            if typ == self.OPT_PREPOSTS:
+                mlog.info("gen {} from invs ".format(typ, len(traces)))
+                invs = solver.gen(dinvs, traces)
+            else:
+                mlog.info("gen {} at {} locs".format(typ, len(traces)))
+                mlog.debug(self.str_of_locs(traces.keys()))
+                solver.useRandInit = self.useRandInit
+                invs = solver.gen(deg, traces, inps)
 
             if not invs:
                 mlog.warn("found no {}".format(typ))
@@ -161,10 +165,17 @@ class DigCegir(Dig):
 
         self.check(dinvs, traces, inps, st)
 
-        if doFullSpecs:
-            from cegirFullSpecs import CegirFullSpecs
-            solver = CegirFullSpecs(self.symstates, self.prog)
-            invs = solver.gen(dinvs, traces)
+        if doPrePosts:
+            _gen(self.OPT_PREPOSTS)
+
+        # print results
+        result = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
+                  "time {:02f} s, rand {}:\n{}")
+        print(result.format(self.filename, len(dinvs),
+                            dinvs.siz, dinvs.nEqs, len(inps),
+                            time() - st, sage.all.randint(0, 100),
+                            dinvs.__str__(printStat=False)))
+
         return dinvs, traces, self.tmpdir
 
 
@@ -188,12 +199,12 @@ class DigTraces(Dig):
         vs = tuple(self.invDecls[loc].keys())
         assert vs, vs
 
-        from ds import _Trace
+        from ds import Trace
         traces = [l.split()
                   for loc_, l in self.src.contentsd.iteritems()
                   if str(loc_) != loc]
         traces = [[t[i] for i in range(len(vs))] for t in traces]
-        traces = [_Trace.parse(vs, t) for t in traces]
+        traces = [Trace.parse(vs, t) for t in traces]
         traces = Traces(set(traces))
 
         terms, template, uks, nEqtsNeeded = Miscs.initTerms(

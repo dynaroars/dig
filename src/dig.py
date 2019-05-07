@@ -51,7 +51,7 @@ if __name__ == "__main__":
     ag("--noieqs", "-noieqs",
        action="store_true")
 
-    ag("--nofullspecs", "-nofullspecs",
+    ag("--nopreposts", "-nopreposts",
        action="store_true")
 
     ag("--nomp", "-nomp",
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         seed=seed, maxdeg=args.maxdeg,
         doEqts=not args.noeqts,
         doIeqs=not args.noieqs,
-        doFullSpecs=not args.nofullspecs)
+        doPrePosts=not args.nopreposts)
 
     if not args.normtmp:
         import shutil

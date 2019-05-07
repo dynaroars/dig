@@ -257,8 +257,8 @@ class SymStates(object):
 
         self.inpDecls = inpDecls
         self.invDecls = invDecls
-        self.useReals = any(
-            s.isReal for syms in invDecls.itervalues() for s in syms)
+        self.useReals = any(s.isReal for syms in invDecls.itervalues()
+                            for s in syms)
 
         self.inpExprs = inpDecls.exprs(self.useReals)
 
@@ -360,7 +360,7 @@ class SymStates(object):
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
             mlog.warn(
-                "{}: depth {}:  no symbolic states found".format(loc, depth))
+                "{}: depth {}: no symbolic states found".format(loc, depth))
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]

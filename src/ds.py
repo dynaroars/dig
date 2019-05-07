@@ -2,7 +2,6 @@ import settings
 from miscs import Miscs, Z3
 import vcommon as CM
 import z3
-import os.path
 import sage.all
 from sage.all import cached_function
 import pdb
@@ -127,7 +126,7 @@ class Symbs(tuple):
         return cs
 
 
-class _Trace(tuple):
+class Trace(tuple):
     """"
     (3, 4, (7,8))
     """
@@ -137,7 +136,7 @@ class _Trace(tuple):
         assert all(isinstance(s, str) for s in ss) and \
             isinstance(ss, tuple) and (vs, tuple) and \
             len(ss) == len(vs) and ss, (ss, vs)
-        return super(_Trace, cls).__new__(cls, (ss, vs))
+        return super(Trace, cls).__new__(cls, (ss, vs))
 
     def __init__(self, ss, vs):
         assert all(isinstance(s, str) for s in ss) and \
@@ -193,14 +192,14 @@ class _Trace(tuple):
         assert isinstance(vs, (tuple, list)), vs
 
         vs = tuple(Miscs.ratOfStr(t) for t in vs)
-        return _Trace(ss, vs)
+        return Trace(ss, vs)
 
     @classmethod
     def fromDict(cls, d):
         # {'y': 1, 'x': 2, 'r': 2, 'b': 2}
         ss = tuple(sorted(d))
         vs = tuple(d[s] for s in ss)
-        return _Trace(ss, vs)
+        return Trace(ss, vs)
 
     def mkExpr(self, ss):
         # create z3 expression
@@ -216,15 +215,15 @@ class _Trace(tuple):
 
 class Traces(set):
     def __init__(self, myset=set()):
-        assert all(isinstance(t, _Trace) for t in myset), myset
+        assert all(isinstance(t, Trace) for t in myset), myset
         super(Traces, self).__init__(myset)
 
     def __contains__(self, trace):
-        assert isinstance(trace, _Trace), trace
+        assert isinstance(trace, Trace), trace
         return super(Traces, self).__contains__(trace)
 
     def add(self, trace):
-        assert isinstance(trace, _Trace), trace
+        assert isinstance(trace, Trace), trace
         return super(Traces, self).add(trace)
 
     def test(self, inv):
@@ -256,7 +255,7 @@ class Traces(set):
         else:
             cexs = [cex for inv in cexs for cex in cexs[inv]]
 
-        cexs = [_Trace.fromDict(cex) for cex in cexs]
+        cexs = [Trace.fromDict(cex) for cex in cexs]
         cexs = Traces(cexs)
         return cexs
 
@@ -295,7 +294,7 @@ class Traces(set):
                 ss_ = ss - tss
                 newss = t.ss + tuple(ss_)
                 newvs = t.vs + (0,) * len(ss_)
-                t = _Trace(newss, newvs)
+                t = Trace(newss, newvs)
             newTraces.add(t)
 
         return newTraces
@@ -333,7 +332,7 @@ class Inps(Traces):
                 all(isinstance(d, tuple) for d in ds), ds
             newInps = [inp for inp in ds]
 
-        newInps = [_Trace(ss, inp) for inp in newInps]
+        newInps = [Trace(ss, inp) for inp in newInps]
         newInps = set(inp for inp in newInps if inp not in self)
         for inp in newInps:
             self.add(inp)
@@ -355,7 +354,7 @@ class DTraces(dict):
 
     def add(self, loc, trace):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(trace, _Trace), trace
+        assert isinstance(trace, Trace), trace
 
         if loc not in self:
             self[loc] = Traces()
@@ -399,7 +398,7 @@ class DTraces(dict):
             loc = loc.strip()  # 22
             ss = invdecls[loc].names
             vs = tracevals.strip().split()
-            trace = _Trace.parse(ss, vs)
+            trace = Trace.parse(ss, vs)
             dtraces.add(loc, trace)
         return dtraces
 
@@ -513,9 +512,9 @@ class Inv(object):
 
 
 class Invs(set):
-    def __str__(self, printStat=False):
+    def __str__(self, printStat=False, delim='\n'):
         invs = sorted(self, reverse=True, key=lambda inv: inv.isEq)
-        return ', '.join(inv.__str__(printStat) for inv in invs)
+        return delim.join(inv.__str__(printStat) for inv in invs)
 
     @property
     def nEqs(self):
@@ -535,14 +534,18 @@ class Invs(set):
 
     @classmethod
     def mk(cls, invs):
+        assert all(isinstance(inv, Inv) for inv in invs), invs
+
         newInvs = Invs()
         for inv in invs:
-            assert isinstance(inv, Inv)
             newInvs.add(inv)
         return newInvs
 
 
 class DInvs(dict):
+    """
+    {loc -> Invs}  , Invs is a set
+    """
     @property
     def invs(self):
         return (inv for invs in self.itervalues() for inv in invs)
@@ -554,8 +557,33 @@ class DInvs(dict):
     def nEqs(self): return sum(invs.nEqs for invs in self.itervalues())
 
     def __str__(self, printStat=False):
-        return "\n".join("{}: {}".format(loc, self[loc].__str__(printStat))
-                         for loc in sorted(self))
+        ss = []
+
+        def _append(invs, typ):
+            if invs:
+                ss.append('{} {}: {}'.format(
+                    len(invs), typ, invs.__str__(printStat)))
+
+        for loc in sorted(self):
+            eqts, ieqs, preposts = [], [], []
+            for inv in self[loc]:
+                if isinstance(inv, PrePostInv):
+                    preposts.append(inv)
+                elif inv.isEq:
+                    eqts.append(inv)
+                else:
+                    ieqs.append(inv)
+
+            ss.append("{} ({} invs):".format(loc, len(self[loc])))
+            invs = sorted(eqts, reverse=True) + \
+                sorted(ieqs, reverse=True) + \
+                sorted(preposts, reverse=True)
+            ss.extend("{}. {}".format(i, inv.__str__(printStat=False))
+                      for i, inv in enumerate(invs))
+
+        return '\n'.join(ss)
+        # return "\n".join("{}: {}".format(loc, self[loc].__str__(printStat))
+        #                  for loc in sorted(self))
 
     def add(self, loc, inv):
         assert isinstance(loc, str) and loc, loc
@@ -636,3 +664,36 @@ class DInvs(dict):
         newInvs = cls()
         newInvs[loc] = invs
         return newInvs
+
+
+class PrePostInv(Inv):
+    """
+    Set of Preconds  -> PostInv
+    """
+
+    def __init__(self, inv, preconds, stat=None):
+        assert Miscs.isEq(inv), inv
+
+        assert isinstance(preconds, Invs), preconds
+        super(PrePostInv, self).__init__(inv)
+
+        self.preconds = preconds
+
+    @property
+    def isEq(self):
+        return False
+
+    def __str__(self, printStat=False):
+        return "{} => {}".format(
+            self.preconds.__str__(delim=" & ", printStat=False), self.inv)
+
+    def __hash__(self):
+        return hash((self.inv, frozenset(self.preconds)))
+
+    def __repr__(self):
+        return repr((self.inv, frozenset(self.preconds)))
+
+    def __eq__(self, o):
+        return self.inv.__eq__(o.inv) and self.preconds.__eq__(o.preconds)
+
+    def __ne__(self, o): return not self.__eq__(o)
