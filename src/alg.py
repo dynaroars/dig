@@ -36,51 +36,41 @@ class Dig(object):
             seed, sage.all.randint(0, 100)))
 
         # determine degree
-        maxvars = max(self.invDecls.itervalues(), key=lambda d: len(d))
-        deg = Miscs.getAutoDeg(maxdeg, len(maxvars), settings.MAX_TERM)
+        maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
+        deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
-    def uniqify(self, dinvs):
-        assert isinstance(dinvs, DInvs) and dinvs, dinvs
+    # def uniqify(self, dinvs):
+    #     assert isinstance(dinvs, DInvs) and dinvs, dinvs
 
-        mlog.info("uniqify {} invs".format(dinvs.siz))
-        st = time()
-        mlog.debug("{}".format(dinvs.__str__(printStat=True)))
-        oldSiz = dinvs.siz
+    #     mlog.info("uniqify {} invs".format(dinvs.siz))
+    #     st = time()
+    #     mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
+    #     oldSiz = dinvs.siz
 
-        # save stats info
-        statsd = {
-            loc: {inv.inv: inv.stat for inv in dinvs[loc]} for loc in dinvs}
+    #     # save stats info
+    #     statsd = {
+    #         loc: {inv.inv: inv.stat for inv in dinvs[loc]} for loc in dinvs}
 
-        def wprocess(tasks, Q):
-            rs = [(loc, Z3.reduceSMT(invs, self.symstates.useReals))
-                  for loc, invs in tasks]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
+    #     def wprocess(tasks, Q):
+    #         rs = [(loc, Z3.reduceSMT(invs, self.symstates.use_reals))
+    #               for loc, invs in tasks]
+    #         if Q is None:
+    #             return rs
+    #         else:
+    #             Q.put(rs)
 
-        tasks = [(loc, [inv.inv for inv in dinvs[loc]]) for loc in dinvs]
-        wrs = Miscs.runMP("uniqify", tasks, wprocess, chunksiz=1,
-                          doMP=settings.doMP and len(tasks) >= 2)
+    #     tasks = [(loc, [inv.inv for inv in dinvs[loc]]) for loc in dinvs]
+    #     wrs = Miscs.runMP("uniqify", tasks, wprocess, chunksiz=1,
+    #                       doMP=settings.doMP and len(tasks) >= 2)
 
-        dinvs = DInvs((
-            loc, Invs(Inv(inv, stat=statsd[loc][inv]) for inv in invs)
-        ) for loc, invs in wrs if invs)
+    #     dinvs = DInvs((
+    #         loc, Invs(Inv(inv, stat=statsd[loc][inv]) for inv in invs)
+    #     ) for loc, invs in wrs if invs)
 
-        mlog.debug("uniqify: remove {} redundant invs ({}s)"
-                   .format(oldSiz - dinvs.siz, time() - st))
-        return dinvs
-
-    def check(self, dinvs, traces, inps, st):
-        assert isinstance(dinvs, DInvs), dinvs
-        assert isinstance(traces, DTraces), traces
-        assert isinstance(inps, Inps), inps
-        assert st >= 0.0, st
-
-        mlog.info("check {} invs on {} traces".format(dinvs.siz, traces.siz))
-        dinvs = dinvs.testTraces(traces)
-        dinvs = self.uniqify(dinvs)
+    #     mlog.debug("uniqify: remove {} redundant invs ({}s)"
+    #                .format(oldSiz - dinvs.siz, time() - st))
+    #     return dinvs
 
 
 class DigCegir(Dig):
@@ -92,31 +82,32 @@ class DigCegir(Dig):
         super(DigCegir, self).__init__(filename)
 
         # call ASM to obtain
-        (inpDecls, invDecls, clsName, mainQName, jpfDir, jpfFile,
+        (inp_decls, inv_decls, clsName, mainQName, jpfDir, jpfFile,
          traceDir, traceFile) = srcJava.parse(filename, self.tmpdir)
 
-        self.inpDecls = inpDecls
-        self.invDecls = invDecls
+        self.inp_decls = inp_decls
+        self.inv_decls = inv_decls
         self.useRandInit = True
 
         exeCmd = "java -ea -cp {} {}".format(traceDir, clsName)
-        self.prog = Prog(exeCmd, invDecls)
+        self.prog = Prog(exeCmd, inv_decls)
 
-        self.symstates = SymStates(inpDecls, invDecls)
+        self.symstates = SymStates(inp_decls, inv_decls)
         self.symstates.compute(self.filename, mainQName, clsName, jpfDir)
-        invalidLocs = [loc for loc in invDecls if loc not in self.symstates.ss]
+        invalidLocs = [
+            loc for loc in inv_decls if loc not in self.symstates.ss]
         for loc in invalidLocs:
-            self.invDecls.pop(loc)
+            self.inv_decls.pop(loc)
 
     def str_of_locs(self, locs):
-        return '; '.join("{} ({})".format(l, self.invDecls[l]) for l in locs)
+        return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)
 
-    def start(self, seed, maxdeg, doEqts, doIeqs, doPrePosts):
+    def start(self, seed, maxdeg, do_eqts, do_ieqs, do_preposts):
         deg = super(DigCegir, self).start(seed, maxdeg)
         st = time()
         solver = Cegir(self.symstates, self.prog)
         mlog.debug("check reachability")
-        dinvs, traces, inps = solver.checkReach()
+        dinvs, traces, inps = solver.check_reach()
         if not traces:
             return dinvs, traces, self.tmpdir
 
@@ -135,9 +126,6 @@ class DigCegir(Dig):
                 from cegirPrePosts import CegirPrePosts
                 cls = CegirPrePosts
 
-            if not cls:
-                return
-
             solver = cls(self.symstates, self.prog)
             if typ == self.OPT_PREPOSTS:
                 mlog.info("gen {} from invs ".format(typ, len(traces)))
@@ -150,31 +138,36 @@ class DigCegir(Dig):
 
             if not invs:
                 mlog.warn("found no {}".format(typ))
-                return
+                return False
 
             mlog.info("infer {} {} in {}s"
                       .format(invs.siz, typ, time() - st_gen))
             if invs:
                 dinvs.merge(invs)
-                mlog.debug("{}".format(dinvs.__str__(printStat=True)))
+                mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
 
-        if doEqts:
+            return True
+
+        if do_eqts:
             _gen(self.OPT_EQTS)
-        if doIeqs:
+        if do_ieqs:
             _gen(self.OPT_IEQS)
-
-        self.check(dinvs, traces, inps, st)
-
-        if doPrePosts:
+        if do_preposts:
             _gen(self.OPT_PREPOSTS)
 
-        # print results
+        # post procesing
+        mlog.info("check {} invs on {} traces".format(dinvs.siz, traces.siz))
+        dinvs = dinvs.test_traces(traces)
+        mlog.info("uniqify {} invs".format(dinvs.siz))
+        mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
+        dinvs = dinvs.uniqify(self.symstates.use_reals)
+
         result = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
                   "time {:02f} s, rand {}:\n{}")
         print(result.format(self.filename, len(dinvs),
-                            dinvs.siz, dinvs.nEqs, len(inps),
+                            dinvs.siz, dinvs.n_eqs, len(inps),
                             time() - st, sage.all.randint(0, 100),
-                            dinvs.__str__(printStat=False)))
+                            dinvs.__str__(print_stat=False)))
 
         return dinvs, traces, self.tmpdir
 
@@ -184,19 +177,19 @@ class DigTraces(Dig):
         super(DigTraces, self).__init__(filename)
         from srcTcs import Src
         self.src = Src(filename)
-        self.invDecls = self.src.getInvDecls()
+        self.inv_decls = self.src.getInv_decls()
 
-    def start(self, seed, maxdeg, doEqts, doIeqs):
+    def start(self, seed, maxdeg, do_eqts, do_ieqs):
 
         deg = super(DigTraces, self).start(
-            seed, maxdeg, doEqts, doIeqs)
+            seed, maxdeg, do_eqts, do_ieqs)
 
         st = time()
-        loc = self.invDecls.keys()[0]
+        loc = self.inv_decls.keys()[0]
         dinvs = DInvs()
         dinvs[loc] = Invs()
 
-        vs = tuple(self.invDecls[loc].keys())
+        vs = tuple(self.inv_decls[loc].keys())
         assert vs, vs
 
         from ds import Trace

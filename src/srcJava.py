@@ -48,11 +48,12 @@ def parse(filename, tmpdir):
     lines = [(fun.strip(), Symbs.mk(sstyps)) for fun, sstyps in lines]
 
     # mainQ
-    inpDecls = [(fun, symbs) for fun, symbs in lines
-                if fun.startswith('mainQ')][0]
-    mainQName, inpDecls = inpDecls[0], inpDecls[1]
-    invDecls = {fun: symbs for fun, symbs in lines if fun.startswith('vtrace')}
-    return (inpDecls, invDecls, clsName, mainQName,
+    inp_decls = [(fun, symbs) for fun, symbs in lines
+                 if fun.startswith('mainQ')][0]
+    mainQName, inp_decls = inp_decls[0], inp_decls[1]
+    inv_decls = {fun: symbs for fun,
+                 symbs in lines if fun.startswith('vtrace')}
+    return (inp_decls, inv_decls, clsName, mainQName,
             jpfdir, jpffile, tracedir, tracefile)
 
 

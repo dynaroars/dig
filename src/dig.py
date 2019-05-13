@@ -106,9 +106,9 @@ if __name__ == "__main__":
 
     invs, traces, tmpdir = dig.start(
         seed=seed, maxdeg=args.maxdeg,
-        doEqts=not args.noeqts,
-        doIeqs=not args.noieqs,
-        doPrePosts=not args.nopreposts)
+        do_eqts=not args.noeqts,
+        do_ieqs=not args.noieqs,
+        do_preposts=not args.nopreposts)
 
     if not args.normtmp:
         import shutil

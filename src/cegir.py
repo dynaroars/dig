@@ -13,8 +13,8 @@ class Cegir(object):
         assert isinstance(prog, Prog), prog
 
         self.symstates = symstates
-        self.invDecls = symstates.invDecls
-        self.inpDecls = symstates.inpDecls
+        self.inv_decls = symstates.inv_decls
+        self.inp_decls = symstates.inp_decls
         self.prog = prog
 
     def getTracesAndUpdate(self, inps, traces):
@@ -23,24 +23,28 @@ class Cegir(object):
         newTraces = newTraces.update(traces)
         return newTraces
 
-    def checkReach(self):
-        # check for reachability using inv False (0)
-        dinvs = DInvs.mkFalses(self.invDecls)
+    def check_reach(self):
+        """
+        check if inv location is reachable
+        by using inv False (0)
+        """
+
+        dinvs = DInvs.mk_falses(self.inv_decls)
         inps = Inps()
         # use some initial inps first
         rinps = self.symstates.genRandInps(self.prog)
 
         mlog.debug("gen {} random inps".format(len(rinps)))
-        _ = inps.myupdate(rinps, self.inpDecls.names)
+        _ = inps.myupdate(rinps, self.inp_decls.names)
         traces = self.prog.getTraces(inps)
         unreachLocs = [loc for loc in dinvs if loc not in traces]
 
         if unreachLocs:
             mlog.debug("use RT to generate traces for {} locs: {}".format(
                 len(unreachLocs), ','.join(map(str, unreachLocs))))
-            unreachInvs = DInvs.mkFalses(unreachLocs)
+            unreachInvs = DInvs.mk_falses(unreachLocs)
             cexs, _ = self.symstates.check(unreachInvs, inps)
-            newInps = inps.myupdate(cexs, self.inpDecls.names)
+            newInps = inps.myupdate(cexs, self.inp_decls.names)
             mlog.debug(newInps.__str__(printDetails=True))
             _ = self.getTracesAndUpdate(newInps, traces)
 

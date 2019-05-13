@@ -14,7 +14,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
-        assert all(isinstance(k, str) and Miscs.isExpr(v)
+        assert all(isinstance(k, str) and Miscs.is_expr(v)
                    for k, v in d.iteritems()), d
 
         while True:
@@ -68,12 +68,12 @@ class Miscs(object):
 
     @classmethod
     @cached_function
-    def isEq(cls, f):
+    def is_eq(cls, f):
         return cls.isRel(f, operator.eq)
 
     @staticmethod
     @cached_function
-    def isExpr(x):
+    def is_expr(x):
         return isinstance(x, sage.symbolic.expression.Expression)
 
     @classmethod
@@ -94,7 +94,7 @@ class Miscs(object):
         """
 
         ps = ps if isinstance(ps, Iterable) else [ps]
-        ps = [p for p in ps if cls.isExpr(p)]
+        ps = [p for p in ps if cls.is_expr(p)]
         vs = [v for p in ps for v in p.variables()]
         return sorted(set(vs), key=str)
 
@@ -199,7 +199,7 @@ class Miscs(object):
                 return d
 
     @classmethod
-    def getAutoDeg(cls, maxdeg, nvars, maxterm):
+    def get_auto_deg(cls, maxdeg, nvars, maxterm):
         if maxdeg:
             deg = maxdeg
             mlog.debug("using deg {}".format(deg))
@@ -436,7 +436,7 @@ class Miscs(object):
         sage: Miscs.instantiateTemplate(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
-        assert cls.isExpr(template), template
+        assert cls.is_expr(template), template
 
         if not sols:
             return []
@@ -474,8 +474,8 @@ class Miscs(object):
 
     @classmethod
     def getDisj(cls, p, v):
-        assert cls.isExpr(p), p
-        assert cls.isExpr(v) and v.is_symbol(), v
+        assert cls.is_expr(p), p
+        assert cls.is_expr(v) and v.is_symbol(), v
         sols = sage.all.solve(p, v)
         return sols
 
@@ -654,52 +654,56 @@ class Z3(object):
         return rs, stat
 
     @classmethod
-    def imply(cls, fs, g, useReals):
+    def imply(cls, fs, g, use_reals):
         """
         sage: var('x y')
         (x, y)
-        sage: assert Z3.imply([x-6==0],x*x-36==0,useReals=False)
-        sage: assert Z3.imply([x-6==0,x+6==0],x*x-36==0,useReals=False)
-        sage: assert not Z3.imply([x*x-36==0],x-6==0,useReals=False)
-        sage: assert not Z3.imply([x-6==0],x-36==0,useReals=False)
-        sage: assert Z3.imply([x-7>=0], x>=6,useReals=False)
-        sage: assert not Z3.imply([x-7>=0], x>=8,useReals=False)
-        sage: assert not Z3.imply([x-6>=0], x-7>=0,useReals=False)
-        sage: assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0,useReals=False)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,useReals=False)
-        sage: assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0,useReals=False)
-        sage: assert not Z3.imply([],x-2>=0,useReals=False)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,useReals=False)
-        sage: assert Z3.imply([x^2-9>=0,x>=0],x-3>=0,useReals=False)
-        sage: assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,useReals=True)
-        sage: assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,useReals=True)
-        sage: assert Z3.imply([x-6==0],x*x-36==0,useReals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0,useReals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0,useReals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0,useReals=False)
-        sage: assert not Z3.imply([x+7>=0],x-8>=0,useReals=False)
-        sage: assert Z3.imply([x+7>=0],x+8>=0,useReals=False)
-        sage: assert Z3.imply([x+7>=0],x+8.9>=0,useReals=True)
-        sage: assert Z3.imply([x>=7,y>=5],x*y>=35,useReals=False)
-        sage: assert not Z3.imply([x>=-7,y>=-5],x*y>=35,useReals=False)
+        sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
+        sage: assert Z3.imply([x-6==0,x+6==0],x*x-36==0,use_reals=False)
+        sage: assert not Z3.imply([x*x-36==0],x-6==0,use_reals=False)
+        sage: assert not Z3.imply([x-6==0],x-36==0,use_reals=False)
+        sage: assert Z3.imply([x-7>=0], x>=6,use_reals=False)
+        sage: assert not Z3.imply([x-7>=0], x>=8,use_reals=False)
+        sage: assert not Z3.imply([x-6>=0], x-7>=0,use_reals=False)
+        sage: assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0,use_reals=False)
+        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,use_reals=False)
+        sage: assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0,use_reals=False)
+        sage: assert not Z3.imply([],x-2>=0,use_reals=False)
+        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,use_reals=False)
+        sage: assert Z3.imply([x^2-9>=0,x>=0],x-3>=0,use_reals=False)
+        sage: assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,use_reals=True)
+        sage: assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,use_reals=True)
+        sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
+        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0,use_reals=False)
+        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0,use_reals=False)
+        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0,use_reals=False)
+        sage: assert not Z3.imply([x+7>=0],x-8>=0,use_reals=False)
+        sage: assert Z3.imply([x+7>=0],x+8>=0,use_reals=False)
+        sage: assert Z3.imply([x+7>=0],x+8.9>=0,use_reals=True)
+        sage: assert Z3.imply([x>=7,y>=5],x*y>=35,use_reals=False)
+        sage: assert not Z3.imply([x>=-7,y>=-5],x*y>=35,use_reals=False)
         """
 
-        assert all(Miscs.isExpr(f) for f in fs), fs
-        assert Miscs.isExpr(g), g
-        assert isinstance(useReals, bool), useReals
+        assert all(Miscs.is_expr(f) for f in fs), fs
+        assert Miscs.is_expr(g), g
+        assert isinstance(use_reals, bool), use_reals
 
         if not fs:
             return False  # conservative approach
-        fs = [cls.toZ3(f, useReals, useMod=False) for f in fs]
-        g = cls.toZ3(g, useReals, useMod=False)
+        fs = [cls.toZ3(f, use_reals, useMod=False) for f in fs]
+        g = cls.toZ3(g, use_reals, useMod=False)
+        return cls._imply(fs, g)
+
+    @classmethod
+    def _imply(cls, fs, g):
+        assert fs
 
         claim = z3.Implies(z3.And(fs), g)
         models, _ = cls.getModels(z3.Not(claim), k=1)
-
         return models is False
 
     @classmethod
-    def reduceSMT(cls, ps, useReals):
+    def reduceSMT(cls, ps, use_reals):
         eqts, eqtsLargeCoefs, ieqs = [], [], []
         for p in ps:
             if p.operator() == sage.all.operator.eq:
@@ -720,7 +724,7 @@ class Z3(object):
             if p not in rs:
                 continue
             xclude = [p_ for p_ in rs if p_ != p]
-            if cls.imply(xclude, p, useReals):
+            if cls.imply(xclude, p, use_reals):
                 rs = xclude
 
         rs.extend(eqtsLargeCoefs)
@@ -728,7 +732,7 @@ class Z3(object):
 
     @classmethod
     @cached_function
-    def toZ3(cls, p, useReals, useMod):
+    def toZ3(cls, p, use_reals, useMod):
         """
         Convert a Sage expression to a Z3 expression
 
@@ -740,14 +744,14 @@ class Z3(object):
         x*x*x
         """
 
-        assert isinstance(useReals, bool), useReals
+        assert isinstance(use_reals, bool), use_reals
         assert isinstance(useMod, bool), useMod
 
         def retval(p):
             if p.is_symbol():
-                _f = z3.Real if useReals else z3.Int
+                _f = z3.Real if use_reals else z3.Int
             else:
-                _f = z3.RealVal if useReals else z3.IntVal
+                _f = z3.RealVal if use_reals else z3.IntVal
 
             try:
                 return _f(str(p))
@@ -762,15 +766,15 @@ class Z3(object):
             if op == operator.pow:
                 assert len(oprs) == 2, oprs
                 t, c = oprs
-                t = cls.toZ3(t, useReals, useMod)
+                t = cls.toZ3(t, use_reals, useMod)
                 if useMod:
-                    c = cls.toZ3(c, useReals, useMod)
+                    c = cls.toZ3(c, use_reals, useMod)
                     res = reduce(operator.mod, [t, c])
                 else:
                     vs = [t] * c
                     res = reduce(operator.mul, vs)
             else:
-                oprs = [cls.toZ3(o, useReals, useMod) for o in oprs]
+                oprs = [cls.toZ3(o, use_reals, useMod) for o in oprs]
                 res = reduce(op, oprs)
 
         else:

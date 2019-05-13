@@ -18,7 +18,7 @@ Symbolic States
 
 
 class PC(object):
-    def __init__(self, loc, depth, pcs, slocals, st, sd, useReals):
+    def __init__(self, loc, depth, pcs, slocals, st, sd, use_reals):
         assert isinstance(loc, str) and loc, loc
         assert depth >= 0, depth
         assert isinstance(pcs, list) and \
@@ -28,9 +28,9 @@ class PC(object):
                 for slocal in slocals) and slocals, slocals
         assert all(isinstance(s, str) and isinstance(t, str)
                    for s, t in st.iteritems()), st
-        assert all(isinstance(s, str) and Miscs.isExpr(se)
+        assert all(isinstance(s, str) and Miscs.is_expr(se)
                    for s, se in sd.iteritems()), sd
-        assert isinstance(useReals, bool), bool
+        assert isinstance(use_reals, bool), bool
 
         pcs_ = []
         pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
@@ -75,7 +75,7 @@ class PC(object):
         self.pcs = pcs
         self.pcsModIdxs = pcsModIdxs
         self.slocals = slocals
-        self.useReals = useReals
+        self.use_reals = use_reals
 
     def __str__(self):
         ss = ['loc: {}'.format(self.loc),
@@ -96,7 +96,7 @@ class PC(object):
         try:
             return self._pcs_z3
         except AttributeError:
-            self._pcs_z3 = [Z3.toZ3(pc, self.useReals, i in self.pcsModIdxs)
+            self._pcs_z3 = [Z3.toZ3(pc, self.use_reals, i in self.pcsModIdxs)
                             for i, pc in enumerate(self.pcs)]
             return self._pcs_z3
 
@@ -105,7 +105,7 @@ class PC(object):
         try:
             return self._slocals_z3
         except AttributeError:
-            self._slocals_z3 = [Z3.toZ3(p, self.useReals, useMod=False)
+            self._slocals_z3 = [Z3.toZ3(p, self.use_reals, useMod=False)
                                 for p in self.slocals]
             return self._slocals_z3
 
@@ -250,22 +250,22 @@ class PCs(set):
 
 
 class SymStates(object):
-    def __init__(self, inpDecls, invDecls):
-        assert isinstance(inpDecls, Symbs), inpDecls  # I x, I y
+    def __init__(self, inp_decls, inv_decls):
+        assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
         # {'vtrace1': (('q', 'I'), ('r', 'I'), ('x', 'I'), ('y', 'I'))}
-        assert isinstance(invDecls, dict), invDecls
+        assert isinstance(inv_decls, dict), inv_decls
 
-        self.inpDecls = inpDecls
-        self.invDecls = invDecls
-        self.useReals = any(s.isReal for syms in invDecls.itervalues()
-                            for s in syms)
+        self.inp_decls = inp_decls
+        self.inv_decls = inv_decls
+        self.use_reals = any(s.isReal for syms in inv_decls.itervalues()
+                             for s in syms)
 
-        self.inpExprs = inpDecls.exprs(self.useReals)
+        self.inpExprs = inp_decls.exprs(self.use_reals)
 
     def compute(self, filename, mainQName, clsName, jpfDir):
 
         def _f(d): return self.getSSDepth(
-            d, filename, mainQName, clsName, jpfDir, len(self.inpDecls))
+            d, filename, mainQName, clsName, jpfDir, len(self.inp_decls))
 
         def wprocess(tasks, Q):
             rs = [(depth, _f(depth)) for depth in tasks]
@@ -327,7 +327,7 @@ class SymStates(object):
                 for _, s in vs:
                     if s not in ssd:
                         ssd[s] = sage.all.var(s)
-                pc = PC(loc, depth, pcs, slocals, sst, ssd, self.useReals)
+                pc = PC(loc, depth, pcs, slocals, sst, ssd, self.use_reals)
 
                 if loc not in symstates:
                     symstates[loc] = {}
@@ -387,7 +387,7 @@ class SymStates(object):
         """call verifier on each inv"""
 
         def check(loc, inv): return self.mcheckD(
-            loc, pathIdx, inv.expr(self.useReals), inps, ncexs=1)
+            loc, pathIdx, inv.expr(self.use_reals), inps, ncexs=1)
 
         def wprocess(tasks, Q):
             rs = [(loc, str(inv), check(loc, inv)) for loc, inv in tasks]
@@ -539,7 +539,7 @@ class SymStates(object):
             for rinp in rinps:
                 inp = _f(rinp)
                 myinps = Inps()
-                _ = myinps.myupdate(set([inp]), self.inpDecls.names)
+                _ = myinps.myupdate(set([inp]), self.inp_decls.names)
                 tcs = prog.getTraces(myinps)
                 if tcs:
                     validRanges.add(rinp)

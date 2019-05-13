@@ -39,7 +39,7 @@ class Src(object):
                     return locs
         return locs
 
-    def getInvDecls(self, traceIndicator="//%%%traces:"):
+    def getInv_decls(self, traceIndicator="//%%%traces:"):
         """
         get Trace variables
         invdecls = {loc : {'x':'int'; 'y':'double'}}

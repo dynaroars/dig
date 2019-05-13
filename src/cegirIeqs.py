@@ -21,7 +21,7 @@ class CegirIeqs(Cegir):
         minV = -1*maxV
 
         locs = traces.keys()
-        vss = [self.invDecls[loc].sageExprs for loc in locs]
+        vss = [self.inv_decls[loc].sageExprs for loc in locs]
 
         if deg > 2:
             mlog.debug("reduce deg {} to 2 for oct ieqs".format(deg))
@@ -40,11 +40,11 @@ class CegirIeqs(Cegir):
         cexs, ieqs = self.symstates.check(ieqs, myinps)
 
         if cexs:
-            newInps = inps.myupdate(cexs, self.inpDecls.names)
+            newInps = inps.myupdate(cexs, self.inp_decls.names)
             if newInps:
                 self.getTracesAndUpdate(newInps, traces)
 
-        ieqs = ieqs.removeDisproved()
+        ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][ieq]) for loc in ieqs for ieq in ieqs[loc]]
 
         mlog.debug("{} locs: compute upperbounds for {} terms".format(

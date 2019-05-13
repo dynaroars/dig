@@ -37,7 +37,7 @@ class CegirEqts(Cegir):
 
         dinvs = DInvs()
         for loc, (eqts, newCexs) in wrs:
-            newInps = inps.myupdate(newCexs, self.inpDecls.names)
+            newInps = inps.myupdate(newCexs, self.inp_decls.names)
             mlog.debug("{}: got {} eqts, {} new inps"
                        .format(loc, len(eqts), len(newInps)))
             if eqts:
@@ -60,14 +60,14 @@ class CegirEqts(Cegir):
             if doRand:
                 rInps = self.symstates.genRandInps(self.prog)
                 mlog.debug("gen {} random inps".format(len(rInps)))
-                rInps = inps.myupdate(rInps, self.inpDecls.names)
+                rInps = inps.myupdate(rInps, self.inp_decls.names)
                 if rInps:
                     newTraces = self.getTracesAndUpdate(rInps, traces)
 
             if loc not in newTraces:
                 doRand = False
 
-                dinvsFalse = DInvs.mkFalses([loc])
+                dinvsFalse = DInvs.mk_falses([loc])
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
                 # cannot find new inputs
                 if loc not in cexs:
@@ -75,7 +75,7 @@ class CegirEqts(Cegir):
                                .format(loc, len(inps)))
                     return
 
-                newInps = inps.myupdate(cexs, self.inpDecls.names)
+                newInps = inps.myupdate(cexs, self.inp_decls.names)
                 newTraces = self.getTracesAndUpdate(newInps, traces)
 
                 # cannot find new traces (new inps do not produce new traces)
@@ -109,13 +109,13 @@ class CegirEqts(Cegir):
         while nEqtsNeeded > len(exprs):
             mlog.debug("{}: need more traces ({} eqts, need >= {})"
                        .format(loc, len(exprs), nEqtsNeeded))
-            dinvsFalse = DInvs.mkFalses([loc])
+            dinvsFalse = DInvs.mk_falses([loc])
             cexs, _ = self.symstates.check(dinvsFalse, inps)
             if loc not in cexs:
                 mlog.error("{}: cannot generate enough traces".format(loc))
                 return
 
-            newInps = inps.myupdate(cexs, self.inpDecls.names)
+            newInps = inps.myupdate(cexs, self.inp_decls.names)
             newTraces = self.getTracesAndUpdate(newInps, traces)
             assert newTraces[loc]
             mlog.debug("obtain {} new traces".format(len(newTraces[loc])))
@@ -142,7 +142,7 @@ class CegirEqts(Cegir):
                    .format(loc, whileFName, len(inps), len(traces)))
 
         terms, template, uks, nEqtsNeeded = Miscs.initTerms(
-            self.invDecls[loc].names, deg, rate)
+            self.inv_decls[loc].names, deg, rate)
         exprs = whileF(loc, template, nEqtsNeeded, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
@@ -154,14 +154,14 @@ class CegirEqts(Cegir):
             mlog.info("Reduce polynomial degree to {}, terms {}, uks {}"
                       .format(deg, len(terms), len(uks)))
             terms, template, uks, nEqtsNeeded = Miscs.initTerms(
-                self.invDecls[loc].names, deg, rate)
+                self.inv_decls[loc].names, deg, rate)
             exprs = whileF(loc, template, nEqtsNeeded, inps, traces)
 
         return template, uks, exprs
 
     def infer(self, loc, template, uks, exprs, dtraces, inps):
         assert isinstance(loc, str) and loc, loc
-        assert Miscs.isExpr(template), template
+        assert Miscs.is_expr(template), template
         assert isinstance(uks, list), uks
         assert isinstance(exprs, set) and exprs, exprs
         assert isinstance(dtraces, DTraces) and dtraces, dtraces
@@ -198,16 +198,16 @@ class CegirEqts(Cegir):
             if cexs:
                 newCexs.append(cexs)
 
-            _ = [eqts.add(inv) for inv in dinvs[loc] if not inv.isDisproved]
-            _ = [cache.add(inv.inv) for inv in dinvs[loc]
-                 if inv.stat is not None]
+            [eqts.add(inv) for inv in dinvs[loc] if not inv.is_disproved]
+            [cache.add(inv.inv) for inv in dinvs[loc]
+             if inv.stat is not None]
 
             if loc not in cexs:
                 mlog.debug("{}: no disproved candidates -- break".format(loc))
                 break
 
             cexs = Traces.extract(cexs[loc])
-            cexs = cexs.padZeros(set(self.invDecls[loc].names))
+            cexs = cexs.padZeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
             mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
             exprs.extend(exprs_)

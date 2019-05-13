@@ -15,6 +15,18 @@ class CegirPrePosts(Cegir):
     def __init__(self, symstates, prog):
         super(CegirPrePosts, self).__init__(symstates, prog)
 
+    @property
+    def preconds(self):
+        symbols = self.symstates.inp_decls.sageExprs
+        import itertools
+        ssSiz = 2
+        ts1 = [t == 0 for t in symbols]  # M=0, N=0
+        ts2 = [x == y for x, y in
+               itertools.combinations(symbols, ssSiz)]  # M==N
+        ts3 = [t > 0 for t in
+               Miscs.getTermsFixedCoefs(symbols, ssSiz)]  # +/M+/-N >0
+        return ts1 + ts2 + ts3
+
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs
         assert isinstance(traces, DTraces), traces
@@ -26,13 +38,13 @@ class CegirPrePosts(Cegir):
                 continue
 
             for inv in dinvs[loc]:
-                if not inv.isEq:
+                if not inv.is_eq:
                     continue
                 if inv in cache:
                     preposts = cache[inv]
                 else:
-                    disjss = self.getDisjs(inv.inv)
-                    preposts = self.getPrePosts(loc, disjss, traces)
+                    disjss = self.get_disjs(inv.inv)
+                    preposts = self.get_preposts(loc, disjss, traces)
                     cache[inv] = preposts
 
                 if preposts:
@@ -43,11 +55,11 @@ class CegirPrePosts(Cegir):
 
         return dinvs_
 
-    def getPrePosts(self, loc, disjss, traces):
+    def get_preposts(self, loc, disjss, traces):
         mydisjs = [disj for disjs in disjss for disj in disjs]
 
         def toZ3(x):
-            return Z3.toZ3(x, self.symstates.useReals, useMod=False)
+            return Z3.toZ3(x, self.symstates.use_reals, useMod=False)
 
         preposts = []  # results
         for disj in mydisjs:
@@ -58,9 +70,9 @@ class CegirPrePosts(Cegir):
             if not preconds:
                 continue
 
-            precond = z3.And([toZ3(pc) for pc in
-                              Z3.reduceSMT(preconds, self.symstates.useReals)])
-            inv = z3.Implies(precond, toZ3(disj))
+            precond = [toZ3(c) for c in
+                       Z3.reduceSMT(preconds, self.symstates.use_reals)]
+            inv = z3.Implies(z3.And(precond), toZ3(disj))
 
             _, cexs, isSucc = self.symstates.mcheckD(
                 loc, pathIdx=None, inv=inv, inps=None)
@@ -74,19 +86,7 @@ class CegirPrePosts(Cegir):
 
         return preposts
 
-    @property
-    def preconds(self):
-        symbols = self.symstates.inpDecls.sageExprs
-        import itertools
-        ssSiz = 2
-        ts1 = [t == 0 for t in symbols]  # M=0, N=0
-        ts2 = [x == y for x, y in
-               itertools.combinations(symbols, ssSiz)]  # M==N
-        ts3 = [t > 0 for t in
-               Miscs.getTermsFixedCoefs(symbols, ssSiz)]  # +/M+/-N >0
-        return ts1 + ts2 + ts3
-
-    def getDisjs(self, eqt):
+    def get_disjs(self, eqt):
         symbols = Miscs.getVars(eqt)  # x,y,z
 
         # if special symbols, e.g., tCtr, exist, then only consider those
