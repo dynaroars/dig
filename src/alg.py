@@ -52,7 +52,8 @@ class DigCegir(Dig):
         self.inv_decls = inv_decls
         self.useRandInit = True
 
-        exeCmd = "java -ea -cp {} {}".format(traceDir, clsName)
+        exeCmd = "{} -ea -cp {} {}".format(settings.JAVA_CMD,
+                                           traceDir, clsName)
         self.prog = Prog(exeCmd, inv_decls)
 
         self.symstates = SymStates(inp_decls, inv_decls)

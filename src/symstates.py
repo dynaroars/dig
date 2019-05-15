@@ -286,28 +286,25 @@ class SymStates(object):
 
     @classmethod
     def mk(cls, depth, filename, mainQName, clsName, jpfDir, nInps):
-        maxInt = DTraces.inpMaxV
+        max_val = DTraces.inpMaxV
         stcsFile = "{}.{}_{}_{}.straces".format(
-            filename, mainQName, maxInt, depth)
+            filename, mainQName, max_val, depth)
 
-        s = "Obtain symbolic states (maxInt {}, SymExeDepth {}){}".format(
-            maxInt, depth,
+        s = "Obtain symbolic states (max val {}, tree depth {}){}".format(
+            max_val, depth,
             ' ({})'.format(stcsFile) if os.path.isfile(stcsFile) else '')
         mlog.debug(s)
 
         if not os.path.isfile(stcsFile):
             jpfFile = srcJava.mkJPFRunFile(
-                clsName, mainQName, jpfDir, nInps, maxInt, depth)
+                clsName, mainQName, jpfDir, nInps, max_val, depth)
 
             stcsFile = os.path.join(
                 jpfDir, "{}_{}_{}_{}.straces".format(
-                    clsName, mainQName, maxInt, depth))
+                    clsName, mainQName, max_val, depth))
             assert not os.path.isfile(stcsFile), stcsFile
-            jpfExe = os.path.join(os.path.expandvars("$JPF_HOME"),
-                                  "jpf-core/bin/jpf")
-            cmd = ("{} {} > {}".format(jpfExe, jpfFile, stcsFile))
+            cmd = ("{} {} > {}".format(settings.JPF_CMD, jpfFile, stcsFile))
             mlog.debug(cmd)
-            trace()
             CM.vcmd(cmd)
 
         pcs = PC.parse(stcsFile)

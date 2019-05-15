@@ -13,7 +13,7 @@ def parse(filename, tmpdir):
     baseName = os.path.basename(filename)  # c.class
     clsName, ext = os.path.splitext(baseName)  # c, class
     if ext == ".java":
-        cmd = "javac -g {} -d {}".format(filename, tmpdir)
+        cmd = "{} -g {} -d {}".format(settings.JAVAC_CMD, filename, tmpdir)
         rmsg, errmsg = CM.vcmd(cmd)
         assert not errmsg, "cmd: {} gives err:\n{}".format(cmd, errmsg)
 
@@ -34,8 +34,8 @@ def parse(filename, tmpdir):
     assert os.path.isdir(java_src_dir), java_src_dir
 
     cp = "{}:{}/asm-all-5.2.jar".format(java_src_dir, java_src_dir)
-    cmd = ("java -cp {} Instrument {} {} {}"
-           .format(cp, filename, tracefile, jpffile))
+    cmd = ("{} -cp {} Instrument {} {} {}"
+           .format(settings.JAVA_CMD, cp, filename, tracefile, jpffile))
 
     rmsg, errmsg = CM.vcmd(cmd)
 

@@ -1,3 +1,5 @@
+import os.path
+
 src_dir = None
 tmpdir = "/var/tmp/"
 logger_level = 3
@@ -16,3 +18,18 @@ TRACE_MULTIPLIER = 5
 # options for full specs analysis
 CTR_VAR = 'Ct'  # counter variable contains this string
 POST_LOC = 'post'  # vtraceX_post  indicates postconditions
+
+
+# Program Paths
+
+# Must be Java 8 because JPF requires Java 8
+JAVA_HOME = os.path.expandvars("$JAVA_HOME")
+JAVAC_CMD = os.path.join(JAVA_HOME, "bin/javac")
+JAVA_CMD = os.path.join(JAVA_HOME, "bin/java")
+
+
+JPF_HOME = os.path.join(os.path.expandvars("$JPF_HOME"), "jpf-core")
+JPF_JAR = os.path.join(JPF_HOME, "build/RunJPF.jar")
+JVM_FLAGS = "-Xmx1024m -ea"
+JPF_CMD = "{} {} -jar {}".format(JAVA_CMD, JVM_FLAGS, JPF_JAR)
+JPF_CMD1 = os.path.join(JPF_HOME, "bin/jpf")
