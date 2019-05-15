@@ -93,9 +93,6 @@ if __name__ == "__main__":
 
     seed = round(time(), 2) if args.seed is None else float(args.seed)
 
-    settings.src_dir = os.path.dirname(
-        os.path.realpath(os.path.expanduser(__file__)))
-
     import alg
     inp = os.path.realpath(os.path.expanduser(args.inp))
 

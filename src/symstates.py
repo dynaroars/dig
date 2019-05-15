@@ -262,7 +262,7 @@ class SymStates(object):
         self.use_reals = any(s.isReal for syms in inv_decls.itervalues()
                              for s in syms)
 
-        self.inpExprs = inp_decls.exprs(self.use_reals)
+        self.inp_exprs = inp_decls.exprs(self.use_reals)
 
     def compute(self, filename, mainQName, clsName, jpfDir):
 
@@ -287,27 +287,27 @@ class SymStates(object):
     @classmethod
     def mk(cls, depth, filename, mainQName, clsName, jpfDir, nInps):
         max_val = DTraces.inpMaxV
-        stcsFile = "{}.{}_{}_{}.straces".format(
+        ssfile = "{}.{}_{}_{}.straces".format(
             filename, mainQName, max_val, depth)
 
-        s = "Obtain symbolic states (max val {}, tree depth {}){}".format(
-            max_val, depth,
-            ' ({})'.format(stcsFile) if os.path.isfile(stcsFile) else '')
-        mlog.debug(s)
+        mlog.debug("Obtain symbolic states (max val {}, tree depth {}){}"
+                   .format(max_val, depth,
+                           ' ({})'.format(ssfile) if os.path.isfile(ssfile)
+                           else ''))
 
-        if not os.path.isfile(stcsFile):
-            jpfFile = srcJava.mkJPFRunFile(
+        if not os.path.isfile(ssfile):
+            jpffile = srcJava.mkJPFRunFile(
                 clsName, mainQName, jpfDir, nInps, max_val, depth)
 
-            stcsFile = os.path.join(
+            ssfile = os.path.join(
                 jpfDir, "{}_{}_{}_{}.straces".format(
                     clsName, mainQName, max_val, depth))
-            assert not os.path.isfile(stcsFile), stcsFile
-            cmd = ("{} {} > {}".format(settings.JPF_CMD, jpfFile, stcsFile))
+            assert not os.path.isfile(ssfile), ssfile
+            cmd = settings.JPF_CMD(jpffile=jpffile, tracefile=ssfile)
             mlog.debug(cmd)
             CM.vcmd(cmd)
 
-        pcs = PC.parse(stcsFile)
+        pcs = PC.parse(ssfile)
         return pcs
 
     def merge(self, depthss):
@@ -434,7 +434,7 @@ class SymStates(object):
     def mkInpsConstr(self, inps):
         cstrs = []
         if isinstance(inps, Inps) and inps:
-            inpCstrs = [inp.mkExpr(self.inpExprs) for inp in inps]
+            inpCstrs = [inp.mkExpr(self.inp_exprs) for inp in inps]
             inpCstrs = [z3.Not(expr) for expr in inpCstrs if expr is not None]
             cstrs.extend(inpCstrs)
 
@@ -533,7 +533,7 @@ class SymStates(object):
 
             # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
             rinps = list(itertools.product(
-                *itertools.repeat(rinps, len(self.inpExprs))))
+                *itertools.repeat(rinps, len(self.inp_exprs))))
 
             validRanges, validInps = set(), set()
             for rinp in rinps:

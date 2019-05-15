@@ -13,7 +13,7 @@ def parse(filename, tmpdir):
     baseName = os.path.basename(filename)  # c.class
     clsName, ext = os.path.splitext(baseName)  # c, class
     if ext == ".java":
-        cmd = "{} -g {} -d {}".format(settings.JAVAC_CMD, filename, tmpdir)
+        cmd = settings.COMPILE_CMD(filename=filename, tmpdir=tmpdir)
         rmsg, errmsg = CM.vcmd(cmd)
         assert not errmsg, "cmd: {} gives err:\n{}".format(cmd, errmsg)
 
@@ -29,16 +29,9 @@ def parse(filename, tmpdir):
 
     tracedir, tracefile = mkdir("traces")
     jpfdir, jpffile = mkdir("jpf")
-
-    java_src_dir = os.path.join(settings.src_dir, 'java')
-    assert os.path.isdir(java_src_dir), java_src_dir
-
-    cp = "{}:{}/asm-all-5.2.jar".format(java_src_dir, java_src_dir)
-    cmd = ("{} -cp {} Instrument {} {} {}"
-           .format(settings.JAVA_CMD, cp, filename, tracefile, jpffile))
-
+    cmd = settings.INSTRUMENT_CMD(
+        filename=filename, tracefile=tracefile, jpffile=jpffile)
     rmsg, errmsg = CM.vcmd(cmd)
-
     assert not errmsg, "'{}': {}".format(cmd, errmsg)
 
     # vtrace2: I x, I y, I q, I r,

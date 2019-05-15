@@ -1,6 +1,6 @@
+from functools import partial
 import os.path
 
-src_dir = None
 tmpdir = "/var/tmp/"
 logger_level = 3
 doMP = True
@@ -21,15 +21,31 @@ POST_LOC = 'post'  # vtraceX_post  indicates postconditions
 
 
 # Program Paths
+SRC_DIR = os.path.dirname(
+    os.path.realpath(os.path.expanduser(__file__)))
+JAVA_INSTRUMENT_DIR = os.path.join(SRC_DIR, 'java')
+ASM_JAR = os.path.join(JAVA_INSTRUMENT_DIR, "asm-all-5.2.jar")
+assert os.path.isdir(JAVA_INSTRUMENT_DIR), JAVA_INSTRUMENT_DIR
+assert os.path.isfile(ASM_JAR), ASM_JAR
+CLASSPATH = "{}:{}".format(JAVA_INSTRUMENT_DIR, ASM_JAR)
 
 # Must be Java 8 because JPF requires Java 8
 JAVA_HOME = os.path.expandvars("$JAVA_HOME")
 JAVAC_CMD = os.path.join(JAVA_HOME, "bin/javac")
 JAVA_CMD = os.path.join(JAVA_HOME, "bin/java")
-
+assert os.path.isfile(JAVAC_CMD)
+assert os.path.isfile(JAVA_CMD)
 
 JPF_HOME = os.path.join(os.path.expandvars("$JPF_HOME"), "jpf-core")
 JPF_JAR = os.path.join(JPF_HOME, "build/RunJPF.jar")
+assert os.path.isfile(JPF_JAR)
 JVM_FLAGS = "-Xmx1024m -ea"
-JPF_CMD = "{} {} -jar {}".format(JAVA_CMD, JVM_FLAGS, JPF_JAR)
-JPF_CMD1 = os.path.join(JPF_HOME, "bin/jpf")
+
+JPF_CMD = "{java} {flags} -jar {jar} {jpffile} > {tracefile}"
+JPF_CMD = partial(JPF_CMD.format, java=JAVA_CMD, flags=JVM_FLAGS, jar=JPF_JAR)
+
+COMPILE_CMD = "{javac} -g {filename} -d {tmpdir}"
+COMPILE_CMD = partial(COMPILE_CMD.format, javac=JAVAC_CMD)
+
+INSTRUMENT_CMD = "{java} -cp {cp} Instrument {filename}  {tracefile} {jpffile}"
+INSTRUMENT_CMD = partial(INSTRUMENT_CMD.format, java=JAVA_CMD, cp=CLASSPATH)
