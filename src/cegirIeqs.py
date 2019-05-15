@@ -12,8 +12,7 @@ class CegirIeqs(Cegir):
     def __init__(self, symstates, prog):
         super(CegirIeqs, self).__init__(symstates, prog)
 
-    def gen(self, deg, traces, inps):
-        assert deg >= 1, deg
+    def gen(self, traces, inps):
         assert isinstance(traces, DTraces) and traces, traces
         assert isinstance(inps, Inps), inps
 
@@ -21,13 +20,15 @@ class CegirIeqs(Cegir):
         minV = -1*maxV
 
         locs = traces.keys()
-        vss = [self.inv_decls[loc].sageExprs for loc in locs]
+        symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
 
-        if deg > 2:
-            mlog.debug("reduce deg {} to 2 for oct ieqs".format(deg))
-            deg = 2
+        # if deg > 2:
+        #     mlog.debug("reduce deg {} to 2 for oct ieqs".format(deg))
+        #     deg = 2
+        oct_siz = 2
+        termss = [Miscs.get_terms_fixed_coefs(symbols, oct_siz)
+                  for symbols in symbolss]
 
-        termss = [Miscs.getTermsFixedCoefs(vs, deg) for vs in vss]
         mlog.info("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
 

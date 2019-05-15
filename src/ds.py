@@ -274,7 +274,7 @@ class Traces(set):
         else:
             nTracesExtra = nTraces * settings.TRACE_MULTIPLIER
             exprs = set()
-            for i, t in enumerate(self.mydicts):
+            for t in self.mydicts:
                 expr = term.subs(t)
                 if expr not in exprs:
                     exprs.add(expr)
@@ -642,11 +642,6 @@ class DInvs(dict):
     def __str__(self, print_stat=False):
         ss = []
 
-        def _append(invs, typ):
-            if invs:
-                ss.append('{} {}: {}'.format(
-                    len(invs), typ, invs.__str__(print_stat)))
-
         for loc in sorted(self):
             eqts, ieqs, preposts = [], [], []
             for inv in self[loc]:
@@ -661,7 +656,7 @@ class DInvs(dict):
             invs = sorted(eqts, reverse=True) + \
                 sorted(ieqs, reverse=True) + \
                 sorted(preposts, reverse=True)
-            ss.extend("{}. {}".format(i, inv.__str__(print_stat=False))
+            ss.extend("{}. {}".format(i+1, inv.__str__(print_stat))
                       for i, inv in enumerate(invs))
 
         return '\n'.join(ss)
@@ -706,7 +701,7 @@ class DInvs(dict):
                 if dtraces[loc].test(inv.inv) is None:  # all pass
                     dinvs[loc].add(inv)
                 else:
-                    mlog.debug("{}: {} disproved".format(loc, inv))
+                    mlog.debug("{}: {} failed test".format(loc, inv))
 
         for loc in dinvs:
             if not dinvs[loc]:

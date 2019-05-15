@@ -1,3 +1,4 @@
+import itertools
 import vcommon as CM
 from cegir import Cegir
 from ds import Inps, Traces, DTraces, Inv, Invs, DInvs, PrePostInv
@@ -18,14 +19,16 @@ class CegirPrePosts(Cegir):
     @property
     def preconds(self):
         symbols = self.symstates.inp_decls.sageExprs
-        import itertools
-        ssSiz = 2
-        ts1 = [t == 0 for t in symbols]  # M=0, N=0
-        ts2 = [x == y for x, y in
-               itertools.combinations(symbols, ssSiz)]  # M==N
-        ts3 = [t > 0 for t in
-               Miscs.getTermsFixedCoefs(symbols, ssSiz)]  # +/M+/-N >0
-        return ts1 + ts2 + ts3
+        siz = 2
+        terms = Miscs.get_terms_fixed_coefs(symbols, siz)
+        terms = [t <= 0 for t in terms]
+        return terms
+        # ts1 = [t == 0 for t in symbols]  # M=0, N=0
+        # # M==N
+        # ts2 = [x == y for x, y in itertools.combinations(symbols, ssSiz)]
+        # # +/M+/-N >0
+        # ts3 = [t > 0 for t in Miscs.getTermsFixedCoefs(symbols, ssSiz)]
+        # return ts1 + ts2 + ts3
 
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs
@@ -44,7 +47,9 @@ class CegirPrePosts(Cegir):
                     preposts = cache[inv]
                 else:
                     disjss = self.get_disjs(inv.inv)
+                    print(disjss)
                     preposts = self.get_preposts(loc, disjss, traces)
+                    print(preposts)
                     cache[inv] = preposts
 
                 if preposts:
@@ -61,11 +66,15 @@ class CegirPrePosts(Cegir):
         def toZ3(x):
             return Z3.toZ3(x, self.symstates.use_reals, useMod=False)
 
+        print 'preconds', self.preconds
         preposts = []  # results
         for disj in mydisjs:
+            print 'mydisj', disj
             tcs = [t for t in traces[loc] if t.test(disj)]
+            print tcs
             preconds = [c for c in self.preconds
                         if all(t.test(c) for t in tcs)]
+            print 'mypreconds', preconds
 
             if not preconds:
                 continue

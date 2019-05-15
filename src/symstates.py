@@ -10,6 +10,8 @@ from miscs import Miscs, Z3
 from ds import Symbs, Inps, Inv,  DInvs, Invs, DTraces
 import srcJava
 import settings
+import pdb
+trace = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 """
@@ -264,7 +266,7 @@ class SymStates(object):
 
     def compute(self, filename, mainQName, clsName, jpfDir):
 
-        def _f(d): return self.getSSDepth(
+        def _f(d): return self.mk(
             d, filename, mainQName, clsName, jpfDir, len(self.inp_decls))
 
         def wprocess(tasks, Q):
@@ -283,7 +285,7 @@ class SymStates(object):
         self.merge(wrs)
 
     @classmethod
-    def getSSDepth(cls, depth, filename, mainQName, clsName, jpfDir, nInps):
+    def mk(cls, depth, filename, mainQName, clsName, jpfDir, nInps):
         maxInt = DTraces.inpMaxV
         stcsFile = "{}.{}_{}_{}.straces".format(
             filename, mainQName, maxInt, depth)
@@ -305,6 +307,7 @@ class SymStates(object):
                                   "jpf-core/bin/jpf")
             cmd = ("{} {} > {}".format(jpfExe, jpfFile, stcsFile))
             mlog.debug(cmd)
+            trace()
             CM.vcmd(cmd)
 
         pcs = PC.parse(stcsFile)

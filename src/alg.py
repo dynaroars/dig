@@ -37,47 +37,10 @@ class Dig(object):
 
         # determine degree
         maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
-        deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
-        return deg
-
-    # def uniqify(self, dinvs):
-    #     assert isinstance(dinvs, DInvs) and dinvs, dinvs
-
-    #     mlog.info("uniqify {} invs".format(dinvs.siz))
-    #     st = time()
-    #     mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
-    #     oldSiz = dinvs.siz
-
-    #     # save stats info
-    #     statsd = {
-    #         loc: {inv.inv: inv.stat for inv in dinvs[loc]} for loc in dinvs}
-
-    #     def wprocess(tasks, Q):
-    #         rs = [(loc, Z3.reduceSMT(invs, self.symstates.use_reals))
-    #               for loc, invs in tasks]
-    #         if Q is None:
-    #             return rs
-    #         else:
-    #             Q.put(rs)
-
-    #     tasks = [(loc, [inv.inv for inv in dinvs[loc]]) for loc in dinvs]
-    #     wrs = Miscs.runMP("uniqify", tasks, wprocess, chunksiz=1,
-    #                       doMP=settings.doMP and len(tasks) >= 2)
-
-    #     dinvs = DInvs((
-    #         loc, Invs(Inv(inv, stat=statsd[loc][inv]) for inv in invs)
-    #     ) for loc, invs in wrs if invs)
-
-    #     mlog.debug("uniqify: remove {} redundant invs ({}s)"
-    #                .format(oldSiz - dinvs.siz, time() - st))
-    #     return dinvs
+        self.deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
 
 
 class DigCegir(Dig):
-    OPT_EQTS = "eqts"
-    OPT_IEQS = "ieqs"
-    OPT_PREPOSTS = "preposts"
-
     def __init__(self, filename):
         super(DigCegir, self).__init__(filename)
 
@@ -103,7 +66,8 @@ class DigCegir(Dig):
         return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)
 
     def start(self, seed, maxdeg, do_eqts, do_ieqs, do_preposts):
-        deg = super(DigCegir, self).start(seed, maxdeg)
+        super(DigCegir, self).start(seed, maxdeg)
+
         st = time()
         solver = Cegir(self.symstates, self.prog)
         mlog.debug("check reachability")
@@ -111,52 +75,28 @@ class DigCegir(Dig):
         if not traces:
             return dinvs, traces, self.tmpdir
 
-        def _gen(typ):
+        def _infer(typ, f):
+            mlog.info("gen {} at {} locs".format(typ, len(traces)))
+            mlog.debug(self.str_of_locs(traces.keys()))
 
-            st_gen = time()
-
-            if typ == self.OPT_EQTS:
-                from cegirEqts import CegirEqts
-                cls = CegirEqts
-            elif typ == self.OPT_IEQS:
-                from cegirIeqs import CegirIeqs
-                cls = CegirIeqs
-            else:
-                assert typ == self.OPT_PREPOSTS
-                from cegirPrePosts import CegirPrePosts
-                cls = CegirPrePosts
-
-            solver = cls(self.symstates, self.prog)
-            if typ == self.OPT_PREPOSTS:
-                mlog.info("gen {} from invs ".format(typ, len(traces)))
-                invs = solver.gen(dinvs, traces)
-            else:
-                mlog.info("gen {} at {} locs".format(typ, len(traces)))
-                mlog.debug(self.str_of_locs(traces.keys()))
-                solver.useRandInit = self.useRandInit
-                invs = solver.gen(deg, traces, inps)
-
+            st = time()
+            invs = f()
             if not invs:
-                mlog.warn("found no {}".format(typ))
-                return False
-
-            mlog.info("infer {} {} in {}s"
-                      .format(invs.siz, typ, time() - st_gen))
-            if invs:
+                mlog.warn("infer no {}".format(typ))
+            else:
+                mlog.info("infer {} in {}s".format(invs.siz, typ, time() - st))
                 dinvs.merge(invs)
                 mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
 
-            return True
-
         if do_eqts:
-            _gen(self.OPT_EQTS)
+            _infer('eqts', lambda: self.infer_eqts(self.deg, traces, inps))
         if do_ieqs:
-            _gen(self.OPT_IEQS)
+            _infer('ieqs', lambda: self.infer_ieqs(traces, inps))
         if do_preposts:
-            _gen(self.OPT_PREPOSTS)
+            _infer('preposts', lambda: self.infer_preposts(dinvs, traces))
 
         # post procesing
-        mlog.info("check {} invs on {} traces".format(dinvs.siz, traces.siz))
+        mlog.info("test {} invs on {} traces".format(dinvs.siz, traces.siz))
         dinvs = dinvs.test_traces(traces)
         mlog.info("uniqify {} invs".format(dinvs.siz))
         mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
@@ -167,9 +107,28 @@ class DigCegir(Dig):
         print(result.format(self.filename, len(dinvs),
                             dinvs.siz, dinvs.n_eqs, len(inps),
                             time() - st, sage.all.randint(0, 100),
-                            dinvs.__str__(print_stat=False)))
+                            dinvs.__str__(print_stat=True)))
 
         return dinvs, traces, self.tmpdir
+
+    def infer_eqts(self, deg, traces, inps):
+        from cegirEqts import CegirEqts
+        solver = CegirEqts(self.symstates, self.prog)
+        solver.useRandInit = self.useRandInit
+        dinvs = solver.gen(self.deg, traces, inps)
+        return dinvs
+
+    def infer_ieqs(self, traces, inps):
+        from cegirIeqs import CegirIeqs
+        solver = CegirIeqs(self.symstates, self.prog)
+        dinvs = solver.gen(traces, inps)
+        return dinvs
+
+    def infer_preposts(self, dinvs, traces):
+        from cegirPrePosts import CegirPrePosts
+        solver = CegirPrePosts(self.symstates, self.prog)
+        dinvs = solver.gen(dinvs, traces)
+        return dinvs
 
 
 class DigTraces(Dig):
@@ -181,8 +140,7 @@ class DigTraces(Dig):
 
     def start(self, seed, maxdeg, do_eqts, do_ieqs):
 
-        deg = super(DigTraces, self).start(
-            seed, maxdeg, do_eqts, do_ieqs)
+        super(DigTraces, self).start(seed, maxdeg, do_eqts, do_ieqs)
 
         st = time()
         loc = self.inv_decls.keys()[0]
@@ -201,7 +159,7 @@ class DigTraces(Dig):
         traces = Traces(set(traces))
 
         terms, template, uks, nEqtsNeeded = Miscs.initTerms(
-            vs, deg, settings.EQT_RATE)
+            vs, self.deg, settings.EQT_RATE)
 
         exprs = list(traces.instantiate(template, nEqtsNeeded))
         eqts = Miscs.solveEqts(exprs, uks, template)

@@ -210,16 +210,16 @@ class Miscs(object):
         return deg
 
     @staticmethod
-    def getTermsFixedCoefs(ss, subsetSiz):
+    def get_terms_fixed_coefs(ss, subsetSiz):
         """
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
 
-        sage: Miscs.getTermsFixedCoefs([x,y^2], 2)
+        sage: Miscs.get_terms_fixed_coefs([x,y^2], 2)
         [-y^2, y^2, -x, -y^2 - x, y^2 - x, x, -y^2 + x, y^2 + x]
 
-        sage: assert len(Miscs.getTermsFixedCoefs([x,y,z], 2)) == 18
-        sage: assert len(Miscs.getTermsFixedCoefs([x,y,z], 3)) == 26
+        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2)) == 18
+        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3)) == 26
         """
         if len(ss) < subsetSiz:
             subsetSiz = len(ss)

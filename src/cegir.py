@@ -46,7 +46,7 @@ class Cegir(object):
             cexs, _ = self.symstates.check(unreachInvs, inps)
             newInps = inps.myupdate(cexs, self.inp_decls.names)
             mlog.debug(newInps.__str__(printDetails=True))
-            _ = self.getTracesAndUpdate(newInps, traces)
+            self.getTracesAndUpdate(newInps, traces)
 
         # remove FALSE invs indicating unreached locs
         for loc in traces:
