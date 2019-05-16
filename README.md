@@ -88,6 +88,10 @@ $ cp /PATH/TO/dig/src/java/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/
 $ cd jpf-symbc
 $ ant
 
+# sometimes it helps to rebuild jpf-core again (if you have weird problem about libz3java)
+# cd jpf-core
+$ ant
+
 
 # Add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
 jpf-core = /PATH/TO/JPF/jpf-core
