@@ -76,11 +76,6 @@ $ cd /PATH/TO/JPF
 $ git clone https://github.com/javapathfinder/jpf-core #JPF
 $ git clone https://github.com/SymbolicPathFinder/jpf-symbc #Symbolic extension
 
-#then add the following to `~/.jpf/site.properties` (create ~/.jpf if it doesn't exist)
-jpf-core = /PATH/TO/JPF/jpf-core
-jpf-symbc = /PATH/TO/JPF/jpf-symbc
-extensions=${jpf-core},${jpf-symbc}
-
 
 #build jpf
 $ cd jpf-core
@@ -102,6 +97,12 @@ $ ant
 $ cd src/java
 $ make
 ```
+
+#then add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
+jpf-core = /PATH/TO/JPF/jpf-core
+jpf-symbc = /PATH/TO/JPF/jpf-symbc
+extensions=${jpf-core},${jpf-symbc}
+
 
 #### Setup Paths
 
