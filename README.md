@@ -71,13 +71,12 @@ Everything seems OK. Have fun with DIG!
 * Install both Java PathFinder and the Symbolic Pathfinder extension
 
 ```shell
-$ mkdir /PATH/TO/JPF; 
+$ mkdir /PATH/TO/JPF
 $ cd /PATH/TO/JPF
 $ git clone https://github.com/javapathfinder/jpf-core #JPF
 $ git clone https://github.com/SymbolicPathFinder/jpf-symbc #Symbolic extension
 
-
-#build jpf
+# build jpf
 $ cd jpf-core
 $ git checkout java-8  #switch to the java-8 branch
 $ ant
@@ -85,9 +84,17 @@ $ ant
 #copy patched Listener file to SPF
 $ cp /PATH/TO/dig/src/java/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/jpf/symbc
 
-#build spf
+# build spf
 $ cd jpf-symbc
 $ ant
+
+
+# Add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
+
+```shell
+jpf-core = /PATH/TO/JPF/jpf-core
+jpf-symbc = /PATH/TO/JPF/jpf-symbc
+extensions=${jpf-core},${jpf-symbc}
 ```
 
 * Compile Java files in `java` directory for instrumenting Java byte classes
@@ -98,10 +105,6 @@ $ cd src/java
 $ make
 ```
 
-#then add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
-jpf-core = /PATH/TO/JPF/jpf-core
-jpf-symbc = /PATH/TO/JPF/jpf-symbc
-extensions=${jpf-core},${jpf-symbc}
 
 
 #### Setup Paths
