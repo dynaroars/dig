@@ -90,8 +90,6 @@ $ ant
 
 
 # Add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
-
-```shell
 jpf-core = /PATH/TO/JPF/jpf-core
 jpf-symbc = /PATH/TO/JPF/jpf-symbc
 extensions=${jpf-core},${jpf-symbc}
