@@ -45,22 +45,23 @@ class DigCegir(Dig):
         super(DigCegir, self).__init__(filename)
 
         # call ASM to obtain
-        (inp_decls, inv_decls, clsName, mainQName, jpfDir, jpfFile,
-         traceDir, traceFile) = srcJava.parse(filename, self.tmpdir)
+        (inp_decls, inv_decls, clsname, mainQName, jpfdir, jpffile,
+         tracedir, traceFile) = srcJava.parse(filename, self.tmpdir)
 
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.useRandInit = True
 
-        exeCmd = "{} -ea -cp {} {}".format(settings.JAVA_CMD,
-                                           traceDir, clsName)
-        self.prog = Prog(exeCmd, inv_decls)
+        exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
+        self.prog = Prog(exe_cmd, inv_decls)
 
         self.symstates = SymStates(inp_decls, inv_decls)
-        self.symstates.compute(self.filename, mainQName, clsName, jpfDir)
-        invalidLocs = [
-            loc for loc in inv_decls if loc not in self.symstates.ss]
-        for loc in invalidLocs:
+        self.symstates.compute(self.filename, mainQName, clsname, jpfdir)
+
+        # remove locations with no symbolic states
+        invalid_locs = [loc for loc in inv_decls
+                        if loc not in self.symstates.ss]
+        for loc in invalid_locs:
             self.inv_decls.pop(loc)
 
     def str_of_locs(self, locs):

@@ -17,11 +17,11 @@ Data structures
 
 
 class Prog(object):
-    def __init__(self, exeCmd, inv_decls):
-        assert isinstance(exeCmd, str), exeCmd
+    def __init__(self, exe_cmd, inv_decls):
+        assert isinstance(exe_cmd, str), exe_cmd
         assert isinstance(inv_decls, dict), inv_decls
 
-        self.exeCmd = exeCmd
+        self.exe_cmd = exe_cmd
         self.inv_decls = inv_decls
         self.cache = {}  # inp -> traces (str)
 
@@ -38,7 +38,7 @@ class Prog(object):
                 inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                         for v in inp.vs)
                 inp_ = ' '.join(map(str, inp_))
-                cmd = "{} {}".format(self.exeCmd, inp_)
+                cmd = "{} {}".format(self.exe_cmd, inp_)
                 mlog.debug(cmd)
                 results, _ = CM.vcmd(cmd)
                 results = results.splitlines()
@@ -654,28 +654,61 @@ class Invs(set):
             else:
                 others.append(inv)
 
-        if not (eqts + disjs + others):
+        invs = eqts + disjs + others
+        if not invs:
             return self
 
-        disjs = sorted(disjs, key=lambda inv: inv.inv)
-        others = sorted(others, key=lambda inv: inv.inv)
-        invs = others + disjs + eqts
+        exprs = [inv.expr(use_reals) for inv in invs]
 
-        def _imply(i, xclude):
-            me = invs[i].expr(use_reals)
-            others = [invs[j].expr(use_reals) for j in xclude]
-            return Z3._imply(others, me)
+        simpl = z3.Tactic('ctx-solver-simplify')
+        simplifies = simpl(z3.And([f for f in exprs]))
+        simplifies = simplifies[0]
+        assert len(simplifies) <= len(invs)
 
-        rs = set(range(len(invs)))
-        for i in range(len(invs)):
-            if i not in rs:
-                continue
-            xclude = rs - {i}
-            if xclude and _imply(i, xclude):
-                rs = xclude
+        d = {str(z3.simplify(f)): inv for f, inv in zip(exprs, invs)}
+        simplifies_strs = [str(z3.simplify(f)) for f in simplifies]
 
-        rs = [invs[i] for i in sorted(rs)] + eqtsLargeCoefs
-        return Invs(rs)
+        results, notdone = [], []
+        for simplified in simplifies_strs:
+            try:
+                inv = d[simplified]
+                results.append(inv)
+                del d[simplified]
+            except KeyError:
+                notdone.append(simplified)
+
+        if notdone:
+            print(len(results), results)
+            print(len(notdone), notdone)
+            print(len(d), d)
+            raise NotImplementedError("need to use smt checking in this case")
+
+        return Invs(results + eqtsLargeCoefs)
+
+        # disjs = sorted(disjs, key=lambda inv: inv.inv)
+        # others = sorted(others, key=lambda inv: inv.inv)
+        # invs = others + disjs + eqts
+
+        # def _imply(i, xclude):
+        #     me = invs[i].expr(use_reals)
+        #     others = [invs[j].expr(use_reals) for j in xclude]
+        #     return Z3._imply(others, me)
+
+        # rs = set(range(len(invs)))
+        # for i in range(len(invs)):
+        #     if i not in rs:
+        #         continue
+        #     xclude = rs - {i}
+        #     if xclude and _imply(i, xclude):
+        #         rs = xclude
+
+        # rs = [invs[i] for i in sorted(rs)] + eqtsLargeCoefs
+        # return Invs(rs)
+
+    def simplify(self, invs, use_reals):
+        assert invs
+        assert isinstance(invs, list), invs
+        assert isinstance(use_reals, bool), use_reals
 
 
 class DInvs(dict):

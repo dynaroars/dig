@@ -303,7 +303,7 @@ class SymStates(object):
                 jpfDir, "{}_{}_{}_{}.straces".format(
                     clsName, mainQName, max_val, depth))
             assert not os.path.isfile(ssfile), ssfile
-            cmd = settings.JPF_CMD(jpffile=jpffile, tracefile=ssfile)
+            cmd = settings.JPF_RUN(jpffile=jpffile, tracefile=ssfile)
             mlog.debug(cmd)
             CM.vcmd(cmd)
 

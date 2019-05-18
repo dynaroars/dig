@@ -13,7 +13,7 @@ def parse(filename, tmpdir):
     baseName = os.path.basename(filename)  # c.class
     clsName, ext = os.path.splitext(baseName)  # c, class
     if ext == ".java":
-        cmd = settings.COMPILE_CMD(filename=filename, tmpdir=tmpdir)
+        cmd = settings.COMPILE_RUN(filename=filename, tmpdir=tmpdir)
         rmsg, errmsg = CM.vcmd(cmd)
         assert not errmsg, "cmd: {} gives err:\n{}".format(cmd, errmsg)
 
@@ -29,7 +29,7 @@ def parse(filename, tmpdir):
 
     tracedir, tracefile = mkdir("traces")
     jpfdir, jpffile = mkdir("jpf")
-    cmd = settings.INSTRUMENT_CMD(
+    cmd = settings.INSTRUMENT_RUN(
         filename=filename, tracefile=tracefile, jpffile=jpffile)
     rmsg, errmsg = CM.vcmd(cmd)
     assert not errmsg, "'{}': {}".format(cmd, errmsg)

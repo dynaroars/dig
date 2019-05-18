@@ -41,11 +41,14 @@ JPF_JAR = os.path.join(JPF_HOME, "build/RunJPF.jar")
 assert os.path.isfile(JPF_JAR)
 JVM_FLAGS = "-Xmx1024m -ea"
 
-JPF_CMD = "{java} {flags} -jar {jar} {jpffile} > {tracefile}"
-JPF_CMD = partial(JPF_CMD.format, java=JAVA_CMD, flags=JVM_FLAGS, jar=JPF_JAR)
+JPF_RUN = "{java} {flags} -jar {jar} {jpffile} > {tracefile}"
+JPF_RUN = partial(JPF_RUN.format, java=JAVA_CMD, flags=JVM_FLAGS, jar=JPF_JAR)
 
-COMPILE_CMD = "{javac} -g {filename} -d {tmpdir}"
-COMPILE_CMD = partial(COMPILE_CMD.format, javac=JAVAC_CMD)
+COMPILE_RUN = "{javac} -g {filename} -d {tmpdir}"
+COMPILE_RUN = partial(COMPILE_RUN.format, javac=JAVAC_CMD)
 
-INSTRUMENT_CMD = "{java} -cp {cp} Instrument {filename}  {tracefile} {jpffile}"
-INSTRUMENT_CMD = partial(INSTRUMENT_CMD.format, java=JAVA_CMD, cp=CLASSPATH)
+INSTRUMENT_RUN = "{java} -cp {cp} Instrument {filename}  {tracefile} {jpffile}"
+INSTRUMENT_RUN = partial(INSTRUMENT_RUN.format, java=JAVA_CMD, cp=CLASSPATH)
+
+JAVA_RUN = "{java} -ea -cp {tracedir} {clsname}"
+JAVA_RUN = partial(JAVA_RUN.format, java=JAVA_CMD)
