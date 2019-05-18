@@ -329,11 +329,8 @@ class SymStates(object):
                         ssd[s] = sage.all.var(s)
                 pc = PC(loc, depth, pcs, slocals, sst, ssd, self.use_reals)
 
-                if loc not in symstates:
-                    symstates[loc] = {}
-                if depth not in symstates[loc]:
-                    symstates[loc][depth] = PCs(loc, depth)
-                symstates[loc][depth].add(pc)
+                symstates.setdefault(loc, {})
+                symstates[loc].setdefault(depth, PCs(loc, depth)).add(pc)
 
         # only store incremental states at each depth
         for loc in symstates:
@@ -413,10 +410,7 @@ class SymStates(object):
             else:
                 stat = Inv.PROVED if isSucc else Inv.UNKNOWN
             inv.stat = stat
-
-            if loc not in mdinvs:
-                mdinvs[loc] = Invs()
-            mdinvs[loc].add(inv)
+            mdinvs.setdefault(loc, Invs()).add(inv)
 
         return merge(mCexs), mdinvs
 
@@ -560,12 +554,10 @@ def merge(ds):
     for d in ds:
         for loc in d:
             assert d[loc]
-            if loc not in newD:
-                newD[loc] = {}
+            newD.setdefault(loc, {})
             for inv in d[loc]:
                 assert d[loc][inv]
-                if inv not in newD[loc]:
-                    newD[loc][inv] = []
+                newD[loc].setdefault(inv, [])
                 for e in d[loc][inv]:
                     newD[loc][inv].append(e)
     return newD

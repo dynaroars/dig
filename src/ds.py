@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from time import time
 import settings
 from miscs import Miscs, Z3
@@ -6,6 +7,7 @@ import z3
 import sage.all
 from sage.all import cached_function
 import pdb
+import operator
 trace = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -168,7 +170,7 @@ class Trace(tuple):
             return True
 
         # temp fix: disable repeating rational when testing equality
-        if (Miscs.is_eq(inv) and
+        if (isinstance(inv, EqtInv) and  # TODO:  THIS IS WRONG, inv is never EqtInv
             any(not x.is_integer() and Miscs.isRepeatingRational(x)
                 for x in self.vs)):
             mlog.debug("skip trace with repeating rational {}".format(self))
@@ -227,12 +229,12 @@ class Traces(set):
         assert isinstance(trace, Trace), trace
         return super(Traces, self).add(trace)
 
-    def test(self, inv):
-        assert inv.is_relational(), inv
-        for trace in self:
-            if not trace.test(inv):
-                return trace
-        return None
+    # def test(self, inv):
+    #     assert inv.is_relational(), inv
+    #     for trace in self:
+    #         if not trace.test(inv):
+    #             return trace
+    #     return None
 
     def myeval(self, term):
         assert Miscs.is_expr(term), term
@@ -376,7 +378,7 @@ class DTraces(dict):
             for trace in self[loc]:
                 notIn = traces.add(loc, trace)
                 assert(notIn), "{} exist".format(trace)
-                _ = newTraces.add(loc, trace)
+                newTraces.add(loc, trace)
         return newTraces
 
     @classmethod
@@ -405,6 +407,8 @@ class DTraces(dict):
 
 
 class Inv(object):
+    __metaclass__ = ABCMeta
+
     PROVED = "p"
     DISPROVED = "d"
     UNKNOWN = "u"
@@ -421,21 +425,6 @@ class Inv(object):
             self.reset_stat()
         else:
             self.stat = stat
-
-    @property
-    def is_eq(self):
-        return Miscs.is_eq(self.inv)
-
-    def __str__(self, print_stat=False):
-        if Miscs.is_expr(self.inv):
-            s = Inv.strOfExp(self.inv)
-        else:
-            # inv = 0
-            s = str(self.inv)
-
-        if print_stat:
-            s = "{} {}".format(s, self.stat)
-        return s
 
     def __hash__(self): return hash(self.inv)
 
@@ -456,16 +445,9 @@ class Inv(object):
     def reset_stat(self):
         self._stat = None
 
-    def expr(self, use_reals):
-        """
-        cannot make this as property because z3 expr is ctype,
-        not compat with multiprocessing Queue
-        """
-        if self.inv == 0:
-            expr = z3.BoolVal(False)
-        else:
-            expr = Z3.toZ3(self.inv, use_reals, useMod=False)
-        return expr
+    def test(self, traces):
+        assert isinstance(traces, Traces), traces
+        return all(self.test_trace(trace) for trace in traces)
 
     @property
     def is_proved(self): return self.stat == self.PROVED
@@ -475,9 +457,6 @@ class Inv(object):
 
     @property
     def is_unknown(self): return self.stat == self.UNKNOWN
-
-    @classmethod
-    def mk_false(cls): return cls(0)
 
     @cached_function
     def strOfExp(p):
@@ -513,6 +492,84 @@ class Inv(object):
         return s
 
 
+class FalseInv(Inv):
+    def __init__(self, inv, stat=None):
+        assert inv == 0, inv
+        super(FalseInv, self).__init__(inv, stat)
+
+    def __str__(self, print_stat=False):
+        s = str(self.inv)
+        if print_stat:
+            s = "{} {}".format(s, self.stat)
+        return s
+
+    def expr(self, _):
+        return z3.BoolVal(False)
+
+    @classmethod
+    def mk(cls):
+        return FalseInv(0)
+
+
+class RelInv(Inv):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, rel, stat=None):
+        assert rel.operator() == operator.eq or \
+            rel.operator() == operator.le, rel
+        super(RelInv, self).__init__(rel, stat)
+
+    def __str__(self, print_stat=False):
+        s = Inv.strOfExp(self.inv)
+        if print_stat:
+            s = "{} {}".format(s, self.stat)
+        return s
+
+    def test_trace(self, trace):
+        assert isinstance(trace, Trace), trace
+
+        # temp fix: disable traces that wih extreme large values
+        # (see geo1 e.g., 435848050)
+        if any(x > trace.maxVal for x in trace.vs):
+            mlog.debug("skip trace with large val: {}".format(self))
+            return True
+
+        # temp fix: disable repeating rational when testing equality
+        if (isinstance(self, EqtInv) and
+            any(not x.is_integer() and Miscs.isRepeatingRational(x)
+                for x in trace.vs)):
+            mlog.debug("skip trace with repeating rational {}".format(self))
+            return True
+
+        try:
+            rs = self.inv.subs(trace.mydict)
+            rs = bool(rs)
+        except ValueError:
+            mlog.debug("{}: failed test".format(self))
+            return False
+
+        return True
+
+    def expr(self, use_reals):
+        """
+        cannot make this as property because z3 expr is ctype,
+        not compat with multiprocessing Queue
+        """
+        return Z3.toZ3(self.inv, use_reals, useMod=False)
+
+
+class EqtInv(RelInv):
+    def __init__(self, eqt, stat=None):
+        assert eqt.operator() == operator.eq, eqt
+        super(EqtInv, self).__init__(eqt, stat)
+
+
+class IeqInv(RelInv):
+    def __init__(self, ieq, stat=None):
+        assert ieq.operator() == operator.le, ieq
+        super(IeqInv, self).__init__(ieq, stat)
+
+
 class PrePostInv(Inv):
     """
     Set of Preconds  -> PostInv
@@ -522,13 +579,9 @@ class PrePostInv(Inv):
         assert Miscs.is_eq(inv), inv
 
         assert isinstance(preconds, Invs), preconds
-        super(PrePostInv, self).__init__(inv)
+        super(PrePostInv, self).__init__(inv, stat)
 
         self.preconds = preconds
-
-    @property
-    def is_eq(self):
-        return False
 
     def expr(self, use_reals):
         assert not self.inv == 0, self.inv
@@ -539,6 +592,7 @@ class PrePostInv(Inv):
         expr = z3.Or(not_precond_exprs + [postcond_expr])
         return expr
 
+    # TODO : need to print stat
     def __str__(self, print_stat=False):
         return "{} => {}".format(
             self.preconds.__str__(delim=" & ", print_stat=False), self.inv)
@@ -556,13 +610,17 @@ class PrePostInv(Inv):
 
 
 class Invs(set):
+    def __init__(self, invs=set()):
+        assert all(isinstance(inv, Inv) for inv in invs), invs
+        super(Invs, self).__init__(invs)
+
     def __str__(self, print_stat=False, delim='\n'):
         invs = sorted(self, reverse=True, key=lambda inv: inv.is_eq)
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
     @property
     def n_eqs(self):
-        return len([inv for inv in self if inv.is_eq])
+        return len([inv for inv in self if isinstance(inv, EqtInv)])
 
     def __contains__(self, inv):
         assert isinstance(inv, Inv), inv
@@ -576,15 +634,19 @@ class Invs(set):
             super(Invs, self).add(inv)
         return notIn
 
+    def test(self, traces):
+        assert isinstance(traces, Traces)
+        assert(self), self
+
+        return Invs([inv for inv in self if inv.test(traces)])
+
     def uniqify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
-        # print("gh0")
-        # print(self.__str__(print_stat=True))
         eqts, eqtsLargeCoefs, disjs, others = [], [], [], []
         for inv in self:
             if isinstance(inv, PrePostInv):
                 disjs.append(inv)
-            elif inv.is_eq:
+            elif isinstance(inv, EqtInv):
                 if len(Miscs.getCoefs(inv.inv)) > 10:
                     eqtsLargeCoefs.append(inv)
                 else:
@@ -615,20 +677,18 @@ class Invs(set):
         rs = [invs[i] for i in sorted(rs)] + eqtsLargeCoefs
         return Invs(rs)
 
-    @classmethod
-    def mk(cls, invs):
-        assert all(isinstance(inv, Inv) for inv in invs), invs
-
-        newInvs = Invs()
-        for inv in invs:
-            newInvs.add(inv)
-        return newInvs
-
 
 class DInvs(dict):
     """
     {loc -> Invs}  , Invs is a set
     """
+
+    def __setitem__(self, loc, invs):
+        assert isinstance(loc, str) and loc, loc
+        assert isinstance(invs, Invs), invs
+
+        super(DInvs, self).__setitem__(loc, invs)
+
     @property
     def invs(self):
         return (inv for invs in self.itervalues() for inv in invs)
@@ -643,19 +703,21 @@ class DInvs(dict):
         ss = []
 
         for loc in sorted(self):
-            eqts, ieqs, preposts = [], [], []
+            eqts, ieqs, others = [], [], []
             for inv in self[loc]:
-                if isinstance(inv, PrePostInv):
-                    preposts.append(inv)
-                elif inv.is_eq:
+                if isinstance(inv, EqtInv):
                     eqts.append(inv)
-                else:
+                elif isinstance(inv, IeqInv):
                     ieqs.append(inv)
+                else:
+                    assert isinstance(inv, (FalseInv, PrePostInv)), inv
+
+                    others.append(inv)
 
             ss.append("{} ({} invs):".format(loc, len(self[loc])))
             invs = sorted(eqts, reverse=True) + \
                 sorted(ieqs, reverse=True) + \
-                sorted(preposts, reverse=True)
+                sorted(others, reverse=True)
             ss.extend("{}. {}".format(i+1, inv.__str__(print_stat))
                       for i, inv in enumerate(invs))
 
@@ -668,12 +730,6 @@ class DInvs(dict):
         if loc not in self:
             self[loc] = Invs()
         return self[loc].add(inv)
-
-    def __setitem__(self, loc, invs):
-        assert isinstance(loc, str) and loc, loc
-        assert isinstance(invs, Invs), invs
-
-        super(DInvs, self).__setitem__(loc, invs)
 
     def merge(self, dinvs):
         assert isinstance(dinvs, DInvs), dinvs
@@ -690,24 +746,34 @@ class DInvs(dict):
                     dinvs.add(loc, inv)
         return dinvs
 
-    def test_traces(self, dtraces):
+    # def test_traces(self, dtraces):
+    #     assert(self.siz), self
+
+    #     assert isinstance(dtraces, DTraces)
+
+    #     dinvs = self.__class__()
+    #     for loc in self:
+    #         assert loc not in dinvs
+    #         dinvs[loc] = Invs()
+    #         for inv in self[loc]:
+    #             if dtraces[loc].test(inv.inv) is None:  # all pass
+    #                 dinvs[loc].add(inv)
+    #             else:
+    #                 mlog.debug("{}: {} failed test".format(loc, inv))
+
+    #     for loc in dinvs:
+    #         if not dinvs[loc]:
+    #             del dinvs[loc]
+
+    #     return dinvs
+
+    def test(self, dtraces):
         assert isinstance(dtraces, DTraces)
+        assert(self.siz), self
 
-        dinvs = self.__class__()
-        for loc in self:
-            assert loc not in dinvs
-            dinvs[loc] = Invs()
-            for inv in self[loc]:
-                if dtraces[loc].test(inv.inv) is None:  # all pass
-                    dinvs[loc].add(inv)
-                else:
-                    mlog.debug("{}: {} failed test".format(loc, inv))
-
-        for loc in dinvs:
-            if not dinvs[loc]:
-                del dinvs[loc]
-
-        return dinvs
+        dinvs = [(loc, invs.test(dtraces[loc]))
+                 for loc, invs in self.iteritems()]
+        return DInvs([(loc, invs) for loc, invs in dinvs if invs])
 
     def update(self, dinvs):
         assert isinstance(dinvs, DInvs), dinvs
@@ -754,10 +820,10 @@ class DInvs(dict):
         return dinvs
 
     @classmethod
-    def mk_falses(cls, locs, ntimes=1):
+    def mk_false_invs(cls, locs):
         dinvs = cls()
         for loc in locs:
-            dinvs.add(loc, Inv.mk_false())
+            dinvs.add(loc, FalseInv.mk())
         return dinvs
 
     @classmethod

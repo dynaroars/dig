@@ -20,15 +20,16 @@ class CegirPrePosts(Cegir):
     def preconds(self):
         symbols = self.symstates.inp_decls.sageExprs
         siz = 2
-        terms = Miscs.get_terms_fixed_coefs(symbols, siz)
-        terms = [t <= 0 for t in terms]
-        return terms
-        # ts1 = [t == 0 for t in symbols]  # M=0, N=0
-        # # M==N
-        # ts2 = [x == y for x, y in itertools.combinations(symbols, ssSiz)]
-        # # +/M+/-N >0
-        # ts3 = [t > 0 for t in Miscs.getTermsFixedCoefs(symbols, ssSiz)]
-        # return ts1 + ts2 + ts3
+        # terms = Miscs.get_terms_fixed_coefs(symbols, siz)
+        # terms = [t <= 0 for t in terms]
+        # return terms
+        t1 = [t == 0 for t in symbols]  # M=0, N=0
+        # M==N
+        t2 = [x == y for x, y in itertools.combinations(symbols, siz)]
+        # +/M+/-N >0
+        t3 = [t < 0 for t in Miscs.get_terms_fixed_coefs(symbols, siz)]
+        #t4 = [t <= 0 for t in Miscs.get_terms_fixed_coefs(symbols, siz)]
+        return t1 + t2 + t3
 
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs
@@ -90,7 +91,7 @@ class CegirPrePosts(Cegir):
                 mlog.warn("{}: remove spurious result {}".format(loc, inv))
 
             preconds = [Inv(c) for c in preconds]
-            prepost = PrePostInv(disj, Invs.mk(preconds))
+            prepost = PrePostInv(disj, Invs(preconds))
             preposts.append(prepost)
 
         return preposts

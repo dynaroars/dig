@@ -1,9 +1,11 @@
+import settings
 import vcommon as CM
 from miscs import Miscs
-from ds import Inps, Traces, DTraces, Inv, Invs, DInvs
+from ds import Inps, Traces, DTraces, Invs, EqtInv, DInvs
 from cegir import Cegir
 
-import settings
+import pdb
+trace = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -42,7 +44,7 @@ class CegirEqts(Cegir):
                        .format(loc, len(eqts), len(newInps)))
             if eqts:
                 mlog.debug('\n'.join(map(str, eqts)))
-            dinvs[loc] = Invs.mk(eqts)
+            dinvs[loc] = Invs(eqts)
 
         return dinvs
 
@@ -67,7 +69,7 @@ class CegirEqts(Cegir):
             if loc not in newTraces:
                 doRand = False
 
-                dinvsFalse = DInvs.mk_falses([loc])
+                dinvsFalse = DInvs.mk_false_invs([loc])
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
                 # cannot find new inputs
                 if loc not in cexs:
@@ -109,7 +111,7 @@ class CegirEqts(Cegir):
         while nEqtsNeeded > len(exprs):
             mlog.debug("{}: need more traces ({} eqts, need >= {})"
                        .format(loc, len(exprs), nEqtsNeeded))
-            dinvsFalse = DInvs.mk_falses([loc])
+            dinvsFalse = DInvs.mk_false_invs([loc])
             cexs, _ = self.symstates.check(dinvsFalse, inps)
             if loc not in cexs:
                 mlog.error("{}: cannot generate enough traces".format(loc))
@@ -192,7 +194,7 @@ class CegirEqts(Cegir):
             mlog.debug("{}: check {} unchecked ({} candidates)"
                        .format(loc, len(unchecks), len(newEqts)))
 
-            dinvs = DInvs.mk(loc, Invs.mk(map(Inv, unchecks)))
+            dinvs = DInvs.mk(loc, Invs(map(EqtInv, unchecks)))
             cexs, dinvs = self.symstates.check(dinvs, inps=None)
 
             if cexs:

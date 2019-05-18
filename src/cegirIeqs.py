@@ -1,7 +1,7 @@
 import math
 import vcommon as CM
 from miscs import Miscs
-from ds import Inps, Traces, DTraces, Inv, Invs, DInvs
+from ds import Inps, Traces, DTraces, Inv, IeqInv, Invs, DInvs
 from cegir import Cegir
 
 import settings
@@ -33,10 +33,10 @@ class CegirIeqs(Cegir):
             sum(map(len, termss)), len(locs)))
 
         # if "a" in str(t) and "-" not in str(t)
-        refs = {loc: {Inv(t <= maxV): t for t in terms}
+        refs = {loc: {IeqInv(t <= maxV): t for t in terms}
                 for loc, terms in zip(locs, termss)}
 
-        ieqs = DInvs((loc, Invs.mk(refs[loc].keys())) for loc in refs)
+        ieqs = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
         myinps = None  # dummy
         cexs, ieqs = self.symstates.check(ieqs, myinps)
 
@@ -72,8 +72,8 @@ class CegirIeqs(Cegir):
                     break
 
                 i = i + 1
-                inv = Inv(term <= v)
-                inv_ = DInvs.mk(loc, Invs.mk([inv]))
+                inv = IeqInv(term <= v)
+                inv_ = DInvs.mk(loc, Invs([inv]))
                 cexs, _ = self.symstates.check(inv_, inps=None)
                 assert v not in statsd, v
                 statsd[v] = inv.stat
@@ -90,7 +90,7 @@ class CegirIeqs(Cegir):
             boundV = self.guessCheck(loc, term, mminV, mmaxV, statsd)
             if (boundV not in statsd or statsd[boundV] != Inv.DISPROVED):
                 stat = statsd[boundV] if boundV in statsd else None
-                inv = Inv(term <= boundV, stat)
+                inv = IeqInv(term <= boundV, stat)
                 mlog.debug("got {}".format(inv))
                 return inv
             else:
@@ -108,9 +108,7 @@ class CegirIeqs(Cegir):
         rs = [(loc, inv) for loc, inv in wrs if inv]
         dinvs = DInvs()
         for loc, inv in rs:
-            if loc not in dinvs:
-                dinvs[loc] = Invs()
-            dinvs[loc].add(inv)
+            dinvs.setdefault(loc, Invs()).add(inv)
         return dinvs
 
     def guessCheck(self, loc, term, minV, maxV, statsd):
@@ -128,8 +126,8 @@ class CegirIeqs(Cegir):
             if (minV in statsd and statsd[minV] == Inv.DISPROVED):
                 return maxV
 
-            inv = Inv(term <= minV)
-            inv_ = DInvs.mk(loc, Invs.mk([inv]))
+            inv = IeqInv(term <= minV)
+            inv_ = DInvs.mk(loc, Invs([inv]))
             cexs, _ = self.symstates.check(inv_, inps=None)
 
             assert minV not in statsd
@@ -143,8 +141,8 @@ class CegirIeqs(Cegir):
         v = (maxV + minV)/2.0
         v = int(math.ceil(v))  # sage.all.ceil(v)
 
-        inv = Inv(term <= v)
-        inv_ = DInvs.mk(loc, Invs.mk([inv]))
+        inv = IeqInv(term <= v)
+        inv_ = DInvs.mk(loc, Invs([inv]))
         cexs, _ = self.symstates.check(inv_, inps=None)
 
         assert v not in statsd

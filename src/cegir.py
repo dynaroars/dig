@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import vcommon as CM
-from ds import Inps, Traces, Inv, Invs, DInvs, Prog
+from ds import Inps, Traces, Invs, DInvs, Prog
 
 import settings
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -29,7 +29,7 @@ class Cegir(object):
         by using inv False (0)
         """
 
-        dinvs = DInvs.mk_falses(self.inv_decls)
+        dinvs = DInvs.mk_false_invs(self.inv_decls)
         inps = Inps()
         # use some initial inps first
         rinps = self.symstates.genRandInps(self.prog)
@@ -42,7 +42,7 @@ class Cegir(object):
         if unreachLocs:
             mlog.debug("use RT to generate traces for {} locs: {}".format(
                 len(unreachLocs), ','.join(map(str, unreachLocs))))
-            unreachInvs = DInvs.mk_falses(unreachLocs)
+            unreachInvs = DInvs.mk_false_invs(unreachLocs)
             cexs, _ = self.symstates.check(unreachInvs, inps)
             newInps = inps.myupdate(cexs, self.inp_decls.names)
             mlog.debug(newInps.__str__(printDetails=True))

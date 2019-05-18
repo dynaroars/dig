@@ -4,9 +4,9 @@ import os.path
 from time import time
 import sage.all
 import vcommon as CM
-from miscs import Miscs, Z3
+from miscs import Miscs
 import srcJava
-from ds import Inps, Traces, DTraces, Inv, Invs, DInvs, Prog
+from ds import Inps, Traces, DTraces, Inv, EqtInv, Invs, DInvs, Prog
 from symstates import SymStates
 from cegir import Cegir
 import pdb
@@ -97,11 +97,15 @@ class DigCegir(Dig):
             _infer('preposts', lambda: self.infer_preposts(dinvs, traces))
 
         # post procesing
-        mlog.info("test {} invs on {} traces".format(dinvs.siz, traces.siz))
-        dinvs = dinvs.test_traces(traces)
-        mlog.info("uniqify {} invs".format(dinvs.siz))
-        mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
-        dinvs = dinvs.uniqify(self.symstates.use_reals)
+        if dinvs.siz:
+            mlog.info("test {} invs on {} traces".format(
+                dinvs.siz, traces.siz))
+            dinvs = dinvs.test(traces)
+
+            if dinvs.siz:
+                mlog.info("uniqify {} invs".format(dinvs.siz))
+                mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
+                dinvs = dinvs.uniqify(self.symstates.use_reals)
 
         result = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
                   "time {:02f} s, rand {}:\n{}")
@@ -165,7 +169,7 @@ class DigTraces(Dig):
         exprs = list(traces.instantiate(template, nEqtsNeeded))
         eqts = Miscs.solveEqts(exprs, uks, template)
         for inv in eqts:
-            dinvs[loc].add(Inv(inv))
+            dinvs[loc].add(EqtInv(inv))
 
         dtraces = DTraces()
         dtraces[loc] = traces

@@ -33,8 +33,8 @@ CLASSPATH = "{}:{}".format(JAVA_INSTRUMENT_DIR, ASM_JAR)
 JAVA_HOME = os.path.expandvars("$JAVA_HOME")
 JAVAC_CMD = os.path.join(JAVA_HOME, "bin/javac")
 JAVA_CMD = os.path.join(JAVA_HOME, "bin/java")
-assert os.path.isfile(JAVAC_CMD)
-assert os.path.isfile(JAVA_CMD)
+assert os.path.isfile(JAVAC_CMD), JAVAC_CMD
+assert os.path.isfile(JAVA_CMD), JAVA_CMD
 
 JPF_HOME = os.path.join(os.path.expandvars("$JPF_HOME"), "jpf-core")
 JPF_JAR = os.path.join(JPF_HOME, "build/RunJPF.jar")
