@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import vcommon as CM
-from ds import Inps, Traces, Invs, DInvs, Prog
+from ds import Inps, Prog
+from invs import DInvs
 
 import settings
 mlog = CM.getLogger(__name__, settings.logger_level)

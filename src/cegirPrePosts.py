@@ -1,16 +1,19 @@
 import itertools
-import operator
-import vcommon as CM
-from cegir import Cegir
-from ds import (DTraces, Traces,
-                Inv, PrePostInv, EqtInv, IeqInv, Invs, DInvs)
-import sage.all
-import z3
-from miscs import Miscs, Z3
-import settings
 import pdb
-trace = pdb.set_trace
+import z3
 
+import sage.all
+
+import vcommon as CM
+import settings
+from miscs import Miscs
+
+from cegir import Cegir
+from ds import DTraces, Traces
+from invs import Inv, PrePostInv, EqtInv, IeqInv, Invs, DInvs
+
+
+trace = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -81,7 +84,7 @@ class CegirPrePosts(Cegir):
             print tcs.__str__(True)
             preconds = Invs([c for c in self.preconds if c.test(tcs)])
             print 'mypreconds', preconds
-            #preconds = preconds.uniqify(self.symstates.use_reals)
+            # preconds = preconds.uniqify(self.symstates.use_reals)
             if not preconds:
                 continue
 

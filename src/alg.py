@@ -1,16 +1,21 @@
-import random
-import settings
 from abc import ABCMeta
+import pdb
+import random
 import os.path
 from time import time
+
 import sage.all
+
 import vcommon as CM
+import settings
 from miscs import Miscs
-import srcJava
-from ds import Inps, Traces, DTraces, Inv, EqtInv, Invs, DInvs, Prog
+
+from ds import Inps, Traces, DTraces, Prog
+from invs import EqtInv, Invs, DInvs
 from symstates import SymStates
 from cegir import Cegir
-import pdb
+import srcJava
+
 trace = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -22,10 +27,17 @@ class Dig(object):
     def __init__(self, filename):
         assert os.path.isfile(filename), filename
         mlog.info("analyze '{}'".format(filename))
-
-        import tempfile
-        self.tmpdir = tempfile.mkdtemp(dir=settings.tmpdir, prefix="Dig_")
         self.filename = filename
+
+    @property
+    def tmpdir(self):
+        try:
+            return self._tmpdir
+        except AttributeError:
+            import tempfile
+            self._tmpdir = tempfile.mkdtemp(
+                dir=settings.tmpdir, prefix="Dig_")
+            return self._tmpdir
 
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
@@ -145,7 +157,7 @@ class DigTraces(Dig):
 
         from srcTcs import Src
         self.src = Src(filename)
-        self.inv_decls = self.src.getInv_decls()
+        self.inv_decls = self.src.get_inv_decls()
 
     def start(self, seed, maxdeg, do_eqts, do_ieqs):
 

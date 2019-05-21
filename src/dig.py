@@ -1,8 +1,8 @@
 import sys
-from vcommon import getLogger, getLogLevel
 import os.path
 from datetime import datetime
 from time import time
+from vcommon import getLogger, getLogLevel
 
 if __name__ == "__main__":
     import argparse

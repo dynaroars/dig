@@ -1,9 +1,10 @@
 import math
-import vcommon as CM
-from miscs import Miscs
-from ds import Inps, Traces, DTraces, Inv, IeqInv, Invs, DInvs
-from cegir import Cegir
 
+from ds import Inps, Traces, DTraces
+from invs import Inv, IeqInv, Invs, DInvs
+from cegir import Cegir
+from miscs import Miscs
+import vcommon as CM
 import settings
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -21,10 +22,6 @@ class CegirIeqs(Cegir):
 
         locs = traces.keys()
         symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
-
-        # if deg > 2:
-        #     mlog.debug("reduce deg {} to 2 for oct ieqs".format(deg))
-        #     deg = 2
         oct_siz = 2
         termss = [Miscs.get_terms_fixed_coefs(symbols, oct_siz)
                   for symbols in symbolss]

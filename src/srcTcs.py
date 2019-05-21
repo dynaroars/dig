@@ -9,6 +9,11 @@ import settings
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
+def parse(filename):
+    assert os.path.isfile(filename), filename
+    contents = CM.iread_strip(filename)
+
+
 def stripTo(s, to_s): return s[s.find(to_s) + 1:].strip()  # e.g., ...:x  -> x
 
 
@@ -39,7 +44,7 @@ class Src(object):
                     return locs
         return locs
 
-    def getInv_decls(self, traceIndicator="//%%%traces:"):
+    def get_inv_decls(self, traceIndicator="//%%%traces:"):
         """
         get Trace variables
         invdecls = {loc : {'x':'int'; 'y':'double'}}
