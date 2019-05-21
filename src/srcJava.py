@@ -27,8 +27,8 @@ def parse(filename, tmpdir):
         n = os.path.join(d, baseName)
         return d, n
 
-    tracedir, tracefile = mkdir("traces")
-    jpfdir, jpffile = mkdir("jpf")
+    tracedir, tracefile = mkdir(settings.TRACE_DIR)
+    jpfdir, jpffile = mkdir(settings.JPF_DIR)
     cmd = settings.INSTRUMENT_RUN(
         filename=filename, tracefile=tracefile, jpffile=jpffile)
     rmsg, errmsg = CM.vcmd(cmd)
@@ -42,10 +42,10 @@ def parse(filename, tmpdir):
 
     # mainQ
     inp_decls = [(fun, symbs) for fun, symbs in lines
-                 if fun.startswith('mainQ')][0]
+                 if fun.startswith(settings.MAINQ_FUN)][0]
     mainQName, inp_decls = inp_decls[0], inp_decls[1]
     inv_decls = {fun: symbs for fun,
-                 symbs in lines if fun.startswith('vtrace')}
+                 symbs in lines if fun.startswith(settings.TRACE_INDICATOR)}
     return (inp_decls, inv_decls, clsName, mainQName,
             jpfdir, jpffile, tracedir, tracefile)
 

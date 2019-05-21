@@ -1,5 +1,8 @@
+import sys
 from vcommon import getLogger, getLogLevel
 import os.path
+from datetime import datetime
+from time import time
 
 if __name__ == "__main__":
     import argparse
@@ -12,7 +15,7 @@ if __name__ == "__main__":
     ag("--log_level", "-log_level",
        type=int,
        choices=range(5),
-       default=2,
+       default=3,
        help="set logger info")
 
     ag("--seed", "-seed",
@@ -61,7 +64,6 @@ if __name__ == "__main__":
     ag("--normtmp", "-normtmp",
        action="store_true")
 
-    from time import time
     args = aparser.parse_args()
 
     import settings
@@ -88,6 +90,8 @@ if __name__ == "__main__":
     if args.maxterm >= 1 and args.maxterm != settings.MAX_TERM:
         settings.MAX_TERM = args.maxterm
 
+    mlog.info("{}: {}".format(datetime.now(), ' '.join(sys.argv)))
+
     if __debug__:
         mlog.warn("DEBUG MODE ON. Can be slow !")
 
@@ -112,4 +116,4 @@ if __name__ == "__main__":
         mlog.debug("rm -rf {}".format(tmpdir))
         shutil.rmtree(tmpdir)
     else:
-        print("tmpdir: {}".format(tmpdir))
+        mlog.info("tmpdir: {}".format(tmpdir))

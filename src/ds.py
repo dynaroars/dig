@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
+import os.path
 from time import time
 import settings
 from miscs import Miscs, Z3
@@ -25,7 +27,7 @@ class Prog(object):
         self.inv_decls = inv_decls
         self.cache = {}  # inp -> traces (str)
 
-    def getTraces(self, inps):
+    def get_traces(self, inps):
         """
         Run program on inps and get traces
         """
@@ -131,7 +133,7 @@ class Symbs(tuple):
 
 class Trace(tuple):
     """"
-    (3, 4, (7,8))
+    ((x, y), (3, 4))
     """
     maxVal = 100000000
 
@@ -354,28 +356,52 @@ class DTraces(dict):
         return newTraces
 
     @classmethod
-    def parse(cls, trace_str, invdecls):
+    def parse(cls, trace_str, inv_decls):
         """
         parse trace for new traces
+
+        trace_str = ['vtrace1: 0 285 1 9 285 9 ',
+        'vtrace1: 0 285 2 18 285 9 ',
+        'vtrace1: 0 285 4 36 285 9 ']
         """
         assert isinstance(trace_str, list), trace_str
-        assert isinstance(invdecls, dict) and invdecls, invdecls
+        assert isinstance(inv_decls, dict) and inv_decls, inv_decls
 
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]
 
         dtraces = DTraces()
         for l in lines:
-            # 22: 8460 16 0 1 16 8460
+            # 22: 8460, 16, 0, 1, 16, 8460
             parts = l.split(':')
             assert len(parts) == 2, parts
             loc, tracevals = parts[0], parts[1]
             loc = loc.strip()  # 22
-            ss = invdecls[loc].names
+            ss = inv_decls[loc].names
             vs = tracevals.strip().split()
-            trace = Trace.parse(ss, vs)
-            dtraces.add(loc, trace)
+            mytrace = Trace.parse(ss, vs)
+            dtraces.add(loc, mytrace)
         return dtraces
+
+    def vwrite(self, inv_decls, tmpdir):
+        """
+        write traces to file
+        each loc will have its own file
+
+        file 'traces_loc.csv'
+        var1 var2 var3
+        v1 v2 v2
+        ...
+        """
+        assert isinstance(inv_decls, dict) and inv_decls, inv_decls
+        assert os.path.isdir(tmpdir), tmpdir
+
+        trace_dir = os.path.join(tmpdir, settings.TRACE_DIR)
+        for loc in self:
+            ss = [inv_decls[loc].names] + [t.vs for t in self[loc]]
+            ss = [' '.join(map(str, s)) for s in ss]
+            filename = os.path.join(trace_dir, "traces_{}.tcs".format(loc))
+            CM.vwrite(filename, '\n'.join(ss))
 
 
 class Inv(object):
@@ -749,27 +775,6 @@ class DInvs(dict):
                 if not inv.is_disproved:
                     dinvs.add(loc, inv)
         return dinvs
-
-    # def test_single_traces(self, dtraces):
-    #     assert(self.siz), self
-
-    #     assert isinstance(dtraces, DTraces)
-
-    #     dinvs = self.__class__()
-    #     for loc in self:
-    #         assert loc not in dinvs
-    #         dinvs[loc] = Invs()
-    #         for inv in self[loc]:
-    #             if dtraces[loc].test(inv.inv) is None:  # all pass
-    #                 dinvs[loc].add(inv)
-    #             else:
-    #                 mlog.debug("{}: {} failed test".format(loc, inv))
-
-    #     for loc in dinvs:
-    #         if not dinvs[loc]:
-    #             del dinvs[loc]
-
-    #     return dinvs
 
     def test(self, dtraces):
         assert isinstance(dtraces, DTraces)

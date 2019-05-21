@@ -52,3 +52,13 @@ INSTRUMENT_RUN = partial(INSTRUMENT_RUN.format, java=JAVA_CMD, cp=CLASSPATH)
 
 JAVA_RUN = "{java} -ea -cp {tracedir} {clsname}"
 JAVA_RUN = partial(JAVA_RUN.format, java=JAVA_CMD)
+
+
+# tmpdirs, created inside tmpdir, e.g., /path/to/tmpdir/...
+
+TRACE_DIR = "traces"
+JPF_DIR = "jpf"
+
+
+TRACE_INDICATOR = "vtrace"
+MAINQ_FUN = "mainQ"

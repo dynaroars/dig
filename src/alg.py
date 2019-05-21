@@ -1,3 +1,4 @@
+import random
 import settings
 from abc import ABCMeta
 import os.path
@@ -29,7 +30,6 @@ class Dig(object):
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
-        import random
         random.seed(seed)
         sage.all.set_random_seed(seed)
         mlog.debug("set seed to: {} (test {})".format(
@@ -115,6 +115,8 @@ class DigCegir(Dig):
                             time() - st, sage.all.randint(0, 100),
                             dinvs.__str__(print_stat=True)))
 
+        traces.vwrite(self.inv_decls, self.tmpdir)
+
         return dinvs, traces, self.tmpdir
 
     def infer_eqts(self, deg, traces, inps):
@@ -140,6 +142,7 @@ class DigCegir(Dig):
 class DigTraces(Dig):
     def __init__(self, filename):
         super(DigTraces, self).__init__(filename)
+
         from srcTcs import Src
         self.src = Src(filename)
         self.inv_decls = self.src.getInv_decls()

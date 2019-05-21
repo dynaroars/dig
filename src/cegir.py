@@ -19,7 +19,7 @@ class Cegir(object):
 
     def getTracesAndUpdate(self, inps, traces):
         assert isinstance(inps, Inps) and inps, inps
-        newTraces = self.prog.getTraces(inps)
+        newTraces = self.prog.get_traces(inps)
         newTraces = newTraces.update(traces)
         return newTraces
 
@@ -36,7 +36,7 @@ class Cegir(object):
 
         mlog.debug("gen {} random inps".format(len(rinps)))
         _ = inps.myupdate(rinps, self.inp_decls.names)
-        traces = self.prog.getTraces(inps)
+        traces = self.prog.get_traces(inps)
         unreachLocs = [loc for loc in dinvs if loc not in traces]
 
         if unreachLocs:

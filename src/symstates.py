@@ -533,8 +533,8 @@ class SymStates(object):
             for rinp in rinps:
                 inp = _f(rinp)
                 myinps = Inps()
-                _ = myinps.myupdate(set([inp]), self.inp_decls.names)
-                tcs = prog.getTraces(myinps)
+                myinps.myupdate(set([inp]), self.inp_decls.names)
+                tcs = prog.get_traces(myinps)
                 if tcs:
                     validRanges.add(rinp)
                     validInps.add(inp)
