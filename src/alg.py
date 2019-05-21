@@ -86,7 +86,8 @@ class DigCegir(Dig):
             if not invs:
                 mlog.warn("infer no {}".format(typ))
             else:
-                mlog.info("infer {} in {}s".format(invs.siz, typ, time() - st))
+                mlog.info("infer {} {} in {}s".format(
+                    invs.siz, typ, time() - st))
                 dinvs.merge(invs)
                 mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
 
@@ -94,19 +95,18 @@ class DigCegir(Dig):
             _infer('eqts', lambda: self.infer_eqts(self.deg, traces, inps))
         if do_ieqs:
             _infer('ieqs', lambda: self.infer_ieqs(traces, inps))
-        if do_preposts:
-            _infer('preposts', lambda: self.infer_preposts(dinvs, traces))
 
-        # post procesing
         if dinvs.siz:
             mlog.info("test {} invs on {} traces".format(
                 dinvs.siz, traces.siz))
             dinvs = dinvs.test(traces)
-
             if dinvs.siz:
                 mlog.info("uniqify {} invs".format(dinvs.siz))
                 mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
                 dinvs = dinvs.uniqify(self.symstates.use_reals)
+
+        if do_preposts:
+            _infer('preposts', lambda: self.infer_preposts(dinvs, traces))
 
         result = ("*** '{}', {} locs, invs {} ({} eqts), inps {} "
                   "time {:02f} s, rand {}:\n{}")

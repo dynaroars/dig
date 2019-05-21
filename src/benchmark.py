@@ -2,16 +2,12 @@ import vcommon as CM
 import os
 import os.path
 import time
-
-
-# def vcmd(cmd, inp=None, shell=True):
-#     proc = sp.Popen(cmd, shell=shell, stdin=sp.PIPE,
-#                     stdout=sp.PIPE, stderr=sp.PIPE)
-#     return proc.communicate(input=inp)
+from datetime import datetime
 
 
 def run(dir_, ntimes):
-    print ("**** Benchmark dir '{}' {} times".format(dir_, ntimes))
+    print ("**** Benchmark dir '{}' {} times ({})".format(
+        dir_, ntimes, datetime.now()))
 
     fs = sorted(f for f in os.listdir(dir_) if f.endswith(".java"))
     fs = [os.path.join(dir_, f) for f in fs]
@@ -21,7 +17,7 @@ def run(dir_, ntimes):
             print "File {} does not exist".format(f)
             continue
 
-        run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {}"
+        run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {} -nopreposts"
         for i in range(ntimes):
             print "##### Running {} with seed {}, {}".format(
                 f, i, time.strftime("%c"))

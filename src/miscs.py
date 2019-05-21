@@ -702,33 +702,33 @@ class Z3(object):
         models, _ = cls.getModels(z3.Not(claim), k=1)
         return models is False
 
-    @classmethod
-    def reduceSMT(cls, ps, use_reals):
-        eqts, eqtsLargeCoefs, ieqs = [], [], []
-        for p in ps:
-            if p.operator() == sage.all.operator.eq:
-                if len(Miscs.getCoefs(p)) > 10:
-                    eqtsLargeCoefs.append(p)
-                else:
-                    eqts.append(p)
-            else:
-                ieqs.append(p)
+    # @classmethod
+    # def reduceSMT(cls, ps, use_reals):
+    #     eqts, eqtsLargeCoefs, ieqs = [], [], []
+    #     for p in ps:
+    #         if p.operator() == sage.all.operator.eq:
+    #             if len(Miscs.getCoefs(p)) > 10:
+    #                 eqtsLargeCoefs.append(p)
+    #             else:
+    #                 eqts.append(p)
+    #         else:
+    #             ieqs.append(p)
 
-        if len(eqts + ieqs) <= 1:
-            return ps
+    #     if len(eqts + ieqs) <= 1:
+    #         return ps
 
-        ps = sorted(ieqs) + eqts
-        rs = list(ps)
+    #     ps = sorted(ieqs) + eqts
+    #     rs = list(ps)
 
-        for p in ps:
-            if p not in rs:
-                continue
-            xclude = [p_ for p_ in rs if p_ != p]
-            if cls.imply(xclude, p, use_reals):
-                rs = xclude
+    #     for p in ps:
+    #         if p not in rs:
+    #             continue
+    #         xclude = [p_ for p_ in rs if p_ != p]
+    #         if cls.imply(xclude, p, use_reals):
+    #             rs = xclude
 
-        rs.extend(eqtsLargeCoefs)
-        return rs
+    #     rs.extend(eqtsLargeCoefs)
+    #     return rs
 
     @classmethod
     @cached_function
