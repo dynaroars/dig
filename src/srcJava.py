@@ -1,5 +1,5 @@
 import os.path
-from ds import Symbs
+from ds import Symbs, DSymbs
 import vcommon as CM
 
 import settings
@@ -42,10 +42,12 @@ def parse(filename, tmpdir):
 
     # mainQ
     inp_decls = [(fun, symbs) for fun, symbs in lines
-                 if fun.startswith(settings.MAINQ_FUN)][0]
+                 if fun.startswith(settings.MAINQ_FUN)]
+    assert len(inp_decls) == 1
+    inp_decls = inp_decls[0]
     mainQName, inp_decls = inp_decls[0], inp_decls[1]
-    inv_decls = {fun: symbs for fun,
-                 symbs in lines if fun.startswith(settings.TRACE_INDICATOR)}
+    inv_decls = DSymbs([(fun, symbs) for fun, symbs in lines
+                        if fun.startswith(settings.TRACE_INDICATOR)])
     return (inp_decls, inv_decls, clsName, mainQName,
             jpfdir, jpffile, tracedir, tracefile)
 

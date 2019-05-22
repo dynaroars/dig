@@ -10,7 +10,7 @@ import vcommon as CM
 import settings
 from miscs import Miscs, Z3
 
-trace = pdb.set_trace
+dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 """
@@ -21,7 +21,7 @@ Data structures
 class Prog(object):
     def __init__(self, exe_cmd, inv_decls):
         assert isinstance(exe_cmd, str), exe_cmd
-        assert isinstance(inv_decls, dict), inv_decls
+        assert isinstance(inv_decls, DSymbs), inv_decls
 
         self.exe_cmd = exe_cmd
         self.inv_decls = inv_decls
@@ -121,7 +121,7 @@ class Symbs(tuple):
     @staticmethod
     def mk(s):
         """
-        %%%indicator double x , double y .. ->  {x: int, y: double}
+        double x , double y .. ->  {x: int, y: double}
         where x and y are SAGE's symbolic variables
         """
         assert isinstance(s, str), s
@@ -129,6 +129,18 @@ class Symbs(tuple):
         symbs = [Symb(k.strip(), t.strip()) for t, k in cs]
         cs = Symbs(symbs)
         return cs
+
+
+#inv_decls = {loc: Symbs}
+class DSymbs(dict):
+    @property
+    def use_reals(self):
+        try:
+            return self._use_reals
+        except AttributeError:
+            self._use_reals = any(
+                s.isReal for syms in self.itervalues() for s in syms)
+            return self._use_reals
 
 
 class Trace(tuple):
@@ -355,8 +367,8 @@ class DTraces(dict):
                 newTraces.add(loc, trace)
         return newTraces
 
-    @classmethod
-    def parse(cls, trace_str, inv_decls):
+    @staticmethod
+    def parse(trace_str, inv_decls):
         """
         parse trace for new traces
 
@@ -365,14 +377,14 @@ class DTraces(dict):
         'vtrace1: 0 285 4 36 285 9 ']
         """
         assert isinstance(trace_str, list), trace_str
-        assert isinstance(inv_decls, dict) and inv_decls, inv_decls
+        assert isinstance(inv_decls, DSymbs) and inv_decls, inv_decls
 
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]
 
         dtraces = DTraces()
         for l in lines:
-            # 22: 8460, 16, 0, 1, 16, 8460
+            # 22: 8460 16 0 1 16 8460
             parts = l.split(':')
             assert len(parts) == 2, parts
             loc, tracevals = parts[0], parts[1]
@@ -389,16 +401,16 @@ class DTraces(dict):
         each loc will have its own file
 
         file 'traces_loc.csv'
-        var1 var2 var3
-        v1 v2 v2
+        var1, var2, var3
+        v1, v2, v2
         ...
         """
-        assert isinstance(inv_decls, dict) and inv_decls, inv_decls
+        assert isinstance(inv_decls, DSymbs) and inv_decls, inv_decls
         assert os.path.isdir(tmpdir), tmpdir
 
         trace_dir = os.path.join(tmpdir, settings.TRACE_DIR)
         for loc in self:
             ss = [inv_decls[loc].names] + [t.vs for t in self[loc]]
-            ss = [' '.join(map(str, s)) for s in ss]
+            ss = [', '.join(map(str, s)) for s in ss]
             filename = os.path.join(trace_dir, "traces_{}.tcs".format(loc))
             CM.vwrite(filename, '\n'.join(ss))

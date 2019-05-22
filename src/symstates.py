@@ -1,8 +1,6 @@
 """
 Symbolic States
 """
-
-
 import pdb
 import random
 from collections import OrderedDict
@@ -17,11 +15,11 @@ from sage.all import cached_function
 import vcommon as CM
 import settings
 from miscs import Miscs, Z3
-from ds import Symbs, Inps, DTraces
+from ds import Symbs, DSymbs, Inps, DTraces
 from invs import Inv,  DInvs, Invs
 import srcJava
 
-trace = pdb.set_trace
+dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -261,12 +259,13 @@ class SymStates(object):
     def __init__(self, inp_decls, inv_decls):
         assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
         # {'vtrace1': (('q', 'I'), ('r', 'I'), ('x', 'I'), ('y', 'I'))}
-        assert isinstance(inv_decls, dict), inv_decls
+        assert isinstance(inv_decls, DSymbs), inv_decls
 
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
-        self.use_reals = any(s.isReal for syms in inv_decls.itervalues()
-                             for s in syms)
+        self.use_reals = inv_decls.use_reals
+        # any(s.isReal for syms in inv_decls.itervalues()
+        #                      for s in syms)
 
         self.inp_exprs = inp_decls.exprs(self.use_reals)
 
