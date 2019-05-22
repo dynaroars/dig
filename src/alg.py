@@ -11,7 +11,7 @@ import settings
 from miscs import Miscs
 
 from ds import Inps, Traces, DTraces, Prog
-from invs import EqtInv, Invs, DInvs
+from invs import EqtInv, IeqInv, Invs, DInvs
 from symstates import SymStates
 from cegir import Cegir
 import srcJava
@@ -137,7 +137,8 @@ class DigCegir(Dig):
 
         self.print_results(dinvs, dtraces, inps, st)
 
-        dtraces.vwrite(self.inv_decls, self.tmpdir)
+        tracefile = os.path.join(self.tmpdir, settings.TRACE_DIR, 'all.tcs')
+        dtraces.vwrite(self.inv_decls, tracefile)
 
         return dinvs, dtraces, self.tmpdir
 
@@ -162,35 +163,43 @@ class DigCegir(Dig):
 
 
 class DigTraces(Dig):
-    def __init__(self, filename):
-        super(DigTraces, self).__init__(filename)
+    def __init__(self, tracefile):
+        super(DigTraces, self).__init__(tracefile)
 
-        import srcTcs
-        self.inv_decls, self.dtraces = srcTcs.parse(filename)
+        self.inv_decls, self.dtraces = DTraces.vread(tracefile)
 
     def start(self, seed, maxdeg, do_eqts, do_ieqs, do_preposts):
 
         super(DigTraces, self).start(seed, maxdeg)
 
         st = time()
-        loc = self.inv_decls.keys()[0]
         dinvs = DInvs()
-        dinvs[loc] = Invs()
+        for loc in self.dtraces:
+            dinvs[loc] = Invs()
+            traces = self.dtraces[loc]
+            symbols = self.inv_decls[loc]
+            if do_eqts:
+                terms, template, uks, nEqtsNeeded = Miscs.initTerms(
+                    symbols.names, self.deg, settings.EQT_RATE)
+                exprs = list(traces.instantiate(template, nEqtsNeeded))
+                eqts = Miscs.solveEqts(exprs, uks, template)
+                for eqt in eqts:
+                    dinvs[loc].add(EqtInv(eqt))
 
-        ss = self.inv_decls[loc].names
-        assert ss, ss
+            if do_ieqs:
+                maxV = settings.OCT_MAX_V
+                minV = -1*maxV
 
-        terms, template, uks, nEqtsNeeded = Miscs.initTerms(
-            ss, self.deg, settings.EQT_RATE)
+                oct_siz = 2
+                terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, oct_siz)
+                for t in terms:
+                    upperbound = max(traces.myeval(t))
+                    if upperbound > maxV or upperbound < minV:
+                        continue
 
-        traces = self.dtraces[loc]
-        exprs = list(traces.instantiate(template, nEqtsNeeded))
-        eqts = Miscs.solveEqts(exprs, uks, template)
-        for inv in eqts:
-            dinvs[loc].add(EqtInv(inv))
+                    ieq = t <= upperbound
+                    dinvs[loc].add(IeqInv(ieq))
 
-        dtraces = DTraces()
-        dtraces[loc] = traces
-        dinvs = self.sanitize(dinvs, dtraces)
-        self.print_results(dinvs, dtraces, None, st)
+        dinvs = self.sanitize(dinvs, self.dtraces)
+        self.print_results(dinvs, self.dtraces, None, st)
         return dinvs, None, self.tmpdir

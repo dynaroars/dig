@@ -131,7 +131,7 @@ class Symbs(tuple):
         return cs
 
 
-#inv_decls = {loc: Symbs}
+# inv_decls = {loc: Symbs}
 class DSymbs(dict):
     @property
     def use_reals(self):
@@ -395,7 +395,7 @@ class DTraces(dict):
             dtraces.add(loc, mytrace)
         return dtraces
 
-    def vwrite(self, inv_decls, tmpdir):
+    def vwrite(self, inv_decls, tracefile):
         """
         write traces to file
         each loc will have its own file
@@ -405,12 +405,31 @@ class DTraces(dict):
         v1, v2, v2
         ...
         """
-        assert isinstance(inv_decls, DSymbs) and inv_decls, inv_decls
-        assert os.path.isdir(tmpdir), tmpdir
+        assert inv_decls and isinstance(inv_decls, DSymbs), inv_decls
+        assert tracefile and isinstance(tracefile, str), tracefile
 
-        trace_dir = os.path.join(tmpdir, settings.TRACE_DIR)
+        ss = []
         for loc in self:
-            ss = [inv_decls[loc].names] + [t.vs for t in self[loc]]
-            ss = [', '.join(map(str, s)) for s in ss]
-            filename = os.path.join(trace_dir, "traces_{}.tcs".format(loc))
-            CM.vwrite(filename, '\n'.join(ss))
+            traces = [inv_decls[loc]]
+            traces.extend([', '.join(map(str, t.vs)) for t in self[loc]])
+            traces = ['{}: {}'.format(loc, t) for t in traces]
+            ss.extend(traces)
+
+        CM.vwrite(tracefile, '\n'.join(ss))
+
+    @classmethod
+    def vread(cls, tracefile):
+        assert tracefile and isinstance(tracefile, str), tracefile
+
+        trace_str = []
+        # determine variable declarations for different locations
+        inv_decls = DSymbs()
+        for line in CM.iread_strip(tracefile):
+            loc, contents = line.split(':')
+            if loc not in inv_decls:
+                inv_decls[loc] = Symbs.mk(contents)  # I x, I y
+            else:
+                trace_str.append(line.replace(',', ''))
+
+        dtraces = DTraces.parse(trace_str, inv_decls)
+        return inv_decls, dtraces

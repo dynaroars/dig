@@ -12,7 +12,7 @@ import settings
 from miscs import Miscs, Z3
 
 from ds import Trace, Traces, DTraces
-trace = pdb.set_trace
+dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
