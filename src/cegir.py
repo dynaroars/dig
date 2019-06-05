@@ -1,9 +1,12 @@
 from abc import ABCMeta, abstractmethod
+import pdb
 import vcommon as CM
-from ds import Inps, Prog
+from ds import Inps, DTraces, Prog
 from invs import DInvs
 
 import settings
+
+dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -18,8 +21,13 @@ class Cegir(object):
         self.inp_decls = symstates.inp_decls
         self.prog = prog
 
-    def getTracesAndUpdate(self, inps, traces):
+    def get_traces(self, inps, traces):
+        """
+        run inps to get new traces (and update them)
+        """
         assert isinstance(inps, Inps) and inps, inps
+        assert isinstance(traces, DTraces), traces
+
         newTraces = self.prog.get_traces(inps)
         newTraces = newTraces.update(traces)
         return newTraces
@@ -38,16 +46,16 @@ class Cegir(object):
         mlog.debug("gen {} random inps".format(len(rinps)))
         _ = inps.myupdate(rinps, self.inp_decls.names)
         traces = self.prog.get_traces(inps)
-        unreachLocs = [loc for loc in dinvs if loc not in traces]
+        unreach_locs = [loc for loc in dinvs if loc not in traces]
 
-        if unreachLocs:
+        if unreach_locs:
             mlog.debug("use RT to generate traces for {} locs: {}".format(
-                len(unreachLocs), ','.join(map(str, unreachLocs))))
-            unreachInvs = DInvs.mk_false_invs(unreachLocs)
-            cexs, _ = self.symstates.check(unreachInvs, inps)
+                len(unreach_locs), ','.join(map(str, unreach_locs))))
+            unreach_invs = DInvs.mk_false_invs(unreach_locs)
+            cexs, _ = self.symstates.check(unreach_invs, inps)
             newInps = inps.myupdate(cexs, self.inp_decls.names)
             mlog.debug(newInps.__str__(printDetails=True))
-            self.getTracesAndUpdate(newInps, traces)
+            self.get_traces(newInps, traces)
 
         # remove FALSE invs indicating unreached locs
         for loc in traces:

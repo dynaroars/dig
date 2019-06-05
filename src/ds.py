@@ -31,7 +31,8 @@ class Prog(object):
         """
         Run program on inps and get traces
         """
-        assert isinstance(inps, Inps) and inps, inps
+        assert isinstance(inps, Inps), inps
+
         trace_str = []
         for inp in inps:
             if inp in self.cache:

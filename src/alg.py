@@ -42,6 +42,7 @@ class Dig(object):
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
+        self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
         mlog.debug("set seed to: {} (test {})".format(
@@ -66,11 +67,13 @@ class Dig(object):
     def print_results(self, dinvs, dtraces, inps, st):
         result = ("*** '{}', {} locs, "
                   "invs {} ({} eqts), traces {}, inps {}, "
-                  "time {:02f} s, rand {}:\n{}")
+                  "time {:02f}s, rand seed {}, test {}:\n{}")
         print(result.format(self.filename, len(dinvs),
                             dinvs.siz, dinvs.n_eqs, dtraces.siz,
                             len(inps) if inps else 0,
-                            time() - st, sage.all.randint(0, 100),
+                            time() - st,
+                            self.seed,
+                            sage.all.randint(0, 100),
                             dinvs.__str__(print_stat=True)))
 
 
@@ -127,6 +130,7 @@ class DigCegir(Dig):
 
         if do_eqts:
             _infer('eqts', lambda: self.infer_eqts(self.deg, dtraces, inps))
+
         if do_ieqs:
             _infer('ieqs', lambda: self.infer_ieqs(dtraces, inps))
 
@@ -175,14 +179,17 @@ class DigTraces(Dig):
         st = time()
         dinvs = DInvs()
         for loc in self.dtraces:
+            symbols = self.inv_decls[loc]
             dinvs[loc] = Invs()
             traces = self.dtraces[loc]
-            symbols = self.inv_decls[loc]
+
+            mp_solve(symbols, traces)
+
             if do_eqts:
-                terms, template, uks, nEqtsNeeded = Miscs.initTerms(
+                terms, template, uks, n_eqts_needed = Miscs.init_terms(
                     symbols.names, self.deg, settings.EQT_RATE)
-                exprs = list(traces.instantiate(template, nEqtsNeeded))
-                eqts = Miscs.solveEqts(exprs, uks, template)
+                exprs = list(traces.instantiate(template, n_eqts_needed))
+                eqts = Miscs.solve_eqts(exprs, uks, template)
                 for eqt in eqts:
                     dinvs[loc].add(EqtInv(eqt))
 
@@ -203,3 +210,7 @@ class DigTraces(Dig):
         dinvs = self.sanitize(dinvs, self.dtraces)
         self.print_results(dinvs, self.dtraces, None, st)
         return dinvs, None, self.tmpdir
+
+
+def mp_solve(symbols, traces):
+    terms = Miscs.gen_terms_fixed_coefs_mp(symbols.sageExprs, 2)

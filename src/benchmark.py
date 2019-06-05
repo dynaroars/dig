@@ -3,29 +3,37 @@ import os
 import os.path
 import time
 from datetime import datetime
+from vcommon import getLogLevel
+import dig
+import settings
+settings.logger_level = getLogLevel(3)
 
 
-def run(dir_, ntimes):
-    print ("**** Benchmark dir '{}' {} times ({})".format(
-        dir_, ntimes, datetime.now()))
+def run(benchdir, ntimes):
+    print("**** Benchmark dir '{}' {} times ({})".format(
+        benchdir, ntimes, datetime.now()))
 
-    fs = sorted(f for f in os.listdir(dir_) if f.endswith(".java"))
-    fs = [os.path.join(dir_, f) for f in fs]
+    fs = sorted(f for f in os.listdir(benchdir) if f.endswith(".java"))
+    fs = [os.path.join(benchdir, f) for f in fs]
 
     for f in fs:
         if not os.path.isfile(f):
             print "File {} does not exist".format(f)
             continue
 
-        run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {} -nopreposts"
+        #run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {} -nopreposts"
         for i in range(ntimes):
             print "##### Running {} with seed {}, {}".format(
                 f, i, time.strftime("%c"))
-            cmd = run_cmd.format(f, i)
-            print cmd
-            stdout, stderr = CM.vcmd(cmd)
-            print stdout
-            print stderr
+            dig.run(f, seed=i, maxdeg=None,
+                    do_eqts=True, do_ieqs=True, do_preposts=False,
+                    do_rmtmp=True)
+            #cmd = run_cmd.format(f, i)
+            # print cmd
+
+            #stdout, stderr = CM.vcmd(cmd)
+            # print stdout
+            # print stderr
 
 
 ntimes = 1

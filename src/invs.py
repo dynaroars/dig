@@ -393,7 +393,7 @@ class DInvs(dict):
         assert(self.siz), self
 
         dinvs = [(loc, invs.test(dtraces[loc]))
-                 for loc, invs in self.iteritems()]
+                 for loc, invs in self.iteritems() if invs]
         return DInvs([(loc, invs) for loc, invs in dinvs if invs])
 
     def update(self, dinvs):

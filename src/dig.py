@@ -4,6 +4,25 @@ from datetime import datetime
 from time import time
 from vcommon import getLogger, getLogLevel
 
+
+def run(inp, seed, maxdeg, do_eqts, do_ieqs, do_preposts, do_rmtmp):
+    import alg
+    if inp.endswith(".java") or inp.endswith(".class"):
+        dig = alg.DigCegir(inp)
+    else:
+        dig = alg.DigTraces(inp)
+
+    invs, traces, tmpdir = dig.start(
+        seed, maxdeg, do_eqts, do_ieqs, do_preposts)
+
+    if do_rmtmp:
+        import shutil
+        print("rm -rf {}".format(tmpdir))
+        shutil.rmtree(tmpdir)
+    else:
+        print("tmpdir: {}".format(tmpdir))
+
+
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
@@ -15,7 +34,7 @@ if __name__ == "__main__":
     ag("--log_level", "-log_level",
        type=int,
        choices=range(5),
-       default=3,
+       default=2,
        help="set logger info")
 
     ag("--seed", "-seed",
@@ -95,25 +114,9 @@ if __name__ == "__main__":
     if __debug__:
         mlog.warn("DEBUG MODE ON. Can be slow !")
 
+    inp = os.path.realpath(os.path.expanduser(args.inp))
     seed = round(time(), 2) if args.seed is None else float(args.seed)
 
-    import alg
-    inp = os.path.realpath(os.path.expanduser(args.inp))
-
-    if inp.endswith(".java") or inp.endswith(".class"):
-        dig = alg.DigCegir(inp)
-    else:
-        dig = alg.DigTraces(inp)
-
-    invs, traces, tmpdir = dig.start(
-        seed=seed, maxdeg=args.maxdeg,
-        do_eqts=not args.noeqts,
-        do_ieqs=not args.noieqs,
-        do_preposts=not args.nopreposts)
-
-    if not args.normtmp:
-        import shutil
-        mlog.debug("rm -rf {}".format(tmpdir))
-        shutil.rmtree(tmpdir)
-    else:
-        mlog.info("tmpdir: {}".format(tmpdir))
+    run(inp, seed, maxdeg=args.maxdeg,
+        do_eqts=not args.noeqts, do_ieqs=not args.noieqs,
+        do_preposts=not args, do_rmtmp=not args.normtmp)

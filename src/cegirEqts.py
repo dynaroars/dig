@@ -52,23 +52,23 @@ class CegirEqts(Cegir):
 
         return dinvs
 
-    def whileRand(self, loc, template, nEqtsNeeded, inps, traces):
+    def whileRand(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeatedly get more inps using random method
         """
-        exprs = traces[loc].instantiate(template, nEqtsNeeded)
+        exprs = traces[loc].instantiate(template, n_eqts_needed)
 
         doRand = True
-        while nEqtsNeeded > len(exprs):
+        while n_eqts_needed > len(exprs):
             newTraces = {}
             mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
-                       .format(loc, len(exprs), nEqtsNeeded, len(inps)))
+                       .format(loc, len(exprs), n_eqts_needed, len(inps)))
             if doRand:
                 rInps = self.symstates.genRandInps(self.prog)
                 mlog.debug("gen {} random inps".format(len(rInps)))
                 rInps = inps.myupdate(rInps, self.inp_decls.names)
                 if rInps:
-                    newTraces = self.getTracesAndUpdate(rInps, traces)
+                    newTraces = self.get_traces(rInps, traces)
 
             if loc not in newTraces:
                 doRand = False
@@ -82,7 +82,7 @@ class CegirEqts(Cegir):
                     return
 
                 newInps = inps.myupdate(cexs, self.inp_decls.names)
-                newTraces = self.getTracesAndUpdate(newInps, traces)
+                newTraces = self.get_traces(newInps, traces)
 
                 # cannot find new traces (new inps do not produce new traces)
                 if loc not in newTraces:
@@ -96,7 +96,7 @@ class CegirEqts(Cegir):
             assert newTraces[loc]
             mlog.debug("obtain {} new traces".format(len(newTraces[loc])))
             newExprs = newTraces[loc].instantiate(
-                template, nEqtsNeeded - len(exprs))
+                template, n_eqts_needed - len(exprs))
 
             for expr in newExprs:
                 assert expr not in exprs
@@ -104,17 +104,17 @@ class CegirEqts(Cegir):
 
         return exprs
 
-    def whileSymstates(self, loc, template, nEqtsNeeded, inps, traces):
+    def whileSymstates(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeated get more traces using the symstates (e.g., Klee)
         """
         assert isinstance(loc, str), loc
-        assert nEqtsNeeded >= 1, nEqtsNeeded
+        assert n_eqts_needed >= 1, n_eqts_needed
 
-        exprs = traces[loc].instantiate(template, nEqtsNeeded)
-        while nEqtsNeeded > len(exprs):
+        exprs = traces[loc].instantiate(template, n_eqts_needed)
+        while n_eqts_needed > len(exprs):
             mlog.debug("{}: need more traces ({} eqts, need >= {})"
-                       .format(loc, len(exprs), nEqtsNeeded))
+                       .format(loc, len(exprs), n_eqts_needed))
             dinvsFalse = DInvs.mk_false_invs([loc])
             cexs, _ = self.symstates.check(dinvsFalse, inps)
             if loc not in cexs:
@@ -122,11 +122,11 @@ class CegirEqts(Cegir):
                 return
 
             newInps = inps.myupdate(cexs, self.inp_decls.names)
-            newTraces = self.getTracesAndUpdate(newInps, traces)
+            newTraces = self.get_traces(newInps, traces)
             assert newTraces[loc]
             mlog.debug("obtain {} new traces".format(len(newTraces[loc])))
             newExprs = newTraces[loc].instantiate(
-                template, nEqtsNeeded - len(exprs))
+                template, n_eqts_needed - len(exprs))
 
             for expr in newExprs:
                 assert expr not in exprs
@@ -147,9 +147,9 @@ class CegirEqts(Cegir):
         mlog.debug("{}: gen init inps using {} (curr inps {}, traces {})"
                    .format(loc, whileFName, len(inps), len(traces)))
 
-        terms, template, uks, nEqtsNeeded = Miscs.initTerms(
+        terms, template, uks, n_eqts_needed = Miscs.init_terms(
             self.inv_decls[loc].names, deg, rate)
-        exprs = whileF(loc, template, nEqtsNeeded, inps, traces)
+        exprs = whileF(loc, template, n_eqts_needed, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
         while (not exprs):
@@ -159,9 +159,9 @@ class CegirEqts(Cegir):
             deg = deg - 1
             mlog.info("Reduce polynomial degree to {}, terms {}, uks {}"
                       .format(deg, len(terms), len(uks)))
-            terms, template, uks, nEqtsNeeded = Miscs.initTerms(
+            terms, template, uks, n_eqts_needed = Miscs.init_terms(
                 self.inv_decls[loc].names, deg, rate)
-            exprs = whileF(loc, template, nEqtsNeeded, inps, traces)
+            exprs = whileF(loc, template, n_eqts_needed, inps, traces)
 
         return template, uks, exprs
 
@@ -185,7 +185,7 @@ class CegirEqts(Cegir):
             mlog.debug("{}, iter {} infer using {} exprs"
                        .format(loc, curIter, len(exprs)))
 
-            newEqts = Miscs.solveEqts(exprs, uks, template)
+            newEqts = Miscs.solve_eqts(exprs, uks, template)
             unchecks = [eqt for eqt in newEqts if eqt not in cache]
 
             if not unchecks:

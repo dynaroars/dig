@@ -49,7 +49,7 @@ class PC(object):
                 sexpr, bool), "pc '{}' evals to '{}'".format(p, sexpr)
             pcs_.append(sexpr)
 
-        pcs = [Miscs.elimDenom(pc) for pc in pcs_]
+        pcs = [Miscs.elim_denom(pc) for pc in pcs_]
         pcs = [pc for pc in pcs
                if not (pc.is_relational() and str(pc.lhs()) == str(pc.rhs()))]
 
@@ -67,7 +67,7 @@ class PC(object):
 
             slocals_.append(sl)
         slocals = slocals_
-        slocals = [Miscs.elimDenom(p) for p in slocals]
+        slocals = [Miscs.elim_denom(p) for p in slocals]
         slocals = [p for p in slocals
                    if not (p.is_relational() and str(p.lhs()) == str(p.rhs()))]
 
@@ -385,7 +385,7 @@ class SymStates(object):
 
     # prover stuff
 
-    def getInps(self, dinvs, inps, pathIdx=None):
+    def get_inps(self, dinvs, inps, pathIdx=None):
         """call verifier on each inv"""
 
         def check(loc, inv): return self.mcheckD(
@@ -425,10 +425,10 @@ class SymStates(object):
         Also update inps
         """
         assert isinstance(dinvs, DInvs), dinvs
-        assert inps is None or (isinstance(inps, Inps) and inps), inps
+        assert not inps or (isinstance(inps, Inps) and inps), inps
 
         mlog.debug("checking {} invs:\n{}".format(dinvs.siz, dinvs))
-        return self.getInps(dinvs, inps, pathIdx)
+        return self.get_inps(dinvs, inps, pathIdx)
 
     def mkInpsConstr(self, inps):
         cstrs = []

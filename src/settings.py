@@ -2,7 +2,7 @@ from functools import partial
 import os.path
 
 tmpdir = "/var/tmp/"
-logger_level = 3
+logger_level = 2
 doMP = True
 INP_MAX_V = 300
 SOLVER_TIMEOUT = 3

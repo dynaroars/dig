@@ -40,7 +40,7 @@ class CegirIeqs(Cegir):
         if cexs:
             newInps = inps.myupdate(cexs, self.inp_decls.names)
             if newInps:
-                self.getTracesAndUpdate(newInps, traces)
+                self.get_traces(newInps, traces)
 
         ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][ieq]) for loc in ieqs for ieq in ieqs[loc]]

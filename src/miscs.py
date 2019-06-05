@@ -1,3 +1,4 @@
+import pdb
 import itertools
 import operator
 from collections import Iterable
@@ -8,6 +9,9 @@ from sage.all import cached_function
 import z3
 import vcommon as CM
 import settings
+
+dbg = pdb.set_trace
+
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -132,28 +136,29 @@ class Miscs(object):
         return sage.all.QQ(sage.all.RR(s))
 
     @classmethod
-    def initTerms(cls, vs, deg, rate):
+    def init_terms(cls, vs, deg, rate):
         assert vs, vs
-        assert rate >= 0.1, rate
         assert deg >= 1, deg
+        assert rate >= 0.1, rate
 
-        terms = cls.getTerms([sage.all.var(v) for v in vs], deg)
-        template, uks = cls.mkTemplate(terms, 0, retCoefVars=True)
-        nEqtsNeeded = int(rate * len(uks))
-        return terms, template, uks, nEqtsNeeded
+        terms = cls.get_terms([sage.all.var(v) for v in vs], deg)
+
+        template, uks = cls.mk_template(terms, 0, retCoefVars=True)
+        n_eqts_needed = int(rate * len(uks))
+        return terms, template, uks, n_eqts_needed
 
     @staticmethod
-    def getTerms(ss, deg):
+    def get_terms(ss, deg):
         """
         get a list of terms from the given list of vars and deg
         the number of terms is len(rs) == binomial(len(ss)+d, d)
 
         Note: itertools is faster than Sage's MultichooseNK(len(ss)+1,deg)
 
-        sage: ts = Miscs.getTerms(list(var('a b')), 3)
+        sage: ts = Miscs.get_terms(list(var('a b')), 3)
         sage: assert ts == [1, a, b, a^2, a*b, b^2, a^3, a^2*b, a*b^2, b^3]
 
-        sage: ts = Miscs.getTerms(list(var('a b c d e f')), 3)
+        sage: ts = Miscs.get_terms(list(var('a b c d e f')), 3)
         sage: ts
         [1, a, b, c, d, e, f,
         a^2, a*b, a*c, a*d, a*e, a*f,
@@ -175,12 +180,12 @@ class Miscs(object):
         return terms
 
     @classmethod
-    def getDeg(cls, nvs, nts, max_deg=7):
+    def get_deg(cls, nvs, nts, max_deg=7):
         """
         Generates a degree wrt to a (maximum) number of terms (nss)
-        sage: Miscs.getDeg(3, 4, 5)
+        sage: Miscs.get_deg(3, 4, 5)
         1
-        sage: Miscs.getDeg(3, 1, 5)
+        sage: Miscs.get_deg(3, 1, 5)
         Traceback (most recent call last):
         ...
         AssertionError: (1, 3)
@@ -204,7 +209,7 @@ class Miscs(object):
             deg = maxdeg
             mlog.debug("using deg {}".format(deg))
         else:
-            deg = cls.getDeg(nvars, maxterm)
+            deg = cls.get_deg(nvars, maxterm)
             mlog.debug("autodeg {}".format(deg))
 
         return deg
@@ -233,7 +238,7 @@ class Miscs(object):
         return set(rs)
 
     @staticmethod
-    def reduceEqts(ps):
+    def reduce_eqts(ps):
         """
         Return the basis (e.g., a min subset of ps that implies ps) 
         of the set of eqts input ps using Groebner basis
@@ -241,14 +246,14 @@ class Miscs(object):
         sage: var('a y b q k')
         (a, y, b, q, k)
 
-        sage: rs =  Miscs.reduceEqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
+        sage: rs =  Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
         sage: assert set(rs) == set([a*y - b == 0, q*y + k - x == 0])
 
-        sage: rs =  Miscs.reduceEqts([x*y==6,y==2,x==3])
+        sage: rs =  Miscs.reduce_eqts([x*y==6,y==2,x==3])
         sage: assert set(rs) == set([x - 3 == 0, y - 2 == 0])
 
         #Attribute error occurs when only 1 var, thus return as is
-        sage: rs =  Miscs.reduceEqts([x*x==4,x==2])
+        sage: rs =  Miscs.reduce_eqts([x*x==4,x==2])
         sage: assert set(rs) == set([x == 2, x^2 == 4])
         """
         if len(ps) <= 1:
@@ -266,7 +271,7 @@ class Miscs(object):
         return ps
 
     @staticmethod
-    def elimDenom(p):
+    def elim_denom(p):
         """
         Eliminate (Integer) denominators in expression operands.
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
@@ -276,16 +281,16 @@ class Miscs(object):
         sage: var('x y z')
         (x, y, z)
 
-        sage: Miscs.elimDenom(3/4*x^2 + 7/5*y^3)
+        sage: Miscs.elim_denom(3/4*x^2 + 7/5*y^3)
         28*y^3 + 15*x^2
 
-        sage: Miscs.elimDenom(-3/2*x^2 - 1/24*z^2 >= (y + 1/7))
+        sage: Miscs.elim_denom(-3/2*x^2 - 1/24*z^2 >= (y + 1/7))
         -252*x^2 - 7*z^2 >= 168*y + 24
 
-        sage: Miscs.elimDenom(-3/(y+2)*x^2 - 1/24*z^2 >= (y + 1/7))
+        sage: Miscs.elim_denom(-3/(y+2)*x^2 - 1/24*z^2 >= (y + 1/7))
         -1/24*z^2 - 3*x^2/(y + 2) >= y + 1/7
 
-        sage: Miscs.elimDenom(x + y == 0)
+        sage: Miscs.elim_denom(x + y == 0)
         x + y == 0
 
         """
@@ -324,8 +329,8 @@ class Miscs(object):
     def refine(cls, sols, ignoreLargeCoefs=True):
         if not sols:
             return sols
-        sols = cls.reduceEqts(sols)
-        sols = [cls.elimDenom(s) for s in sols]
+        sols = cls.reduce_eqts(sols)
+        sols = [cls.elim_denom(s) for s in sols]
 
         def okCoefs(s): return all(
             abs(c) <= settings.MAX_LARGE_COEFS or
@@ -344,12 +349,13 @@ class Miscs(object):
         return sols
 
     @classmethod
-    def solveEqts(cls, eqts, uks, template):
+    def solve_eqts(cls, eqts, uks, template):
         assert isinstance(eqts, list) and eqts, eqts
         assert isinstance(uks, list)and uks, uks
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
+
         rs = sage.all.solve(eqts, *uks, solution_dict=True)
         assert isinstance(rs, list), rs
         assert all(isinstance(s, dict) for s in rs), rs
@@ -357,7 +363,7 @@ class Miscs(object):
         # filter sols with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
         rs = [d for d in rs if not all(x == 0 for x in d.itervalues())]
 
-        reqts = cls.instantiateTemplate(template, rs)
+        reqts = cls.instantiate_template(template, rs)
         reqts = cls.refine(reqts)
         # print '\n'.join(map(str, eqts))
         # print uks
@@ -367,9 +373,9 @@ class Miscs(object):
         return reqts
 
     @classmethod
-    def mkTemplate(cls, terms, rhsVal,
-                   op=sage.all.operator.eq,
-                   prefix=None, retCoefVars=False):
+    def mk_template(cls, terms, rhsVal,
+                    op=sage.all.operator.eq,
+                    prefix=None, retCoefVars=False):
         """
         get a template from terms.
 
@@ -378,25 +384,25 @@ class Miscs(object):
         sage: var('a,b,x,y')
         (a, b, x, y)
 
-        sage: Miscs.mkTemplate([1, a, b, x, y],0,prefix=None)
+        sage: Miscs.mk_template([1, a, b, x, y],0,prefix=None)
         (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
 
-        sage: Miscs.mkTemplate([1, x, y],0,\
+        sage: Miscs.mk_template([1, x, y],0,\
         op=operator.gt,prefix=None,retCoefVars=True)
         (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
 
-        sage: Miscs.mkTemplate([1, a, b, x, y],None,prefix=None)
+        sage: Miscs.mk_template([1, a, b, x, y],None,prefix=None)
         (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
 
-        sage: Miscs.mkTemplate([1, a, b, x, y],0,prefix='hi')
+        sage: Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
         (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
         a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
 
         sage: var('x1')
         x1
-        sage: Miscs.mkTemplate([1, a, b, x1, y],0,prefix='x')
+        sage: Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
         Traceback (most recent call last):
         ...
         AssertionError: name conflict
@@ -416,7 +422,7 @@ class Miscs(object):
         return template, uks if retCoefVars else template
 
     @classmethod
-    def instantiateTemplate(cls, template, sols):
+    def instantiate_template(cls, template, sols):
         """
         Instantiate a template with solved coefficient values
 
@@ -425,15 +431,15 @@ class Miscs(object):
 
         #when sols are in dict form
         sage: sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: -1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
-        sage: Miscs.instantiateTemplate(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
+        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
         #when sols are not in dict form
         sage: sols = [[uk_0== -2*r14 + 7/3*r15, uk_1== -1/3*r15, uk_4== r14, uk_2== r15, uk_3== -2*r14]]
-        sage: Miscs.instantiateTemplate(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
+        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
-        sage: Miscs.instantiateTemplate(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
+        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
         assert cls.is_expr(template), template
@@ -441,7 +447,7 @@ class Miscs(object):
         if not sols:
             return []
         if len(sols) > 1:
-            mlog.warn('instantiateTemplateWithSols: len(sols) = {}'
+            mlog.warn('instantiate_templateWithSols: len(sols) = {}'
                       .format(len(sols)))
             mlog.warn(str(sols))
 
