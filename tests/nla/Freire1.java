@@ -18,7 +18,7 @@ public class Freire1 {
 	}
 
 	vtrace2(a,x,r);
-	//assert(r==(int)round(sqrt(a)));
+	//assert((float)a == 2*x + r*r - r); 
 	//return r;	  
     }
 }

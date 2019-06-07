@@ -17,8 +17,7 @@ public class CohenDiv1Loc {
 	    a=1;
 	    b=y;
 
-	    while (true) {
-		vtrace1(q,r,a,b,x,y);
+	    while (true) {		
 		if(!(r >= 2*b)) break;
 
 		a = 2*a;
@@ -27,6 +26,7 @@ public class CohenDiv1Loc {
 	    r=r-b;
 	    q=q+a;
 	}
+	vtrace1(q,r,a,b,x,y);
 	return q;
     }
 }

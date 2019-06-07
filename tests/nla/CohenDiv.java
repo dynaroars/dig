@@ -1,12 +1,13 @@
 public class CohenDiv {
     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
-    public static void vtrace2(int x, int y, int q, int r){}
+    public static void vtrace2(int q, int r, int a, int b, int x, int y){}
+    public static void vtrace3(int x, int y, int q, int r){}
 
     public static void main (String[] args) {}
      
 
     public static int mainQ_cohendiv(int x, int y) {
-	assert(x>0 && y>0);
+	assert(y >= 1);
 
 	int q=0;
 	int r=x;
@@ -14,12 +15,20 @@ public class CohenDiv {
 	int b=0;
 	  
 	while(true) {
+	    //assert(q*y + r == x);
+	    //assert(a*y == b);
+	    
+	    vtrace1(q,r,a,b,x,y);
+	    
 	    if(!(r>=y)) break;
 	    a=1;
 	    b=y;
 
 	    while (true) {
-		vtrace1(q,r,a,b,x,y);
+		//assert(q*y + r == x);
+		//assert(a*y == b);
+
+		vtrace2(q,r,a,b,x,y);
 		if(!(r >= 2*b)) break;
 
 		a = 2*a;
@@ -28,7 +37,8 @@ public class CohenDiv {
 	    r=r-b;
 	    q=q+a;
 	}
-	vtrace2(x,y,q,r);
+	//assert(q*y + r == x);
+	vtrace3(x,y,q,r);
 	return q;
     }
 }

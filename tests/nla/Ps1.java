@@ -1,5 +1,6 @@
 public class Ps1 {
-     public static void vtrace1(int x, int y, int k){}
+    public static void vtrace1(int x, int y, int k){}
+    public static void vtrace2(int x, int y, int k){}
      public static void main (String[] args){}
 
      public static int mainQ(int k){
@@ -16,6 +17,7 @@ public class Ps1 {
 	       y = y + 1;
 	       x = x + 1;
 	  }
+	  vtrace2(x,y,k);
 	  return x;
      }
 }

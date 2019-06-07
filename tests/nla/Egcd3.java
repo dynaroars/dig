@@ -11,34 +11,36 @@ public class Egcd3 {
 			       int p, int q,  int r, int s,
 			       int k, int c, int d, int v){}
 
-    public static void vtrace4(int x, int y, int a, int b,
-			       int p, int q,  int r, int s,
-			       int k, int c, int d, int v){}
-    
-     
-    public static void main (String[] args) {}
+    public static void vtrace4(int x, int y, int a, 
+			       int p, int q,  int r, int s){}
+			       
+
+    public static void main (String[] args) {
+	//mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+    }
 
     public static int mainQ(int x, int y){
 	assert(x >= 1);
 	assert(y >= 1);
      
-	int a,b,p,q,r,s,c,k,d,v;
+	int a=0, b=0, p=0, q=0, r=0, s=0, c=0, k=0, d=0, v=0;
 
-	a=x; b=y;  p=1;  q=0;  r=0;   s=1;
+	a=x; b=y; p=1; q=0; r=0; s=1;
 
 	//assert(a==y*r+x*p); 
 	//assert(b==x*q+y*s);
 
 	while(true) {
-	    vtrace1(x, y, a, b,  p, q,  r, s);		    	       
-	  
+	    vtrace1(x, y, a, b, p , q, r, s);
+	    
 	    if(!(b!=0)) break;
+
 	    c=a;
 	    k=0;
 	  
 	    while(true){
 		vtrace2(x, y, a, b,  p, q,  r, s, k, c);
-		    
+
 		if(!(c>=b)) break;
 		d=1;
 		v=b;
@@ -69,7 +71,9 @@ public class Egcd3 {
 	    s=temp-s*k;
 	}
 
-	vtrace4(x, y, a, b,  p, q,  r, s, k, c, d, v);
+
+	//don't track b, which is guaranteed to be 0
+	vtrace4(x,y,a,p,q,r,s);
 	return a;
     }
 
