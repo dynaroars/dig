@@ -41,7 +41,7 @@ class Cegir(object):
         dinvs = DInvs.mk_false_invs(self.inv_decls)
         inps = Inps()
         # use some initial inps first
-        rinps = self.symstates.genRandInps(self.prog)
+        rinps = self.symstates.gen_rand_inps(self.prog)
 
         mlog.debug("gen {} random inps".format(len(rinps)))
         _ = inps.myupdate(rinps, self.inp_decls.names)

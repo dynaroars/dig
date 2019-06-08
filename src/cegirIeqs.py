@@ -29,7 +29,6 @@ class CegirIeqs(Cegir):
         mlog.info("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
 
-        # if "a" in str(t) and "-" not in str(t)
         refs = {loc: {IeqInv(t <= maxV): t for t in terms}
                 for loc, terms in zip(locs, termss)}
 

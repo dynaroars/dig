@@ -64,7 +64,7 @@ class CegirEqts(Cegir):
             mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
                        .format(loc, len(exprs), n_eqts_needed, len(inps)))
             if doRand:
-                rInps = self.symstates.genRandInps(self.prog)
+                rInps = self.symstates.gen_rand_inps(self.prog)
                 mlog.debug("gen {} random inps".format(len(rInps)))
                 rInps = inps.myupdate(rInps, self.inp_decls.names)
                 if rInps:

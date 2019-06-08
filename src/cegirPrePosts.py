@@ -1,4 +1,5 @@
 import itertools
+import operator
 import pdb
 import z3
 
@@ -6,14 +7,14 @@ import sage.all
 
 import vcommon as CM
 import settings
-from miscs import Miscs
+from miscs import Miscs, Z3
 
 from cegir import Cegir
 from ds import DTraces, Traces
 from invs import Inv, PrePostInv, EqtInv, IeqInv, Invs, DInvs
 
 
-trace = pdb.set_trace
+dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -74,35 +75,72 @@ class CegirPrePosts(Cegir):
         mydisjs = [disj for disjs in disjss for disj in disjs]
         assert all(disj.operator() == operator.eq for disj in mydisjs), mydisjs
         mydisjs = [EqtInv(disj) for disj in mydisjs]
+        disjs_traces = {disj: traces.get_satisfying_traces(disj)
+                        for disj in mydisjs}
+
+        common_traces = set.intersection(*disjs_traces.values())
+        if common_traces:
+            # print 'common traces', i_traces.__str__(True)
+            for disj in mydisjs:
+                disjs_traces[disj] = disjs_traces[disj] - common_traces
+                if not disjs_traces[disj]:
+                    del disjs_traces[disj]
 
         print 'preconds', self.preconds
         preposts = []  # results
-        for disj in mydisjs:
-            print 'mydisj', disj
-            tcs = traces.get_satisfying_traces(disj)
-            assert tcs, tcs
-            print tcs.__str__(True)
-            preconds = Invs([c for c in self.preconds if c.test(tcs)])
-            print 'mypreconds', preconds
-            # preconds = preconds.uniqify(self.symstates.use_reals)
+        for disj in disjs_traces:
+            # print 'disj', disj
+            # print disjs_traces[disj].__str__(True)
+            preconds = [pc for pc in self.preconds
+                        if pc.test(disjs_traces[disj])]
+            preconds = self.strengthen_preconds(loc, preconds, disj)
+            preconds = Invs(preconds)
             if not preconds:
                 continue
+            prepost = PrePostInv(preconds, disj, stat=Inv.PROVED)
+            # print 'prepost', prepost
+            preposts.append(prepost)
 
-            precond = z3.And([c.expr(self.use_reals) for c in preconds])
-            inv = z3.Implies(z3.And(precond), disj.expr(self.use_reals))
+        return preposts
 
+    def strengthen_preconds(self, loc, preconds, postcond):
+        """
+        preconds  =>  post  can be strengthened by removing some preconds
+        e.g., a&b => post is stronger than a&b&c => post
+        """
+        assert all(isinstance(p, Inv) for p in preconds), preconds
+
+        if not preconds:
+            return []
+
+        d = {p.expr(self.use_reals): p for p in preconds}
+        postcond_expr = postcond.expr(self.use_reals)
+
+        def check(fs):
+            inv = z3.Implies(z3.And(fs), postcond_expr)
             _, cexs, isSucc = self.symstates.mcheckD(
                 loc, pathIdx=None, inv=inv, inps=None)
 
             if cexs or not isSucc:
                 mlog.warn("{}: discard spurious result {}".format(loc, inv))
+                return False
+            return True
+
+        preconds_exprs = [c.expr(self.use_reals) for c in preconds]
+        if not check(preconds_exprs):
+            return []
+        preconds_exprs = sorted(preconds_exprs, cmp=Z3._mycmp_, reverse=True)
+        results = range(len(preconds_exprs))
+
+        for i, _ in enumerate(preconds_exprs):
+            if i not in results:
                 continue
+            xclude = [j for j in results if j != i]
+            if check([preconds_exprs[j] for j in xclude]):
+                results = xclude
 
-            prepost = PrePostInv(preconds, disj, stat=Inv.PROVED)
-            print 'prepost', prepost
-            preposts.append(prepost)
-
-        return preposts
+        results = [d[preconds_exprs[j]] for j in results]
+        return results
 
     def get_disjs(self, eqt):
         assert eqt.operator() == operator.eq, eqt

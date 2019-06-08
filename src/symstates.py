@@ -463,7 +463,7 @@ class SymStates(object):
         if inv is not None:
             f = z3.Not(z3.Implies(f, inv))
 
-        models, stat = Z3.getModels(f, ncexs)
+        models, stat = Z3.get_models(f, ncexs)
         cexs, isSucc = Z3.extract(models)
         return cexs, isSucc, stat
 
@@ -516,42 +516,44 @@ class SymStates(object):
         cexs = [f(model) for model in models]
         return cexs
 
-    def genRandInps(self, prog):
+    def gen_rand_inps(self, prog):
         def _f(irs): return tuple(random.randrange(ir[0], ir[1]) for ir in irs)
 
         try:
-            validRanges = self._validRanges
-            validInps = set()
+            valid_ranges = self._valid_ranges
+            valid_inps = set()
         except AttributeError:  # compute rranges
+            tiny = 0.05
             small = 0.10
             large = 1 - small
             maxV = DTraces.inpMaxV
             minV = -1 * maxV
-            rinps = [(0, int(maxV * small)), (int(maxV * large), maxV),
-                     (int(minV * small), 0), (minV, int(minV * large))]
+            rinps = [(0, int(maxV * small)), (0, int(maxV * tiny)),
+                     (int(maxV * large), maxV),
+                     (int(minV * small), 0), (int(minV * tiny), 0),
+                     (minV, int(minV * large))]
 
             # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
             rinps = list(itertools.product(
                 *itertools.repeat(rinps, len(self.inp_exprs))))
-
-            validRanges, validInps = set(), set()
+            valid_ranges, valid_inps = set(), set()
             for rinp in rinps:
                 inp = _f(rinp)
                 myinps = Inps()
                 myinps.myupdate(set([inp]), self.inp_decls.names)
                 tcs = prog.get_traces(myinps)
                 if tcs:
-                    validRanges.add(rinp)
-                    validInps.add(inp)
+                    valid_ranges.add(rinp)
+                    valid_inps.add(inp)
                 else:
                     mlog.debug("inp range {} invalid".format(inp))
 
-            self._validRanges = validRanges
+            self._valid_ranges = valid_ranges
 
         # gen inps
-        if not validInps:
-            validInps = set(_f(vr) for vr in validRanges)
-        return validInps
+        if not valid_inps:
+            valid_inps = set(_f(vr) for vr in valid_ranges)
+        return valid_inps
 
 
 def merge(ds):

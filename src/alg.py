@@ -10,7 +10,7 @@ import vcommon as CM
 import settings
 from miscs import Miscs
 
-from ds import Inps, Traces, DTraces, Prog
+from ds import DTraces, Prog
 from invs import EqtInv, IeqInv, Invs, DInvs
 from symstates import SymStates
 from cegir import Cegir
@@ -45,8 +45,8 @@ class Dig(object):
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
-        mlog.debug("set seed to: {} (test {})".format(
-            seed, sage.all.randint(0, 100)))
+        mlog.debug("set seed to: {} (test {} {})".format(
+            seed, random.randint(0, 100), sage.all.randint(0, 100)))
 
         # determine degree
         maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
@@ -67,12 +67,13 @@ class Dig(object):
     def print_results(self, dinvs, dtraces, inps, st):
         result = ("*** '{}', {} locs, "
                   "invs {} ({} eqts), traces {}, inps {}, "
-                  "time {:02f}s, rand seed {}, test {}:\n{}")
+                  "time {:02f}s, rand seed {}, test {} {}:\n{}")
         print(result.format(self.filename, len(dinvs),
                             dinvs.siz, dinvs.n_eqs, dtraces.siz,
                             len(inps) if inps else 0,
                             time() - st,
                             self.seed,
+                            random.randint(0, 100),
                             sage.all.randint(0, 100),
                             dinvs.__str__(print_stat=True)))
 

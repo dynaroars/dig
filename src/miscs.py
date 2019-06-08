@@ -220,8 +220,8 @@ class Miscs(object):
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
 
-        sage: Miscs.get_terms_fixed_coefs([x,y^2], 2)
-        [-y^2, y^2, -x, -y^2 - x, y^2 - x, x, -y^2 + x, y^2 + x]
+        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2), key=lambda x: str(x))
+        [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
 
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2)) == 18
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3)) == 26
@@ -429,15 +429,10 @@ class Miscs(object):
         sage: var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
         (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
 
-        #when sols are in dict form
         sage: sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: -1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
         sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
-        #when sols are not in dict form
-        sage: sols = [[uk_0== -2*r14 + 7/3*r15, uk_1== -1/3*r15, uk_4== r14, uk_2== r15, uk_3== -2*r14]]
-        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
-        [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
         sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
@@ -452,15 +447,8 @@ class Miscs(object):
             mlog.warn(str(sols))
 
         def fEq(d):
-            if isinstance(d, list):
-                f_ = template
-                for d_ in d:
-                    f_ = f_.subs(d_)
-                rhsVals = CM.vset([d_.rhs() for d_ in d])
-                uk_vars = cls.getVars(rhsVals)
-            else:
-                f_ = template(d)
-                uk_vars = cls.getVars(d.values())  # e.g., r15,r16 ...
+            f_ = template(d)
+            uk_vars = cls.getVars(d.values())  # e.g., r15,r16 ...
 
             if not uk_vars:
                 return f_
@@ -551,7 +539,7 @@ class Miscs(object):
             wloads = cls.getWorkloads(
                 tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
 
-            mlog.debug("workloads '{}' {}: {}"
+            mlog.debug("parallel workloads '{}' {}: {}"
                        .format(taskname, len(wloads), map(len, wloads)))
 
             workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
@@ -601,7 +589,7 @@ class Z3(object):
         return frozenset(rs)
 
     @classmethod
-    def createSolver(cls):
+    def create_solver(cls):
         solver = z3.Solver()
         timeout = settings.SOLVER_TIMEOUT * 1000
         solver.set(timeout=timeout)  # secs
@@ -622,7 +610,7 @@ class Z3(object):
         return cexs, isSucc
 
     @classmethod
-    def getModels(cls, f, k):
+    def get_models(cls, f, k):
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -633,7 +621,7 @@ class Z3(object):
         assert z3.is_expr(f), f
         assert k >= 1, k
 
-        solver = cls.createSolver()
+        solver = cls.create_solver()
         solver.add(f)
 
         models = []
@@ -657,6 +645,11 @@ class Z3(object):
         else:
             rs = models
 
+        if isinstance(rs, list) and not rs:
+            print 'bug'
+            print(f)
+            print(k)
+            print(rs, stat)
         return rs, stat
 
     @classmethod
@@ -705,36 +698,29 @@ class Z3(object):
         assert fs
 
         claim = z3.Implies(z3.And(fs), g)
-        models, _ = cls.getModels(z3.Not(claim), k=1)
+        models, _ = cls.get_models(z3.Not(claim), k=1)
         return models is False
 
-    # @classmethod
-    # def reduceSMT(cls, ps, use_reals):
-    #     eqts, eqtsLargeCoefs, ieqs = [], [], []
-    #     for p in ps:
-    #         if p.operator() == sage.all.operator.eq:
-    #             if len(Miscs.getCoefs(p)) > 10:
-    #                 eqtsLargeCoefs.append(p)
-    #             else:
-    #                 eqts.append(p)
-    #         else:
-    #             ieqs.append(p)
+    @classmethod
+    def _mycmp_(cls, f, g):
+        """
+        sage: x,y = z3.Ints('x y')
+        sage: sorted([x>=z3.IntVal('0'), x>= z3.IntVal('3') ,  x>= z3.IntVal('3'), x>= z3.IntVal('1'), x>= z3.IntVal('10'), y - x >= z3.IntVal('20')], cmp=Z3._mycmp_)
+        [y - x >= 20, x >= 0, x >= 1, x >= 3, x >= 3, x >= 10]
 
-    #     if len(eqts + ieqs) <= 1:
-    #         return ps
+        """
+        claim = f == g
+        models, _ = cls.get_models(z3.Not(claim), k=1)
+        if models is False:
+            return 0  # ==
 
-    #     ps = sorted(ieqs) + eqts
-    #     rs = list(ps)
+        claim = z3.Implies(f, g)
+        models, _ = cls.get_models(z3.Not(claim), k=1)
+        if models is False:
+            return 1  # f > g
 
-    #     for p in ps:
-    #         if p not in rs:
-    #             continue
-    #         xclude = [p_ for p_ in rs if p_ != p]
-    #         if cls.imply(xclude, p, use_reals):
-    #             rs = xclude
-
-    #     rs.extend(eqtsLargeCoefs)
-    #     return rs
+        else:
+            return -1
 
     @classmethod
     @cached_function

@@ -5,7 +5,7 @@ tmpdir = "/var/tmp/"
 logger_level = 2
 doMP = True
 INP_MAX_V = 300
-SOLVER_TIMEOUT = 3
+SOLVER_TIMEOUT = 5
 JPF_MIN_DEPTH = 9
 JPF_DEPTH_INCR = 4  # jpfmaxdepth = jpfmindepth + jpfdepth_incr
 EQT_RATE = 1.5
@@ -18,7 +18,6 @@ TRACE_MULTIPLIER = 5
 # options for full specs analysis
 CTR_VAR = 'Ct'  # counter variable contains this string
 POST_LOC = 'post'  # vtraceX_post  indicates postconditions
-
 
 # Program Paths
 SRC_DIR = os.path.dirname(
@@ -38,7 +37,7 @@ assert os.path.isfile(JAVA_CMD), JAVA_CMD
 
 JPF_HOME = os.path.join(os.path.expandvars("$JPF_HOME"), "jpf-core")
 JPF_JAR = os.path.join(JPF_HOME, "build/RunJPF.jar")
-assert os.path.isfile(JPF_JAR)
+assert os.path.isfile(JPF_JAR), JPF_JAR
 JVM_FLAGS = "-Xmx1024m -ea"
 
 JPF_RUN = "{java} {flags} -jar {jar} {jpffile} > {tracefile}"

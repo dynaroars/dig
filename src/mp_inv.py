@@ -287,7 +287,80 @@ class MPInv(object):
 
         sage: invs = MaxPlusIeq.infer([x,y,z], tcs)
         sage: assert len(invs) == 36
-
+        sage: invs = sorted(invs, key=lambda x: len(x.str_disj))
+        sage: print('\n'.join('{}\n{}'.format(inv.str_lambda_formula, inv.str_disj) for inv in invs))
+        lambda x: (x + 1) - 0 >= 0
+        x + 1 >= 0
+        lambda y: 0 - (y - 5) >= 0
+        0 >= y - 5
+        lambda z: (z + 7) - 0 >= 0
+        z + 7 >= 0
+        lambda y,z: z - (y - 5) >= 0
+        z >= y - 5
+        lambda x: 0 - (x - 15) >= 0
+        0 >= x - 15
+        lambda y: (y + 15) - 0 >= 0
+        y + 15 >= 0
+        lambda z: 0 - (z - 88) >= 0
+        0 >= z - 88
+        lambda x,y: y - (x - 14) >= 0
+        y >= x - 14
+        lambda x,y: (x - 10) - y >= 0
+        x - 10 >= y
+        lambda x,z: z - (x - 15) >= 0
+        z >= x - 15
+        lambda x,z: (x + 89) - z >= 0
+        x + 89 >= z
+        lambda y,z: (y + 103) - z >= 0
+        y + 103 >= z
+        lambda x,y: (x + 1) - max(y, 0) >= 0
+        If(y >= 0, x + 1 >= y, x + 1 >= 0)
+        lambda y,z: (z + 7) - max(y, 0) >= 0
+        If(y >= 0, z + 7 >= y, z + 7 >= 0)
+        lambda y,z: max(z, 0) - (y - 5) >= 0
+        If(z >= 0, z >= y - 5, 0 >= y - 5)
+        lambda x,y: max(x, 0) - (y + 10) >= 0
+        If(x >= 0, x >= y + 10, 0 >= y + 10)
+        lambda x,y: (y + 15) - max(x, 0) >= 0
+        If(x >= 0, y + 15 >= x, y + 15 >= 0)
+        lambda x,z: max(x, 0) - (z - 88) >= 0
+        If(x >= 0, x >= z - 88, 0 >= z - 88)
+        lambda x,z: (z + 15) - max(x, 0) >= 0
+        If(x >= 0, z + 15 >= x, z + 15 >= 0)
+        lambda x,y,z: max(x, y) - (z - 89) >= 0
+        If(x >= y, x >= z - 89, y >= z - 89)
+        lambda x,y,z: (z + 15) - max(x, y) >= 0
+        If(x >= y, z + 15 >= x, z + 15 >= y)
+        lambda x,y,z: max(x, z) - (y + 10) >= 0
+        If(x >= z, x >= y + 10, z >= y + 10)
+        lambda x,y: max(y, 0) - (x - 10) >= 0
+        If(y >= 0, y >= x - 10, 0 >= x - 10)
+        lambda y,z: max(y, 0) - (z - 88) >= 0
+        If(y >= 0, y >= z - 88, 0 >= z - 88)
+        lambda x,y,z: max(y, z) - (x - 10) >= 0
+        If(y >= z, y >= x - 10, z >= x - 10)
+        lambda x,y,z: (x + 89) - max(y, z) >= 0
+        If(y >= z, x + 89 >= y, x + 89 >= z)
+        lambda x,z: max(z, 0) - (x - 15) >= 0
+        If(z >= 0, z >= x - 15, 0 >= x - 15)
+        lambda x,z: (x + 89) - max(z, 0) >= 0
+        If(z >= 0, x + 89 >= z, x + 89 >= 0)
+        lambda x,y,z: (y + 103) - max(x, z) >= 0
+        If(x >= z, y + 103 >= x, y + 103 >= z)
+        lambda y,z: (y + 103) - max(z, 0) >= 0
+        If(z >= 0, y + 103 >= z, y + 103 >= 0)
+        lambda x,y,z: max(x, y, 0) - (z - 88) >= 0
+        If(And(x >= y, x >= 0), x >= z - 88, If(And(y >= x, y >= 0), y >= z - 88, 0 >= z - 88))
+        lambda x,y,z: (z + 15) - max(x, y, 0) >= 0
+        If(And(x >= y, x >= 0), z + 15 >= x, If(And(y >= x, y >= 0), z + 15 >= y, z + 15 >= 0))
+        lambda x,y,z: max(x, z, 0) - (y + 10) >= 0
+        If(And(x >= z, x >= 0), x >= y + 10, If(And(z >= x, z >= 0), z >= y + 10, 0 >= y + 10))
+        lambda x,y,z: max(y, z, 0) - (x - 10) >= 0
+        If(And(y >= z, y >= 0), y >= x - 10, If(And(z >= y, z >= 0), z >= x - 10, 0 >= x - 10))
+        lambda x,y,z: (x + 89) - max(y, z, 0) >= 0
+        If(And(y >= z, y >= 0), x + 89 >= y, If(And(z >= y, z >= 0), x + 89 >= z, x + 89 >= 0))
+        lambda x,y,z: (y + 103) - max(x, z, 0) >= 0
+        If(And(x >= z, x >= 0), y + 103 >= x, If(And(z >= x, z >= 0), y + 103 >= z, y + 103 >= 0))
         """
 
         terms = cls.get_terms(terms)
@@ -309,7 +382,7 @@ class MPInv(object):
                 mpinv_eq = newcls(lhs, (rhs + mymin, ))
                 results.append(mpinv_eq)
             else:
-                mpinv_upper = cls(lhs, (rhs + mymin, ))
+                mpinv_upper = cls(lhs, (rhs + mymin,))
                 mpinv_lower = cls((rhs + mymax, ), lhs)
                 results.extend([mpinv_upper, mpinv_lower])
         return results
@@ -346,159 +419,3 @@ class MinPlusEq(MinPlusInv):
 class MinPlusIeq(MinPlusInv):
     RELOP = '>='
     pass
-
-
-"""
-# :: var('y z')
-# (y, z)
-# :: tcs = [{x:2,y:-8,z:-7},{x:-1,y:-15,z:88},{x:15,y:5,z:0}]
-# :: ieq = IeqMPPFixed(terms=[x,y],tcs=tcs,xinfo={'Input':[],'Output':[]})
-# dig:Info:*** IeqMPPFixed ***
-# :: ieq.solve()
-# dig_polynomials:Debug:Build (fixed max-plus) poly from 3 tcs (~ 10 facets)
-# :: Inv.print_invs(ieq.sols)
-# 0: -y + 5 >= 0, 0 >= y - 5
-# 1: x + 1 >= 0, x + 1 >= 0
-# 2: -x + 15 >= 0, 0 >= x - 15
-# 3: x - y - 10 >= 0, x >= y + 10
-# 4: -x + y + 14 >= 0, y + 14 >= x
-# 5: y + 15 >= 0, y + 15 >= 0
-# 6: max(x,0) - (y + 10) >= 0, If(x >= 0,x >= y + 10,0 >= y + 10)
-# 7: x + 1 - max(y,0) >= 0, If(y >= 0, x + 1 >= y, x + 1 >= 0)
-# 8: max(y,0) - (x - 10) >= 0, If(y >= 0,y >= x - 10,0 >= x - 10)
-# 9: y + 15 - max(x,0) >= 0, If(x >= 0, y + 15 >= x, y + 15 >= 0)
-
-# :: ieq = IeqMPPFixed(terms=[x,y,z],tcs=tcs,xinfo={'Input':[],'Output':[]})
-# dig:Info:*** IeqMPPFixed ***
-# :: ieq.solve()
-# dig_polynomials:Debug:Build (fixed max-plus) poly from 3 tcs (~ 36 facets)
-# :: Inv.print_invs(ieq.sols)
-# 0: -y + 5 >= 0, 0 >= y - 5
-# 1: x + 1 >= 0, x + 1 >= 0
-# 2: -y + z + 5 >= 0, z + 5 >= y
-# 3: z + 7 >= 0, z + 7 >= 0
-# 4: -x + 15 >= 0, 0 >= x - 15
-# 5: -z + 88 >= 0, 0 >= z - 88
-# 6: x - y - 10 >= 0, x >= y + 10
-# 7: x - z + 89 >= 0, x >= z - 89
-# 8: -x + y + 14 >= 0, y + 14 >= x
-# 9: y + 15 >= 0, y + 15 >= 0
-# 10: -x + z + 15 >= 0, z + 15 >= x
-# 11: y - z + 103 >= 0, y >= z - 103
-# 12: max(z,0) - (y - 5) >= 0, If(z >= 0,z >= y - 5,0 >= y - 5)
-# 13: max(x,0) - (y + 10) >= 0, If(x >= 0,x >= y + 10,0 >= y + 10)
-# 14: max(x,0) - (z - 88) >= 0, If(x >= 0,x >= z - 88,0 >= z - 88)
-# 15: max(x,y) - (z - 89) >= 0, If(x >= y,x >= z - 89,y >= z - 89)
-# 16: max(x,z) - (y + 10) >= 0, If(x >= z,x >= y + 10,z >= y + 10)
-# 17: x + 1 - max(y,0) >= 0, If(y >= 0, x + 1 >= y, x + 1 >= 0)
-# 18: z + 7 - max(y,0) >= 0, If(y >= 0, z + 7 >= y, z + 7 >= 0)
-# 19: max(y,0) - (x - 10) >= 0, If(y >= 0,y >= x - 10,0 >= x - 10)
-# 20: max(y,0) - (z - 88) >= 0, If(y >= 0,y >= z - 88,0 >= z - 88)
-# 21: max(y,z) - (x - 10) >= 0, If(y >= z,y >= x - 10,z >= x - 10)
-# 22: max(z,0) - (x - 15) >= 0, If(z >= 0,z >= x - 15,0 >= x - 15)
-# 23: y + 15 - max(x,0) >= 0, If(x >= 0, y + 15 >= x, y + 15 >= 0)
-# 24: z + 15 - max(x,0) >= 0, If(x >= 0, z + 15 >= x, z + 15 >= 0)
-# 25: z + 15 - max(x,y) >= 0, If(x >= y, z + 15 >= x, z + 15 >= y)
-# 26: x + 89 - max(y,z) >= 0, If(y >= z, x + 89 >= y, x + 89 >= z)
-# 27: x + 89 - max(z,0) >= 0, If(z >= 0, x + 89 >= z, x + 89 >= 0)
-# 28: y + 103 - max(x,z) >= 0, If(x >= z, y + 103 >= x, y + 103 >= z)
-# 29: y + 103 - max(z,0) >= 0, If(z >= 0, y + 103 >= z, y + 103 >= 0)
-# 30: max(x,y,0) - (z - 88) >= 0, If(And(x >= y,x >= 0),x >= z - 88,If(And(y >= x,y >= 0),y >= z - 88,0 >= z - 88))
-# 31: max(x,z,0) - (y + 10) >= 0, If(And(x >= z,x >= 0),x >= y + 10,If(And(z >= x,z >= 0),z >= y + 10,0 >= y + 10))
-# 32: max(y,z,0) - (x - 10) >= 0, If(And(y >= z,y >= 0),y >= x - 10,If(And(z >= y,z >= 0),z >= x - 10,0 >= x - 10))
-# 33: z + 15 - max(x,y,0) >= 0, If(And(x >= y,x >= 0), z + 15 >= x, If(And(y >= x,y >= 0), z + 15 >= y, z + 15 >= 0))
-# 34: x + 89 - max(y,z,0) >= 0, If(And(y >= z,y >= 0), x + 89 >= y, If(And(z >= y,z >= 0), x + 89 >= z, x + 89 >= 0))
-# 35: y + 103 - max(x,z,0) >= 0, If(And(x >= z,x >= 0), y + 103 >= x, If(And(z >= x,z >= 0), y + 103 >= z, y + 103 >= 0))
-
-
-# :: ieq.subset_siz = 2
-# :: ieq.solve()
-# dig_polynomials:Debug:Build (fixed max-plus) poly from 3 tcs (~ 24 facets)
-# :: Inv.print_invs(ieq.sols)
-# 0: -y + 5 >= 0, 0 >= y - 5
-# 1: x + 1 >= 0, x + 1 >= 0
-# 2: -y + z + 5 >= 0, z + 5 >= y
-# 3: z + 7 >= 0, z + 7 >= 0
-# 4: -x + 15 >= 0, 0 >= x - 15
-# 5: -z + 88 >= 0, 0 >= z - 88
-# 6: x - y - 10 >= 0, x >= y + 10
-# 7: x - z + 89 >= 0, x >= z - 89
-# 8: -x + y + 14 >= 0, y + 14 >= x
-# 9: y + 15 >= 0, y + 15 >= 0
-# 10: -x + z + 15 >= 0, z + 15 >= x
-# 11: y - z + 103 >= 0, y >= z - 103
-# 12: max(z,0) - (y - 5) >= 0, If(z >= 0,z >= y - 5,0 >= y - 5)
-# 13: max(x,0) - (y + 10) >= 0, If(x >= 0,x >= y + 10,0 >= y + 10)
-# 14: max(x,0) - (z - 88) >= 0, If(x >= 0,x >= z - 88,0 >= z - 88)
-# 15: x + 1 - max(y,0) >= 0, If(y >= 0, x + 1 >= y, x + 1 >= 0)
-# 16: z + 7 - max(y,0) >= 0, If(y >= 0, z + 7 >= y, z + 7 >= 0)
-# 17: max(y,0) - (x - 10) >= 0, If(y >= 0,y >= x - 10,0 >= x - 10)
-# 18: max(y,0) - (z - 88) >= 0, If(y >= 0,y >= z - 88,0 >= z - 88)
-# 19: max(z,0) - (x - 15) >= 0, If(z >= 0,z >= x - 15,0 >= x - 15)
-# 20: y + 15 - max(x,0) >= 0, If(x >= 0, y + 15 >= x, y + 15 >= 0)
-# 21: z + 15 - max(x,0) >= 0, If(x >= 0, z + 15 >= x, z + 15 >= 0)
-# 22: x + 89 - max(z,0) >= 0, If(z >= 0, x + 89 >= z, x + 89 >= 0)
-# 23: y + 103 - max(z,0) >= 0, If(z >= 0, y + 103 >= z, y + 103 >= 0)
-
-
-
-# :: tcs=[{x:8,y:8},{x:0,y:-15},{x:0,y:0},{x:1,y:1}]
-# :: ieq = IeqMPPFixed(terms=[x,y],tcs=tcs,xinfo={'Input':[],'Output':[]})
-# dig:Info:*** IeqMPPFixed ***
-# :: ieq.solve()
-# dig_polynomials:Debug:Build (fixed max-plus) poly from 4 tcs (~ 10 facets)
-# :: ieq.refine()
-# :: Inv.print_invs(ieq.sols)
-# 0: max(y,0) - (x) == 0, If(y >= 0,y == x,0 == x)
-# 1: x >= 0, x >= 0
-# 2: x - y >= 0, x >= y
-# 3: -x + 8 >= 0, 0 >= x - 8
-# 4: -y + 8 >= 0, 0 >= y - 8
-# 5: y + 15 >= 0, y + 15 >= 0
-# 6: -x + y + 15 >= 0, y + 15 >= x
-# 7: max(x,0) - (y) >= 0, If(x >= 0,x >= y,0 >= y)
-# 8: y + 15 - max(x,0) >= 0, If(x >= 0, y + 15 >= x, y + 15 >= 0)
-# """
-
-
-# def infer(terms, traces, is_maxplus=True):
-#     mp_terms = MPInv.get_terms(terms)
-#     results = []
-#     for lh, rh in mp_terms:
-#         mpinv = MaxPlusInv(lh, (rh,))
-#         print 'processing', mpinv.lh, mpinv.rh
-#         mylambda = mpinv.get_lambda_fun(is_eq=False, is_formula=False)
-#         print 'mylambda', mylambda
-#         myevals = [mpinv.test_trace(mylambda, trace) for trace in traces]
-#         mymin = min(myevals)  # lh >= rh + mymin
-#         mymax = max(myevals)  # rh + mymax >= lh
-
-#         if mymin == mymax:  # lh == rh + mymin
-#             mpinv = MaxPlusInv(lh, (rh + mymin, ))
-#             disj_eq = mpinv.get_lambda_disj(is_eq=True)
-#             results.append(disj_eq)
-#         else:
-#             mpinv_upper = MaxPlusInv(lh, (rh + mymin, ))
-#             print mpinv_upper.lh, mpinv_upper.rh
-#             disj_upper = mpinv_upper.get_lambda_disj(
-#                 is_eq=False, is_formula=True)
-#             mpinv_lower = MaxPlusInv((rh + mymax, ), lh)
-#             disj_lower = mpinv_lower.get_lambda_disj(
-#                 is_eq=False, is_formula=True)
-#             results.extend([disj_upper, disj_lower])
-#     return results
-
-# def get_lambda_fun(self, is_eq, is_formula):
-#     """
-#     str_lambda = self.str_lambda
-#     if is_formula:
-#         str_lambda = "{} {} 0".format(str_lambda, '==' if is_eq else '>=')
-#     return str_lambda
-
-# def get_lambda_disj(self, is_eq, is_formula):
-#     """
-#     shortcut that creates lambda expr and disj formula
-#     """
-#     lambda_fun = self.get_lambda_fun(is_eq=is_eq, is_formula=True)
-#     disj_expr = self.get_disj_expr(is_eq)
-#     return (lambda_fun, disj_expr)

@@ -17,7 +17,7 @@ def run(inp, seed, maxdeg, do_eqts, do_ieqs, do_preposts, do_rmtmp):
 
     if do_rmtmp:
         import shutil
-        print("rm -rf {}".format(tmpdir))
+        print("clean up: rm -rf {}".format(tmpdir))
         shutil.rmtree(tmpdir)
     else:
         print("tmpdir: {}".format(tmpdir))
@@ -119,4 +119,4 @@ if __name__ == "__main__":
 
     run(inp, seed, maxdeg=args.maxdeg,
         do_eqts=not args.noeqts, do_ieqs=not args.noieqs,
-        do_preposts=not args, do_rmtmp=not args.normtmp)
+        do_preposts=not args.nopreposts, do_rmtmp=not args.normtmp)
