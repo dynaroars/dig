@@ -1,0 +1,71 @@
+* KLEE
+|    | program   | descr       | Invs | V, D  | Invs                                                                                        | Time (s) 1/4 | Note |
+|----+-----------+-------------+------+-------+---------------------------------------------------------------------------------------------+--------------+------|
+|  1 | divbin    | div         | 1 eq | 5, 2  | b*q - A + r = 0                                                                             |              |      |
+|  2 | cohendiv  | div         | 2 eq | 6, 2  | a*y - b = 0; q*y + r - x = 0                                                                |              |      |
+|  3 | mannadiv  | int div     | 1 eq | 5, 2  | x2*y1 - x1 + y2 + y3 = 0                                                                    |              |      |
+|  4 | hard      | int div     | eq   | 6, 2  | B*p - d = 0; B*q - A + r = 0                                                                |              |      |
+|  5 | sqrt1     | square root | 2 eq | 4, 2  | 2*a - t + 1 = 0, (t*t) - 4*s + 2*t + 1 = 0                                                  |              |      |
+|  6 | dijkstra  | square root | 2 eq | 5, 3  | (h*h)*p - 4*h*n*q + 4*n*p*q - p*(q*q) + 4*h*q*r - 4*p*q*r = 0, (p*p) - n*q + q*r = 0        |              |      |
+|  7 | cohencube | cubic sum   | 3 eq | 5, 3  | y*z - 18*x - 12*y + 2*z - 6 = 0, 6*n - z + 6 = 0, (z*z) - 12*y - 6*z + 12 = 0               |              |      |
+|  8 | egcd      | gcd         | 3 eq | 8, 2  | p*x + r*y - a = 0, q*r - p*s + 1 = 0, q*x + s*y - b = 0                                     |              |      |
+|  9 | egcd2     | gcd         | 4 eq | 10, 2 |                                                                                             |              |      |
+| 10 | egcd3     | gcd         | 4 eq | 12, 2 | b*k - a + c = 0, p*x + r*y - a = 0, q*x + s*y - b = 0, b*d - v = 0                          |              |      |
+| 11 | prodbin   | product     | 1 eq | 5, 2  | a*b - x*y - z = 0                                                                           |              |      |
+| 12 | prod4br   | product     | 1 eq | 6, 3  | a*b*p - x*y + q = 0                                                                         |              |      |
+| 13 | fermat1   | divisor     | 1 eq | 5, 2  | (u*u) - (v*v) - 4*A - 4*r - 2*u + 2*v = 0                                                   |              |      |
+| 14 | fermat2   | divisor     | 1 eq | 5, 2  | (u*u) - (v*v) - 4*A - 4*r - 2*u + 2*v = 0                                                   |              |      |
+| 15 | freire1   | square root | eq   | 3, 2  |                                                                                             |              |      |
+| 15 | freire2   | cubic  root | eq   | 4, 2  |                                                                                             |              |      |
+| 17 | knuth     | divisor     | 3 eq | 8, 3  | k*t - (t*t) = 0, a*k - d*k - a*t + d*t = 0, (d*d)*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r = 0 |              |      |
+| 18 | lcm1      | gcd, lcm    | eq   | 6, 2  | a*b - u*x - v*y = 0                                                                         |              |      |
+| 19 | lcm2      | gcd, lcm    | eq   | 6, 2  | 2*a*b - u*x - v*y = 0                                                                       |              |      |
+| 20 | geo1      | geo series  | eq   | 4, 2  | x*z - x - y + 1 = 0                                                                         |              |      |
+| 21 | geo2      | geo series  | 1 eq | 4, 2  | x*z - y*z - x + 1 = 0                                                                       |              |      |
+| 22 | geo3      | geo series  | eq   | 5, 3  | a*y*z - x*z - a + x = 0                                                                     |              |      |
+| 23 | ps2       | pow sum     | 1 eq | 3, 2  | y*y - 2*x + y = 0                                                                           |              |      |
+| 24 | ps3       | pow sum     | 1 eq | 3, 3  | 2*(y*y*y) + 3*(y*y) - 6*x + y = 0                                                           |              |      |
+| 25 | ps4       | pow sum     | 1 eq | 3, 4  | (y*y*y*y) + 2*(y*y*y) + (y*y) - 4*x = 0                                                     |              |      |
+| 26 | ps5       | pow sum     | 1 eq | 3, 5  | 6*(y*y*y*y*y) + 15*(y*y*y*y) + 10*(y*y*y) - 30*x - y = 0                                    |              |      |
+| 27 | ps6       | pow sum     | 1 eq | 3, 6  | 2*(y*y*y*y*y*y) + 6*(y*y*y*y*y) + 5*(y*y*y*y) - (y*y) - 12*x = 0                            |              |      |
+|    |           |             |      |       |                                                                                             |              |      |
+|----+-----------+-------------+------+-------+---------------------------------------------------------------------------------------------+--------------+------|
+
+* CPA
+
+
+|    | program   | descr       | Invs | V, D  | Invs                                                                                        | Time (s) 1/4 | Note           |
+|----+-----------+-------------+------+-------+---------------------------------------------------------------------------------------------+--------------+----------------|
+|  1 | divbin    | div         | 1 eq | 5, 2  | b*q - A + r = 0                                                                             |         10.9 |                |
+|  2 | cohendiv  | div         | 2 eq | 6, 2  | a*y - b = 0; q*y + r - x = 0                                                                |         15.7 |                |
+|  3 | mannadiv  | int div     | 1 eq | 5, 2  | x2*y1 - x1 + y2 + y3 = 0                                                                    |         25.7 |                |
+|  4 | hard      | int div     | eq   | 6, 2  | B*p - d = 0; B*q - A + r = 0                                                                |        18.40 |                |
+|  5 | sqrt1     | square root | 2 eq | 4, 2  | 2*a - t + 1 = 0, (t*t) - 4*s + 2*t + 1 = 0                                                  |            ? | out of mem     |
+|  6 | dijkstra  | square root | 2 eq | 5, 3  | (h*h)*p - 4*h*n*q + 4*n*p*q - p*(q*q) + 4*h*q*r - 4*p*q*r = 0, (p*p) - n*q + q*r = 0        |        41.97 |                |
+|  7 | cohencube | cubic sum   | 3 eq | 5, 3  | y*z - 18*x - 12*y + 2*z - 6 = 0, 6*n - z + 6 = 0, (z*z) - 12*y - 6*z + 12 = 0               |        43.84 |                |
+|  8 | egcd      | gcd         | 3 eq | 8, 2  | p*x + r*y - a = 0, q*r - p*s + 1 = 0, q*x + s*y - b = 0                                     |              | no results     |
+|  9 | egcd2     | gcd         | 4 eq | 10, 2 |                                                                                             |              | no results     |
+| 10 | egcd3     | gcd         | 4 eq | 12, 2 | b*k - a + c = 0, p*x + r*y - a = 0, q*x + s*y - b = 0, b*d - v = 0                          |              | too long       |
+| 11 | prodbin   | product     | 1 eq | 5, 2  | a*b - x*y - z = 0                                                                           |        11.15 |                |
+| 12 | prod4br   | product     | 1 eq | 6, 3  | a*b*p - x*y + q = 0                                                                         |        29.75 |                |
+| 13 | fermat1   | divisor     | 1 eq | 5, 2  | (u*u) - (v*v) - 4*A - 4*r - 2*u + 2*v = 0                                                   |              | no results     |
+| 14 | fermat2   | divisor     | 1 eq | 5, 2  | (u*u) - (v*v) - 4*A - 4*r - 2*u + 2*v = 0                                                   |              | no results     |
+| 15 | freire1   | square root | eq   | 3, 2  |                                                                                             |              | float          |
+| 15 | freire2   | cubic  root | eq   | 4, 2  |                                                                                             |              | float          |
+| 17 | knuth     | divisor     | 3 eq | 8, 3  | k*t - (t*t) = 0, a*k - d*k - a*t + d*t = 0, (d*d)*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r = 0 |              | didn't get all |
+| 18 | lcm1      | gcd, lcm    | eq   | 6, 2  | a*b - u*x - v*y = 0                                                                         |        50.0  |                |
+| 19 | lcm2      | gcd, lcm    | eq   | 6, 2  | 2*a*b - u*x - v*y = 0                                                                       |        13.27 |                |
+| 20 | geo1      | geo series  | eq   | 4, 2  | x*z - x - y + 1 = 0                                                                         |              |                |
+| 21 | geo2      | geo series  | 1 eq | 4, 2  | x*z - y*z - x + 1 = 0                                                                       |              |                |
+| 22 | geo3      | geo series  | eq   | 5, 3  | a*y*z - x*z - a + x = 0                                                                     |              |                |
+| 23 | ps2       | pow sum     | 1 eq | 3, 2  | y*y - 2*x + y = 0                                                                           |              |                |
+| 24 | ps3       | pow sum     | 1 eq | 3, 3  | 2*(y*y*y) + 3*(y*y) - 6*x + y = 0                                                           |              |                |
+| 25 | ps4       | pow sum     | 1 eq | 3, 4  | (y*y*y*y) + 2*(y*y*y) + (y*y) - 4*x = 0                                                     |              | no results     |
+| 26 | ps5       | pow sum     | 1 eq | 3, 5  | 6*(y*y*y*y*y) + 15*(y*y*y*y) + 10*(y*y*y) - 30*x - y = 0                                    |              | no results     |
+| 27 | ps6       | pow sum     | 1 eq | 3, 6  | 2*(y*y*y*y*y*y) + 6*(y*y*y*y*y) + 5*(y*y*y*y) - (y*y) - 12*x = 0                            |              |                |
+|    |           |             |      |       |                                                                                             |              |                |
+|----+-----------+-------------+------+-------+---------------------------------------------------------------------------------------------+--------------+----------------|
+#+tblfm: $1=@#-1   
+
+
+

@@ -1,0 +1,21 @@
+1:34:49:dig2:Warn:DEBUG MODE ON. Can be slow !
+1:34:50:alg:Info:analyze ./programs/hola/02.dig.c
+1:34:50:alg:Info:set seed to: 1493793289.48 (test 64)
+1:34:50:alg:Info:check reachability
+1:34:50:alg:Info:gen eqts at 1 locs: l23 (int x, int y)
+1:34:59:alg:Info:1 invs:
+l23: x - y == 0
+1:34:59:alg:Info:gen ieqs at 1 locs: l23 (int x, int y)
+1:34:59:alg:Info:1 locs: check upperbounds for 8 terms
+Traceback (most recent call last):
+  File "dig2.py", line 71, in <module>
+    doEqts=not args.noeqts, doIeqs=not args.noieqs)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 407, in start
+    if doIeqs: _gen('ieqs')        
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 399, in _gen
+    invs = solver.gen(deg, traces, inps)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 252, in gen
+    _ = self.getTracesAndUpdate(newInps, traces)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 68, in getTracesAndUpdate
+    assert inps
+AssertionError

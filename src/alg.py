@@ -105,7 +105,9 @@ class DigCegir(Dig):
     def str_of_locs(self, locs):
         return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)
 
-    def start(self, seed, maxdeg, do_eqts, do_ieqs, do_preposts):
+    def start(self, seed, maxdeg,
+              do_eqts, do_ieqs, do_minmaxplus, do_preposts):
+
         super(DigCegir, self).start(seed, maxdeg)
 
         st = time()
@@ -121,7 +123,8 @@ class DigCegir(Dig):
 
             st = time()
             invs = f()
-            if not invs:
+            assert isinstance(invs, DInvs)
+            if not invs.siz:
                 mlog.warn("infer no {}".format(typ))
             else:
                 mlog.info("infer {} {} in {}s".format(
@@ -135,9 +138,11 @@ class DigCegir(Dig):
         if do_ieqs:
             _infer('ieqs', lambda: self.infer_ieqs(dtraces, inps))
 
-        dinvs = self.sanitize(dinvs, dtraces)
+        if do_minmaxplus:
+            _infer('max/minplus', lambda: self.infer_minmaxplus(dtraces, inps))
 
-        if do_preposts:
+        dinvs = self.sanitize(dinvs, dtraces)
+        if dinvs.siz and do_preposts:
             _infer('preposts', lambda: self.infer_preposts(dinvs, dtraces))
 
         self.print_results(dinvs, dtraces, inps, st)
@@ -148,20 +153,26 @@ class DigCegir(Dig):
         return dinvs, dtraces, self.tmpdir
 
     def infer_eqts(self, deg, dtraces, inps):
-        from cegirEqts import CegirEqts
+        from cegir_eqts import CegirEqts
         solver = CegirEqts(self.symstates, self.prog)
         solver.useRandInit = self.useRandInit
         dinvs = solver.gen(self.deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        from cegirIeqs import CegirIeqs
+        from cegir_ieqs import CegirIeqs
         solver = CegirIeqs(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
+    def infer_minmaxplus(self, dtraces, inps):
+        from cegir_mp import CegirMP
+        solver = CegirMP(self.symstates, self.prog)
+        dinvs = solver.gen(dtraces, inps)
+        return dinvs
+
     def infer_preposts(self, dinvs, dtraces):
-        from cegirPrePosts import CegirPrePosts
+        from cegir_preposts import CegirPrePosts
         solver = CegirPrePosts(self.symstates, self.prog)
         dinvs = solver.gen(dinvs, dtraces)
         return dinvs
@@ -173,7 +184,8 @@ class DigTraces(Dig):
 
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
 
-    def start(self, seed, maxdeg, do_eqts, do_ieqs, do_preposts):
+    def start(self, seed, maxdeg,
+              do_eqts, do_ieqs, do_maxminplus, do_preposts):
 
         super(DigTraces, self).start(seed, maxdeg)
 
@@ -183,8 +195,6 @@ class DigTraces(Dig):
             symbols = self.inv_decls[loc]
             dinvs[loc] = Invs()
             traces = self.dtraces[loc]
-
-            mp_solve(symbols, traces)
 
             if do_eqts:
                 terms, template, uks, n_eqts_needed = Miscs.init_terms(
@@ -211,7 +221,3 @@ class DigTraces(Dig):
         dinvs = self.sanitize(dinvs, self.dtraces)
         self.print_results(dinvs, self.dtraces, None, st)
         return dinvs, None, self.tmpdir
-
-
-def mp_solve(symbols, traces):
-    terms = Miscs.gen_terms_fixed_coefs_mp(symbols.sageExprs, 2)

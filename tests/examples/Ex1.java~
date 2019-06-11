@@ -1,0 +1,20 @@
+public class Ex1 {
+    public static void vtrace1_post(int m, int t){}
+    public static void main (String[] args) {}
+    public static int mainQ(int m){
+	int t = 0;
+	if (m < 0){
+	    t = -10;
+	}
+	else if (m == 0){
+	    t = 100;
+	}
+	else{
+	    t = m  + 10;
+	}
+	vtrace1_post(m, t);
+	    
+	return 0;
+    }
+}
+

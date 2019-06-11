@@ -1,0 +1,19 @@
+9/24
+For freire2 ,  put (int) infront of assertions in C code
+For freire2, check if keep getting old invs even though already add cex's
+
+
+
+test against all traces at the end
+randomize traces (e.g., shuffle)
+
+Is this a bug?  keep on solving same x unknowns using same y eqts
+
+Use the old SAGE back when I was publishing the TOSEM paper
+
+
+See if the new SAGE works on the TOSEM's dataset
+--use CPAcheck
+--if multiple cex for 1 locs,  use just 1 (but make sure we actually use those traces)
+--try traces that result in many nonzero terms when subs
+--just use the specific traces that violate the inv, don't even need to execute the program on the input

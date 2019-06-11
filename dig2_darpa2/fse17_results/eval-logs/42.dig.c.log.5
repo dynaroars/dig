@@ -1,0 +1,17 @@
+5:26:23:dig2:Warn:DEBUG MODE ON. Can be slow !
+5:26:23:alg:Info:analyze ./programs/hola/42.dig.c
+5:26:23:alg:Info:set seed to: 1493807183.12 (test 12)
+5:26:23:alg:Info:check reachability
+5:26:24:alg:Info:gen eqts at 1 locs: l35 (int a, int y, int x)
+5:26:36:alg:Info:2 invs:
+l35: x*y - x - y + 1 == 0, a - x - y + 1 == 0
+5:26:36:alg:Info:gen ieqs at 1 locs: l35 (int a, int y, int x)
+5:26:36:alg:Info:1 locs: check upperbounds for 18 terms
+5:26:37:alg:Info:10 invs:
+l35: -a + y <= 0, -a + x <= 0, -x - y <= -4, -a - y <= -4, -a <= -3, x*y - x - y + 1 == 0, -x <= -1, -a - x <= -4, -y <= -1, a - x - y + 1 == 0
+5:26:37:alg:Info:test 10 invs on all 266 traces
+5:26:37:alg:Info:find uniq invs
+5:26:37:alg:Info:10 invs:
+l35: -a + y <= 0, -a + x <= 0, -x - y <= -4, -a - y <= -4, -a <= -3, x*y - x - y + 1 == 0, -x <= -1, -a - x <= -4, -y <= -1, a - x - y + 1 == 0
+5:26:38:alg:Info:*** ./programs/hola/42.dig.c, 1 locs, invs 3, inps 666, time 14.1926240921 s, rand 65: 
+l35: x*y - x - y + 1 == 0, -a <= -3, a - x - y + 1 == 0

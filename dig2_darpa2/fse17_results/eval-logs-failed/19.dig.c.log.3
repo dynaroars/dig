@@ -1,0 +1,17 @@
+21:11:26:dig2:Warn:DEBUG MODE ON. Can be slow !
+21:11:27:alg:Info:analyze ./programs/hola/19.dig.c
+21:11:27:alg:Info:set seed to: 1493777486.09 (test 44)
+21:11:27:alg:Info:check reachability
+21:11:27:alg:Info:gen eqts at 1 locs: l18 (int y, int n)
+21:11:36:alg:Info:1 invs:
+l18: n - y == 0
+21:11:36:alg:Info:gen ieqs at 1 locs: l18 (int y, int n)
+21:11:36:alg:Info:1 locs: check upperbounds for 8 terms
+21:11:52:alg:Info:6 invs:
+l18: -n + y <= 0, -n <= -1, -n - y <= -2, -y <= -1, n - y <= 0, n - y == 0
+21:11:52:alg:Info:test 6 invs on all 151 traces
+21:11:52:alg:Info:find uniq invs
+21:11:52:alg:Info:6 invs:
+l18: -n + y <= 0, -n <= -1, -n - y <= -2, -y <= -1, n - y <= 0, n - y == 0
+21:11:52:alg:Info:*** ./programs/hola/19.dig.c, 1 locs, invs 2, inps 415, time 25.4784779549 s, rand 32: 
+l18: n - y == 0, -n <= -1

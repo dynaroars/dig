@@ -1,0 +1,13 @@
+5/21
+- write traces to tmpdir .. done
+- read traces from tmpdir, (re)infer invariants
+- WeakMPP code from old DIG
+- Dig issue
+
+
+
+- New Idea: Pure Dynamic analysis on Traces
+- NEw idea: CEGIR on *traces*
+- NEw idea: Prepost conds
+- New idea: Max/Min plus
+- New idea: work on class file, incremental symbolic states ? 

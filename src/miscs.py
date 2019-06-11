@@ -713,12 +713,10 @@ class Z3(object):
         models, _ = cls.get_models(z3.Not(claim), k=1)
         if models is False:
             return 0  # ==
-
         claim = z3.Implies(f, g)
         models, _ = cls.get_models(z3.Not(claim), k=1)
         if models is False:
             return 1  # f > g
-
         else:
             return -1
 

@@ -5,7 +5,9 @@ from time import time
 from vcommon import getLogger, getLogLevel
 
 
-def run(inp, seed, maxdeg, do_eqts, do_ieqs, do_preposts, do_rmtmp):
+def run(inp, seed, maxdeg,
+        do_eqts, do_ieqs, do_minmaxplus, do_preposts, do_rmtmp):
+
     import alg
     if inp.endswith(".java") or inp.endswith(".class"):
         dig = alg.DigCegir(inp)
@@ -13,7 +15,7 @@ def run(inp, seed, maxdeg, do_eqts, do_ieqs, do_preposts, do_rmtmp):
         dig = alg.DigTraces(inp)
 
     invs, traces, tmpdir = dig.start(
-        seed, maxdeg, do_eqts, do_ieqs, do_preposts)
+        seed, maxdeg, do_eqts, do_ieqs, do_minmaxplus, do_preposts)
 
     if do_rmtmp:
         import shutil
@@ -73,6 +75,9 @@ if __name__ == "__main__":
     ag("--noieqs", "-noieqs",
        action="store_true")
 
+    ag("--nominmaxplus", "-nominmaxplus",
+       action="store_true")
+
     ag("--nopreposts", "-nopreposts",
        action="store_true")
 
@@ -118,5 +123,7 @@ if __name__ == "__main__":
     seed = round(time(), 2) if args.seed is None else float(args.seed)
 
     run(inp, seed, maxdeg=args.maxdeg,
-        do_eqts=not args.noeqts, do_ieqs=not args.noieqs,
+        do_eqts=not args.noeqts,
+        do_ieqs=not args.noieqs,
+        do_minmaxplus=not args.nominmaxplus,
         do_preposts=not args.nopreposts, do_rmtmp=not args.normtmp)

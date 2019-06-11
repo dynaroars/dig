@@ -1,0 +1,17 @@
+4:55:26:dig2:Warn:DEBUG MODE ON. Can be slow !
+4:55:27:alg:Info:analyze ./programs/hola/37.dig.c
+4:55:27:alg:Info:set seed to: 1493805326.12 (test 74)
+4:55:27:alg:Info:check reachability
+4:55:27:alg:Info:gen eqts at 1 locs: l17 (int n, int m, int x)
+4:55:40:alg:Info:2 invs:
+l17: (m*m) - n*x + m + x == 0, m*n - n*x + x == 0
+4:55:40:alg:Info:gen ieqs at 1 locs: l17 (int n, int m, int x)
+4:55:40:alg:Info:1 locs: check upperbounds for 18 terms
+4:55:41:alg:Info:9 invs:
+l17: m - x <= 0, -m + x <= 1, n - x <= 0, -m + n <= 1, -x <= 0, -m <= 0, -m - x <= 0, (m*m) - n*x + m + x == 0, m*n - n*x + x == 0
+4:55:41:alg:Info:test 9 invs on all 266 traces
+4:55:42:alg:Info:find uniq invs
+4:55:42:alg:Info:9 invs:
+l17: m - x <= 0, -m + x <= 1, n - x <= 0, -m + n <= 1, -x <= 0, -m <= 0, -m - x <= 0, (m*m) - n*x + m + x == 0, m*n - n*x + x == 0
+4:55:42:alg:Info:*** ./programs/hola/37.dig.c, 1 locs, invs 5, inps 285, time 14.9202210903 s, rand 33: 
+l17: n - x <= 0, m - x <= 0, (m*m) - n*x + m + x == 0, -m + x <= 1, -m <= 0

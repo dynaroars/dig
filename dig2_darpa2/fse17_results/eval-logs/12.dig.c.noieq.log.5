@@ -1,0 +1,17 @@
+2:17:14:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:17:15:alg:Info:analyze ./programs/hola/12.dig.c
+2:17:15:alg:Info:set seed to: 1493795834.98 (test 67)
+2:17:15:alg:Info:check reachability
+2:17:16:alg:Info:gen eqts at 3 locs: l40 (int y); l24 (int s, int t); l31 (int x)
+Traceback (most recent call last):
+  File "dig2.py", line 71, in <module>
+    doEqts=not args.noeqts, doIeqs=not args.noieqs)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 406, in start
+    if doEqts: _gen('eqts')
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 399, in _gen
+    invs = solver.gen(deg, traces, inps)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 193, in gen
+    initrs = [self.getInitTraces(loc, deg, traces, inps) for loc in traces]
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 124, in getInitTraces
+    assert newTraces[loc]
+KeyError: 'l40'

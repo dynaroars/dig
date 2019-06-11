@@ -1,0 +1,6 @@
+A bug:
+Assume we get a spurious invariant using a set S of traces, KLEE finds an inps giving a set S' of traces that refute it.  But when choosing traces, we might not consider the particular traces in S' that refute the spurious inv, so that spurious result is achieved again or that we get no new result.
+TODO: find the specific trace in S' and use it.
+
+Here's an example showing this prob:
+$SAGE/sage dig2.py programs/nla/fermat2.c   --log 3 -noIeq -maxdeg 2 -seed 1484601651.54

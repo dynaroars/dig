@@ -1,0 +1,2 @@
+2017-01-02 12:39:09:120	SEVERE	CPAMain.main	Error: Invalid configuration (Please specify a program to analyze on the command line.)
+

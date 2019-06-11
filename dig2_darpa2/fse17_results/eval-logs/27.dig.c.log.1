@@ -1,0 +1,24 @@
+3:57:16:dig2:Warn:DEBUG MODE ON. Can be slow !
+3:57:17:alg:Info:analyze ./programs/hola/27.dig.c
+3:57:17:alg:Info:set seed to: 1493801836.22 (test 56)
+3:57:17:alg:Info:check reachability
+3:57:19:alg:Info:gen eqts at 2 locs: l14 (int k, int l, int i, int n); l18 (int k, int l, int i, int n)
+3:57:47:alg:Info:2 invs:
+l14: 
+l18: (i*i)*k - i*k*l - i*k*n + k*l*n - (i*i) + i*l + i*n - l*n == 0, (k*k) - k*n - k + n == 0
+3:57:47:alg:Info:gen ieqs at 2 locs: l14 (int k, int l, int i, int n); l18 (int k, int l, int i, int n)
+3:57:47:alg:Info:2 locs: check upperbounds for 64 terms
+3:59:47:alg:Info:23 invs:
+l14: l - n <= -1, -i - n <= -3, -i - l <= -2, -n <= -2, -i - k <= -2, i - n <= -1, -l <= -1, -i <= -1, -k <= -1, -k - l <= -2, k - l <= 9, -i + k <= 9, -k - n <= -3, k - n <= -1, -l - n <= -3, -i + l <= 0
+l18: k - l <= 9, -l <= -1, -k - l <= -2, -k <= -1, -k + n <= 0, (i*i)*k - i*k*l - i*k*n + k*l*n - (i*i) + i*l + i*n - l*n == 0, (k*k) - k*n - k + n == 0
+3:59:47:alg:Info:test 23 invs on all 350188 traces
+4:1:59:ds:Warn:l14: k - l <= 9 disproved
+4:2:46:ds:Warn:l14: -i + k <= 9 disproved
+4:3:32:ds:Warn:l18: k - l <= 9 disproved
+4:3:32:alg:Info:find uniq invs
+4:3:32:alg:Info:20 invs:
+l14: l - n <= -1, -i - n <= -3, -i - l <= -2, -n <= -2, -i - k <= -2, i - n <= -1, -l <= -1, -i <= -1, -k <= -1, -k - l <= -2, -k - n <= -3, k - n <= -1, -l - n <= -3, -i + l <= 0
+l18: -l <= -1, -k - l <= -2, -k <= -1, -k + n <= 0, (i*i)*k - i*k*l - i*k*n + k*l*n - (i*i) + i*l + i*n - l*n == 0, (k*k) - k*n - k + n == 0
+4:3:32:alg:Info:*** ./programs/hola/27.dig.c, 2 locs, invs 10, inps 966, time 375.034559965 s, rand 90: 
+l14: -i + l <= 0, -l <= -1, i - n <= -1, -k <= -1, k - n <= -1
+l18: -k + n <= 0, (k*k) - k*n - k + n == 0, -k <= -1, (i*i)*k - i*k*l - i*k*n + k*l*n - (i*i) + i*l + i*n - l*n == 0, -l <= -1

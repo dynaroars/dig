@@ -1,0 +1,17 @@
+2:7:23:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:7:24:alg:Info:analyze ./programs/hola/08.dig.c
+2:7:24:alg:Info:set seed to: 1493795243.92 (test 39)
+2:7:24:alg:Info:check reachability
+2:7:24:alg:Info:gen eqts at 1 locs: l30 (int x, int y)
+2:7:33:alg:Info:0 invs:
+l30: 
+2:7:33:alg:Info:gen ieqs at 1 locs: l30 (int x, int y)
+2:7:33:alg:Info:1 locs: check upperbounds for 8 terms
+2:7:56:alg:Info:4 invs:
+l30: -x - y <= 0, x - y <= 0, -y <= 0, -x <= 0
+2:7:56:alg:Info:test 4 invs on all 144 traces
+2:7:56:alg:Info:find uniq invs
+2:7:56:alg:Info:4 invs:
+l30: -x - y <= 0, x - y <= 0, -y <= 0, -x <= 0
+2:7:56:alg:Info:*** ./programs/hola/08.dig.c, 1 locs, invs 2, inps 1795, time 32.0642390251 s, rand 34: 
+l30: -x <= 0, x - y <= 0

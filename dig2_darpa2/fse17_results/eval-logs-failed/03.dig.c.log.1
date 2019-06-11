@@ -1,0 +1,17 @@
+20:16:31:dig2:Warn:DEBUG MODE ON. Can be slow !
+20:16:31:alg:Info:analyze ./programs/hola/03.dig.c
+20:16:31:alg:Info:set seed to: 1493774191.17 (test 25)
+20:16:31:alg:Info:check reachability
+20:16:31:alg:Info:gen eqts at 1 locs: l20 (int i, int k, int n, int l, int t)
+20:18:10:alg:Info:5 invs:
+l20: (k*k) - k*n - k + n == 0, k*t - n*t == 0, i*t - n*t == 0, 2*i*k - 2*k*l - 2*i + 2*l - t == 0, 2*l*n*t - 2*(n*n)*t - 2*l*t + 2*n*t + (t*t) == 0
+20:18:10:alg:Info:gen ieqs at 1 locs: l20 (int i, int k, int n, int l, int t)
+20:18:10:alg:Info:1 locs: check upperbounds for 50 terms
+20:18:36:alg:Info:12 invs:
+l20: (k*k) - k*n - k + n == 0, k*t - n*t == 0, i*t - n*t == 0, 2*i*k - 2*k*l - 2*i + 2*l - t == 0, 2*l*n*t - 2*(n*n)*t - 2*l*t + 2*n*t + (t*t) == 0, -k <= -1, -l - t <= -1, -k - l <= -2, -t <= 0, -l <= -1, -k + n <= 0, -k - t <= -1
+20:18:36:alg:Info:test 12 invs on all 408 traces
+20:18:37:alg:Info:find uniq invs
+20:18:37:alg:Info:12 invs:
+l20: (k*k) - k*n - k + n == 0, k*t - n*t == 0, i*t - n*t == 0, 2*i*k - 2*k*l - 2*i + 2*l - t == 0, 2*l*n*t - 2*(n*n)*t - 2*l*t + 2*n*t + (t*t) == 0, -k <= -1, -l - t <= -1, -k - l <= -2, -t <= 0, -l <= -1, -k + n <= 0, -k - t <= -1
+20:18:37:alg:Info:*** ./programs/hola/03.dig.c, 1 locs, invs 7, inps 408, time 125.777956009 s, rand 30: 
+l20: (k*k) - k*n - k + n == 0, 2*i*k - 2*k*l - 2*i + 2*l - t == 0, i*t - n*t == 0, -k + n <= 0, -l <= -1, -t <= 0, -k <= -1

@@ -19,13 +19,13 @@ class MPInv(object):
     'lambda x,y: max(x - 10, y - 3) - max(y, 5) >= 0'
     sage: mp.str_lambda
     'lambda x,y: max(x - 10, y - 3) - max(y, 5)'
-    sage: mp.str_disj
+    sage: mp.str_ite
     'If(x - 10 >= y - 3, If(y >= 5, x - 10 >= y, x - 10 >= 5), If(y >= 5, y - 3 >= y, y - 3 >= 5))'
 
     sage: mp = MinPlusIeq((x-10, y-3), (y, 5))
     sage: mp.str_lambda_formula
     'lambda x,y: min(x - 10, y - 3) - min(y, 5) >= 0'
-    sage: mp.str_disj
+    sage: mp.str_ite
     'If(x - 10 <= y - 3, If(y <= 5, x - 10 >= y, x - 10 >= 5), If(y <= 5, y - 3 >= y, y - 3 >= 5))'
 
     sage: mp = MaxPlusInv((x-10, y-3), (y,))
@@ -38,7 +38,7 @@ class MPInv(object):
     'lambda x,y: max(x - 10, y - 3) - y'
     sage: mp.str_lambda_formula
     'lambda x,y: max(x - 10, y - 3) - y == 0'
-    sage: mp.str_disj
+    sage: mp.str_ite
     'If(x - 10 >= y - 3, x - 10 == y, y - 3 == y)'
 
     sage: mp = MinPlusEq((x-10, y-3), (y+12,))
@@ -46,25 +46,25 @@ class MPInv(object):
     'lambda x,y: min(x - 10, y - 3) - (y + 12)'
     sage: mp.str_lambda_formula
     'lambda x,y: min(x - 10, y - 3) - (y + 12) == 0'
-    sage: mp.str_disj
+    sage: mp.str_ite
     'If(x - 10 <= y - 3, x - 10 == y + 12, y - 3 == y + 12)'
 
-    sage: MaxPlusEq((x-10, y-3), (y+12,)).str_disj
+    sage: MaxPlusEq((x-10, y-3), (y+12,)).str_ite
     'If(x - 10 >= y - 3, x - 10 == y + 12, y - 3 == y + 12)'
 
-    sage: MaxPlusIeq((x-10, y-3), (y+12,)).str_disj
+    sage: MaxPlusIeq((x-10, y-3), (y+12,)).str_ite
     'If(x - 10 >= y - 3, x - 10 >= y + 12, y - 3 >= y + 12)'
 
-    sage: MinPlusIeq((x-10, y-3), (y+12,)).str_disj
+    sage: MinPlusIeq((x-10, y-3), (y+12,)).str_ite
     'If(x - 10 <= y - 3, x - 10 >= y + 12, y - 3 >= y + 12)'
 
-    sage: MinPlusIeq((x-10, y-3), (y+12,)).str_disj
+    sage: MinPlusIeq((x-10, y-3), (y+12,)).str_ite
     'If(x - 10 <= y - 3, x - 10 >= y + 12, y - 3 >= y + 12)'
 
-    sage: MinPlusIeq((x-10, y-3), (y, 12)).str_disj
+    sage: MinPlusIeq((x-10, y-3), (y, 12)).str_ite
     'If(x - 10 <= y - 3, If(y <= 12, x - 10 >= y, x - 10 >= 12), If(y <= 12, y - 3 >= y, y - 3 >= 12))'
 
-    sage: MinPlusEq((x-10, y-3),(y, 12)).str_disj
+    sage: MinPlusEq((x-10, y-3),(y, 12)).str_ite
     'If(x - 10 <= y - 3, If(y <= 12, x - 10 == y, x - 10 == 12), If(y <= 12, y - 3 == y, y - 3 == 12))'
 
     sage: mp = MaxPlusIeq((0,), (x - 15,))
@@ -72,7 +72,7 @@ class MPInv(object):
     'lambda x: 0 - (x - 15)'
     sage: mp.str_lambda_formula
     'lambda x: 0 - (x - 15) >= 0'
-    sage: mp.str_disj
+    sage: mp.str_ite
     '0 >= x - 15'
     """
 
@@ -138,18 +138,18 @@ class MPInv(object):
                 self.str_lambda, self.RELOP)
             return self._str_lambda_formula
 
-    # Disj Formula
+    # Ite Formula
     @property
-    def str_disj(self):
+    def str_ite(self):
         """
-        Return disjunctive format
+        Return iteunctive format
         """
         try:
-            return self._str_disj
+            return self._str_ite
         except AttributeError:
-            self._str_disj = self.mp2df(
+            self._str_ite = self.mp2df(
                 self.lh, self.rh, 0, self.MYOP1, self.RELOP)
-            return self._str_disj
+            return self._str_ite
 
     @classmethod
     def mp2df(cls, lh, rh, idx, myop, relop):
@@ -157,15 +157,15 @@ class MPInv(object):
 
         elem = lh[idx]
         if isinstance(rh, tuple):
-            disj = cls.mp2df(rh, elem, 0, myop, relop)
+            ite = cls.mp2df(rh, elem, 0, myop, relop)
         else:
-            disj = "{} {} {}".format(rh, relop, elem)
+            ite = "{} {} {}".format(rh, relop, elem)
         rest = lh[idx + 1:]
 
         if not rest:  # t <= max(x,y,z)
-            return disj
+            return ite
         else:
-            rest_disj = cls.mp2df(lh, rh, idx + 1, myop, relop)
+            rest_ite = cls.mp2df(lh, rh, idx + 1, myop, relop)
 
             others = lh[:idx] + rest
 
@@ -175,7 +175,7 @@ class MPInv(object):
             else:
                 cond = conds[0]
 
-            return "If({}, {}, {})".format(cond, disj, rest_disj)
+            return "If({}, {}, {})".format(cond, ite, rest_ite)
 
     @classmethod
     def get_terms(cls, terms):
@@ -235,17 +235,20 @@ class MPInv(object):
         results = sorted(results, key=lambda x: str(x))
         return results
 
+    def myeval(self, trace):
+        return self._eval(self.str_lambda, trace)
+
     @classmethod
-    def test_trace(cls, lambda_str, trace):
+    def _eval(cls, lambda_str, trace):
         """
         Examples:
 
-        sage: assert bool(MPInv.test_trace('lambda x,y: x+y == 5', {'x': 2,'y':3,'d':7}))
-        sage: assert MPInv.test_trace('lambda x,y: x+y == 10 or x + y == 5', {'x': 2,'y':3,'d':7})
-        sage: assert bool(MPInv.test_trace('lambda x,y: max(x - 13,-3) >= y', {'x': 11,'y':100})) == False
-        sage: assert MPInv.test_trace('lambda x,y: x+y == 6', {'x': 2,'y':3,'d':7}) == False
-        sage: assert MPInv.test_trace('lambda x,y: x+y == 1 or x + y == 2', {'x': 2,'y':3,'d':7}) == False
-        sage: assert MPInv.test_trace('lambda x,y: x+y', {'x': 2,'y':3,'d':7}) == 5
+        sage: assert bool(MPInv._eval('lambda x,y: x+y == 5', {'x': 2,'y':3,'d':7}))
+        sage: assert MPInv._eval('lambda x,y: x+y == 10 or x + y == 5', {'x': 2,'y':3,'d':7})
+        sage: assert bool(MPInv._eval('lambda x,y: max(x - 13,-3) >= y', {'x': 11,'y':100})) == False
+        sage: assert MPInv._eval('lambda x,y: x+y == 6', {'x': 2,'y':3,'d':7}) == False
+        sage: assert MPInv._eval('lambda x,y: x+y == 1 or x + y == 2', {'x': 2,'y':3,'d':7}) == False
+        sage: assert MPInv._eval('lambda x,y: x+y', {'x': 2,'y':3,'d':7}) == 5
 
         """
         assert isinstance(lambda_str, str) and 'lambda' in lambda_str
@@ -268,7 +271,7 @@ class MPInv(object):
         sage: tcs = [{'x': 2, 'y': -8, 'z': -7}, {'x': -1, 'y': -15, 'z': 88}, {'x': 15, 'y': 5, 'z': 0}]
         sage: invs = MaxPlusIeq.infer([x, y], tcs)
         sage: assert len(invs) == 10
-        sage: for inv in invs: print(inv.str_disj)
+        sage: for inv in invs: print(inv.str_ite)
         0 >= x - 15
         x + 1 >= 0
         0 >= y - 5
@@ -281,14 +284,14 @@ class MPInv(object):
         x - 10 >= y
 
         sage: invs = MaxPlusIeq.infer([x], tcs)
-        sage: print('\n'.join(inv.str_disj for inv in invs))
+        sage: print('\n'.join(inv.str_ite for inv in invs))
         0 >= x - 15
         x + 1 >= 0
 
         sage: invs = MaxPlusIeq.infer([x,y,z], tcs)
         sage: assert len(invs) == 36
-        sage: invs = sorted(invs, key=lambda x: len(x.str_disj))
-        sage: print('\n'.join('{}\n{}'.format(inv.str_lambda_formula, inv.str_disj) for inv in invs))
+        sage: invs = sorted(invs, key=lambda x: len(x.str_ite))
+        sage: print('\n'.join('{}\n{}'.format(inv.str_lambda_formula, inv.str_ite) for inv in invs))
         lambda x: (x + 1) - 0 >= 0
         x + 1 >= 0
         lambda y: 0 - (y - 5) >= 0
@@ -367,8 +370,7 @@ class MPInv(object):
         results = []
         for lhs, rhs in terms:
             mpinv = cls(lhs, (rhs,))
-            myevals = [mpinv.test_trace(mpinv.str_lambda, trace)
-                       for trace in traces]
+            myevals = [mpinv.myeval(trace) for trace in traces]
             mymin = min(myevals)  # lh >= rh + mymin
             mymax = max(myevals)  # rh + mymax >= lh
 
@@ -382,8 +384,12 @@ class MPInv(object):
                 mpinv_eq = newcls(lhs, (rhs + mymin, ))
                 results.append(mpinv_eq)
             else:
+                print lhs, rhs, mpinv.str_lambda, ';', mpinv.str_ite
+                print 'min', mymin, 'max', mymax
                 mpinv_upper = cls(lhs, (rhs + mymin,))
                 mpinv_lower = cls((rhs + mymax, ), lhs)
+                print 'upper', mpinv_upper.str_lambda_formula, ';', mpinv_upper.str_ite
+                print 'lower', mpinv_lower.str_lambda_formula, ';', mpinv_lower.str_ite
                 results.extend([mpinv_upper, mpinv_lower])
         return results
 
@@ -419,3 +425,13 @@ class MinPlusEq(MinPlusInv):
 class MinPlusIeq(MinPlusInv):
     RELOP = '>='
     pass
+
+
+def test():
+    x, y, z = sage.all.var('x y z')
+    tcs = [{'x': 2, 'y': -8, 'z': -7},
+           {'x': -1, 'y': -15, 'z': 88}, {'x': 15, 'y': 5, 'z': 0}]
+    return MaxPlusIeq.infer([x, y], tcs)
+
+
+test()

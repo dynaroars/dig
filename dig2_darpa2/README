@@ -1,0 +1,4 @@
+Detailed instructions for setting up the tool are forthcoming (essentially we will need SAGE, KLEE, and Z3).
+DIG2 is written in Python (the .py src code are in the main directory).
+Benchmarks are in subdirectory "programs"  (nla, complexity, and hola)
+Results are in "fse17_results".  These are logs, which we use collect_results.py to extract stats such as mean #'s of invs, time, etc

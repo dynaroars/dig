@@ -1,0 +1,19 @@
+2:29:24:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:29:25:alg:Info:analyze ./programs/hola/18.dig.c
+2:29:25:alg:Info:set seed to: 1493796564.13 (test 16)
+2:29:25:alg:Info:check reachability
+2:29:25:alg:Info:gen eqts at 1 locs: l11 (int j, int flag, int a, int b)
+2:29:32:alg:Info:3 invs:
+l11: flag*j - 100*flag == 0, (j*j) - 100*j == 0, b - 100 == 0
+2:29:32:alg:Info:gen ieqs at 1 locs: l11 (int j, int flag, int a, int b)
+2:29:32:alg:Info:1 locs: check upperbounds for 32 terms
+2:29:32:alg:Info:7 invs:
+l11: flag*j - 100*flag == 0, (j*j) - 100*j == 0, b - 100 == 0, flag - j <= 0, -b + j <= 0, -flag - j <= 0, -j <= 0
+2:29:32:alg:Info:test 7 invs on all 115 traces
+2:29:32:ds:Warn:l11: flag - j <= 0 disproved
+2:29:32:ds:Warn:l11: -flag - j <= 0 disproved
+2:29:32:alg:Info:find uniq invs
+2:29:32:alg:Info:5 invs:
+l11: flag*j - 100*flag == 0, (j*j) - 100*j == 0, b - 100 == 0, -b + j <= 0, -j <= 0
+2:29:33:alg:Info:*** ./programs/hola/18.dig.c, 1 locs, invs 3, inps 115, time 7.93577098846 s, rand 41: 
+l11: flag*j - 100*flag == 0, (j*j) - 100*j == 0, b - 100 == 0
