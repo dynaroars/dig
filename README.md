@@ -71,18 +71,12 @@ Everything seems OK. Have fun with DIG!
 * Install both Java PathFinder and the Symbolic Pathfinder extension
 
 ```shell
-$ mkdir /PATH/TO/JPF; 
+$ mkdir /PATH/TO/JPF
 $ cd /PATH/TO/JPF
 $ git clone https://github.com/javapathfinder/jpf-core #JPF
 $ git clone https://github.com/SymbolicPathFinder/jpf-symbc #Symbolic extension
 
-#then add the following to `~/.jpf/site.properties` (create ~/.jpf if it doesn't exist)
-jpf-core = /PATH/TO/JPF/jpf-core
-jpf-symbc = /PATH/TO/JPF/jpf-symbc
-extensions=${jpf-core},${jpf-symbc}
-
-
-#build jpf
+# build jpf
 $ cd jpf-core
 $ git checkout java-8  #switch to the java-8 branch
 $ ant
@@ -90,9 +84,19 @@ $ ant
 #copy patched Listener file to SPF
 $ cp /PATH/TO/dig/src/java/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/jpf/symbc
 
-#build spf
+# build spf
 $ cd jpf-symbc
 $ ant
+
+# sometimes it helps to rebuild jpf-core again
+# cd jpf-core
+$ ant
+
+
+# Add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
+jpf-core = /PATH/TO/JPF/jpf-core
+jpf-symbc = /PATH/TO/JPF/jpf-symbc
+extensions=${jpf-core},${jpf-symbc}
 ```
 
 * Compile Java files in `java` directory for instrumenting Java byte classes
@@ -102,6 +106,8 @@ $ ant
 $ cd src/java
 $ make
 ```
+
+
 
 #### Setup Paths
 
@@ -115,6 +121,8 @@ export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
 export JAVA_HOME=/PATH/TO/JAVA
 export PATH=$SAGE:$JAVA_HOME/bin:$PATH
 export JPF_HOME=/PATH/TO/JPF
+export JPF_HOME=$DEVEL/JPF
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 ```
 
 * Some troubleshooting tips:
