@@ -868,7 +868,9 @@ class Invs(set):
         invs = self.__class__([inv for inv, passed in wrs if passed])
         return invs
 
-    def _uniqify_helper(self):
+    def uniqify(self, use_reals):
+        assert isinstance(use_reals, bool), use_reals
+
         eqts, eqtsLargeCoefs, ieqs, mps, others = [], [], [], [], []
         for inv in self:
             if isinstance(inv, EqtInv):
@@ -882,62 +884,6 @@ class Invs(set):
                 mps.append(inv)
             else:
                 others.append(inv)
-
-        return eqts, eqtsLargeCoefs, ieqs, mps, others
-
-    # def uniqify(self, use_reals):
-    #     assert isinstance(use_reals, bool), use_reals
-
-    #     invs, eqtsLargeCoefs = self._uniqify_helper()
-    #     if not invs:
-    #         return self
-
-    #     exprs = [inv.expr(use_reals) for inv in invs]
-    #     myf = exprs[0] if len(exprs) == 1 else z3.And(*exprs)
-
-    #     simpl = z3.Tactic('ctx-solver-simplify')
-    #     simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT * 1000)
-    #     simplifies = simpl(myf)
-    #     simplifies = simplifies[0]
-    #     assert len(simplifies) <= len(invs)
-
-    #     sd = {str(z3.simplify(expr)): (expr, inv)
-    #           for expr, inv in zip(exprs, invs)}
-
-    #     results, notdone = [], []
-    #     for f in simplifies:
-    #         f_expr = z3.simplify(f)
-    #         f_str = str(f_expr)
-    #         try:
-    #             _, inv = sd[f_str]
-    #             results.append(inv)
-    #             del sd[f_str]
-    #         except KeyError:  # comparing using str is not enough
-    #             to_del = None
-    #             for g_str in sd:
-    #                 g_expr, inv = sd[g_str]
-    #                 if Z3._mycmp_(f_expr, g_expr) == 0:
-    #                     results.append(inv)
-    #                     to_del = g_str
-    #                     break
-
-    #             if to_del:
-    #                 del sd[to_del]
-    #             else:
-    #                 notdone.append(f)
-
-    #     if notdone:
-    #         print(len(results), results)
-    #         print(len(notdone), notdone)
-    #         print(len(sd), sd)
-    #         dbg()
-    #         raise NotImplementedError("need to use smt checking in this case")
-
-    #     return Invs(results + eqtsLargeCoefs)
-
-    def uniqify2(self, use_reals):
-        assert isinstance(use_reals, bool), use_reals
-        eqts, eqtsLargeCoefs, ieqs, mps, others = self._uniqify_helper()
 
         rests = eqts + ieqs + others
         tasks = [mps, rests]
@@ -1089,7 +1035,7 @@ class DInvs(dict):
         tasks = list(self.keys())
 
         def f(tasks):
-            return [(loc, self[loc].uniqify2(use_reals)) for loc in tasks]
+            return [(loc, self[loc].uniqify(use_reals)) for loc in tasks]
         wrs = Miscs.run_mp_simple("uniqify", tasks, f, doMP=settings.doMP)
 
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
