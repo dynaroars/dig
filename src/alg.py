@@ -53,15 +53,18 @@ class Dig(object):
         self.deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
 
     def sanitize(self, dinvs, dtraces):
-        if dinvs.siz:
-            mlog.info("test {} invs on {} dtraces".format(
-                dinvs.siz, dtraces.siz))
-            dinvs = dinvs.test(dtraces)
-            if dinvs.siz:
-                mlog.info("uniqify {} invs".format(dinvs.siz))
-                mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
-                dinvs = dinvs.uniqify(self.inv_decls.use_reals)
+        if not dinvs.siz:
+            return dinvs
 
+        mlog.info("test {} invs on {} dtraces".format(
+            dinvs.siz, dtraces.siz))
+        dinvs = dinvs.test(dtraces)
+        if not dinvs.siz:
+            return dinvs
+
+        mlog.info("uniqify {} invs".format(dinvs.siz))
+        mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
+        dinvs = dinvs.uniqify(self.inv_decls.use_reals)
         return dinvs
 
     def print_results(self, dinvs, dtraces, inps, st):

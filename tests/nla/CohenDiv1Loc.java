@@ -1,6 +1,6 @@
 public class CohenDiv1Loc {
     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
-
+    public static void vtrace2(int q, int y){}
     public static void main (String[] args) {}
      
 
@@ -26,6 +26,7 @@ public class CohenDiv1Loc {
 	    r=r-b;
 	    q=q+a;
 	}
+	//vtrace2(q,y);
 	vtrace1(q,r,a,b,x,y);
 	return q;
     }

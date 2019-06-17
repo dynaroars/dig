@@ -72,8 +72,8 @@ class PC(object):
                    if not (p.is_relational() and str(p.lhs()) == str(p.rhs()))]
 
         assert isinstance(loc, str) and loc, loc
-        assert all(Miscs.isRel(pc) for pc in pcs), pcs
-        assert all(Miscs.isRel(pc) for pc in slocals), slocals
+        assert all(Miscs.is_rel(pc) for pc in pcs), pcs
+        assert all(Miscs.is_rel(pc) for pc in slocals), slocals
 
         self.loc = loc
         self.depth = depth
@@ -102,7 +102,8 @@ class PC(object):
         try:
             return self._pcs_z3
         except AttributeError:
-            self._pcs_z3 = [Z3.toZ3(pc, self.use_reals, i in self.pcsModIdxs)
+            self._pcs_z3 = [Z3.toZ3(pc, self.use_reals,
+                                    use_mod=i in self.pcsModIdxs)
                             for i, pc in enumerate(self.pcs)]
             return self._pcs_z3
 
@@ -111,7 +112,7 @@ class PC(object):
         try:
             return self._slocals_z3
         except AttributeError:
-            self._slocals_z3 = [Z3.toZ3(p, self.use_reals, useMod=False)
+            self._slocals_z3 = [Z3.toZ3(p, self.use_reals, use_mod=False)
                                 for p in self.slocals]
             return self._slocals_z3
 
@@ -264,9 +265,6 @@ class SymStates(object):
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.use_reals = inv_decls.use_reals
-        # any(s.isReal for syms in inv_decls.itervalues()
-        #                      for s in syms)
-
         self.inp_exprs = inp_decls.exprs(self.use_reals)
 
     def compute(self, filename, mainQName, clsName, jpfDir):
@@ -274,19 +272,16 @@ class SymStates(object):
         def _f(d): return self.mk(
             d, filename, mainQName, clsName, jpfDir, len(self.inp_decls))
 
-        def wprocess(tasks, Q):
-            rs = [(depth, _f(depth)) for depth in tasks]
-            rs = [(depth, ss) for depth, ss in rs if ss]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
-
         mindepth = settings.JPF_MIN_DEPTH
         maxdepth = mindepth + settings.JPF_DEPTH_INCR
         tasks = [depth for depth in range(mindepth, maxdepth)]
-        wrs = Miscs.runMP("get symstates", tasks, wprocess, chunksiz=1,
-                          doMP=settings.doMP and len(tasks) >= 2)
+
+        def f(tasks):
+            rs = [(depth, _f(depth)) for depth in tasks]
+            rs = [(depth, ss) for depth, ss in rs if ss]
+            return rs
+        wrs = Miscs.run_mp_simple("get symstates", tasks, f,
+                                  doMP=settings.doMP)
         self.merge(wrs)
 
     @classmethod
@@ -383,30 +378,23 @@ class SymStates(object):
 
         self.ss = symstates
 
-    # prover stuff
-
-    def get_inps(self, dinvs, inps, pathIdx=None):
+    def get_inps(self, dinvs, inps, path_idx=None):
         """call verifier on each inv"""
 
-        def check(loc, inv): return self.mcheckD(
-            loc, pathIdx, inv.expr(self.use_reals), inps, ncexs=1)
-
-        def wprocess(tasks, Q):
-            rs = [(loc, str(inv), check(loc, inv)) for loc, inv in tasks]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
+        def check(loc, inv):
+            return self.mcheck_d(
+                loc, path_idx, inv.expr(self.use_reals), inps, ncexs=1)
 
         tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
                  if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
-        wrs = Miscs.runMP("prove", tasks, wprocess, chunksiz=1,
-                          doMP=settings.doMP and len(tasks) >= 2)
 
-        mCexs, mdinvs, depths = [], DInvs(), []
-        for loc, str_inv, (depth, cexs, isSucc) in wrs:
-            depths.append(depth)
+        def f(tasks):
+            return [(loc, str(inv), check(loc, inv)) for loc, inv in tasks]
+        wrs = Miscs.run_mp_simple("prove", tasks, f, doMP=settings.doMP)
+
+        mCexs, mdinvs = [], DInvs()
+        for loc, str_inv, (cexs, isSucc) in wrs:
             inv = refsD[(loc, str_inv)]
 
             if cexs:
@@ -419,7 +407,7 @@ class SymStates(object):
 
         return merge(mCexs), mdinvs
 
-    def check(self, dinvs, inps, pathIdx=None):
+    def check(self, dinvs, inps, path_idx=None):
         """
         Check invs.
         Also update inps
@@ -428,7 +416,7 @@ class SymStates(object):
         assert not inps or (isinstance(inps, Inps) and inps), inps
 
         mlog.debug("checking {} invs:\n{}".format(dinvs.siz, dinvs))
-        return self.get_inps(dinvs, inps, pathIdx)
+        return self.get_inps(dinvs, inps, path_idx)
 
     def mkInpsConstr(self, inps):
         cstrs = []
@@ -467,9 +455,9 @@ class SymStates(object):
         cexs, isSucc = Z3.extract(models)
         return cexs, isSucc, stat
 
-    def mcheckD(self, loc, pathIdx, inv, inps, ncexs=1):
+    def mcheck_d(self, loc, path_idx, inv, inps, ncexs=1):
         assert isinstance(loc, str), loc
-        assert pathIdx is None or pathIdx >= 0
+        assert path_idx is None or path_idx >= 0
         assert inv is None or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, Inps), inps
         assert ncexs >= 1, ncexs
@@ -480,30 +468,25 @@ class SymStates(object):
         def f(depth):
             ss = self.ss[loc][depth]
             if inv == z3.BoolVal(False):
-                ss = ss[pathIdx].exprPC if pathIdx else ss.exprPC
+                ss = ss[path_idx].exprPC if path_idx else ss.exprPC
             else:
-                ss = ss[pathIdx].expr if pathIdx else ss.expr
+                ss = ss[path_idx].expr if path_idx else ss.expr
             return self.mcheck(ss, inv, inps, ncexs)
 
         depths = sorted(self.ss[loc].keys())
-        depthIdx = 0
+        depth_idx = 0
 
-        cexs, isSucc, stat = f(depths[depthIdx])
-        while(stat != z3.sat and depthIdx < len(depths) - 1):
-            depthIdx = depthIdx + 1
-            cexs_, isSucc_, stat_ = f(depths[depthIdx])
+        cexs, isSucc, stat = f(depths[depth_idx])
+        while(stat != z3.sat and depth_idx < len(depths) - 1):
+            depth_idx = depth_idx + 1
+            cexs_, isSucc_, stat_ = f(depths[depth_idx])
+            if stat_ != stat:
+                mlog.debug("depth diff {}: {} @ depth {} vs {} @ depth {}"
+                           .format(inv, stat_, depths[depth_idx - 1],
+                                   stat, depths[depth_idx]))
+            cexs, isSucc, stat = cexs_, isSucc_, stat_
 
-            if stat_ == stat:
-                assert isSucc_ == isSucc, (isSucc_, isSucc)
-                depthIdx = depthIdx - 1
-                break
-            else:
-                mlog.debug("DepthDiff {}: {} @ depth {} vs {} @ depth {}"
-                           .format(inv, stat_, depths[depthIdx],
-                                   stat, depths[depthIdx-1]))
-                cexs, isSucc, stat = cexs_, isSucc_, stat_
-
-        return depths[depthIdx], cexs, isSucc
+        return cexs, isSucc
 
     def extractCexs(self, models):
         assert all(isinstance(m, z3.ModelRef)

@@ -1,11 +1,15 @@
 import math
+import pdb
 
+import vcommon as CM
+from miscs import Miscs
+
+import settings
 from ds import Inps, Traces, DTraces
 from invs import Inv, IeqInv, Invs, DInvs
 from cegir import Cegir
-from miscs import Miscs
-import vcommon as CM
-import settings
+
+dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 

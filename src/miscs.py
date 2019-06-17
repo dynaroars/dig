@@ -30,32 +30,28 @@ class Miscs(object):
                 d[symb] = sage.all.var(symb)
 
     @staticmethod
-    @cached_function
-    def isReal(x): return isinstance(x, sage.rings.real_mpfr.RealLiteral)
+    def is_real(x): return isinstance(x, sage.rings.real_mpfr.RealLiteral)
 
     @staticmethod
-    @cached_function
-    def isInt(x): return isinstance(x, sage.rings.integer.Integer)
+    def is_int(x): return isinstance(x, sage.rings.integer.Integer)
 
     @classmethod
-    @cached_function
-    def isNum(cls, x): return cls.isReal(x) or cls.isInt(x)
+    def isNum(cls, x): return cls.is_real(x) or cls.is_int(x)
 
     @staticmethod
-    @cached_function
-    def isRel(f, rel=None):
+    def is_rel(f, rel=None):
         """
-        sage: assert not Miscs.isRel(7.2)
-        sage: assert not Miscs.isRel(x)
-        sage: assert not Miscs.isRel(x+7)
-        sage: assert Miscs.isRel(x==3,operator.eq)
+        sage: assert not Miscs.is_rel(7.2)
+        sage: assert not Miscs.is_rel(x)
+        sage: assert not Miscs.is_rel(x+7)
+        sage: assert Miscs.is_rel(x==3,operator.eq)
 
-        sage: assert Miscs.isRel(x<=3,operator.le)
-        sage: assert not Miscs.isRel(x<=3,operator.lt)
-        sage: assert not Miscs.isRel(x+3,operator.lt)
+        sage: assert Miscs.is_rel(x<=3,operator.le)
+        sage: assert not Miscs.is_rel(x<=3,operator.lt)
+        sage: assert not Miscs.is_rel(x+3,operator.lt)
 
         sage: y = var('y')
-        sage: assert Miscs.isRel(x+y<=3)
+        sage: assert Miscs.is_rel(x+y<=3)
         """
 
         try:
@@ -71,12 +67,10 @@ class Miscs(object):
             return False
 
     @classmethod
-    @cached_function
     def is_eq(cls, f):
-        return cls.isRel(f, operator.eq)
+        return cls.is_rel(f, operator.eq)
 
     @staticmethod
-    @cached_function
     def is_expr(x):
         return isinstance(x, sage.symbolic.expression.Expression)
 
@@ -344,7 +338,8 @@ class Miscs(object):
                 if okCoefs(s):
                     sols_.append(s)
                 else:
-                    mlog.debug("large coefs: ignore {}".format(s))
+                    mlog.debug("large coefs: ignore {} ..".format(
+                        str(s)[:settings.MAX_LARGE_COEFS]))
             sols = sols_
         return sols
 
@@ -554,6 +549,39 @@ class Miscs(object):
 
         return wrs
 
+    @classmethod
+    def run_mp_simple(cls, taskname, tasks, f, chunksiz=1, doMP=True):
+        """
+        Run wprocess on tasks in parallel
+        """
+        def wprocess(mytasks, myQ):
+            rs = f(mytasks)
+            if myQ is None:
+                return rs
+            else:
+                myQ.put(rs)
+
+        if doMP and len(tasks) >= 2:
+            from multiprocessing import (Process, Queue, cpu_count)
+            Q = Queue()
+            wloads = cls.getWorkloads(
+                tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
+
+            mlog.debug("parallel workloads '{}' {}: {}"
+                       .format(taskname, len(wloads), map(len, wloads)))
+
+            workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
+
+            for w in workers:
+                w.start()
+            wrs = []
+            for _ in workers:
+                wrs.extend(Q.get())
+        else:
+            wrs = wprocess(tasks, myQ=None)
+
+        return wrs
+
 
 class Z3(object):
     @classmethod
@@ -689,8 +717,8 @@ class Z3(object):
 
         if not fs:
             return False  # conservative approach
-        fs = [cls.toZ3(f, use_reals, useMod=False) for f in fs]
-        g = cls.toZ3(g, use_reals, useMod=False)
+        fs = [cls.toZ3(f, use_reals, use_mod=False) for f in fs]
+        g = cls.toZ3(g, use_reals, use_mod=False)
         return cls._imply(fs, g)
 
     @classmethod
@@ -722,7 +750,7 @@ class Z3(object):
 
     @classmethod
     @cached_function
-    def toZ3(cls, p, use_reals, useMod):
+    def toZ3(cls, p, use_reals, use_mod):
         """
         Convert a Sage expression to a Z3 expression
 
@@ -730,12 +758,14 @@ class Z3(object):
         e.g. {x:Real('x')} but the code is longer and more complicated.
         This implemention does not require a dictionary pass in.
 
-        sage: Z3.toZ3(x*x*x, False, useMod=False)
+        sage: Z3.toZ3(x*x*x, False, use_mod=False)
         x*x*x
         """
+        assert Miscs.is_expr(p) or Miscs.is_int(
+            p) or isinstance(p, int), (p, type(p))
 
         assert isinstance(use_reals, bool), use_reals
-        assert isinstance(useMod, bool), useMod
+        assert isinstance(use_mod, bool), use_mod
 
         def retval(p):
             if p.is_symbol():
@@ -748,29 +778,34 @@ class Z3(object):
             except Exception:
                 assert False, "cannot parse {}".format(p)
 
-        oprs = p.operands()
-        if oprs:
-            op = p.operator()
-
-            # z3 has problem w/ t^c , so use t*t*t..
-            if op == operator.pow:
-                assert len(oprs) == 2, oprs
-                t, c = oprs
-                t = cls.toZ3(t, use_reals, useMod)
-                if useMod:
-                    c = cls.toZ3(c, use_reals, useMod)
-                    res = reduce(operator.mod, [t, c])
-                else:
-                    vs = [t] * c
-                    res = reduce(operator.mul, vs)
-            else:
-                oprs = [cls.toZ3(o, use_reals, useMod) for o in oprs]
-                res = reduce(op, oprs)
+        if isinstance(p, int) or Miscs.is_int(p):
+            _f = z3.RealVal if use_reals else z3.IntVal
+            res = _f(str(p))
 
         else:
-            res = retval(p)
+            oprs = p.operands()
+            if oprs:
+                op = p.operator()
+
+                # z3 has problem w/ t^c , so use t*t*t..
+                if op == operator.pow:
+                    assert len(oprs) == 2, oprs
+                    t, c = oprs
+                    t = cls.toZ3(t, use_reals, use_mod)
+                    if use_mod:
+                        c = cls.toZ3(c, use_reals, use_mod)
+                        res = reduce(operator.mod, [t, c])
+                    else:
+                        vs = [t] * c
+                        res = reduce(operator.mul, vs)
+                else:
+                    oprs = [cls.toZ3(o, use_reals, use_mod) for o in oprs]
+                    res = reduce(op, oprs)
+
+            else:
+                res = retval(p)
 
         assert z3.is_expr(res), res
-        if useMod:
+        if use_mod:
             mlog.debug("mod hack: {} => {}".format(p, res))
         return res

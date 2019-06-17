@@ -90,7 +90,7 @@ class Symb(tuple):
         try:
             return self._expr
         except AttributeError:
-            self._expr = Z3.toZ3(self.sageExpr, use_reals, useMod=False)
+            self._expr = Z3.toZ3(self.sageExpr, use_reals, use_mod=False)
             return self._expr
 
 
@@ -174,6 +174,16 @@ class Trace(tuple):
                             in zip(self.ss, self.vs) if "!" not in s}
 
             return self._mydict
+
+    @property
+    def mydict_str(self):
+        # use for maxplus eval
+        try:
+            return self._mydict_str
+        except AttributeError:
+            self._mydict_str = {s: v for s, v in zip(self.ss, self.vs)
+                                if "!" not in s}
+            return self._mydict_str
 
     @classmethod
     def parse(cls, ss, vs):

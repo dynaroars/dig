@@ -1,18 +1,4 @@
 def check_all():
-    """
-    sage: check_all()
-    Checking minimum requirements
-    ...
-    Platform .. OK
-    ...
-    SAGE .. OK
-    ...
-    Z3 .. OK
-    ...
-    External programs .. OK
-    Everything seems OK. Have fun with DIG!
-
-    """
     print('Checking minimum requirements')
     check_platform()
     check_sage()
@@ -91,7 +77,7 @@ def check_ext_progs():
         import os
         if e.errno == os.errno.ENOENT:
             msg = (("'{}' not found (install 'tpplib'), "
-                    "will not infer min/max-plus invariants")
+                    "will not infer *general* min/max-plus invariants")
                    .format(prog))
             print(msg)
         else:
