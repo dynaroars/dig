@@ -196,48 +196,81 @@ class MPInv(Inv):
     """
     sage: x, y, z = sage.all.var('x y z')
     sage: terms = MPInv.get_terms([x,y,z])
-    sage: mps = [MPInv(lh, rh, is_maxplus=True, is_ieq=True)
-                       for lh, rh in terms]
-    sage: print('\n'.join('{}; {}; {};\n{}'.format(t, m, m.term, m.ite)
-                for t, m in zip(terms,mps)))
-    (x, (0,)); lambda x: x - 0 <= 0; lambda x: x - 0;
+    sage: mps = [MPInv(lh, rh, is_maxplus=True, is_ieq=True) \
+                 for lh, rh in terms]
+    sage: print('\n'.join('***{}***\n{}\n{}\n{}'.format(t, m, m.term, m.ite) \
+                for t, m in zip(terms,mps)))    
+    ***(x, (0,))***
+    lambda x: x <= 0
+    lambda x: x
     x <= 0
-    (x, (y, 0)); lambda x,y: x - max(y, 0) <= 0; lambda x,y: x - max(y, 0);
+    ***(x, (y, 0))***
+    lambda x,y: x - max(y, 0) <= 0
+    lambda x,y: x - max(y, 0)
     If(y >= 0, x <= y, x <= 0)
-    (x, (y, z)); lambda x,y,z: x - max(y, z) <= 0; lambda x,y,z: x - max(y, z);
+    ***(x, (y, z))***
+    lambda x,y,z: x - max(y, z) <= 0
+    lambda x,y,z: x - max(y, z)
     If(y >= z, x <= y, x <= z)
-    (x, (y, z, 0)); lambda x,y,z: x - \
-     max(y, z, 0) <= 0; lambda x,y,z: x - max(y, z, 0);
+    ***(x, (y, z, 0))***
+    lambda x,y,z: x - max(y, z, 0) <= 0
+    lambda x,y,z: x - max(y, z, 0)
     If(And(y >= z, y >= 0), x <= y, If(And(z >= y, z >= 0), x <= z, x <= 0))
-    (x, (y,)); lambda x,y: x - y <= 0; lambda x,y: x - y;
+    ***(x, (y,))***
+    lambda x,y: x - y <= 0
+    lambda x,y: x - y
     x <= y
-    (x, (z, 0)); lambda x,z: x - max(z, 0) <= 0; lambda x,z: x - max(z, 0);
+    ***(x, (z, 0))***
+    lambda x,z: x - max(z, 0) <= 0
+    lambda x,z: x - max(z, 0)
     If(z >= 0, x <= z, x <= 0)
-    (x, (z,)); lambda x,z: x - z <= 0; lambda x,z: x - z;
+    ***(x, (z,))***
+    lambda x,z: x - z <= 0
+    lambda x,z: x - z
     x <= z
-    (y, (0,)); lambda y: y - 0 <= 0; lambda y: y - 0;
+    ***(y, (0,))***
+    lambda y: y <= 0
+    lambda y: y
     y <= 0
-    (y, (x, 0)); lambda x,y: y - max(x, 0) <= 0; lambda x,y: y - max(x, 0);
+    ***(y, (x, 0))***
+    lambda x,y: y - max(x, 0) <= 0
+    lambda x,y: y - max(x, 0)
     If(x >= 0, y <= x, y <= 0)
-    (y, (x, z)); lambda x,y,z: y - max(x, z) <= 0; lambda x,y,z: y - max(x, z);
+    ***(y, (x, z))***
+    lambda x,y,z: y - max(x, z) <= 0
+    lambda x,y,z: y - max(x, z)
     If(x >= z, y <= x, y <= z)
-    (y, (x, z, 0)); lambda x,y,z: y - \
-     max(x, z, 0) <= 0; lambda x,y,z: y - max(x, z, 0);
+    ***(y, (x, z, 0))***
+    lambda x,y,z: y - max(x, z, 0) <= 0
+    lambda x,y,z: y - max(x, z, 0)
     If(And(x >= z, x >= 0), y <= x, If(And(z >= x, z >= 0), y <= z, y <= 0))
-    (y, (z, 0)); lambda y,z: y - max(z, 0) <= 0; lambda y,z: y - max(z, 0);
+    ***(y, (z, 0))***
+    lambda y,z: y - max(z, 0) <= 0
+    lambda y,z: y - max(z, 0)
     If(z >= 0, y <= z, y <= 0)
-    (y, (z,)); lambda y,z: y - z <= 0; lambda y,z: y - z;
+    ***(y, (z,))***
+    lambda y,z: y - z <= 0
+    lambda y,z: y - z
     y <= z
-    (z, (0,)); lambda z: z - 0 <= 0; lambda z: z - 0;
+    ***(z, (0,))***
+    lambda z: z <= 0
+    lambda z: z
     z <= 0
-    (z, (x, 0)); lambda x,z: z - max(x, 0) <= 0; lambda x,z: z - max(x, 0);
+    ***(z, (x, 0))***
+    lambda x,z: z - max(x, 0) <= 0
+    lambda x,z: z - max(x, 0)
     If(x >= 0, z <= x, z <= 0)
-    (z, (x, y)); lambda x,y,z: z - max(x, y) <= 0; lambda x,y,z: z - max(x, y);
+    ***(z, (x, y))***
+    lambda x,y,z: z - max(x, y) <= 0
+    lambda x,y,z: z - max(x, y)
     If(x >= y, z <= x, z <= y)
-    (z, (x, y, 0)); lambda x,y,z: z - \
-     max(x, y, 0) <= 0; lambda x,y,z: z - max(x, y, 0);
+    ***(z, (x, y, 0))***
+    lambda x,y,z: z - max(x, y, 0) <= 0
+    lambda x,y,z: z - max(x, y, 0)
     If(And(x >= y, x >= 0), z <= x, If(And(y >= x, y >= 0), z <= y, z <= 0))
-    (z, (y, 0)); lambda y,z: z - max(y, 0) <= 0; lambda y,z: z - max(y, 0);
+    ***(z, (y, 0))***
+    lambda y,z: z - max(y, 0) <= 0
+    lambda y,z: z - max(y, 0)
     If(y >= 0, z <= y, z <= 0)
 
 
@@ -324,17 +357,31 @@ class MPInv(Inv):
 
     def expr(self, use_reals):
         """
-        sage: x, y = sage.all.var('x y')
+        sage: x, y, z = sage.all.var('x y z')
         sage: mp = MPInv.mk_max_ieq((x-10, y-3), (y, 5))
         sage: mp.expr(use_reals=False)
         If(x + -10 >= y + -3, If(y >= 5, x + -10 <= y, x + -10 <= 5),
            If(y >= 5, y + -3 <= y, y + -3 <= 5))
 
+        sage: MPInv.mk_max_ieq((x,), (y,z,0)).expr(use_reals=False)
+        If(And(y >= z, y >= 0), x <= y, If(z >= 0, x <= z, x <= 0))
         """
+
         lh = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.lh)
         rh = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.rh)
-        f = self.mp2df_expr(lh, rh, 0, self.is_maxplus, self.is_ieq)
-        return f
+        expr = self.mp2df_expr(lh, rh, 0, self.is_maxplus, self.is_ieq)
+
+        if len(rh) >= 3:  # more simplification
+            simpl = z3.Tactic('ctx-solver-simplify')
+            simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT*10)
+            try:
+                myexpr = simpl(expr)[0][0]
+                assert z3.is_expr(myexpr), myexpr
+                expr = myexpr
+            except z3.Z3Exception:
+                pass
+
+        return expr
 
     @property
     def symbols(self):
@@ -344,7 +391,6 @@ class MPInv(Inv):
             self._symbols = Miscs.getVars(self.lh + self.rh)
             return self._symbols
 
-    # Lambda function
     @property
     def term(self):
         """
@@ -355,30 +401,43 @@ class MPInv(Inv):
         try:
             return self._term
         except AttributeError:
-            def f(ls):
-                assert ls
-                if len(ls) >= 2:
-                    return '{}({})'.format(
-                        'max' if self.is_maxplus else 'min',
-                        ', '.join(map(str, ls)))
-                else:
-                    term = ls[0]
-                    try:
-                        if term.operands():  # x - 3
-                            t = '({})'
-                        else:
-                            t = '{}'
-                    except AttributeError:  # 3
-                        t = '{}'
-
-                    return t.format(term)
-
-            symbols_str = ','.join(map(str, self.symbols))
-            expr_str = "{} - {}".format(f(self.lh), f(self.rh))
-
-            self._term = "lambda {}: {}".format(
-                symbols_str, expr_str)
+            myterm = self._term_f(self.lh, self.rh, self.is_maxplus)
+            symbols_s = ','.join(map(str, self.symbols))
+            self._term = "lambda {}: {}".format(symbols_s, myterm)
             return self._term
+
+    @staticmethod
+    def _term_f(lh, rh, is_maxplus):
+        """
+        sage: x, y, z = sage.all.var('x y z')
+        sage: print(MPInv._term_f((x,), (0,), is_maxplus=True))
+        x
+        sage: print(MPInv._term_f((x,y), (z,7), is_maxplus=True))
+        max(x, y) - max(z, 7)
+        """
+        def f(ls):
+            assert ls
+            if len(ls) >= 2:
+                return '{}({})'.format(
+                    'max' if is_maxplus else 'min',
+                    ', '.join(map(str, ls)))
+            else:
+                term = ls[0]
+                try:
+                    if term.operands():  # x - 3
+                        t = '({})'
+                    else:
+                        t = '{}'
+                except AttributeError:  # 3
+                    t = '{}'
+
+                return t.format(term)
+        lhs = f(lh)
+        rhs = f(rh)
+        if rhs == '0':
+            return lhs
+        else:
+            return "{} - {}".format(lhs, rhs)
 
     def test_single_trace(self, trace):
         assert isinstance(trace, Trace), trace
@@ -426,8 +485,7 @@ class MPInv(Inv):
     def mp2df(cls, lh, rh, idx, is_maxplus, is_ieq):
         """
         sage: x, y = sage.all.var('x  y')
-        sage: MPInv.mp2df((x-10, y-3), (y+12,), 0,
-                          is_maxplus=True, is_ieq=True)
+        sage: MPInv.mp2df((x-10, y-3), (y+12,), 0, is_maxplus=True, is_ieq=True)
         'If(x - 10 >= y - 3, x - 10 <= y + 12, y - 3 <= y + 12)'
         """
         assert isinstance(lh, tuple) and lh
@@ -459,7 +517,7 @@ class MPInv(Inv):
     def mp2df_expr(cls, lh, rh, idx, is_maxplus, is_ieq):
         """
         sage: x, y = z3.Ints('x y')
-        sage: MPInv.mp2df_expr((x-z3.IntVal('10'), y-z3.IntVal('3')),
+        sage: MPInv.mp2df_expr((x-z3.IntVal('10'), y-z3.IntVal('3')), \
                                (y+z3.IntVal('12'),), 0, is_maxplus=True, is_ieq=True)
         If(x - 10 >= y - 3, x - 10 <= y + 12, y - 3 <= y + 12)
         """
@@ -667,7 +725,7 @@ class MPInv(Inv):
     def infer(cls, terms, traces, is_maxplus=True, is_ieq=True):
         """
         sage: x, y, z = sage.all.var('x y z')
-        sage: tcs = [{'x': 2, 'y': -8, 'z': -7},
+        sage: tcs = [{'x': 2, 'y': -8, 'z': -7}, \
             {'x': -1, 'y': -15, 'z': 88}, {'x': 15, 'y': 5, 'z': 0}]
         sage: mps = MPInv.infer([x, y], tcs)
         sage: assert len(mps) == 10
@@ -691,7 +749,11 @@ class MPInv(Inv):
         sage: mps = MPInv.infer([x,y,z], tcs)
         sage: assert len(mps) == 36
         sage: mps = sorted(mps, key=lambda m: len(m.ite))
-        sage: print('\n'.join('{}\n{}'.format(m, m.ite) for m in mps))
+
+        # sage: print('\n'.join('{}\n{}'.format(m, m.ite) for m in mps))
+
+        #sage: [MPInv.my_ite_test(m.expr(use_reals=False)) for m in mps]
+
         lambda x: 0 - (x + 1) <= 0
         0 <= x + 1
         lambda y: (y - 5) - 0 <= 0

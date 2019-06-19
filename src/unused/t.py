@@ -269,3 +269,18 @@ f = Not(Implies(And(Not(k_3_SYMINT <= 5),
 
 
 print Z3.getModels(f, 1)
+
+
+@staticmethod
+def my_ite_test(m, expr):
+        s1 = str(z3.simplify(expr))
+
+        simpl = z3.Tactic('ctx-solver-simplify')
+        simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT * 1000)
+        s2 = str(simpl(expr)[0][0])
+
+        if s1 != s2:
+            print 'mismatch', m.lh, m.rh, m.term, str(m)
+            print expr
+            print s1
+            print s2

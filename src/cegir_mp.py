@@ -9,8 +9,6 @@ from ds import Inps, Traces, DTraces
 from invs import Inv, MPInv, Invs, DInvs
 from cegir import Cegir
 
-import sage.all
-
 dbg = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -27,9 +25,6 @@ class CegirMP(Cegir):
         locs = traces.keys()
         symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
         termss = [MPInv.get_terms(symbols) for symbols in symbolss]
-
-        q, a, b, y = sage.all.var("q a b y")
-        # termss = [[(q, (a, b, y, 0))]]  # TODO: remove me, for dubugging
 
         mlog.info("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
@@ -100,16 +95,10 @@ class CegirMP(Cegir):
             else:
                 return None
 
-        def wprocess(tasks, Q):
-            rs = [(loc, _f(loc, MPInv.mk_max_ieq((lh,), rh)))
-                  for loc, (lh, rh) in tasks]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
-
-        doMP = settings.doMP and len(tasks) >= 2
-        wrs = Miscs.runMP('guesscheck', tasks, wprocess, chunksiz=1, doMP=doMP)
+        def f(tasks):
+            return [(loc, _f(loc, MPInv.mk_max_ieq((lh,), rh)))
+                    for loc, (lh, rh) in tasks]
+        wrs = Miscs.run_mp_simple('guesscheck', tasks, f, doMP=settings.doMP)
         rs = [(loc, inv) for loc, inv in wrs if inv]
         dinvs = DInvs()
         for loc, inv in rs:

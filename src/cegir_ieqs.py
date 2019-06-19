@@ -29,7 +29,6 @@ class CegirIeqs(Cegir):
         oct_siz = 2
         termss = [Miscs.get_terms_fixed_coefs(symbols, oct_siz)
                   for symbols in symbolss]
-
         mlog.info("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
 

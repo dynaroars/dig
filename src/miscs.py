@@ -209,10 +209,13 @@ class Miscs(object):
         return deg
 
     @staticmethod
-    def get_terms_fixed_coefs(ss, subsetSiz):
+    def get_terms_fixed_coefs(ss, subset_siz):
         """
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
+
+        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2), key=lambda x: str(x))
+        [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
 
         sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2), key=lambda x: str(x))
         [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
@@ -220,10 +223,10 @@ class Miscs(object):
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2)) == 18
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3)) == 26
         """
-        if len(ss) < subsetSiz:
-            subsetSiz = len(ss)
+        if len(ss) < subset_siz:
+            subset_siz = len(ss)
         rs = []
-        for ssSubset in itertools.combinations(ss, subsetSiz):
+        for ssSubset in itertools.combinations(ss, subset_siz):
             css = itertools.product(*([[0, -1, 1]] * len(ssSubset)))
             r = (sum(c*t for c, t in zip(ssSubset, cs))
                  for cs in css if not all(c == 0 for c in cs))
