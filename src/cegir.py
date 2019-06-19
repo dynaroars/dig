@@ -28,9 +28,9 @@ class Cegir(object):
         assert isinstance(inps, Inps) and inps, inps
         assert isinstance(traces, DTraces), traces
 
-        newTraces = self.prog.get_traces(inps)
-        newTraces = newTraces.update(traces)
-        return newTraces
+        new_traces = self.prog.get_traces(inps)
+        new_traces = new_traces.update(traces)
+        return new_traces
 
     def check_reach(self):
         """
@@ -40,8 +40,9 @@ class Cegir(object):
 
         dinvs = DInvs.mk_false_invs(self.inv_decls)
         inps = Inps()
+
         # use some initial inps first
-        rinps = self.symstates.gen_rand_inps(self.prog)
+        rinps = self.prog.gen_rand_inps()
 
         mlog.debug("gen {} random inps".format(len(rinps)))
         _ = inps.myupdate(rinps, self.inp_decls.names)
@@ -61,4 +62,5 @@ class Cegir(object):
         for loc in traces:
             assert traces[loc]
             dinvs[loc].clear()
+
         return dinvs, traces, inps

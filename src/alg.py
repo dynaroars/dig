@@ -94,7 +94,7 @@ class DigCegir(Dig):
         self.useRandInit = True
 
         exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
-        self.prog = Prog(exe_cmd, inv_decls)
+        self.prog = Prog(exe_cmd, inp_decls, inv_decls)
 
         self.symstates = SymStates(inp_decls, inv_decls)
         self.symstates.compute(self.filename, mainQName, clsname, jpfdir)

@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
-import os.path
+import itertools
+import random
 import pdb
 
 import z3
@@ -19,13 +20,28 @@ Data structures
 
 
 class Prog(object):
-    def __init__(self, exe_cmd, inv_decls):
+    def __init__(self, exe_cmd, inp_decls, inv_decls):
         assert isinstance(exe_cmd, str), exe_cmd
+        assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
         assert isinstance(inv_decls, DSymbs), inv_decls
 
         self.exe_cmd = exe_cmd
+        self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.cache = {}  # inp -> traces (str)
+
+    def _get_traces(self, inp):
+        assert isinstance(inp, Trace), inp
+        assert inp not in self.cache
+
+        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
+                for v in inp.vs)
+        inp_ = ' '.join(map(str, inp_))
+        cmd = "{} {}".format(self.exe_cmd, inp_)
+        mlog.debug(cmd)
+        traces, _ = CM.vcmd(cmd)
+        traces = traces.splitlines()
+        return traces
 
     def get_traces(self, inps):
         """
@@ -33,25 +49,83 @@ class Prog(object):
         """
         assert isinstance(inps, Inps), inps
 
-        trace_str = []
-        for inp in inps:
-            if inp in self.cache:
-                results = self.cache[inp]
-            else:
-                inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
-                        for v in inp.vs)
-                inp_ = ' '.join(map(str, inp_))
-                cmd = "{} {}".format(self.exe_cmd, inp_)
-                mlog.debug(cmd)
-                results, _ = CM.vcmd(cmd)
-                results = results.splitlines()
-                self.cache[inp] = results
-            trace_str.extend(results)
+        def f(tasks):
+            return [(str(inp), self._get_traces(inp)) for inp in tasks]
 
-        traces = DTraces.parse(trace_str, self.inv_decls)
+        traces = []
+        tasks = []
+        for inp in inps:
+            if str(inp) in self.cache:
+                traces.extend(self.cache[str(inp)])
+            else:
+                tasks.append(inp)
+
+        wrs = Miscs.run_mp_simple("get traces", tasks, f, doMP=settings.doMP)
+
+        for inp, traces_ in wrs:
+            assert inp not in self.cache
+            self.cache[inp] = traces_
+            traces.extend(traces_)
+
+        # trace_str = []
+        # for inp in inps:
+        #     if inp in self.cache:
+        #         results = self.cache[inp]
+        #     else:
+        #         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
+        #                 for v in inp.vs)
+        #         inp_ = ' '.join(map(str, inp_))
+        #         cmd = "{} {}".format(self.exe_cmd, inp_)
+        #         mlog.debug(cmd)
+        #         results, _ = CM.vcmd(cmd)
+        #         results = results.splitlines()
+        #         self.cache[inp] = results
+        #     trace_str.extend(results)
+
+        traces = DTraces.parse(traces, self.inv_decls)
 
         assert all(loc in self.inv_decls for loc in traces), traces.keys()
+
         return traces
+
+    def gen_rand_inps(self):
+        def _f(irs): return tuple(random.randrange(ir[0], ir[1]) for ir in irs)
+
+        try:
+            valid_ranges = self._valid_inp_ranges
+            valid_inps = set()
+        except AttributeError:  # compute rranges
+            tiny = 0.05
+            small = 0.10
+            large = 1 - small
+            maxV = DTraces.inpMaxV
+            minV = -1 * maxV
+            rinps = [(0, int(maxV * small)), (0, int(maxV * tiny)),
+                     (int(maxV * large), maxV),
+                     (int(minV * small), 0), (int(minV * tiny), 0),
+                     (minV, int(minV * large))]
+
+            # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
+            rinps = list(itertools.product(
+                *itertools.repeat(rinps, len(self.inp_decls))))
+            valid_ranges, valid_inps = set(), set()
+            for rinp in rinps:
+                inp = _f(rinp)
+                myinps = Inps()
+                myinps.myupdate(set([inp]), self.inp_decls.names)
+                tcs = self.get_traces(myinps)
+                if tcs:
+                    valid_ranges.add(rinp)
+                    valid_inps.add(inp)
+                else:
+                    mlog.debug("inp range {} invalid".format(inp))
+
+            self._valid_inp_ranges = valid_ranges
+
+        # gen inps
+        if not valid_inps:
+            valid_inps = set(_f(vr) for vr in valid_ranges)
+        return valid_inps
 
 
 class Symb(tuple):

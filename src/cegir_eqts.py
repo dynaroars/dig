@@ -52,7 +52,7 @@ class CegirEqts(Cegir):
 
         return dinvs
 
-    def whileRand(self, loc, template, n_eqts_needed, inps, traces):
+    def while_rand(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeatedly get more inps using random method
         """
@@ -64,7 +64,7 @@ class CegirEqts(Cegir):
             mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
                        .format(loc, len(exprs), n_eqts_needed, len(inps)))
             if doRand:
-                rInps = self.symstates.gen_rand_inps(self.prog)
+                rInps = self.prog.gen_rand_inps()
                 mlog.debug("gen {} random inps".format(len(rInps)))
                 rInps = inps.myupdate(rInps, self.inp_decls.names)
                 if rInps:
@@ -104,7 +104,7 @@ class CegirEqts(Cegir):
 
         return exprs
 
-    def whileSymstates(self, loc, template, n_eqts_needed, inps, traces):
+    def while_symstates(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeated get more traces using the symstates (e.g., Klee)
         """
@@ -141,9 +141,9 @@ class CegirEqts(Cegir):
         assert isinstance(rate, float) and rate >= 0.1, rate
 
         if self.useRandInit:
-            whileF, whileFName = self.whileRand, "random"
+            whileF, whileFName = self.while_rand, "random"
         else:
-            whileF, whileFName = self.whileSymstates, "symstates"
+            whileF, whileFName = self.while_symstates, "symstates"
         mlog.debug("{}: gen init inps using {} (curr inps {}, traces {})"
                    .format(loc, whileFName, len(inps), len(traces)))
 
