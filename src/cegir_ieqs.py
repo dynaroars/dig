@@ -95,15 +95,9 @@ class CegirIeqs(Cegir):
             else:
                 return None
 
-        def wprocess(tasks, Q):
-            rs = [(loc, _f(loc, term)) for loc, term in tasks]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
-
-        doMP = settings.doMP and len(tasks) >= 2
-        wrs = Miscs.runMP('guesscheck', tasks, wprocess, chunksiz=1, doMP=doMP)
+        def f(tasks):
+            return [(loc, _f(loc, term)) for loc, term in tasks]
+        wrs = Miscs.run_mp_simple('guesscheck', tasks, f, doMP=settings.doMP)
         rs = [(loc, inv) for loc, inv in wrs if inv]
         dinvs = DInvs()
         for loc, inv in rs:

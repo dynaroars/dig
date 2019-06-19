@@ -31,16 +31,10 @@ class CegirEqts(Cegir):
             return
 
         # then solve/prove in parallel
-        def wprocess(tasks, Q):
-            rs = [(loc, self.infer(loc, template, uks, exprs, traces, inps))
-                  for loc, (template, uks, exprs) in tasks]
-            if Q is None:
-                return rs
-            else:
-                Q.put(rs)
-        wrs = Miscs.runMP('find eqts', tasks, wprocess, chunksiz=1,
-                          doMP=settings.doMP and len(tasks) >= 2)
-
+        def f(tasks):
+            return [(loc, self.infer(loc, template, uks, exprs, traces, inps))
+                    for loc, (template, uks, exprs) in tasks]
+        wrs = Miscs.run_mp_simple('find eqts', tasks, f, doMP=settings.doMP)
         dinvs = DInvs()
         for loc, (eqts, newCexs) in wrs:
             newInps = inps.myupdate(newCexs, self.inp_decls.names)
@@ -64,7 +58,7 @@ class CegirEqts(Cegir):
             mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
                        .format(loc, len(exprs), n_eqts_needed, len(inps)))
             if doRand:
-                rInps = self.prog.gen_rand_inps()
+                rInps = self.prog.gen_rand_inps(n_eqts_needed - len(exprs))
                 mlog.debug("gen {} random inps".format(len(rInps)))
                 rInps = inps.myupdate(rInps, self.inp_decls.names)
                 if rInps:

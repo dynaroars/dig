@@ -28,11 +28,11 @@ class Prog(object):
         self.exe_cmd = exe_cmd
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
-        self.cache = {}  # inp -> traces (str)
+        self._cache = {}  # inp -> traces (str)
 
     def _get_traces(self, inp):
         assert isinstance(inp, Trace), inp
-        assert inp not in self.cache
+        assert inp not in self._cache
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                 for v in inp.vs)
@@ -55,40 +55,26 @@ class Prog(object):
         traces = []
         tasks = []
         for inp in inps:
-            if str(inp) in self.cache:
-                traces.extend(self.cache[str(inp)])
+            if str(inp) in self._cache:
+                traces.extend(self._cache[str(inp)])
             else:
                 tasks.append(inp)
 
         wrs = Miscs.run_mp_simple("get traces", tasks, f, doMP=settings.doMP)
 
         for inp, traces_ in wrs:
-            assert inp not in self.cache
-            self.cache[inp] = traces_
+            assert inp not in self._cache
+            self._cache[inp] = traces_
             traces.extend(traces_)
 
-        # trace_str = []
-        # for inp in inps:
-        #     if inp in self.cache:
-        #         results = self.cache[inp]
-        #     else:
-        #         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
-        #                 for v in inp.vs)
-        #         inp_ = ' '.join(map(str, inp_))
-        #         cmd = "{} {}".format(self.exe_cmd, inp_)
-        #         mlog.debug(cmd)
-        #         results, _ = CM.vcmd(cmd)
-        #         results = results.splitlines()
-        #         self.cache[inp] = results
-        #     trace_str.extend(results)
-
         traces = DTraces.parse(traces, self.inv_decls)
-
         assert all(loc in self.inv_decls for loc in traces), traces.keys()
 
         return traces
 
-    def gen_rand_inps(self):
+    def gen_rand_inps(self, n_needed=1):
+        assert n_needed >= 1, n_needed
+
         def _f(irs): return tuple(random.randrange(ir[0], ir[1]) for ir in irs)
 
         try:
@@ -109,10 +95,12 @@ class Prog(object):
             rinps = list(itertools.product(
                 *itertools.repeat(rinps, len(self.inp_decls))))
             valid_ranges, valid_inps = set(), set()
+
             for rinp in rinps:
                 inp = _f(rinp)
                 myinps = Inps()
                 myinps.myupdate(set([inp]), self.inp_decls.names)
+
                 tcs = self.get_traces(myinps)
                 if tcs:
                     valid_ranges.add(rinp)
@@ -120,11 +108,18 @@ class Prog(object):
                 else:
                     mlog.debug("inp range {} invalid".format(inp))
 
-            self._valid_inp_ranges = valid_ranges
+            self._valid_inp_ranges = list(valid_ranges)
 
         # gen inps
         if not valid_inps:
-            valid_inps = set(_f(vr) for vr in valid_ranges)
+            valid_inps = set()
+            while True:
+                if len(valid_inps) >= n_needed:
+                    break
+
+                for vr in valid_ranges:
+                    valid_inps.add(_f(vr))
+
         return valid_inps
 
 

@@ -947,18 +947,19 @@ class Invs(set):
             else:
                 others.append(inv)
 
-        rests = eqts + ieqs + others
-        tasks = [mps, rests]
+        non_mps = eqts + ieqs + others
 
-        def f(tasks):
-            return [self.uniq(invs, use_reals) for invs in tasks]
-        wrs = Miscs.run_mp_simple("uniqify", tasks, f, doMP=settings.doMP)
+        if non_mps and len(mps) >= 10:  # parallelizing uniqifying mps
+            non_mps_exprs = [e.expr(use_reals) for e in non_mps]
 
-        rs_all = []
-        for invs in wrs:
-            rs_all.extend(invs)
+            def f(mps):
+                return [mp for mp in mps
+                        if not Z3._imply(non_mps_exprs, mp.expr(use_reals))]
+            wrs = Miscs.run_mp_simple("uniqifying {} mps".format(len(mps)),
+                                      mps, f, doMP=settings.doMP)
+            mps = [mp for mp in wrs]
 
-        rs = self.uniq(rs_all, use_reals)
+        rs = self.uniq(non_mps + mps, use_reals)
         return Invs(rs + eqtsLargeCoefs)
 
     @classmethod

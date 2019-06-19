@@ -487,20 +487,20 @@ class Miscs(object):
         return pss
 
     @classmethod
-    def getWorkloads(cls, tasks, maxProcessces, chunksiz):
+    def get_workloads(cls, tasks, maxProcessces, chunksiz):
         """
-        >>> wls = Miscs.getWorkloads(range(12),7,1); wls
+        >>> wls = Miscs.get_workloads(range(12),7,1); wls
         [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]]
 
 
-        >>> wls = Miscs.getWorkloads(range(12),5,2); wls
+        >>> wls = Miscs.get_workloads(range(12),5,2); wls
         [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9, 10, 11]]
 
-        >>> wls = Miscs.getWorkloads(range(20),7,2); wls
+        >>> wls = Miscs.get_workloads(range(20),7,2); wls
         [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14], [15, 16, 17], [18, 19]]
 
 
-        >>> wls = Miscs.getWorkloads(range(20),20,2); wls
+        >>> wls = Miscs.get_workloads(range(20),20,2); wls
         [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19]]
 
         """
@@ -521,7 +521,7 @@ class Miscs(object):
             s = i*cs
             e = s+cs if i < nprocesses-1 else ntasks
             wl = tasks[s:e]
-            if wl:  # could be 0, e.g., getWorkloads(range(12),7,1)
+            if wl:  # could be 0, e.g., get_workloads(range(12),7,1)
                 wloads.append(wl)
 
         return wloads
@@ -534,7 +534,7 @@ class Miscs(object):
         if doMP:
             from multiprocessing import (Process, Queue, cpu_count)
             Q = Queue()
-            wloads = cls.getWorkloads(
+            wloads = cls.get_workloads(
                 tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
 
             mlog.debug("parallel workloads '{}' {}: {}"
@@ -567,7 +567,7 @@ class Miscs(object):
         if doMP and len(tasks) >= 2:
             from multiprocessing import (Process, Queue, cpu_count)
             Q = Queue()
-            wloads = cls.getWorkloads(
+            wloads = cls.get_workloads(
                 tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
 
             mlog.debug("parallel workloads '{}' {}: {}"
