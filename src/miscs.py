@@ -526,31 +526,31 @@ class Miscs(object):
 
         return wloads
 
-    @classmethod
-    def runMP(cls, taskname, tasks, wprocess, chunksiz, doMP):
-        """
-        Run wprocess on tasks in parallel
-        """
-        if doMP:
-            from multiprocessing import (Process, Queue, cpu_count)
-            Q = Queue()
-            wloads = cls.get_workloads(
-                tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
+    # @classmethod
+    # def runMP(cls, taskname, tasks, wprocess, chunksiz, doMP):
+    #     """
+    #     Run wprocess on tasks in parallel
+    #     """
+    #     if doMP:
+    #         from multiprocessing import (Process, Queue, cpu_count)
+    #         Q = Queue()
+    #         wloads = cls.get_workloads(
+    #             tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
 
-            mlog.debug("parallel workloads '{}' {}: {}"
-                       .format(taskname, len(wloads), map(len, wloads)))
+    #         mlog.debug("multiprocessing '{}' {}: {}"
+    #                    .format(taskname, len(wloads), map(len, wloads)))
 
-            workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
+    #         workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
 
-            for w in workers:
-                w.start()
-            wrs = []
-            for _ in workers:
-                wrs.extend(Q.get())
-        else:
-            wrs = wprocess(tasks, Q=None)
+    #         for w in workers:
+    #             w.start()
+    #         wrs = []
+    #         for _ in workers:
+    #             wrs.extend(Q.get())
+    #     else:
+    #         wrs = wprocess(tasks, Q=None)
 
-        return wrs
+    #     return wrs
 
     @classmethod
     def run_mp_simple(cls, taskname, tasks, f, chunksiz=1, doMP=True):
@@ -567,11 +567,12 @@ class Miscs(object):
         if doMP and len(tasks) >= 2:
             from multiprocessing import (Process, Queue, cpu_count)
             Q = Queue()
+            n_cpus = cpu_count()
             wloads = cls.get_workloads(
-                tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
+                tasks, maxProcessces=n_cpus, chunksiz=chunksiz)
 
-            mlog.debug("parallel workloads '{}' {}: {}"
-                       .format(taskname, len(wloads), map(len, wloads)))
+            mlog.debug("{}: {} cpu's, {} jobs: {}"
+                       .format(taskname, n_cpus, len(wloads), map(len, wloads)))
 
             workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
 

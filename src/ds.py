@@ -30,6 +30,38 @@ class Prog(object):
         self.inv_decls = inv_decls
         self._cache = {}  # inp -> traces (str)
 
+    # PUBLIC METHODS
+    def get_traces(self, inps):
+        """
+        front end to obtain traces from inps
+        """
+        assert isinstance(inps, Inps), inps
+
+        traces = self._get_traces_mp(inps)
+        traces = itertools.chain.from_iterable(traces.itervalues())
+        traces = DTraces.parse(traces, self.inv_decls)
+        assert all(loc in self.inv_decls for loc in traces), traces.keys()
+        return traces
+
+    def gen_rand_inps(self, n_needed=1):
+        assert n_needed >= 1, n_needed
+        try:
+            valid_ranges = self._valid_ranges
+            inps = set()
+        except AttributeError:
+            valid_ranges, inps = self._get_valid_inp_ranges()
+            self._valid_ranges = valid_ranges
+
+        if not inps:
+            while True:
+                if len(inps) >= n_needed:
+                    break
+
+                for inp_range in valid_ranges:
+                    inps.add(self._get_inp_from_range(inp_range))
+        return inps
+
+    # PRIVATE METHODS
     def _get_traces(self, inp):
         assert isinstance(inp, Trace), inp
         assert inp not in self._cache
@@ -43,84 +75,73 @@ class Prog(object):
         traces = traces.splitlines()
         return traces
 
-    def get_traces(self, inps):
+    def _get_traces_mp(self, inps):
         """
-        Run program on inps and get traces
+        run program on inps and obtain traces in parallel
+        return {inp: traces}
         """
+
         assert isinstance(inps, Inps), inps
+
+        # mp doesn't like inp so have to use str
+        mydict = {str(inp): inp for inp in inps}
+
+        tasks = [inp for inp in inps if inp not in self._cache]
 
         def f(tasks):
             return [(str(inp), self._get_traces(inp)) for inp in tasks]
-
-        traces = []
-        tasks = []
-        for inp in inps:
-            if str(inp) in self._cache:
-                traces.extend(self._cache[str(inp)])
-            else:
-                tasks.append(inp)
-
         wrs = Miscs.run_mp_simple("get traces", tasks, f, doMP=settings.doMP)
 
-        for inp, traces_ in wrs:
+        for inp_str, traces in wrs:
+            inp = mydict[inp_str]
             assert inp not in self._cache
-            self._cache[inp] = traces_
-            traces.extend(traces_)
+            self._cache[inp] = traces
 
-        traces = DTraces.parse(traces, self.inv_decls)
-        assert all(loc in self.inv_decls for loc in traces), traces.keys()
+        return {inp: self._cache[inp] for inp in inps}
 
-        return traces
+    def _get_valid_inp_ranges(self):
 
-    def gen_rand_inps(self, n_needed=1):
-        assert n_needed >= 1, n_needed
+        dr = {}  # Inp => range
+        di = {}  # Inp => inp
+        inp_ranges = self._get_inp_ranges(len(self.inp_decls))
+        for inp_range in inp_ranges:
+            inp = self._get_inp_from_range(inp_range)
+            myInp = Trace(self.inp_decls.names, inp)
+            dr[myInp] = inp_range
+            di[myInp] = inp
 
-        def _f(irs): return tuple(random.randrange(ir[0], ir[1]) for ir in irs)
+        myInps = Inps(di.keys())
+        mytraces = self._get_traces_mp(myInps)
 
-        try:
-            valid_ranges = self._valid_inp_ranges
-            valid_inps = set()
-        except AttributeError:  # compute rranges
-            tiny = 0.05
-            small = 0.10
-            large = 1 - small
-            maxV = DTraces.inpMaxV
-            minV = -1 * maxV
-            rinps = [(0, int(maxV * small)), (0, int(maxV * tiny)),
-                     (int(maxV * large), maxV),
-                     (int(minV * small), 0), (int(minV * tiny), 0),
-                     (minV, int(minV * large))]
+        valid_ranges, valid_inps = set(), set()
+        for myInp in mytraces:
+            if mytraces[myInp]:
+                valid_ranges.add(dr[myInp])
+                valid_inps.add(di[myInp])
+            else:
+                mlog.debug("inp range {} invalid".format(format(dr[myInp])))
 
-            # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
-            rinps = list(itertools.product(
-                *itertools.repeat(rinps, len(self.inp_decls))))
-            valid_ranges, valid_inps = set(), set()
+        return valid_ranges, valid_inps
 
-            for rinp in rinps:
-                inp = _f(rinp)
-                myinps = Inps()
-                myinps.myupdate(set([inp]), self.inp_decls.names)
+    @classmethod
+    def _get_inp_from_range(cls, inp_range):
+        return tuple(random.randrange(ir[0], ir[1]) for ir in inp_range)
 
-                tcs = self.get_traces(myinps)
-                if tcs:
-                    valid_ranges.add(rinp)
-                    valid_inps.add(inp)
-                else:
-                    mlog.debug("inp range {} invalid".format(inp))
+    @classmethod
+    def _get_inp_ranges(cls, n_inps):
+        tiny = 0.05
+        small = 0.10
+        large = 1 - small
+        maxV = DTraces.inpMaxV
+        minV = -1 * maxV
+        rinps = [(0, int(maxV * small)), (0, int(maxV * tiny)),
+                 (int(maxV * large), maxV),
+                 (int(minV * small), 0), (int(minV * tiny), 0),
+                 (minV, int(minV * large))]
 
-            self._valid_inp_ranges = list(valid_ranges)
-
-        # gen inps
-        if not valid_inps:
-            valid_inps = set()
-            while True:
-                if len(valid_inps) >= n_needed:
-                    break
-
-                for vr in valid_ranges:
-                    valid_inps.add(_f(vr))
-
-        return valid_inps
+        # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
+        rinps = list(itertools.product(*itertools.repeat(rinps, n_inps)))
+        return rinps
 
 
 class Symb(tuple):
@@ -456,7 +477,6 @@ class DTraces(dict):
         'vtrace1: 0 285 2 18 285 9 ',
         'vtrace1: 0 285 4 36 285 9 ']
         """
-        assert isinstance(trace_str, list), trace_str
         assert isinstance(inv_decls, DSymbs) and inv_decls, inv_decls
 
         lines = [l.strip() for l in trace_str]
