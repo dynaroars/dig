@@ -503,6 +503,9 @@ class Miscs(object):
         >>> wls = Miscs.get_workloads(range(20),20,2); wls
         [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19]]
 
+        >>> wls = Miscs.get_workloads(range(146), 20, 1); [len(wl) for wl in wls]
+        [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 13]
+
         """
         assert len(tasks) >= 1, tasks
         assert maxProcessces >= 1, maxProcessces
@@ -526,34 +529,41 @@ class Miscs(object):
 
         return wloads
 
-    # @classmethod
-    # def runMP(cls, taskname, tasks, wprocess, chunksiz, doMP):
-    #     """
-    #     Run wprocess on tasks in parallel
-    #     """
-    #     if doMP:
-    #         from multiprocessing import (Process, Queue, cpu_count)
-    #         Q = Queue()
-    #         wloads = cls.get_workloads(
-    #             tasks, maxProcessces=cpu_count(), chunksiz=chunksiz)
+    @classmethod
+    def get_workloads1(cls, tasks, n_cpus):
+        """
+        >>> wls = Miscs.get_workloads1(range(12),7); wls
+        [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]]
 
-    #         mlog.debug("multiprocessing '{}' {}: {}"
-    #                    .format(taskname, len(wloads), map(len, wloads)))
 
-    #         workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
+        >>> wls = Miscs.get_workloads1(range(12),5); wls
+        [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9, 10, 11]]
 
-    #         for w in workers:
-    #             w.start()
-    #         wrs = []
-    #         for _ in workers:
-    #             wrs.extend(Q.get())
-    #     else:
-    #         wrs = wprocess(tasks, Q=None)
+        >>> wls = Miscs.get_workloads1(range(20),7); wls
+        [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14], [15, 16, 17], [18, 19]]
 
-    #     return wrs
+
+        >>> wls = Miscs.get_workloads1(range(20),20); wls
+        [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19]]
+
+        >>> wls = Miscs.get_workloads1(range(12),7); wls
+
+        >>> wls = Miscs.get_workloads1(range(146), 20); [len(wl) for wl in wls]
+        [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 13]
+        """
+
+        wloads = {}
+        for i, task in enumerate(tasks):
+            cpu_id = i % n_cpus
+            if cpu_id not in wloads:
+                wloads[cpu_id] = []
+            wloads[cpu_id].append(task)
+
+        wloads = [wloads[i] for i in sorted(wloads.keys())]
+        return wloads
 
     @classmethod
-    def run_mp_simple(cls, taskname, tasks, f, chunksiz=1, doMP=True):
+    def run_mp_simple(cls, taskname, tasks, f, doMP=True):
         """
         Run wprocess on tasks in parallel
         """
@@ -568,9 +578,7 @@ class Miscs(object):
             from multiprocessing import (Process, Queue, cpu_count)
             Q = Queue()
             n_cpus = cpu_count()
-            wloads = cls.get_workloads(
-                tasks, maxProcessces=n_cpus, chunksiz=chunksiz)
-
+            wloads = cls.get_workloads1(tasks, n_cpus=n_cpus)
             mlog.debug("{}: {} cpu's, {} jobs: {}"
                        .format(taskname, n_cpus, len(wloads), map(len, wloads)))
 
