@@ -26,7 +26,7 @@ class CegirMP(Cegir):
         symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
         termss = [MPInv.get_terms(symbols) for symbols in symbolss]
 
-        mlog.info("check upperbounds for {} terms at {} locs".format(
+        mlog.debug("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
 
         maxV = settings.OCT_MAX_V
@@ -46,7 +46,7 @@ class CegirMP(Cegir):
 
         ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][ieq]) for loc in ieqs for ieq in ieqs[loc]]
-        mlog.debug("{} locs: compute upperbounds for {} terms".format(
+        mlog.debug("{} locs: infer upperbounds for {} terms".format(
             len(locs), len(tasks)))
 
         def _f(loc, mp):
@@ -98,7 +98,7 @@ class CegirMP(Cegir):
         def f(tasks):
             return [(loc, _f(loc, MPInv.mk_max_ieq((lh,), rh)))
                     for loc, (lh, rh) in tasks]
-        wrs = Miscs.run_mp_simple('guesscheck', tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp('guesscheck', tasks, f)
         rs = [(loc, inv) for loc, inv in wrs if inv]
         dinvs = DInvs()
         for loc, inv in rs:

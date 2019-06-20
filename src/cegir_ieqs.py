@@ -29,7 +29,7 @@ class CegirIeqs(Cegir):
         oct_siz = 2
         termss = [Miscs.get_terms_fixed_coefs(symbols, oct_siz)
                   for symbols in symbolss]
-        mlog.info("check upperbounds for {} terms at {} locs".format(
+        mlog.debug("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
 
         refs = {loc: {IeqInv(t <= maxV): t for t in terms}
@@ -97,7 +97,7 @@ class CegirIeqs(Cegir):
 
         def f(tasks):
             return [(loc, _f(loc, term)) for loc, term in tasks]
-        wrs = Miscs.run_mp_simple('guesscheck', tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp('guesscheck', tasks, f)
         rs = [(loc, inv) for loc, inv in wrs if inv]
         dinvs = DInvs()
         for loc, inv in rs:

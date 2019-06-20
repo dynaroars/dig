@@ -90,7 +90,7 @@ class Prog(object):
 
         def f(tasks):
             return [(str(inp), self._get_traces(inp)) for inp in tasks]
-        wrs = Miscs.run_mp_simple("get traces", tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp("get traces", tasks, f)
 
         for inp_str, traces in wrs:
             inp = mydict[inp_str]

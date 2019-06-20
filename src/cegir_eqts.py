@@ -34,7 +34,7 @@ class CegirEqts(Cegir):
         def f(tasks):
             return [(loc, self.infer(loc, template, uks, exprs, traces, inps))
                     for loc, (template, uks, exprs) in tasks]
-        wrs = Miscs.run_mp_simple('find eqts', tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp('find eqts', tasks, f)
         dinvs = DInvs()
         for loc, (eqts, newCexs) in wrs:
             newInps = inps.myupdate(newCexs, self.inp_decls.names)

@@ -5,7 +5,7 @@ tmpdir = "/var/tmp/"
 logger_level = 2
 doMP = True
 INP_MAX_V = 300
-SOLVER_TIMEOUT = 5
+SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 JPF_MIN_DEPTH = 9
 JPF_DEPTH_INCR = 4  # jpfmaxdepth = jpfmindepth + jpfdepth_incr
 EQT_RATE = 1.5

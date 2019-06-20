@@ -280,8 +280,8 @@ class SymStates(object):
             rs = [(depth, _f(depth)) for depth in tasks]
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
-        wrs = Miscs.run_mp_simple("get symstates", tasks, f,
-                                  doMP=settings.doMP)
+        wrs = Miscs.run_mp("get symstates", tasks, f)
+
         self.merge(wrs)
 
     @classmethod
@@ -391,7 +391,7 @@ class SymStates(object):
 
         def f(tasks):
             return [(loc, str(inv), check(loc, inv)) for loc, inv in tasks]
-        wrs = Miscs.run_mp_simple("prove", tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp("prove", tasks, f)
 
         mCexs, mdinvs = [], DInvs()
         for loc, str_inv, (cexs, isSucc) in wrs:
@@ -415,7 +415,8 @@ class SymStates(object):
         assert isinstance(dinvs, DInvs), dinvs
         assert not inps or (isinstance(inps, Inps) and inps), inps
 
-        mlog.debug("checking {} invs:\n{}".format(dinvs.siz, dinvs))
+        mlog.debug("checking {} invs:\n{}".format(
+            dinvs.siz, dinvs.__str__(print_first_n=20)))
         return self.get_inps(dinvs, inps, path_idx)
 
     def mkInpsConstr(self, inps):
@@ -481,7 +482,7 @@ class SymStates(object):
             depth_idx = depth_idx + 1
             cexs_, isSucc_, stat_ = f(depths[depth_idx])
             if stat_ != stat:
-                mlog.debug("depth diff {}: {} @ depth {} vs {} @ depth {}"
+                mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv, stat_, depths[depth_idx - 1],
                                    stat, depths[depth_idx]))
             cexs, isSucc, stat = cexs_, isSucc_, stat_
@@ -498,45 +499,6 @@ class SymStates(object):
 
         cexs = [f(model) for model in models]
         return cexs
-
-    # def gen_rand_inps(self, prog):
-    #     def _f(irs): return tuple(random.randrange(ir[0], ir[1]) for ir in irs)
-
-    #     try:
-    #         valid_ranges = self._valid_ranges
-    #         valid_inps = set()
-    #     except AttributeError:  # compute rranges
-    #         tiny = 0.05
-    #         small = 0.10
-    #         large = 1 - small
-    #         maxV = DTraces.inpMaxV
-    #         minV = -1 * maxV
-    #         rinps = [(0, int(maxV * small)), (0, int(maxV * tiny)),
-    #                  (int(maxV * large), maxV),
-    #                  (int(minV * small), 0), (int(minV * tiny), 0),
-    #                  (minV, int(minV * large))]
-
-    #         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
-    #         rinps = list(itertools.product(
-    #             *itertools.repeat(rinps, len(self.inp_exprs))))
-    #         valid_ranges, valid_inps = set(), set()
-    #         for rinp in rinps:
-    #             inp = _f(rinp)
-    #             myinps = Inps()
-    #             myinps.myupdate(set([inp]), self.inp_decls.names)
-    #             tcs = prog.get_traces(myinps)
-    #             if tcs:
-    #                 valid_ranges.add(rinp)
-    #                 valid_inps.add(inp)
-    #             else:
-    #                 mlog.debug("inp range {} invalid".format(inp))
-
-    #         self._valid_ranges = valid_ranges
-
-    #     # gen inps
-    #     if not valid_inps:
-    #         valid_inps = set(_f(vr) for vr in valid_ranges)
-    #     return valid_inps
 
 
 def merge(ds):

@@ -373,7 +373,7 @@ class MPInv(Inv):
 
         if len(rh) >= 3:  # more simplification
             simpl = z3.Tactic('ctx-solver-simplify')
-            simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT*10)
+            simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
             try:
                 myexpr = simpl(expr)[0][0]
                 assert z3.is_expr(myexpr), myexpr
@@ -902,14 +902,15 @@ class Invs(set):
                       key=lambda inv: isinstance(inv, EqtInv))
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
-    @property
-    def n_eqs(self):
-        return len([inv for inv in self if isinstance(inv, EqtInv)])
-
     def __contains__(self, inv):
         assert isinstance(inv, Inv), inv
         return super(Invs, self).__contains__(inv)
 
+    @property
+    def n_eqs(self):
+        return len([inv for inv in self if isinstance(inv, EqtInv)])
+
+    # PUBLIC
     def add(self, inv):
         assert isinstance(inv, Inv), inv
         notIn = False
@@ -924,46 +925,32 @@ class Invs(set):
 
         def f(tasks):
             return [(inv, inv.test(traces)) for inv in tasks]
-
-        tasks = list(self)
-        wrs = Miscs.run_mp_simple("test", tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp("test", list(self), f)
         invs = self.__class__([inv for inv, passed in wrs if passed])
         return invs
 
     def uniqify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
 
-        eqts, eqtsLargeCoefs, ieqs, mps, others = [], [], [], [], []
-        for inv in self:
-            if isinstance(inv, EqtInv):
-                if len(Miscs.getCoefs(inv.inv)) > 10:
-                    eqtsLargeCoefs.append(inv)
-                else:
-                    eqts.append(inv)
-            elif isinstance(inv, IeqInv):
-                ieqs.append(inv)
-            elif isinstance(inv, MPInv):
-                mps.append(inv)
-            else:
-                others.append(inv)
-
+        eqts, eqtsLargeCoefs, ieqs, mps, others = self._classify()
         non_mps = eqts + ieqs + others
 
-        if non_mps and len(mps) >= 10:  # parallelizing uniqifying mps
+        if non_mps and len(mps) >= 2:  # parallelizing uniqifying mps
             non_mps_exprs = [e.expr(use_reals) for e in non_mps]
 
             def f(mps):
                 return [mp for mp in mps
                         if not Z3._imply(non_mps_exprs, mp.expr(use_reals))]
-            wrs = Miscs.run_mp_simple("uniqifying {} mps".format(len(mps)),
-                                      mps, f, doMP=settings.doMP)
+            wrs = Miscs.run_mp("uniqifying {} mps".format(len(mps)), mps, f)
+
             mps = [mp for mp in wrs]
 
-        rs = self.uniq(non_mps + mps, use_reals)
+        rs = self._uniq(non_mps + mps, use_reals)
         return Invs(rs + eqtsLargeCoefs)
 
+    # PRIVATE
     @classmethod
-    def uniq(cls, invs, use_reals):
+    def _uniq(cls, invs, use_reals):
         mlog.debug("uniq {} invs".format(len(invs)))
 
         def _imply(i, xclude):
@@ -980,6 +967,22 @@ class Invs(set):
                 rs = xclude
         rs = [invs[i] for i in sorted(rs)]
         return rs
+
+    def _classify(self):
+        eqts, eqtsLargeCoefs, ieqs, mps, others = [], [], [], [], []
+        for inv in self:
+            if isinstance(inv, EqtInv):
+                if len(Miscs.getCoefs(inv.inv)) > 10:
+                    eqtsLargeCoefs.append(inv)
+                else:
+                    eqts.append(inv)
+            elif isinstance(inv, IeqInv):
+                ieqs.append(inv)
+            elif isinstance(inv, MPInv):
+                mps.append(inv)
+            else:
+                others.append(inv)
+        return eqts, eqtsLargeCoefs, ieqs, mps, others
 
 
 class DInvs(dict):
@@ -1003,7 +1006,7 @@ class DInvs(dict):
     @property
     def n_eqs(self): return sum(invs.n_eqs for invs in self.itervalues())
 
-    def __str__(self, print_stat=False):
+    def __str__(self, print_stat=False, print_first_n=None):
         ss = []
 
         for loc in sorted(self):
@@ -1025,8 +1028,14 @@ class DInvs(dict):
                 sorted(ieqs, reverse=True) + \
                 sorted(mps, reverse=True) + \
                 sorted(others, reverse=True)
-            ss.extend("{}. {}".format(i+1, inv.__str__(print_stat))
-                      for i, inv in enumerate(invs))
+
+            if print_first_n and print_first_n < len(invs):
+                invs = invs[:print_first_n] + ['...']
+
+            ss.extend("{}. {}".format(
+                i+1,
+                inv if isinstance(inv, str) else inv.__str__(print_stat))
+                for i, inv in enumerate(invs))
 
         return '\n'.join(ss)
 
@@ -1063,7 +1072,7 @@ class DInvs(dict):
         def f(tasks):
             return [(loc, self[loc].test(dtraces[loc])) for loc in tasks]
 
-        wrs = Miscs.run_mp_simple("test_dinvs", tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp("test_dinvs", tasks, f)
         dinvs = DInvs([(loc, invs) for loc, invs in wrs if invs])
         show_removed(self.siz, dinvs.siz, st)
         return dinvs
@@ -1099,7 +1108,7 @@ class DInvs(dict):
 
         def f(tasks):
             return [(loc, self[loc].uniqify(use_reals)) for loc in tasks]
-        wrs = Miscs.run_mp_simple("uniqify", tasks, f, doMP=settings.doMP)
+        wrs = Miscs.run_mp("uniqify", tasks, f)
 
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
         show_removed(self.siz, dinvs.siz, st)

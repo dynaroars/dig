@@ -56,14 +56,15 @@ class Dig(object):
         if not dinvs.siz:
             return dinvs
 
-        mlog.info("test {} invs on {} dtraces".format(
+        mlog.info("test {} invs using {} traces".format(
             dinvs.siz, dtraces.siz))
         dinvs = dinvs.test(dtraces)
         if not dinvs.siz:
             return dinvs
 
         mlog.info("uniqify {} invs".format(dinvs.siz))
-        mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
+        mlog.debug("{}".format(dinvs.__str__(
+            print_stat=True, print_first_n=20)))
         dinvs = dinvs.uniqify(self.inv_decls.use_reals)
         return dinvs
 
@@ -121,19 +122,20 @@ class DigCegir(Dig):
             return dinvs, dtraces, self.tmpdir
 
         def _infer(typ, f):
-            mlog.info("gen {} at {} locs".format(typ, len(dtraces)))
+            mlog.debug("gen '{}' at {} locs".format(typ, len(dtraces)))
             mlog.debug(self.str_of_locs(dtraces.keys()))
 
             st = time()
             invs = f()
             assert isinstance(invs, DInvs)
             if not invs.siz:
-                mlog.warn("infer no {}".format(typ))
+                mlog.warn("found no {}".format(typ))
             else:
-                mlog.info("infer {} {} in {}s".format(
+                mlog.info("found {} {} in {}s".format(
                     invs.siz, typ, time() - st))
                 dinvs.merge(invs)
-                mlog.debug("{}".format(dinvs.__str__(print_stat=True)))
+                mlog.debug("{}".format(dinvs.__str__(
+                    print_stat=True, print_first_n=20)))
 
         if do_eqts:
             _infer('eqts', lambda: self.infer_eqts(self.deg, dtraces, inps))
