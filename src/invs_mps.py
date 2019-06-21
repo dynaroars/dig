@@ -18,8 +18,8 @@ class MPInv(Inv):
     """
     sage: x, y, z = sage.all.var('x y z')
     sage: terms = MPInv.get_terms([x,y,z])
-    sage: mps = [MPInv(lh, rh, is_maxplus=True, is_ieq=True) \
-                 for lh, rh in terms]
+    sage: mps = [MPInv(a, b, is_maxplus=True, is_ieq=True) \
+                 for a, b in terms]
     sage: print('\n'.join('***{}***\n{}\n{}\n{}'.format(t, m, m.term, m.ite) \
                 for t, m in zip(terms,mps)))
     ***(x, (0,))***
@@ -157,17 +157,20 @@ class MPInv(Inv):
     sage: print(mp.ite)
     0 <= x - 15
 
+    sage: mp = MPInv.mk_max_ieq((x,), (0,))
+    sage: print(mp.term)
+
     """
 
-    def __init__(self, lh, rh, is_maxplus=True, is_ieq=True, stat=None):
-        if not isinstance(lh, tuple):
-            lh = (lh, )
-        if not isinstance(rh, tuple):
-            rh = (rh, )
-        super(MPInv, self).__init__((lh, rh), stat)
+    def __init__(self, a, b, is_maxplus=True, is_ieq=True, stat=None):
+        if not isinstance(a, tuple):
+            a = (a, )
+        if not isinstance(b, tuple):
+            b = (b, )
+        super(MPInv, self).__init__((a, b), stat)
 
-        self.lh = lh
-        self.rh = rh
+        self.a = a
+        self.b = b
         self.is_maxplus = is_maxplus
         self.is_ieq = is_ieq
 
@@ -192,11 +195,11 @@ class MPInv(Inv):
         If(And(y >= z, y >= 0), x <= y, If(z >= 0, x <= z, x <= 0))
         """
 
-        lh = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.lh)
-        rh = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.rh)
-        expr = self.mp2df_expr(lh, rh, 0, self.is_maxplus, self.is_ieq)
+        a = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.a)
+        b = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.b)
+        expr = self.mp2df_expr(a, b, 0, self.is_maxplus, self.is_ieq)
 
-        if len(rh) >= 3:  # more simplification
+        if len(b) >= 3:  # more simplification
             simpl = z3.Tactic('ctx-solver-simplify')
             simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
             try:
@@ -213,7 +216,7 @@ class MPInv(Inv):
         try:
             return self._symbols
         except AttributeError:
-            self._symbols = Miscs.getVars(self.lh + self.rh)
+            self._symbols = Miscs.getVars(self.a + self.b)
             return self._symbols
 
     @property
@@ -226,13 +229,13 @@ class MPInv(Inv):
         try:
             return self._term
         except AttributeError:
-            myterm = self._term_f(self.lh, self.rh, self.is_maxplus)
+            myterm = self._term_f(self.a, self.b, self.is_maxplus)
             symbols_s = ','.join(map(str, self.symbols))
             self._term = "lambda {}: {}".format(symbols_s, myterm)
             return self._term
 
     @staticmethod
-    def _term_f(lh, rh, is_maxplus):
+    def _term_f(a, b, is_maxplus):
         """
         sage: x, y, z = sage.all.var('x y z')
         sage: print(MPInv._term_f((x,), (0,), is_maxplus=True))
@@ -257,12 +260,12 @@ class MPInv(Inv):
                     t = '{}'
 
                 return t.format(term)
-        lhs = f(lh)
-        rhs = f(rh)
-        if rhs == '0':
-            return lhs
+        a_ = f(a)
+        b_ = f(b)
+        if b_ == '0':
+            return a_
         else:
-            return "{} - {}".format(lhs, rhs)
+            return "{} - {}".format(a_, b_)
 
     def test_single_trace(self, trace):
         assert isinstance(trace, Trace), trace
@@ -272,25 +275,34 @@ class MPInv(Inv):
         assert isinstance(bval, bool), bval
         return bval
 
-    def term_upper(self, uv, is_ieq=None):
+    def mk_upper(self, uv, is_ieq=None):
         """
         return term <= uv
-        lh - rh <= uv ~> lh - uv <= rh
+        a - b <= uv ~> a - uv <= b
+        b - a <= uv ~> b <= a + uv
         """
-        assert len(self.lh) == 1, self.lh
-        return self.__class__(self.lh[0] - uv, self.rh, self.is_maxplus,
-                              self.is_ieq if is_ieq is None else is_ieq,
-                              stat=self.stat)
 
-    def term_lower(self, lv, is_ieq=None):
-        """
-        return uv <= term
-        lv <= lh - rh ~>   rh <= lh - lv
-        """
-        assert len(self.lh) == 1, self.lh
-        return self.__class__(self.rh, self.lh[0] - lv, self.is_maxplus,
-                              self.is_ieq if is_ieq is None else is_ieq,
-                              stat=self.stat)
+        if len(self.a) == 1:
+            x = self.a[0] - uv
+            y = self.b
+
+        else:
+            assert len(self.b) == 1
+            x = self.a
+            y = self.b[0] + uv
+
+        is_ieq = self.is_ieq if is_ieq is None else is_ieq
+        return self.__class__(x, y, self.is_maxplus, is_ieq, stat=self.stat)
+
+    # def term_lower(self, lv, is_ieq=None):
+    #     """
+    #     return uv <= term
+    #     lv <= a - b ~>   b <= a - lv
+    #     """
+    #     assert len(self.a) == 1, self.a
+    #     return self.__class__(self.b, self.a[0] - lv, self.is_maxplus,
+    #                           self.is_ieq if is_ieq is None else is_ieq,
+    #                           stat=self.stat)
 
     @property
     def ite(self):
@@ -303,31 +315,31 @@ class MPInv(Inv):
             # max(x,y) =>  if(x>=y)...
             # min(x,y) = > if (x<=y)...
             self._ite = self.mp2df(
-                self.lh, self.rh, 0, self.is_maxplus, self.is_ieq)
+                self.a, self.b, 0, self.is_maxplus, self.is_ieq)
             return self._ite
 
     @classmethod
-    def mp2df(cls, lh, rh, idx, is_maxplus, is_ieq):
+    def mp2df(cls, a, b, idx, is_maxplus, is_ieq):
         """
         sage: x, y = sage.all.var('x  y')
         sage: MPInv.mp2df((x-10, y-3), (y+12,), 0, is_maxplus=True, is_ieq=True)
         'If(x - 10 >= y - 3, x - 10 <= y + 12, y - 3 <= y + 12)'
         """
-        assert isinstance(lh, tuple) and lh
+        assert isinstance(a, tuple) and a
 
-        elem = lh[idx]
-        if isinstance(rh, tuple):
-            ite = cls.mp2df(rh, elem, 0, is_maxplus, is_ieq)
+        elem = a[idx]
+        if isinstance(b, tuple):
+            ite = cls.mp2df(b, elem, 0, is_maxplus, is_ieq)
         else:
-            ite = "{} {} {}".format(rh, '<=' if is_ieq else '==', elem)
-        rest = lh[idx + 1:]
+            ite = "{} {} {}".format(b, '<=' if is_ieq else '==', elem)
+        rest = a[idx + 1:]
 
         if not rest:  # t <= max(x,y,z)
             return ite
         else:
-            rest_ite = cls.mp2df(lh, rh, idx + 1, is_maxplus, is_ieq)
+            rest_ite = cls.mp2df(a, b, idx + 1, is_maxplus, is_ieq)
 
-            others = lh[:idx] + rest
+            others = a[:idx] + rest
 
             conds = ["{} {} {}".format(
                 elem, '>=' if is_maxplus else '<=', t) for t in others]
@@ -339,33 +351,33 @@ class MPInv(Inv):
             return "If({}, {}, {})".format(cond, ite, rest_ite)
 
     @classmethod
-    def mp2df_expr(cls, lh, rh, idx, is_maxplus, is_ieq):
+    def mp2df_expr(cls, a, b, idx, is_maxplus, is_ieq):
         """
         sage: x, y = z3.Ints('x y')
         sage: MPInv.mp2df_expr((x-z3.IntVal('10'), y-z3.IntVal('3')), \
                                (y+z3.IntVal('12'),), 0, is_maxplus=True, is_ieq=True)
         If(x - 10 >= y - 3, x - 10 <= y + 12, y - 3 <= y + 12)
         """
-        assert isinstance(lh, tuple) and lh
+        assert isinstance(a, tuple) and a
 
-        elem = lh[idx]
-        if isinstance(rh, tuple):
-            ite = cls.mp2df_expr(rh, elem, 0, is_maxplus, is_ieq)
+        elem = a[idx]
+        if isinstance(b, tuple):
+            ite = cls.mp2df_expr(b, elem, 0, is_maxplus, is_ieq)
         else:
             if is_ieq:
-                ite = rh <= elem
+                ite = b <= elem
             else:
-                ite = rh >= elem
+                ite = b >= elem
 
-            # ite = "{} {} {}".format(rh, '<=' if is_ieq else '==', elem)
-        rest = lh[idx + 1:]
+            # ite = "{} {} {}".format(b, '<=' if is_ieq else '==', elem)
+        rest = a[idx + 1:]
 
         if not rest:  # t <= max(x,y,z)
             return ite
         else:
-            rest_ite = cls.mp2df_expr(lh, rh, idx + 1, is_maxplus, is_ieq)
+            rest_ite = cls.mp2df_expr(a, b, idx + 1, is_maxplus, is_ieq)
 
-            others = lh[:idx] + rest
+            others = a[:idx] + rest
 
             # conds = ["{} {} {}".format(
             #     elem, '>=' if is_maxplus else '<=', t) for t in others]
@@ -403,10 +415,6 @@ class MPInv(Inv):
         trace = dict([(s, trace[s]) for s in symbols])
         rs = f(**trace)
         return rs
-
-    @classmethod
-    def mk_from_symbols(cls, symbols):
-        return [cls(lh, (rh,)) for lh, rh in cls.get_terms(symbols)]
 
     @classmethod
     def get_terms(cls, terms):
@@ -527,159 +535,147 @@ class MPInv(Inv):
         return results
 
     @classmethod
-    def mk_max_ieq(cls, lh, rh):
-        return cls(lh, rh, is_maxplus=True, is_ieq=True)
+    def mk_max_ieq(cls, a, b):
+        return cls(a, b, is_maxplus=True, is_ieq=True)
 
     @classmethod
-    def mk_max_eq(cls, lh, rh):
-        return cls(lh, rh, is_maxplus=True, is_ieq=False)
+    def mk_max_eq(cls, a, b):
+        return cls(a, b, is_maxplus=True, is_ieq=False)
 
     @classmethod
-    def mk_min_ieq(cls, lh, rh):
-        return cls(lh, rh, is_maxplus=False, is_ieq=True)
+    def mk_min_ieq(cls, a, b):
+        return cls(a, b, is_maxplus=False, is_ieq=True)
 
     @classmethod
-    def mk_min_eq(cls, lh, rh):
-        return cls(lh, rh, is_maxplus=False, is_ieq=False)
+    def mk_min_eq(cls, a, b):
+        return cls(a, b, is_maxplus=False, is_ieq=False)
 
-    @classmethod
-    def infer(cls, terms, traces, is_maxplus=True, is_ieq=True):
-        """
-        sage: x, y, z = sage.all.var('x y z')
-        sage: tcs = [{'x': 2, 'y': -8, 'z': -7}, \
-            {'x': -1, 'y': -15, 'z': 88}, {'x': 15, 'y': 5, 'z': 0}]
-        sage: mps = MPInv.infer([x, y], tcs)
-        sage: assert len(mps) == 10
-        sage: print('\n'.join(m.ite for m in mps))
-        0 <= x + 1
-        x - 15 <= 0
-        If(y >= 0, y <= x + 1, 0 <= x + 1)
-        If(y >= 0, x - 10 <= y, x - 10 <= 0)
-        y <= x - 10
-        x - 14 <= y
-        0 <= y + 15
-        y - 5 <= 0
-        If(x >= 0, x <= y + 15, 0 <= y + 15)
-        If(x >= 0, y + 10 <= x, y + 10 <= 0)
+    # @classmethod
+    # def infer(cls, terms, traces, is_maxplus=True, is_ieq=True):
+    #     """
+    #     sage: x, y, z = sage.all.var('x y z')
+    #     sage: tcs = [{'x': 2, 'y': -8, 'z': -7}, \
+    #         {'x': -1, 'y': -15, 'z': 88}, {'x': 15, 'y': 5, 'z': 0}]
+    #     sage: mps = MPInv.infer([x, y], tcs)
+    #     sage: assert len(mps) == 10
+    #     sage: print('\n'.join(m.ite for m in mps))
+    #     0 <= x + 1
+    #     x - 15 <= 0
+    #     If(y >= 0, y <= x + 1, 0 <= x + 1)
+    #     If(y >= 0, x - 10 <= y, x - 10 <= 0)
+    #     y <= x - 10
+    #     x - 14 <= y
+    #     0 <= y + 15
+    #     y - 5 <= 0
+    #     If(x >= 0, x <= y + 15, 0 <= y + 15)
+    #     If(x >= 0, y + 10 <= x, y + 10 <= 0)
 
-        sage: mps = MPInv.infer([x], tcs)
-        sage: print('\n'.join(m.ite for m in mps))
-        0 <= x + 1
-        x - 15 <= 0
+    #     sage: mps = MPInv.infer([x], tcs)
+    #     sage: print('\n'.join(m.ite for m in mps))
+    #     0 <= x + 1
+    #     x - 15 <= 0
 
-        sage: mps = MPInv.infer([x,y,z], tcs)
-        sage: assert len(mps) == 36
-        sage: mps = sorted(mps, key=lambda m: len(m.ite))
+    #     sage: mps = MPInv.infer([x,y,z], tcs)
+    #     sage: assert len(mps) == 36
+    #     sage: mps = sorted(mps, key=lambda m: len(m.ite))
 
-        # sage: print('\n'.join('{}\n{}'.format(m, m.ite) for m in mps))
+    #     # sage: print('\n'.join('{}\n{}'.format(m, m.ite) for m in mps))
 
-        # sage: [MPInv.my_ite_test(m.expr(use_reals=False)) for m in mps]
+    #     # sage: [MPInv.my_ite_test(m.expr(use_reals=False)) for m in mps]
 
-        lambda x: 0 - (x + 1) <= 0
-        0 <= x + 1
-        lambda y: (y - 5) - 0 <= 0
-        y - 5 <= 0
-        lambda y,z: (y - 5) - z <= 0
-        y - 5 <= z
-        lambda z: 0 - (z + 7) <= 0
-        0 <= z + 7
-        lambda x: (x - 15) - 0 <= 0
-        x - 15 <= 0
-        lambda x,y: y - (x - 10) <= 0
-        y <= x - 10
-        lambda x,y: (x - 14) - y <= 0
-        x - 14 <= y
-        lambda x,z: z - (x + 89) <= 0
-        z <= x + 89
-        lambda x,z: (x - 15) - z <= 0
-        x - 15 <= z
-        lambda y: 0 - (y + 15) <= 0
-        0 <= y + 15
-        lambda z: (z - 88) - 0 <= 0
-        z - 88 <= 0
-        lambda y,z: z - (y + 103) <= 0
-        z <= y + 103
-        lambda x,y: max(y, 0) - (x + 1) <= 0
-        If(y >= 0, y <= x + 1, 0 <= x + 1)
-        lambda y,z: (y - 5) - max(z, 0) <= 0
-        If(z >= 0, y - 5 <= z, y - 5 <= 0)
-        lambda y,z: max(y, 0) - (z + 7) <= 0
-        If(y >= 0, y <= z + 7, 0 <= z + 7)
-        lambda x,y: (x - 10) - max(y, 0) <= 0
-        If(y >= 0, x - 10 <= y, x - 10 <= 0)
-        lambda x,y,z: max(y, z) - (x + 89) <= 0
-        If(y >= z, y <= x + 89, z <= x + 89)
-        lambda x,y,z: (x - 10) - max(y, z) <= 0
-        If(y >= z, x - 10 <= y, x - 10 <= z)
-        lambda x,z: max(z, 0) - (x + 89) <= 0
-        If(z >= 0, z <= x + 89, 0 <= x + 89)
-        lambda x,z: (x - 15) - max(z, 0) <= 0
-        If(z >= 0, x - 15 <= z, x - 15 <= 0)
-        lambda x,y: max(x, 0) - (y + 15) <= 0
-        If(x >= 0, x <= y + 15, 0 <= y + 15)
-        lambda x,y: (y + 10) - max(x, 0) <= 0
-        If(x >= 0, y + 10 <= x, y + 10 <= 0)
-        lambda x,y,z: (y + 10) - max(x, z) <= 0
-        If(x >= z, y + 10 <= x, y + 10 <= z)
-        lambda x,z: max(x, 0) - (z + 15) <= 0
-        If(x >= 0, x <= z + 15, 0 <= z + 15)
-        lambda x,z: (z - 88) - max(x, 0) <= 0
-        If(x >= 0, z - 88 <= x, z - 88 <= 0)
-        lambda x,y,z: max(x, y) - (z + 15) <= 0
-        If(x >= y, x <= z + 15, y <= z + 15)
-        lambda x,y,z: (z - 89) - max(x, y) <= 0
-        If(x >= y, z - 89 <= x, z - 89 <= y)
-        lambda y,z: (z - 88) - max(y, 0) <= 0
-        If(y >= 0, z - 88 <= y, z - 88 <= 0)
-        lambda x,y,z: max(x, z) - (y + 103) <= 0
-        If(x >= z, x <= y + 103, z <= y + 103)
-        lambda y,z: max(z, 0) - (y + 103) <= 0
-        If(z >= 0, z <= y + 103, 0 <= y + 103)
-        lambda x,y,z: max(y, z, 0) - (x + 89) <= 0
-        If(And(y >= z, y >= 0), y <= x + 89,
-           If(And(z >= y, z >= 0), z <= x + 89, 0 <= x + 89))
-        lambda x,y,z: (x - 10) - max(y, z, 0) <= 0
-        If(And(y >= z, y >= 0), x - 10 <= y,
-           If(And(z >= y, z >= 0), x - 10 <= z, x - 10 <= 0))
-        lambda x,y,z: (y + 10) - max(x, z, 0) <= 0
-        If(And(x >= z, x >= 0), y + 10 <= x,
-           If(And(z >= x, z >= 0), y + 10 <= z, y + 10 <= 0))
-        lambda x,y,z: max(x, y, 0) - (z + 15) <= 0
-        If(And(x >= y, x >= 0), x <= z + 15,
-           If(And(y >= x, y >= 0), y <= z + 15, 0 <= z + 15))
-        lambda x,y,z: (z - 88) - max(x, y, 0) <= 0
-        If(And(x >= y, x >= 0), z - 88 <= x,
-           If(And(y >= x, y >= 0), z - 88 <= y, z - 88 <= 0))
-        lambda x,y,z: max(x, z, 0) - (y + 103) <= 0
-        If(And(x >= z, x >= 0), x <= y + 103,
-           If(And(z >= x, z >= 0), z <= y + 103, 0 <= y + 103))
+    #     lambda x: 0 - (x + 1) <= 0
+    #     0 <= x + 1
+    #     lambda y: (y - 5) - 0 <= 0
+    #     y - 5 <= 0
+    #     lambda y,z: (y - 5) - z <= 0
+    #     y - 5 <= z
+    #     lambda z: 0 - (z + 7) <= 0
+    #     0 <= z + 7
+    #     lambda x: (x - 15) - 0 <= 0
+    #     x - 15 <= 0
+    #     lambda x,y: y - (x - 10) <= 0
+    #     y <= x - 10
+    #     lambda x,y: (x - 14) - y <= 0
+    #     x - 14 <= y
+    #     lambda x,z: z - (x + 89) <= 0
+    #     z <= x + 89
+    #     lambda x,z: (x - 15) - z <= 0
+    #     x - 15 <= z
+    #     lambda y: 0 - (y + 15) <= 0
+    #     0 <= y + 15
+    #     lambda z: (z - 88) - 0 <= 0
+    #     z - 88 <= 0
+    #     lambda y,z: z - (y + 103) <= 0
+    #     z <= y + 103
+    #     lambda x,y: max(y, 0) - (x + 1) <= 0
+    #     If(y >= 0, y <= x + 1, 0 <= x + 1)
+    #     lambda y,z: (y - 5) - max(z, 0) <= 0
+    #     If(z >= 0, y - 5 <= z, y - 5 <= 0)
+    #     lambda y,z: max(y, 0) - (z + 7) <= 0
+    #     If(y >= 0, y <= z + 7, 0 <= z + 7)
+    #     lambda x,y: (x - 10) - max(y, 0) <= 0
+    #     If(y >= 0, x - 10 <= y, x - 10 <= 0)
+    #     lambda x,y,z: max(y, z) - (x + 89) <= 0
+    #     If(y >= z, y <= x + 89, z <= x + 89)
+    #     lambda x,y,z: (x - 10) - max(y, z) <= 0
+    #     If(y >= z, x - 10 <= y, x - 10 <= z)
+    #     lambda x,z: max(z, 0) - (x + 89) <= 0
+    #     If(z >= 0, z <= x + 89, 0 <= x + 89)
+    #     lambda x,z: (x - 15) - max(z, 0) <= 0
+    #     If(z >= 0, x - 15 <= z, x - 15 <= 0)
+    #     lambda x,y: max(x, 0) - (y + 15) <= 0
+    #     If(x >= 0, x <= y + 15, 0 <= y + 15)
+    #     lambda x,y: (y + 10) - max(x, 0) <= 0
+    #     If(x >= 0, y + 10 <= x, y + 10 <= 0)
+    #     lambda x,y,z: (y + 10) - max(x, z) <= 0
+    #     If(x >= z, y + 10 <= x, y + 10 <= z)
+    #     lambda x,z: max(x, 0) - (z + 15) <= 0
+    #     If(x >= 0, x <= z + 15, 0 <= z + 15)
+    #     lambda x,z: (z - 88) - max(x, 0) <= 0
+    #     If(x >= 0, z - 88 <= x, z - 88 <= 0)
+    #     lambda x,y,z: max(x, y) - (z + 15) <= 0
+    #     If(x >= y, x <= z + 15, y <= z + 15)
+    #     lambda x,y,z: (z - 89) - max(x, y) <= 0
+    #     If(x >= y, z - 89 <= x, z - 89 <= y)
+    #     lambda y,z: (z - 88) - max(y, 0) <= 0
+    #     If(y >= 0, z - 88 <= y, z - 88 <= 0)
+    #     lambda x,y,z: max(x, z) - (y + 103) <= 0
+    #     If(x >= z, x <= y + 103, z <= y + 103)
+    #     lambda y,z: max(z, 0) - (y + 103) <= 0
+    #     If(z >= 0, z <= y + 103, 0 <= y + 103)
+    #     lambda x,y,z: max(y, z, 0) - (x + 89) <= 0
+    #     If(And(y >= z, y >= 0), y <= x + 89,
+    #        If(And(z >= y, z >= 0), z <= x + 89, 0 <= x + 89))
+    #     lambda x,y,z: (x - 10) - max(y, z, 0) <= 0
+    #     If(And(y >= z, y >= 0), x - 10 <= y,
+    #        If(And(z >= y, z >= 0), x - 10 <= z, x - 10 <= 0))
+    #     lambda x,y,z: (y + 10) - max(x, z, 0) <= 0
+    #     If(And(x >= z, x >= 0), y + 10 <= x,
+    #        If(And(z >= x, z >= 0), y + 10 <= z, y + 10 <= 0))
+    #     lambda x,y,z: max(x, y, 0) - (z + 15) <= 0
+    #     If(And(x >= y, x >= 0), x <= z + 15,
+    #        If(And(y >= x, y >= 0), y <= z + 15, 0 <= z + 15))
+    #     lambda x,y,z: (z - 88) - max(x, y, 0) <= 0
+    #     If(And(x >= y, x >= 0), z - 88 <= x,
+    #        If(And(y >= x, y >= 0), z - 88 <= y, z - 88 <= 0))
+    #     lambda x,y,z: max(x, z, 0) - (y + 103) <= 0
+    #     If(And(x >= z, x >= 0), x <= y + 103,
+    #        If(And(z >= x, z >= 0), z <= y + 103, 0 <= y + 103))
 
-        """
+    #     """
 
-        def mk_lower(lh, rh, mymax):
-            """
-            lh - rh <= mymax ~> lh - mymax <= rh
-            """
-            return (lh - mymax, ), rh
+    #     results = []
+    #     for a, b in cls.get_terms(terms):
+    #         mp = cls((a,), b, is_maxplus, is_ieq)
+    #         myevals = [mp.myeval(trace) for trace in traces]
+    #         mymin = min(myevals)
+    #         mymax = max(myevals)
 
-        def mk_upper(lh, rh, mymin):
-            """
-            mymin <= lh - rh ~>   rh <= lh - mymin
-            """
-            return rh, (lh - mymin, )
-
-        results = []
-        for lh, rh in cls.get_terms(terms):
-            mp = cls((lh,), rh, is_maxplus, is_ieq)
-            myevals = [mp.myeval(trace) for trace in traces]
-            mymin = min(myevals)
-            mymax = max(myevals)
-
-            if mymin == mymax:
-                mp_eq = mp.term_upper(mymax, is_ieq=True)
-                results.append(mp_eq)
-            else:
-                mp_lower = mp.term_lower(mymin)
-                mp_upper = mp.term_upper(mymax)
-                results.extend([mp_lower, mp_upper])
-        return results
+    #         if mymin == mymax:
+    #             mp_eq = mp.mk_upper(mymax, is_ieq=True)
+    #             results.append(mp_eq)
+    #         else:
+    #             mp_lower = mp.term_lower(mymin)
+    #             mp_upper = mp.mk_upper(mymax)
+    #             results.extend([mp_lower, mp_upper])
+    #     return results

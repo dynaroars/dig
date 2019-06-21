@@ -25,20 +25,21 @@ class CegirMP(Cegir):
 
         locs = traces.keys()
         symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
-        termss = [MPInv.get_terms(symbols) for symbols in symbolss]
+        termss_u = [MPInv.get_terms(symbols) for symbols in symbolss]
+        termss_l = [[(b, a) for a, b in terms] for terms in termss_u]
+        termss = [ts_u + ts_l for ts_u, ts_l in zip(termss_u, termss_l)]
 
         mlog.debug("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
-
         maxV = settings.OCT_MAX_V
         minV = -1*maxV
-        refs = {loc: {MPInv.mk_max_ieq((lh - maxV,), rh): (lh, rh)
-                      for lh, rh in terms}
+        refs = {loc: {MPInv.mk_max_ieq(a, b).mk_upper(maxV): (a, b)
+                      for a, b in terms}
                 for loc, terms in zip(locs, termss)}
 
         mps = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
-        cexs, mps = self.symstates.check(mps, inps=None)
 
+        cexs, mps = self.symstates.check(mps, inps=None)
         if cexs:
             cexs_inps = inps.myupdate(cexs, self.inp_decls.names)
             if cexs_inps:
@@ -52,9 +53,9 @@ class CegirMP(Cegir):
 
         def f(tasks):
             return [(loc,
-                     self.gc(loc, MPInv.mk_max_ieq((lh,), rh),
+                     self.gc(loc, MPInv.mk_max_ieq(a, b),
                              minV, maxV, traces))
-                    for loc, (lh, rh) in tasks]
+                    for loc, (a, b) in tasks]
         wrs = Miscs.run_mp('guesscheck', tasks, f)
         rs = [(loc, inv) for loc, inv in wrs if inv]
         dinvs = DInvs()
@@ -68,6 +69,7 @@ class CegirMP(Cegir):
 
         # start with this minV
         traces_ = [t.mydict_str for t in traces[loc]]
+        print mp, mp.a, mp.b
         vs = [mp.myeval(t) for t in traces_]
         try:
             mminV = int(max(minV, max(v for v in vs if v < maxV)))
@@ -101,7 +103,7 @@ class CegirMP(Cegir):
 
         if (boundV not in statsd or statsd[boundV] != Inv.DISPROVED):
             stat = statsd[boundV] if boundV in statsd else None
-            inv = mp.term_upper(boundV)
+            inv = mp.mk_upper(boundV)
             inv.stat = stat
             mlog.debug("got {}".format(inv))
             return inv
@@ -145,7 +147,7 @@ class CegirMP(Cegir):
         return self.guess_check(loc, mp, minV, maxV, statsd)
 
     def _mk_upp_and_check(self, loc, mp, v):
-        inv = mp.term_upper(v)
+        inv = mp.mk_upper(v)
         inv_ = DInvs.mk(loc, Invs([inv]))
         cexs, _ = self.symstates.check(inv_, inps=None)
         return cexs, inv.stat
