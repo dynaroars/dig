@@ -5,9 +5,9 @@ import settings
 from miscs import Miscs
 
 from cegir import Cegir
-from ds import Inps, Traces, DTraces
-from invs import Invs, EqtInv, DInvs
-
+from ds_traces import Inps, Traces, DTraces
+from invs import Invs, DInvs
+from invs_eqts import EqtInv
 
 trace = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

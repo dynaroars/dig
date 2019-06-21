@@ -1,12 +1,10 @@
 import pdb
 import os
-from collections import OrderedDict
-import sage.all
 
 import vcommon as CM
-from miscs import Z3
 import settings
-from ds import Symbs, DSymbs, DTraces
+from ds import Symbs, DSymbs
+from ds_traces import DTraces
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

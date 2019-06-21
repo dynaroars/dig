@@ -1,7 +1,9 @@
 from abc import ABCMeta, abstractmethod
 import pdb
 import vcommon as CM
-from ds import Inps, DTraces, Prog
+
+from ds import Prog
+from ds_traces import Inps, DTraces
 from invs import DInvs
 
 import settings

@@ -10,11 +10,15 @@ import vcommon as CM
 import settings
 from miscs import Miscs
 
-from ds import DTraces, Prog
-from invs import EqtInv, IeqInv, Invs, DInvs
+from ds import Prog
+from ds_traces import DTraces
+from invs import Invs, DInvs
+from invs_eqts import EqtInv
+from invs_ieqs import IeqInv
+
 from symstates import SymStates
 from cegir import Cegir
-import srcJava
+import src_java
 
 dbg = pdb.set_trace
 
@@ -88,7 +92,7 @@ class DigCegir(Dig):
 
         # call ASM to obtain
         (inp_decls, inv_decls, clsname, mainQName, jpfdir, jpffile,
-         tracedir, traceFile) = srcJava.parse(filename, self.tmpdir)
+         tracedir, traceFile) = src_java.parse(filename, self.tmpdir)
 
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls

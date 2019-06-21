@@ -5,8 +5,9 @@ import vcommon as CM
 from miscs import Miscs
 
 import settings
-from ds import Inps, Traces, DTraces
-from invs import Inv, MPInv, Invs, DInvs
+from ds_traces import Inps, Traces, DTraces
+from invs import Inv, Invs, DInvs
+from invs_mps import MPInv
 from cegir import Cegir
 
 dbg = pdb.set_trace
@@ -35,68 +36,24 @@ class CegirMP(Cegir):
                       for lh, rh in terms}
                 for loc, terms in zip(locs, termss)}
 
-        ieqs = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
-        myinps = None  # dummy
-        cexs, ieqs = self.symstates.check(ieqs, myinps)
+        mps = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
+        cexs, mps = self.symstates.check(mps, inps=None)
 
         if cexs:
-            newInps = inps.myupdate(cexs, self.inp_decls.names)
-            if newInps:
-                self.get_traces(newInps, traces)
+            cexs_inps = inps.myupdate(cexs, self.inp_decls.names)
+            if cexs_inps:
+                self.get_traces(cexs_inps, traces)
 
-        ieqs = ieqs.remove_disproved()
-        tasks = [(loc, refs[loc][ieq]) for loc in ieqs for ieq in ieqs[loc]]
+        mps = mps.remove_disproved()
+
+        tasks = [(loc, refs[loc][mp]) for loc in mps for mp in mps[loc]]
         mlog.debug("{} locs: infer upperbounds for {} terms".format(
             len(locs), len(tasks)))
 
-        def _f(loc, mp):
-            assert isinstance(mp, MPInv), mp
-            statsd = {maxV: Inv.PROVED}
-
-            # start with this minV
-            traces_ = [t.mydict_str for t in traces[loc]]
-            vs = [mp.myeval(t) for t in traces_]
-            try:
-                mminV = int(max(minV, max(v for v in vs if v < maxV)))
-            except ValueError:
-                mminV = minV
-
-            # start with this maxV
-            i = -1
-            v = mminV
-            while True:
-                if i != -1:  # not first time
-                    v = mminV + 2**i
-
-                if v >= maxV:
-                    break
-
-                i = i + 1
-                cexs, stat = self.mk_upper_and_check(loc, mp, v)
-                assert v not in statsd, v
-                statsd[v] = stat
-
-                if loc in cexs:  # disproved
-                    mminV = self.get_max_from_cexs(loc, mp, cexs)
-                else:  # proved , term <= v
-                    break
-
-            mmaxV = v if v < maxV else maxV
-            mlog.debug("{}: compute ub for '{}', start w/ minV {}, maxV {})"
-                       .format(loc, mp.term, mminV, mmaxV))
-            boundV = self.guess_check(loc, mp, mminV, mmaxV, statsd)
-
-            if (boundV not in statsd or statsd[boundV] != Inv.DISPROVED):
-                stat = statsd[boundV] if boundV in statsd else None
-                inv = mp.term_upper(boundV)
-                inv.stat = stat
-                mlog.debug("got {}".format(inv))
-                return inv
-            else:
-                return None
-
         def f(tasks):
-            return [(loc, _f(loc, MPInv.mk_max_ieq((lh,), rh)))
+            return [(loc,
+                     self.gc(loc, MPInv.mk_max_ieq((lh,), rh),
+                             minV, maxV, traces))
                     for loc, (lh, rh) in tasks]
         wrs = Miscs.run_mp('guesscheck', tasks, f)
         rs = [(loc, inv) for loc, inv in wrs if inv]
@@ -104,6 +61,52 @@ class CegirMP(Cegir):
         for loc, inv in rs:
             dinvs.setdefault(loc, Invs()).add(inv)
         return dinvs
+
+    def gc(self, loc, mp, minV, maxV, traces):
+        assert isinstance(mp, MPInv), mp
+        statsd = {maxV: Inv.PROVED}
+
+        # start with this minV
+        traces_ = [t.mydict_str for t in traces[loc]]
+        vs = [mp.myeval(t) for t in traces_]
+        try:
+            mminV = int(max(minV, max(v for v in vs if v < maxV)))
+        except ValueError:
+            mminV = minV
+
+        # start with this maxV
+        i = -1
+        v = mminV
+        while True:
+            if i != -1:  # not first time
+                v = mminV + 2**i
+
+            if v >= maxV:
+                break
+
+            i = i + 1
+            cexs, stat = self._mk_upp_and_check(loc, mp, v)
+            assert v not in statsd, v
+            statsd[v] = stat
+
+            if loc in cexs:  # disproved
+                mminV = self._get_max_from_cexs(loc, mp, cexs)
+            else:  # proved , term <= v
+                break
+
+        mmaxV = v if v < maxV else maxV
+        mlog.debug("{}: compute ub for '{}', start w/ minV {}, maxV {})"
+                   .format(loc, mp.term, mminV, mmaxV))
+        boundV = self.guess_check(loc, mp, mminV, mmaxV, statsd)
+
+        if (boundV not in statsd or statsd[boundV] != Inv.DISPROVED):
+            stat = statsd[boundV] if boundV in statsd else None
+            inv = mp.term_upper(boundV)
+            inv.stat = stat
+            mlog.debug("got {}".format(inv))
+            return inv
+        else:
+            return None
 
     def guess_check(self, loc, mp, minV, maxV, statsd):
         assert isinstance(mp, MPInv)
@@ -117,38 +120,37 @@ class CegirMP(Cegir):
             if (minV in statsd and statsd[minV] == Inv.DISPROVED):
                 return maxV
 
-            cexs, stat = self.mk_upper_and_check(loc, mp, minV)
+            cexs, stat = self._mk_upp_and_check(loc, mp, minV)
             assert minV not in statsd
             statsd[minV] = stat
 
-            if loc in cexs:
-                return maxV
-            else:
-                return minV
+            return maxV if loc in cexs else minV
 
         v = (maxV + minV)/2.0
         v = int(math.ceil(v))
 
-        cexs, stat = self.mk_upper_and_check(loc, mp, v)
+        cexs, stat = self._mk_upp_and_check(loc, mp, v)
         assert v not in statsd, (mp.term, minV, maxV, v, stat, statsd[v])
         statsd[v] = stat
 
         if loc in cexs:  # disproved
-            minV = self.get_max_from_cexs(loc, mp, cexs)
+            minV = self._get_max_from_cexs(loc, mp, cexs)
         else:
             maxV = v
 
         if minV > maxV:
-            dbg()
+            mlog.warn("{}, {}, minV {} > maxV {}".format(
+                loc, mp.term, minV, maxV))
+
         return self.guess_check(loc, mp, minV, maxV, statsd)
 
-    def mk_upper_and_check(self, loc, mp, v):
+    def _mk_upp_and_check(self, loc, mp, v):
         inv = mp.term_upper(v)
         inv_ = DInvs.mk(loc, Invs([inv]))
         cexs, _ = self.symstates.check(inv_, inps=None)
         return cexs, inv.stat
 
-    def get_max_from_cexs(self, loc, mp, cexs):
+    def _get_max_from_cexs(self, loc, mp, cexs):
         mycexs = Traces.extract(cexs[loc], useOne=False)
         vals = [mp.myeval(t.mydict_str) for t in mycexs]
         maxV = int(max(vals))

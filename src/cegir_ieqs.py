@@ -5,8 +5,9 @@ import vcommon as CM
 from miscs import Miscs
 
 import settings
-from ds import Inps, Traces, DTraces
-from invs import Inv, IeqInv, Invs, DInvs
+from ds_traces import Inps, Traces, DTraces
+from invs import Inv, Invs, DInvs
+from invs_ieqs import IeqInv
 from cegir import Cegir
 
 dbg = pdb.set_trace

@@ -52,7 +52,7 @@ def parse(filename, tmpdir):
             jpfdir, jpffile, tracedir, tracefile)
 
 
-def mkJPFRunFile(clsName, symFun, dirName, nInps, maxInt, depthLimit):
+def mk_JPF_runfile(clsName, symFun, dirName, nInps, maxInt, depthLimit):
     assert isinstance(clsName, str) and clsName, clsName
     assert isinstance(symFun, str) and symFun, symFun
     assert os.path.isdir(dirName), dirName

@@ -7,12 +7,14 @@ import sage.all
 
 import vcommon as CM
 import settings
-from miscs import Miscs, Z3
+from miscs import Miscs
 
 from cegir import Cegir
-from ds import DTraces, Traces
-from invs import Inv, PrePostInv, EqtInv, IeqInv, Invs, DInvs
-
+from ds_traces import DTraces, Traces
+from invs import Inv, Invs, DInvs
+from invs_eqts import EqtInv
+from invs_ieqs import IeqInv
+from invs_preposts import PrePostInv
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

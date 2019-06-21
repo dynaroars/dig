@@ -2,9 +2,7 @@
 Symbolic States
 """
 import pdb
-import random
 from collections import OrderedDict
-import itertools
 import os.path
 
 import z3
@@ -15,9 +13,10 @@ from sage.all import cached_function
 import vcommon as CM
 import settings
 from miscs import Miscs, Z3
-from ds import Symbs, DSymbs, Inps, DTraces
+from ds import Symbs, DSymbs
+from ds_traces import Inps, DTraces
 from invs import Inv,  DInvs, Invs
-import srcJava
+import src_java
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -296,7 +295,7 @@ class SymStates(object):
                            else ''))
 
         if not os.path.isfile(ssfile):
-            jpffile = srcJava.mkJPFRunFile(
+            jpffile = src_java.mk_JPF_runfile(
                 clsName, mainQName, jpfDir, nInps, max_val, depth)
 
             ssfile = os.path.join(
@@ -378,19 +377,31 @@ class SymStates(object):
 
         self.ss = symstates
 
+    def check(self, dinvs, inps, path_idx=None):
+        """
+        Check invs.
+        Also update inps
+        """
+        assert isinstance(dinvs, DInvs), dinvs
+        assert not inps or (isinstance(inps, Inps) and inps), inps
+
+        mlog.debug("checking {} invs:\n{}".format(
+            dinvs.siz, dinvs.__str__(print_first_n=20)))
+        return self.get_inps(dinvs, inps, path_idx)
+
     def get_inps(self, dinvs, inps, path_idx=None):
         """call verifier on each inv"""
-
-        def check(loc, inv):
-            return self.mcheck_d(
-                loc, path_idx, inv.expr(self.use_reals), inps, ncexs=1)
 
         tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
                  if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
 
         def f(tasks):
-            return [(loc, str(inv), check(loc, inv)) for loc, inv in tasks]
+            return [(loc, str(inv),
+                     self._mcheck_d(
+                         loc, path_idx,
+                         inv.expr(self.use_reals), inps, ncexs=1))
+                    for loc, inv in tasks]
         wrs = Miscs.run_mp("prove", tasks, f)
 
         mCexs, mdinvs = [], DInvs()
@@ -407,56 +418,9 @@ class SymStates(object):
 
         return merge(mCexs), mdinvs
 
-    def check(self, dinvs, inps, path_idx=None):
-        """
-        Check invs.
-        Also update inps
-        """
-        assert isinstance(dinvs, DInvs), dinvs
-        assert not inps or (isinstance(inps, Inps) and inps), inps
+    # PRIVATE
 
-        mlog.debug("checking {} invs:\n{}".format(
-            dinvs.siz, dinvs.__str__(print_first_n=20)))
-        return self.get_inps(dinvs, inps, path_idx)
-
-    def mkInpsConstr(self, inps):
-        cstrs = []
-        if isinstance(inps, Inps) and inps:
-            inpCstrs = [inp.mkExpr(self.inp_exprs) for inp in inps]
-            inpCstrs = [z3.Not(expr) for expr in inpCstrs if expr is not None]
-            cstrs.extend(inpCstrs)
-
-        if not cstrs:
-            return None
-        elif len(cstrs) == 1:
-            return cstrs[0]
-        else:
-            return z3.And(cstrs)
-
-    def mcheck(self, symstatesExpr, inv, inps, ncexs=1):
-        """
-        check if pathcond => inv
-        if not, return cex
-
-        return inps, cexs, isSucc (if the solver does not timeout)
-        """
-        assert z3.is_expr(symstatesExpr), symstatesExpr
-        assert inv is None or z3.is_expr(inv), inv
-        assert inps is None or isinstance(inps, Inps), inps
-        assert ncexs >= 0, ncexs
-
-        f = symstatesExpr
-        iconstr = self.mkInpsConstr(inps)
-        if iconstr is not None:
-            f = z3.simplify(z3.And(iconstr, f))
-        if inv is not None:
-            f = z3.Not(z3.Implies(f, inv))
-
-        models, stat = Z3.get_models(f, ncexs)
-        cexs, isSucc = Z3.extract(models)
-        return cexs, isSucc, stat
-
-    def mcheck_d(self, loc, path_idx, inv, inps, ncexs=1):
+    def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1):
         assert isinstance(loc, str), loc
         assert path_idx is None or path_idx >= 0
         assert inv is None or z3.is_expr(inv), inv
@@ -472,7 +436,7 @@ class SymStates(object):
                 ss = ss[path_idx].exprPC if path_idx else ss.exprPC
             else:
                 ss = ss[path_idx].expr if path_idx else ss.expr
-            return self.mcheck(ss, inv, inps, ncexs)
+            return self._mcheck(ss, inv, inps, ncexs)
 
         depths = sorted(self.ss[loc].keys())
         depth_idx = 0
@@ -489,16 +453,42 @@ class SymStates(object):
 
         return cexs, isSucc
 
-    def extractCexs(self, models):
-        assert all(isinstance(m, z3.ModelRef)
-                   for m in models) and models, models
+    def _mcheck(self, symstatesExpr, inv, inps, ncexs=1):
+        """
+        check if pathcond => inv
+        if not, return cex
 
-        def f(model):
-            cex = {str(s): sage.all.sage_eval(str(model[s])) for s in model}
-            return cex
+        return inps, cexs, isSucc (if the solver does not timeout)
+        """
+        assert z3.is_expr(symstatesExpr), symstatesExpr
+        assert inv is None or z3.is_expr(inv), inv
+        assert inps is None or isinstance(inps, Inps), inps
+        assert ncexs >= 0, ncexs
 
-        cexs = [f(model) for model in models]
-        return cexs
+        f = symstatesExpr
+        iconstr = self._get_inp_constrs(inps)
+        if iconstr is not None:
+            f = z3.simplify(z3.And(iconstr, f))
+        if inv is not None:
+            f = z3.Not(z3.Implies(f, inv))
+
+        models, stat = Z3.get_models(f, ncexs)
+        cexs, isSucc = Z3.extract(models)
+        return cexs, isSucc, stat
+
+    def _get_inp_constrs(self, inps):
+        cstrs = []
+        if isinstance(inps, Inps) and inps:
+            inpCstrs = [inp.mkExpr(self.inp_exprs) for inp in inps]
+            inpCstrs = [z3.Not(expr) for expr in inpCstrs if expr is not None]
+            cstrs.extend(inpCstrs)
+
+        if not cstrs:
+            return None
+        elif len(cstrs) == 1:
+            return cstrs[0]
+        else:
+            return z3.And(cstrs)
 
 
 def merge(ds):
