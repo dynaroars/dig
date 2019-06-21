@@ -13,7 +13,7 @@ from miscs import Miscs
 from ds import Prog
 from ds_traces import DTraces
 from invs import Invs, DInvs
-from invs_eqts import EqtInv
+from invs_eqts import EqtInv, CegirEqts
 from invs_ieqs import IeqInv
 
 from symstates import SymStates
@@ -162,7 +162,6 @@ class DigCegir(Dig):
         return dinvs, dtraces, self.tmpdir
 
     def infer_eqts(self, deg, dtraces, inps):
-        from cegir_eqts import CegirEqts
         solver = CegirEqts(self.symstates, self.prog)
         solver.useRandInit = self.useRandInit
         dinvs = solver.gen(self.deg, dtraces, inps)
