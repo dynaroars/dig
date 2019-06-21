@@ -4,7 +4,7 @@ import operator
 from collections import Iterable
 
 import sage.all
-from sage.all import cached_function
+from sage.all import cached_function, fork
 
 import z3
 import vcommon as CM
@@ -354,7 +354,12 @@ class Miscs(object):
 
         mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
 
-        rs = sage.all.solve(eqts, *uks, solution_dict=True)
+        @fork(timeout=180, verbose=False)
+        def mysolve(eqts, uks, solution_dict):
+            return sage.all.solve(eqts, *uks, solution_dict=True)
+
+        #rs = sage.all.solve(eqts, *uks, solution_dict=True)
+        rs = mysolve(eqts, uks, solution_dict=True)
         assert isinstance(rs, list), rs
         assert all(isinstance(s, dict) for s in rs), rs
 

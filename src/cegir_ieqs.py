@@ -110,10 +110,6 @@ class CegirIeqs(Cegir):
         assert minV <= maxV, (minV, maxV, term)
         assert isinstance(statsd, dict), statsd  # {v : proved}
 
-        # print loc
-        # print term
-        # print minV, maxV
-
         if minV == maxV:
             return maxV
         elif maxV - minV == 1:

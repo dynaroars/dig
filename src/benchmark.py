@@ -21,19 +21,14 @@ def run(benchdir, ntimes):
             print "File {} does not exist".format(f)
             continue
 
-        #run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {} -nopreposts"
+        #run_cmd = "sage -python -O dig.py {} -log 3 -octmaxv 20 -seed {} -nopreposts"
         for i in range(ntimes):
             print "##### Running {} with seed {}, {}".format(
                 f, i, time.strftime("%c"))
             dig.run(f, seed=i, maxdeg=None,
-                    do_eqts=True, do_ieqs=True, do_preposts=False,
+                    do_eqts=True, do_ieqs=True, do_minmaxplus=True,
+                    do_preposts=False,
                     do_rmtmp=True)
-            #cmd = run_cmd.format(f, i)
-            # print cmd
-
-            #stdout, stderr = CM.vcmd(cmd)
-            # print stdout
-            # print stderr
 
 
 ntimes = 1

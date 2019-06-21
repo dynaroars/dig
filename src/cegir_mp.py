@@ -69,7 +69,6 @@ class CegirMP(Cegir):
 
         # start with this minV
         traces_ = [t.mydict_str for t in traces[loc]]
-        print mp, mp.a, mp.b
         vs = [mp.myeval(t) for t in traces_]
         try:
             mminV = int(max(minV, max(v for v in vs if v < maxV)))
