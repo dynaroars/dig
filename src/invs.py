@@ -96,7 +96,7 @@ class Invs(set):
 
     def __str__(self, print_stat=False, delim='\n'):
         invs = sorted(self, reverse=True,
-                      key=lambda inv: inv.eqt)
+                      key=lambda inv: inv.is_eqt)
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
     def __contains__(self, inv):

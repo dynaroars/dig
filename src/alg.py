@@ -10,14 +10,6 @@ import vcommon as CM
 import settings
 from miscs import Miscs
 
-from ds import Prog
-from ds_traces import DTraces
-from invs import Invs, DInvs
-from invs_eqts import EqtInv, CegirEqts
-from invs_ieqs import IeqInv
-
-from symstates import SymStates
-from cegir import Cegir
 import src_java
 
 dbg = pdb.set_trace
@@ -98,10 +90,12 @@ class DigCegir(Dig):
         self.inv_decls = inv_decls
         self.useRandInit = True
 
+        import ds
         exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
-        self.prog = Prog(exe_cmd, inp_decls, inv_decls)
+        self.prog = ds.Prog(exe_cmd, inp_decls, inv_decls)
 
-        self.symstates = SymStates(inp_decls, inv_decls)
+        import symstates
+        self.symstates = symstates.SymStates(inp_decls, inv_decls)
         self.symstates.compute(self.filename, mainQName, clsname, jpfdir)
 
         # remove locations with no symbolic states
@@ -119,7 +113,8 @@ class DigCegir(Dig):
         super(DigCegir, self).start(seed, maxdeg)
 
         st = time()
-        solver = Cegir(self.symstates, self.prog)
+        import cegir
+        solver = cegir.Cegir(self.symstates, self.prog)
         mlog.debug("check reachability")
         dinvs, dtraces, inps = solver.check_reach()
         if not dtraces:
@@ -131,7 +126,6 @@ class DigCegir(Dig):
 
             st = time()
             invs = f()
-            assert isinstance(invs, DInvs)
             if not invs.siz:
                 mlog.warn("found no {}".format(typ))
             else:
@@ -162,7 +156,8 @@ class DigCegir(Dig):
         return dinvs, dtraces, self.tmpdir
 
     def infer_eqts(self, deg, dtraces, inps):
-        solver = CegirEqts(self.symstates, self.prog)
+        import invs_eqts
+        solver = invs_eqts.CegirEqts(self.symstates, self.prog)
         solver.useRandInit = self.useRandInit
         dinvs = solver.gen(self.deg, dtraces, inps)
         return dinvs
@@ -180,52 +175,7 @@ class DigCegir(Dig):
         return dinvs
 
     def infer_preposts(self, dinvs, dtraces):
-        from cegir_preposts import CegirPrePosts
-        solver = CegirPrePosts(self.symstates, self.prog)
+        import invs_preposts
+        solver = invs_preposts.CegirPrePosts(self.symstates, self.prog)
         dinvs = solver.gen(dinvs, dtraces)
         return dinvs
-
-
-class DigTraces(Dig):
-    def __init__(self, tracefile):
-        super(DigTraces, self).__init__(tracefile)
-
-        self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-
-    def start(self, seed, maxdeg,
-              do_eqts, do_ieqs, do_maxminplus, do_preposts):
-
-        super(DigTraces, self).start(seed, maxdeg)
-
-        st = time()
-        dinvs = DInvs()
-        for loc in self.dtraces:
-            symbols = self.inv_decls[loc]
-            dinvs[loc] = Invs()
-            traces = self.dtraces[loc]
-
-            if do_eqts:
-                terms, template, uks, n_eqts_needed = Miscs.init_terms(
-                    symbols.names, self.deg, settings.EQT_RATE)
-                exprs = list(traces.instantiate(template, n_eqts_needed))
-                eqts = Miscs.solve_eqts(exprs, uks, template)
-                for eqt in eqts:
-                    dinvs[loc].add(EqtInv(eqt))
-
-            if do_ieqs:
-                maxV = settings.OCT_MAX_V
-                minV = -1*maxV
-
-                oct_siz = 2
-                terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, oct_siz)
-                for t in terms:
-                    upperbound = max(traces.myeval(t))
-                    if upperbound > maxV or upperbound < minV:
-                        continue
-
-                    ieq = t <= upperbound
-                    dinvs[loc].add(IeqInv(ieq))
-
-        dinvs = self.sanitize(dinvs, self.dtraces)
-        self.print_results(dinvs, self.dtraces, None, st)
-        return dinvs, None, self.tmpdir

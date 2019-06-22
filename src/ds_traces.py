@@ -1,5 +1,3 @@
-import itertools
-import random
 import pdb
 
 import z3
