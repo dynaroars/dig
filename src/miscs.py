@@ -354,7 +354,7 @@ class Miscs(object):
 
         mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
 
-        @fork(timeout=180, verbose=False)
+        @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
         def mysolve(eqts, uks, solution_dict):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 
