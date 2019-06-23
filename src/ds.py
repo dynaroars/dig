@@ -5,9 +5,9 @@ import pdb
 
 import sage.all
 
-import vcommon as CM
 import settings
-from miscs import Miscs, Z3
+import helpers.vcommon as CM
+from helpers.miscs import Miscs, Z3
 
 from ds_traces import Inps, DTraces, Trace
 

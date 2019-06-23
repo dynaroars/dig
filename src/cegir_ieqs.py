@@ -1,8 +1,8 @@
 import math
 import pdb
 
-import vcommon as CM
-from miscs import Miscs
+import helpers.vcommon as CM
+from helpers.miscs import Miscs
 
 import settings
 from ds_traces import Inps, Traces, DTraces

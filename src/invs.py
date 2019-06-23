@@ -7,9 +7,9 @@ import z3
 import sage.all
 from sage.all import cached_function
 
-import vcommon as CM
+import helpers.vcommon as CM
 import settings
-from miscs import Miscs, Z3
+from helpers.miscs import Miscs, Z3
 
 from ds_traces import Trace, Traces, DTraces
 dbg = pdb.set_trace

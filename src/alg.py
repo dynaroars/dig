@@ -6,9 +6,9 @@ from time import time
 
 import sage.all
 
-import vcommon as CM
 import settings
-from miscs import Miscs
+from helpers.miscs import Miscs
+import helpers.vcommon as CM
 
 import src_java
 

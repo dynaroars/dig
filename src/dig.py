@@ -2,8 +2,7 @@ import sys
 import os.path
 from datetime import datetime
 from time import time
-from vcommon import getLogger, getLogLevel
-
+from helpers.vcommon import getLogger, getLogLevel
 
 def run(inp, seed, maxdeg,
         do_eqts, do_ieqs, do_minmaxplus, do_preposts, do_rmtmp):

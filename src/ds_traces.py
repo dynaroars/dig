@@ -1,13 +1,9 @@
 import pdb
-
 import z3
-
 import sage.all
-
-import vcommon as CM
+import helpers.vcommon as CM
+from helpers.miscs import Miscs
 import settings
-from miscs import Miscs
-
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 

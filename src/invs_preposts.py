@@ -1,13 +1,10 @@
 import operator
 import pdb
 import z3
-
 import sage.all
-
-import vcommon as CM
+import helpers.vcommon as CM
+from helpers.miscs import Miscs
 import settings
-from miscs import Miscs
-
 from cegir import Cegir
 from ds_traces import DTraces, Traces
 from invs import Inv, Invs, DInvs

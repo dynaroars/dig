@@ -4,15 +4,12 @@ Symbolic States
 import pdb
 from collections import OrderedDict
 import os.path
-
 import z3
-
 import sage.all
 from sage.all import cached_function
-
-import vcommon as CM
+import helpers.vcommon as CM
+from helpers.miscs import Miscs, Z3
 import settings
-from miscs import Miscs, Z3
 from ds import Symbs, DSymbs
 from ds_traces import Inps, DTraces
 from invs import Inv,  DInvs, Invs

@@ -2,8 +2,8 @@ import operator
 import pdb
 
 import settings
-import vcommon as CM
-from miscs import Miscs
+import helpers.vcommon as CM
+from helpers.miscs import Miscs
 
 from invs import RelInv
 from cegir import Cegir

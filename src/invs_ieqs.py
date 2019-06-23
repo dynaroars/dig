@@ -2,7 +2,7 @@ import operator
 import pdb
 
 import settings
-import vcommon as CM
+import helpers.vcommon as CM
 
 from invs import RelInv
 
