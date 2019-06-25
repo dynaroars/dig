@@ -1,3 +1,7 @@
+"""
+CEGIR algorithm
+"""
+
 from abc import ABCMeta, abstractmethod
 import pdb
 

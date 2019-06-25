@@ -162,14 +162,14 @@ class DigCegir(Dig):
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        from cegir.ieqs import CegirIeqs
+        #from cegir.ieqs import CegirIeqs
+        from cegir.upper_binsearch import CegirIeqs
         solver = CegirIeqs(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
     def infer_minmaxplus(self, dtraces, inps):
-        #from cegir import CegirMP
-        from cegir.mps import CegirMP
+        from cegir.upper_binsearch import CegirMP
         solver = CegirMP(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
