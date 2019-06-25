@@ -8,7 +8,7 @@ import settings
 from data.traces import Inps, Traces, DTraces
 from data.invs import Inv, Invs, DInvs
 from data.ieqs import IeqInv
-from algs.cegir import Cegir
+from cegir.base import Cegir
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

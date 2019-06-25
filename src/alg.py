@@ -112,8 +112,8 @@ class DigCegir(Dig):
         super(DigCegir, self).start(seed, maxdeg)
 
         st = time.time()
-        import algs.cegir
-        solver = algs.cegir.Cegir(self.symstates, self.prog)
+        import cegir.base
+        solver = cegir.base.Cegir(self.symstates, self.prog)
         mlog.debug("check reachability")
         dinvs, dtraces, inps = solver.check_reach()
         if not dtraces:
@@ -155,27 +155,27 @@ class DigCegir(Dig):
         return dinvs, dtraces, self.tmpdir
 
     def infer_eqts(self, deg, dtraces, inps):
-        import data.eqts
-        solver = data.eqts.CegirEqts(self.symstates, self.prog)
+        from cegir.eqts import CegirEqts
+        solver = CegirEqts(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
         dinvs = solver.gen(self.deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        from algs.cegir_ieqs import CegirIeqs
+        from cegir.ieqs import CegirIeqs
         solver = CegirIeqs(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
     def infer_minmaxplus(self, dtraces, inps):
         #from cegir import CegirMP
-        from algs.cegir_mp import CegirMP
+        from cegir.mps import CegirMP
         solver = CegirMP(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
     def infer_preposts(self, dinvs, dtraces):
-        import data.preposts
-        solver = data.preposts.CegirPrePosts(self.symstates, self.prog)
+        from cegir.preposts import CegirPrePosts
+        solver = CegirPrePosts(self.symstates, self.prog)
         dinvs = solver.gen(dinvs, dtraces)
         return dinvs

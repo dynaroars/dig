@@ -8,11 +8,11 @@ import helpers.vcommon
 def run(inp, seed, maxdeg,
         do_eqts, do_ieqs, do_minmaxplus, do_preposts, do_rmtmp):
 
-    import algs.alg
+    import alg
     if inp.endswith(".java") or inp.endswith(".class"):
-        dig = algs.alg.DigCegir(inp)
+        dig = alg.DigCegir(inp)
     else:
-        dig = algs.alg.DigTraces(inp)
+        dig = alg.DigTraces(inp)
 
     invs, traces, tmpdir = dig.start(
         seed, maxdeg, do_eqts, do_ieqs, do_minmaxplus, do_preposts)

@@ -8,7 +8,7 @@ import settings
 from data.traces import Inps, Traces, DTraces
 from data.invs import Inv, Invs, DInvs
 from data.mps import MPInv
-from algs.cegir import Cegir
+from cegir.base import Cegir
 
 dbg = pdb.set_trace
 
