@@ -1,3 +1,6 @@
+"""
+"""
+
 import operator
 import pdb
 
@@ -5,11 +8,9 @@ import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
-from invs import RelInv
-from cegir import Cegir
-from ds_traces import Inps, Traces, DTraces
-from invs import Invs, DInvs
-
+from data.invs import RelInv, Invs, DInvs
+from data.traces import Inps, Traces, DTraces
+from algs.cegir import Cegir
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -28,7 +29,7 @@ class EqtInv(RelInv):
 class CegirEqts(Cegir):
     def __init__(self, symstates, prog):
         super(CegirEqts, self).__init__(symstates, prog)
-        self.useRandInit = False  # use symstates or random to get init inps
+        self.use_rand_init = False  # use symstates or random to get init inps
 
     def gen(self, deg, traces, inps):
         assert deg >= 1, deg
@@ -36,7 +37,7 @@ class CegirEqts(Cegir):
         assert isinstance(inps, Inps), inps
 
         # first obtain enough traces
-        initrs = [self.getInitTraces(loc, deg, traces, inps, settings.EQT_RATE)
+        initrs = [self._get_init_traces(loc, deg, traces, inps, settings.EQT_RATE)
                   for loc in traces]
         tasks = [(loc, rs) for loc, rs in zip(traces, initrs) if rs]
         if not tasks:  # e.g., cannot obtain enough traces
@@ -44,7 +45,7 @@ class CegirEqts(Cegir):
 
         # then solve/prove in parallel
         def f(tasks):
-            return [(loc, self.infer(loc, template, uks, exprs, traces, inps))
+            return [(loc, self._infer(loc, template, uks, exprs, traces, inps))
                     for loc, (template, uks, exprs) in tasks]
         wrs = Miscs.run_mp('find eqts', tasks, f)
         dinvs = DInvs()
@@ -58,7 +59,9 @@ class CegirEqts(Cegir):
 
         return dinvs
 
-    def while_rand(self, loc, template, n_eqts_needed, inps, traces):
+    # PRIVATE
+
+    def _while_rand(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeatedly get more inps using random method
         """
@@ -110,7 +113,7 @@ class CegirEqts(Cegir):
 
         return exprs
 
-    def while_symstates(self, loc, template, n_eqts_needed, inps, traces):
+    def _while_symstates(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeated get more traces using the symstates (e.g., Klee)
         """
@@ -140,16 +143,16 @@ class CegirEqts(Cegir):
 
         return exprs
 
-    def getInitTraces(self, loc, deg, traces, inps, rate):
+    def _get_init_traces(self, loc, deg, traces, inps, rate):
         "Initial loop to obtain (random) traces to bootstrap eqt solving"
 
         assert deg >= 1, deg
         assert isinstance(rate, float) and rate >= 0.1, rate
 
-        if self.useRandInit:
-            whileF, whileFName = self.while_rand, "random"
+        if self.use_rand_init:
+            whileF, whileFName = self._while_rand, "random"
         else:
-            whileF, whileFName = self.while_symstates, "symstates"
+            whileF, whileFName = self._while_symstates, "symstates"
         mlog.debug("{}: gen init inps using {} (curr inps {}, traces {})"
                    .format(loc, whileFName, len(inps), len(traces)))
 
@@ -171,7 +174,7 @@ class CegirEqts(Cegir):
 
         return template, uks, exprs
 
-    def infer(self, loc, template, uks, exprs, dtraces, inps):
+    def _infer(self, loc, template, uks, exprs, dtraces, inps):
         assert isinstance(loc, str) and loc, loc
         assert Miscs.is_expr(template), template
         assert isinstance(uks, list), uks

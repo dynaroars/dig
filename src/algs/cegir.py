@@ -2,11 +2,12 @@ from abc import ABCMeta, abstractmethod
 import pdb
 
 import helpers.vcommon as CM
-from ds import Prog
-from ds_traces import Inps, DTraces
-from invs import DInvs
-
 import settings
+
+from data.ds import Prog
+from data.traces import Inps, DTraces
+from data.invs import DInvs
+
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

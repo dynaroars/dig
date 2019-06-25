@@ -1,15 +1,17 @@
 import operator
 import pdb
+
 import z3
 import sage.all
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
+
 import settings
-from cegir import Cegir
-from ds_traces import DTraces, Traces
-from invs import Inv, Invs, DInvs
-from invs_eqts import EqtInv
-from invs_ieqs import IeqInv
+from algs.cegir import Cegir
+from data.traces import DTraces, Traces
+from data.invs import Inv, Invs, DInvs
+from data.eqts import EqtInv
+from data.ieqs import IeqInv
 
 
 dbg = pdb.set_trace

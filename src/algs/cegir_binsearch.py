@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import math
 import pdb
 
@@ -15,9 +16,11 @@ dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirMP(Cegir):
+class CegirBinSearch(Cegir):
+    __metaclass__ = ABCMeta
+
     def __init__(self, symstates, prog):
-        super(CegirMP, self).__init__(symstates, prog)
+        super(CegirBinSearch, self).__init__(symstates, prog)
 
     def gen(self, traces, inps):
         assert isinstance(traces, DTraces) and traces, traces
@@ -25,7 +28,7 @@ class CegirMP(Cegir):
 
         locs = traces.keys()
         symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
-        termss_u = [MPInv.get_terms(symbols) for symbols in symbolss]
+        termss_u = [self.get_terms(symbols) for symbols in symbolss]
         termss_l = [[(b, a) for a, b in terms] for terms in termss_u]
         termss = [ts_u + ts_l for ts_u, ts_l in zip(termss_u, termss_l)]
 
@@ -33,8 +36,7 @@ class CegirMP(Cegir):
             sum(map(len, termss)), len(locs)))
         maxV = settings.OCT_MAX_V
         minV = -1*maxV
-        refs = {loc: {MPInv.mk_max_ieq(a, b).mk_upper(maxV): (a, b)
-                      for a, b in terms}
+        refs = {loc: {self.mk_upper(term): term for term in terms}
                 for loc, terms in zip(locs, termss)}
 
         mps = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
@@ -109,10 +111,10 @@ class CegirMP(Cegir):
         else:
             return None
 
-    def guess_check(self, loc, mp, minV, maxV, statsd):
-        assert isinstance(mp, MPInv)
+    def guess_check(self, loc, term, minV, maxV, statsd):
+        # assert isinstance(mp, MPInv)
         assert isinstance(loc, str) and loc, loc
-        assert minV <= maxV, (minV, maxV, mp.term)
+        assert minV <= maxV, (minV, maxV, term)
         assert isinstance(statsd, dict), statsd  # {v : proved}
 
         if minV == maxV:
@@ -121,7 +123,7 @@ class CegirMP(Cegir):
             if (minV in statsd and statsd[minV] == Inv.DISPROVED):
                 return maxV
 
-            cexs, stat = self._mk_upp_and_check(loc, mp, minV)
+            cexs, stat = self._mk_upp_and_check(loc, term, minV)
             assert minV not in statsd
             statsd[minV] = stat
 
@@ -130,29 +132,70 @@ class CegirMP(Cegir):
         v = (maxV + minV)/2.0
         v = int(math.ceil(v))
 
-        cexs, stat = self._mk_upp_and_check(loc, mp, v)
-        assert v not in statsd, (mp.term, minV, maxV, v, stat, statsd[v])
+        cexs, stat = self._mk_upp_and_check(loc, term, v)
+        assert v not in statsd, (mp, minV, maxV, v, stat, statsd[v])
         statsd[v] = stat
 
         if loc in cexs:  # disproved
-            minV = self._get_max_from_cexs(loc, mp, cexs)
+            minV = self._get_max_from_cexs(loc, term, cexs)
         else:
             maxV = v
 
         if minV > maxV:
             mlog.warn("{}, {}, minV {} > maxV {}".format(
-                loc, mp.term, minV, maxV))
+                loc, mp, minV, maxV))
 
-        return self.guess_check(loc, mp, minV, maxV, statsd)
+        return self.guess_check(loc, term, minV, maxV, statsd)
 
-    def _mk_upp_and_check(self, loc, mp, v):
-        inv = mp.mk_upper(v)
+    def _mk_upp_and_check(self, loc, term, v):
+        inv = mk_upper(term, v)
         inv_ = DInvs.mk(loc, Invs([inv]))
         cexs, _ = self.symstates.check(inv_, inps=None)
         return cexs, inv.stat
 
-    def _get_max_from_cexs(self, loc, mp, cexs):
+    def _get_max_from_cexs(self, loc, term, cexs):
         mycexs = Traces.extract(cexs[loc], useOne=False)
-        vals = [mp.myeval(t.mydict_str) for t in mycexs]
-        maxV = int(max(vals))
+        maxV = int(max(self.myeval(term, mycexs)))
         return maxV
+
+    @abstractmethod
+    def get_terms(self, symbols):
+        pass
+
+    @abstractmethod
+    def mk_upper(self, term):
+        pass
+
+    @abstractmethod
+    def mk_upper2(self, term):
+        pass
+
+    @abstractmethod
+    def myeval(self, term, cexs):
+        pass
+
+
+class CegirIeq(CegirBinSearch):
+    def get_terms(self, symbols):
+        return Miscs.get_terms_fixed_coefs(symbols, 2)
+
+    def myeval(self, term, cexs):
+        return cexs.myeval(term))
+
+    def mk_upper2(self, term, maxV):
+        return IeqInv(term <= v)
+
+class CegirMP(CegirBinSearch):
+    def get_terms(self, symbols):
+        return MPInv.get_terms(symbols)
+
+    def myeval(self, term, cexs):
+        return [term.myeval(t.mydict_str) for t in cexs]
+
+    def mk_upper(self, term, maxV):
+        a, b=term
+        return MPInv.mk_max_ieq(a, b).mk_upper(maxV)
+
+
+    def mk_upper2(self, term, maxV):
+        return term.mk_upper(maxV)

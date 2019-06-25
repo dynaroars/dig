@@ -1,17 +1,18 @@
 import sys
 import os.path
-from datetime import datetime
-from time import time
-from helpers.vcommon import getLogger, getLogLevel
+import datetime
+import time
+import helpers.vcommon
+
 
 def run(inp, seed, maxdeg,
         do_eqts, do_ieqs, do_minmaxplus, do_preposts, do_rmtmp):
 
-    import alg
+    import algs.alg
     if inp.endswith(".java") or inp.endswith(".class"):
-        dig = alg.DigCegir(inp)
+        dig = algs.alg.DigCegir(inp)
     else:
-        dig = alg.DigTraces(inp)
+        dig = algs.alg.DigTraces(inp)
 
     invs, traces, tmpdir = dig.start(
         seed, maxdeg, do_eqts, do_ieqs, do_minmaxplus, do_preposts)
@@ -94,9 +95,9 @@ if __name__ == "__main__":
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
         settings.logger_level = args.log_level
-    settings.logger_level = getLogLevel(settings.logger_level)
+    settings.logger_level = helpers.vcommon.getLogLevel(settings.logger_level)
 
-    mlog = getLogger(__name__, settings.logger_level)
+    mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
 
     if args.inpMaxV >= 1 and args.inpMaxV != settings.INP_MAX_V:
         settings.INP_MAX_V = args.inpMaxV
@@ -113,13 +114,13 @@ if __name__ == "__main__":
     if args.maxterm >= 1 and args.maxterm != settings.MAX_TERM:
         settings.MAX_TERM = args.maxterm
 
-    mlog.info("{}: {}".format(datetime.now(), ' '.join(sys.argv)))
+    mlog.info("{}: {}".format(datetime.datetime.now(), ' '.join(sys.argv)))
 
     if __debug__:
         mlog.warn("DEBUG MODE ON. Can be slow !")
 
     inp = os.path.realpath(os.path.expanduser(args.inp))
-    seed = round(time(), 2) if args.seed is None else float(args.seed)
+    seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
     run(inp, seed, maxdeg=args.maxdeg,
         do_eqts=not args.noeqts,

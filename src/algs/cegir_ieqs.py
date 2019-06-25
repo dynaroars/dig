@@ -5,10 +5,10 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 import settings
-from ds_traces import Inps, Traces, DTraces
-from invs import Inv, Invs, DInvs
-from invs_ieqs import IeqInv
-from cegir import Cegir
+from data.traces import Inps, Traces, DTraces
+from data.invs import Inv, Invs, DInvs
+from data.ieqs import IeqInv
+from algs.cegir import Cegir
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

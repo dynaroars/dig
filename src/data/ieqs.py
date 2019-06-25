@@ -4,14 +4,13 @@ import pdb
 import settings
 import helpers.vcommon as CM
 
-from invs import RelInv
-
+import data.invs
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class IeqInv(RelInv):
+class IeqInv(data.invs.RelInv):
     def __init__(self, ieq, stat=None):
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)

@@ -4,16 +4,19 @@ Symbolic States
 import pdb
 from collections import OrderedDict
 import os.path
+
 import z3
 import sage.all
 from sage.all import cached_function
+
+import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
-import settings
-from ds import Symbs, DSymbs
-from ds_traces import Inps, DTraces
-from invs import Inv,  DInvs, Invs
-import src_java
+import helpers.src_java
+from data.ds import Symbs, DSymbs
+from data.traces import Inps, DTraces
+from data.invs import Inv,  DInvs, Invs
+
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -292,7 +295,7 @@ class SymStates(object):
                            else ''))
 
         if not os.path.isfile(ssfile):
-            jpffile = src_java.mk_JPF_runfile(
+            jpffile = helpers.src_java.mk_JPF_runfile(
                 clsName, mainQName, jpfDir, nInps, max_val, depth)
 
             ssfile = os.path.join(

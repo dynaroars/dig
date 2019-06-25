@@ -2,15 +2,14 @@ from abc import ABCMeta
 import pdb
 import random
 import os.path
-from time import time
+import time
 
 import sage.all
 
 import settings
 from helpers.miscs import Miscs
 import helpers.vcommon as CM
-
-import src_java
+import helpers.src_java
 
 dbg = pdb.set_trace
 
@@ -71,7 +70,7 @@ class Dig(object):
         print(result.format(self.filename, len(dinvs),
                             dinvs.siz, dinvs.n_eqs, dtraces.siz,
                             len(inps) if inps else 0,
-                            time() - st,
+                            time.time() - st,
                             self.seed,
                             random.randint(0, 100),
                             sage.all.randint(0, 100),
@@ -84,18 +83,18 @@ class DigCegir(Dig):
 
         # call ASM to obtain
         (inp_decls, inv_decls, clsname, mainQName, jpfdir, jpffile,
-         tracedir, traceFile) = src_java.parse(filename, self.tmpdir)
+         tracedir, traceFile) = helpers.src_java.parse(filename, self.tmpdir)
 
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
-        self.useRandInit = True
+        self.use_rand_init = True
 
-        import ds
+        import data.ds
         exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
-        self.prog = ds.Prog(exe_cmd, inp_decls, inv_decls)
+        self.prog = data.ds.Prog(exe_cmd, inp_decls, inv_decls)
 
-        import symstates
-        self.symstates = symstates.SymStates(inp_decls, inv_decls)
+        import data.symstates
+        self.symstates = data.symstates.SymStates(inp_decls, inv_decls)
         self.symstates.compute(self.filename, mainQName, clsname, jpfdir)
 
         # remove locations with no symbolic states
@@ -112,9 +111,9 @@ class DigCegir(Dig):
 
         super(DigCegir, self).start(seed, maxdeg)
 
-        st = time()
-        import cegir
-        solver = cegir.Cegir(self.symstates, self.prog)
+        st = time.time()
+        import algs.cegir
+        solver = algs.cegir.Cegir(self.symstates, self.prog)
         mlog.debug("check reachability")
         dinvs, dtraces, inps = solver.check_reach()
         if not dtraces:
@@ -124,13 +123,13 @@ class DigCegir(Dig):
             mlog.debug("gen '{}' at {} locs".format(typ, len(dtraces)))
             mlog.debug(self.str_of_locs(dtraces.keys()))
 
-            st = time()
+            st = time.time()
             invs = f()
             if not invs.siz:
                 mlog.warn("found no {}".format(typ))
             else:
                 mlog.info("found {} {} in {}s".format(
-                    invs.siz, typ, time() - st))
+                    invs.siz, typ, time.time() - st))
                 dinvs.merge(invs)
                 mlog.debug("{}".format(dinvs.__str__(
                     print_stat=True, print_first_n=20)))
@@ -156,26 +155,27 @@ class DigCegir(Dig):
         return dinvs, dtraces, self.tmpdir
 
     def infer_eqts(self, deg, dtraces, inps):
-        import invs_eqts
-        solver = invs_eqts.CegirEqts(self.symstates, self.prog)
-        solver.useRandInit = self.useRandInit
+        import data.eqts
+        solver = data.eqts.CegirEqts(self.symstates, self.prog)
+        solver.use_rand_init = self.use_rand_init
         dinvs = solver.gen(self.deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        from cegir_ieqs import CegirIeqs
+        from algs.cegir_ieqs import CegirIeqs
         solver = CegirIeqs(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
     def infer_minmaxplus(self, dtraces, inps):
-        from cegir_mp import CegirMP
+        #from cegir import CegirMP
+        from algs.cegir_mp import CegirMP
         solver = CegirMP(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
     def infer_preposts(self, dinvs, dtraces):
-        import invs_preposts
-        solver = invs_preposts.CegirPrePosts(self.symstates, self.prog)
+        import data.preposts
+        solver = data.preposts.CegirPrePosts(self.symstates, self.prog)
         dinvs = solver.gen(dinvs, dtraces)
         return dinvs

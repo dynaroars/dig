@@ -8,8 +8,7 @@ import sage.all
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
-
-from ds_traces import Inps, DTraces, Trace
+from data.traces import Inps, DTraces, Trace
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
