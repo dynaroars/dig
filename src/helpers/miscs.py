@@ -538,7 +538,7 @@ class Miscs(object):
             else:
                 myQ.put(rs)
 
-        if settings.doMP and len(tasks) >= 2:
+        if settings.DO_MP and len(tasks) >= 2:
             from multiprocessing import (Process, Queue, cpu_count)
             Q = Queue()
             n_cpus = cpu_count()

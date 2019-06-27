@@ -11,11 +11,11 @@ from helpers.miscs import Miscs
 import settings
 from data.traces import Inps, Traces, DTraces
 from data.invs import Inv, Invs, DInvs
-from data.mps import MPInv
+from data.mps import MPTerm, MPInv
 from data.ieqs import IeqInv
 from cegir.base import Cegir
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -190,7 +190,7 @@ class CegirIeqs(CegirUpperBinSearch):
 
 class CegirMP(CegirUpperBinSearch):
     def get_termss(self, symbolss):
-        termss_u = [MPInv.get_terms(symbols) for symbols in symbolss]
+        termss_u = [MPTerm.get_terms(symbols) for symbols in symbolss]
         termss_l = [[(b, a) for a, b in terms] for terms in termss_u]
         termss = [ts_u + ts_l for ts_u, ts_l in zip(termss_u, termss_l)]
         return termss
@@ -198,7 +198,7 @@ class CegirMP(CegirUpperBinSearch):
     def to_term(self, term):
         assert isinstance(term, tuple) and len(term) == 2, term
 
-        return MPInv.mk_max_ieq(term[0], term[1])
+        return MPTerm.mk_max(term[0], term[1])
 
     def eval_traces(self, term, traces):
         vs = [term.myeval(t.mydict_str) for t in traces]
@@ -211,4 +211,6 @@ class CegirMP(CegirUpperBinSearch):
         return cexs, inv.stat
 
     def mk_upper(self, term, v):
-        return term.mk_upper(v)
+        term_u = term.mk_upper(v)
+        return MPInv(term_u)
+        # return term.mk_upper(v)

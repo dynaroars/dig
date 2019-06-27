@@ -5,8 +5,7 @@ import time
 import helpers.vcommon
 
 
-def run(inp, seed, maxdeg,
-        do_eqts, do_ieqs, do_minmaxplus, do_preposts, do_rmtmp):
+def run(inp, seed, maxdeg, do_rmtmp):
 
     import alg
     if inp.endswith(".java") or inp.endswith(".class"):
@@ -14,8 +13,7 @@ def run(inp, seed, maxdeg,
     else:
         dig = alg.DigTraces(inp)
 
-    invs, traces, tmpdir = dig.start(
-        seed, maxdeg, do_eqts, do_ieqs, do_minmaxplus, do_preposts)
+    invs, traces, tmpdir = dig.start(seed, maxdeg)
 
     if do_rmtmp:
         import shutil
@@ -91,7 +89,11 @@ if __name__ == "__main__":
     args = aparser.parse_args()
 
     import settings
-    settings.doMP = not args.nomp
+    settings.DO_MP = not args.nomp
+    settings.DO_EQTS = not args.noeqts
+    settings.DO_IEQS = not args.noieqs
+    settings.DO_MINMAXPLUS = not args.nominmaxplus
+    settings.DO_PREPOSTS = not args.nopreposts
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
         settings.logger_level = args.log_level
@@ -122,8 +124,4 @@ if __name__ == "__main__":
     inp = os.path.realpath(os.path.expanduser(args.inp))
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
-    run(inp, seed, maxdeg=args.maxdeg,
-        do_eqts=not args.noeqts,
-        do_ieqs=not args.noieqs,
-        do_minmaxplus=not args.nominmaxplus,
-        do_preposts=not args.nopreposts, do_rmtmp=not args.normtmp)
+    run(inp, seed, maxdeg=args.maxdeg, do_rmtmp=not args.normtmp)

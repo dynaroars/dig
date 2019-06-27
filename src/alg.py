@@ -106,8 +106,7 @@ class DigCegir(Dig):
     def str_of_locs(self, locs):
         return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)
 
-    def start(self, seed, maxdeg,
-              do_eqts, do_ieqs, do_minmaxplus, do_preposts):
+    def start(self, seed, maxdeg):
 
         super(DigCegir, self).start(seed, maxdeg)
 
@@ -134,17 +133,17 @@ class DigCegir(Dig):
                 mlog.debug("{}".format(dinvs.__str__(
                     print_stat=True, print_first_n=20)))
 
-        if do_eqts:
+        if settings.DO_EQTS:
             _infer('eqts', lambda: self.infer_eqts(self.deg, dtraces, inps))
 
-        if do_ieqs:
+        if settings.DO_IEQS:
             _infer('ieqs', lambda: self.infer_ieqs(dtraces, inps))
 
-        if do_minmaxplus:
+        if settings.DO_MINMAXPLUS:
             _infer('max/minplus', lambda: self.infer_minmaxplus(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
-        if dinvs.siz and do_preposts:
+        if dinvs.n_eqs and settings.DO_PREPOSTS:
             _infer('preposts', lambda: self.infer_preposts(dinvs, dtraces))
 
         self.print_results(dinvs, dtraces, inps, st)

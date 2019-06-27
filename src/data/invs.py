@@ -406,6 +406,7 @@ class RelInv(Inv):
             s = s.replace(x, y)
         return s
 
+    # TODO: abstract me
     def test_single_trace(self, trace):
         assert isinstance(trace, Trace), trace
 
