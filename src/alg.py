@@ -24,16 +24,6 @@ class Dig(object):
         mlog.info("analyze '{}'".format(filename))
         self.filename = filename
 
-    @property
-    def tmpdir(self):
-        try:
-            return self._tmpdir
-        except AttributeError:
-            import tempfile
-            self._tmpdir = tempfile.mkdtemp(
-                dir=settings.tmpdir, prefix="Dig_")
-            return self._tmpdir
-
     @abstractmethod
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
@@ -52,16 +42,23 @@ class Dig(object):
         if not dinvs.siz:
             return dinvs
 
-        mlog.info("test {} invs using {} traces".format(
-            dinvs.siz, dtraces.siz))
+        msg = "test {} invs using {} traces".format(
+            dinvs.siz, dtraces.siz)
+        mlog.debug(msg)
+        st = time.time()
         dinvs = dinvs.test(dtraces)
+        mlog.info("{} in {}s".format(msg, time.time() - st))
+
         if not dinvs.siz:
             return dinvs
 
-        mlog.info("uniqify {} invs".format(dinvs.siz))
+        msg = "uniqify {} invs".format(dinvs.siz)
+        mlog.info(msg)
         mlog.debug("{}".format(dinvs.__str__(
             print_stat=True, print_first_n=20)))
+        st = time.time()
         dinvs = dinvs.uniqify(self.inv_decls.use_reals)
+        mlog.info("{} in {}s".format(msg, time.time() - st))
         return dinvs
 
     def print_results(self, dinvs, dtraces, inps, st):
@@ -76,6 +73,16 @@ class Dig(object):
                             random.randint(0, 100),
                             sage.all.randint(0, 100),
                             dinvs.__str__(print_stat=True)))
+
+    @property
+    def tmpdir(self):
+        try:
+            return self._tmpdir
+        except AttributeError:
+            import tempfile
+            self._tmpdir = tempfile.mkdtemp(
+                dir=settings.tmpdir, prefix="Dig_")
+            return self._tmpdir
 
 
 class DigSymStates(Dig):
@@ -110,10 +117,10 @@ class DigSymStates(Dig):
         st = time.time()
         import cegir.base
         solver = cegir.base.Cegir(self.symstates, self.prog)
+
         mlog.debug("check reachability")
         dinvs, dtraces, inps = solver.check_reach()
-        if not dtraces:
-            return dinvs, dtraces, self.tmpdir
+        assert dtraces
 
         def _infer(typ, f):
             return self.infer(typ, f, dinvs, dtraces)

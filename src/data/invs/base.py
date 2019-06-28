@@ -155,6 +155,7 @@ class Invs(set):
             others = [invs[j].expr(use_reals) for j in xclude]
             return Z3._imply(others, me)
 
+        st = time()
         rs = set(range(len(invs)))
         for i in range(len(invs)):
             if i not in rs:
@@ -163,6 +164,8 @@ class Invs(set):
             if xclude and _imply(i, xclude):
                 rs = xclude
         rs = [invs[i] for i in sorted(rs)]
+
+        show_removed(len(invs), len(rs), st)
         return rs
 
     def _classify(self):

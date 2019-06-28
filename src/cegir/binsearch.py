@@ -170,7 +170,7 @@ class CegirBinSearch(Cegir):
             terms_max = _get_terms(terms_u, is_max=True)
 
             # BUG when include this with CohenDiv
-            terms_min = []  # _get_terms(terms_u_no_octs, is_max=False)
+            terms_min = _get_terms(terms_u_no_octs, is_max=False)
             terms.extend(terms_max + terms_min)
 
         return terms

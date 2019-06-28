@@ -9,14 +9,14 @@ from helpers.miscs import Miscs
 
 from data.traces import Inps, Traces, DTraces
 from data.invs.base import Invs, DInvs
-from data.invs.eqts import EqtInv
-from cegir.base import Cegir
+import data.invs.eqts
+import cegir.base
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirEqts(Cegir):
+class CegirEqts(cegir.base.Cegir):
     def __init__(self, symstates, prog):
         super(CegirEqts, self).__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps
@@ -27,7 +27,8 @@ class CegirEqts(Cegir):
         assert isinstance(inps, Inps), inps
 
         # first obtain enough traces
-        initrs = [self._get_init_traces(loc, deg, traces, inps, settings.EQT_RATE)
+        initrs = [self._get_init_traces(loc, deg, traces, inps,
+                                        settings.EQT_RATE)
                   for loc in traces]
         tasks = [(loc, rs) for loc, rs in zip(traces, initrs) if rs]
         if not tasks:  # e.g., cannot obtain enough traces
@@ -38,11 +39,13 @@ class CegirEqts(Cegir):
             return [(loc, self._infer(loc, template, uks, exprs, traces, inps))
                     for loc, (template, uks, exprs) in tasks]
         wrs = Miscs.run_mp('find eqts', tasks, f)
+
+        # put results together
         dinvs = DInvs()
-        for loc, (eqts, newCexs) in wrs:
-            newInps = inps.myupdate(newCexs, self.inp_decls.names)
+        for loc, (eqts, cexs) in wrs:
+            new_inps = inps.myupdate(cexs, self.inp_decls.names)
             mlog.debug("{}: got {} eqts, {} new inps"
-                       .format(loc, len(eqts), len(newInps)))
+                       .format(loc, len(eqts), len(new_inps)))
             if eqts:
                 mlog.debug('\n'.join(map(str, eqts)))
             dinvs[loc] = Invs(eqts)
@@ -59,7 +62,7 @@ class CegirEqts(Cegir):
 
         doRand = True
         while n_eqts_needed > len(exprs):
-            newTraces = {}
+            new_traces = {}
             mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
                        .format(loc, len(exprs), n_eqts_needed, len(inps)))
             if doRand:
@@ -67,9 +70,9 @@ class CegirEqts(Cegir):
                 mlog.debug("gen {} random inps".format(len(rInps)))
                 rInps = inps.myupdate(rInps, self.inp_decls.names)
                 if rInps:
-                    newTraces = self.get_traces(rInps, traces)
+                    new_traces = self.get_traces(rInps, traces)
 
-            if loc not in newTraces:
+            if loc not in new_traces:
                 doRand = False
 
                 dinvsFalse = DInvs.mk_false_invs([loc])
@@ -80,24 +83,24 @@ class CegirEqts(Cegir):
                                .format(loc, len(inps)))
                     return
 
-                newInps = inps.myupdate(cexs, self.inp_decls.names)
-                newTraces = self.get_traces(newInps, traces)
+                new_inps = inps.myupdate(cexs, self.inp_decls.names)
+                new_traces = self.get_traces(new_inps, traces)
 
                 # cannot find new traces (new inps do not produce new traces)
-                if loc not in newTraces:
+                if loc not in new_traces:
                     ss = ["{}: cannot find new traces".format(loc),
-                          "(new inps {}, ".format(len(newInps)),
+                          "(new inps {}, ".format(len(new_inps)),
                           "curr traces {})".format(
                               len(traces[loc]) if loc in traces else 0)]
                     mlog.debug(', '.join(ss))
                     return
 
-            assert newTraces[loc]
-            mlog.debug("obtain {} new traces".format(len(newTraces[loc])))
-            newExprs = newTraces[loc].instantiate(
+            assert new_traces[loc]
+            mlog.debug("obtain {} new traces".format(len(new_traces[loc])))
+            new_exprs = new_traces[loc].instantiate(
                 template, n_eqts_needed - len(exprs))
 
-            for expr in newExprs:
+            for expr in new_exprs:
                 assert expr not in exprs
                 exprs.add(expr)
 
@@ -120,14 +123,14 @@ class CegirEqts(Cegir):
                 mlog.error("{}: cannot generate enough traces".format(loc))
                 return
 
-            newInps = inps.myupdate(cexs, self.inp_decls.names)
-            newTraces = self.get_traces(newInps, traces)
-            assert newTraces[loc]
-            mlog.debug("obtain {} new traces".format(len(newTraces[loc])))
-            newExprs = newTraces[loc].instantiate(
+            new_inps = inps.myupdate(cexs, self.inp_decls.names)
+            new_traces = self.get_traces(new_inps, traces)
+            assert new_traces[loc]
+            mlog.debug("obtain {} new traces".format(len(new_traces[loc])))
+            new_exprs = new_traces[loc].instantiate(
                 template, n_eqts_needed - len(exprs))
 
-            for expr in newExprs:
+            for expr in new_exprs:
                 assert expr not in exprs
                 exprs.add(expr)
 
@@ -176,7 +179,7 @@ class CegirEqts(Cegir):
         eqts = set()  # results
         exprs = list(exprs)
 
-        newCexs = []
+        new_cexs = []
         curIter = 0
 
         while True:
@@ -184,24 +187,24 @@ class CegirEqts(Cegir):
             mlog.debug("{}, iter {} infer using {} exprs"
                        .format(loc, curIter, len(exprs)))
 
-            newEqts = Miscs.solve_eqts(exprs, uks, template)
-            unchecks = [eqt for eqt in newEqts if eqt not in cache]
+            new_eqts = Miscs.solve_eqts(exprs, uks, template)
+            unchecks = [eqt for eqt in new_eqts if eqt not in cache]
 
             if not unchecks:
                 mlog.debug("{}: no new results -- break".format(loc))
                 break
 
             mlog.debug('{}: {} candidates:\n{}'.format(
-                loc, len(newEqts), '\n'.join(map(str, newEqts))))
+                loc, len(new_eqts), '\n'.join(map(str, new_eqts))))
 
             mlog.debug("{}: check {} unchecked ({} candidates)"
-                       .format(loc, len(unchecks), len(newEqts)))
+                       .format(loc, len(unchecks), len(new_eqts)))
 
-            dinvs = DInvs.mk(loc, Invs(map(EqtInv, unchecks)))
+            dinvs = DInvs.mk(loc, Invs(map(data.invs.eqts.EqtInv, unchecks)))
             cexs, dinvs = self.symstates.check(dinvs, inps=None)
 
             if cexs:
-                newCexs.append(cexs)
+                new_cexs.append(cexs)
 
             [eqts.add(inv) for inv in dinvs[loc] if not inv.is_disproved]
             [cache.add(inv.inv) for inv in dinvs[loc]
@@ -217,4 +220,4 @@ class CegirEqts(Cegir):
             mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
             exprs.extend(exprs_)
 
-        return eqts, newCexs
+        return eqts, new_cexs
