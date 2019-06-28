@@ -9,7 +9,7 @@ def run(inp, seed, maxdeg, do_rmtmp):
 
     import alg
     if inp.endswith(".java") or inp.endswith(".class"):
-        dig = alg.DigCegir(inp)
+        dig = alg.DigSymStates(inp)
     else:
         dig = alg.DigTraces(inp)
 

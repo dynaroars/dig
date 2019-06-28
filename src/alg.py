@@ -1,4 +1,4 @@
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 import pdb
 import random
 import os.path
@@ -11,7 +11,7 @@ from helpers.miscs import Miscs
 import helpers.vcommon as CM
 import helpers.src_java
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -34,6 +34,7 @@ class Dig(object):
                 dir=settings.tmpdir, prefix="Dig_")
             return self._tmpdir
 
+    @abstractmethod
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
@@ -77,9 +78,9 @@ class Dig(object):
                             dinvs.__str__(print_stat=True)))
 
 
-class DigCegir(Dig):
+class DigSymStates(Dig):
     def __init__(self, filename):
-        super(DigCegir, self).__init__(filename)
+        super(DigSymStates, self).__init__(filename)
 
         # call ASM to obtain
         (inp_decls, inv_decls, clsname, mainQName, jpfdir, jpffile,
@@ -103,12 +104,8 @@ class DigCegir(Dig):
         for loc in invalid_locs:
             self.inv_decls.pop(loc)
 
-    def str_of_locs(self, locs):
-        return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)
-
     def start(self, seed, maxdeg):
-
-        super(DigCegir, self).start(seed, maxdeg)
+        super(DigSymStates, self).start(seed, maxdeg)
 
         st = time.time()
         import cegir.base
@@ -119,28 +116,14 @@ class DigCegir(Dig):
             return dinvs, dtraces, self.tmpdir
 
         def _infer(typ, f):
-            mlog.debug("gen '{}' at {} locs".format(typ, len(dtraces)))
-            mlog.debug(self.str_of_locs(dtraces.keys()))
-
-            st = time.time()
-            invs = f()
-            if not invs.siz:
-                mlog.warn("found no {}".format(typ))
-            else:
-                mlog.info("found {} {} in {}s".format(
-                    invs.siz, typ, time.time() - st))
-                dinvs.merge(invs)
-                mlog.debug("{}".format(dinvs.__str__(
-                    print_stat=True, print_first_n=20)))
+            return self.infer(typ, f, dinvs, dtraces)
 
         if settings.DO_EQTS:
-            _infer('eqts', lambda: self.infer_eqts(self.deg, dtraces, inps))
+            _infer('eqts', lambda: self.infer_eqts(
+                self.deg, dtraces, inps))
 
-        if settings.DO_IEQS:
+        if settings.DO_IEQS or settings.DO_MINMAXPLUS:
             _infer('ieqs', lambda: self.infer_ieqs(dtraces, inps))
-
-        if settings.DO_MINMAXPLUS:
-            _infer('max/minplus', lambda: self.infer_minmaxplus(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
         if dinvs.n_eqs and settings.DO_PREPOSTS:
@@ -153,6 +136,21 @@ class DigCegir(Dig):
 
         return dinvs, dtraces, self.tmpdir
 
+    def infer(self, typ, f, dinvs, dtraces):
+        mlog.debug("gen '{}' at {} locs".format(typ, len(dtraces)))
+        mlog.debug(self.str_of_locs(dtraces.keys()))
+
+        st = time.time()
+        invs = f()
+        if not invs.siz:
+            mlog.warn("found no {}".format(typ))
+        else:
+            mlog.info("found {} {} in {}s".format(
+                invs.siz, typ, time.time() - st))
+            dinvs.merge(invs)
+            mlog.debug("{}".format(dinvs.__str__(
+                print_stat=True, print_first_n=20)))
+
     def infer_eqts(self, deg, dtraces, inps):
         from cegir.eqts import CegirEqts
         solver = CegirEqts(self.symstates, self.prog)
@@ -161,15 +159,8 @@ class DigCegir(Dig):
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        #from cegir.ieqs import CegirIeqs
-        from cegir.upper_binsearch import CegirIeqs
-        solver = CegirIeqs(self.symstates, self.prog)
-        dinvs = solver.gen(dtraces, inps)
-        return dinvs
-
-    def infer_minmaxplus(self, dtraces, inps):
-        from cegir.upper_binsearch import CegirMP
-        solver = CegirMP(self.symstates, self.prog)
+        from cegir.binsearch import CegirBinSearch
+        solver = CegirBinSearch(self.symstates, self.prog)
         dinvs = solver.gen(dtraces, inps)
         return dinvs
 
@@ -178,3 +169,6 @@ class DigCegir(Dig):
         solver = CegirPrePosts(self.symstates, self.prog)
         dinvs = solver.gen(dinvs, dtraces)
         return dinvs
+
+    def str_of_locs(self, locs):
+        return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)

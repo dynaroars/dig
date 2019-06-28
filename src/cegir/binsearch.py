@@ -1,7 +1,6 @@
 """
-CEGIR algorithm
+Find upperbound of polynomials using binary search-CEGIR approach
 """
-import abc
 import math
 import pdb
 
@@ -10,9 +9,11 @@ from helpers.miscs import Miscs
 
 import settings
 from data.traces import Inps, Traces, DTraces
-from data.invs import Inv, Invs, DInvs
-from data.mps import MPTerm, MPInv
-from data.ieqs import IeqInv
+import data.poly.base
+import data.poly.mp
+from data.invs.base import Inv, Invs, DInvs
+import data.invs.mps
+import data.invs.ieqs
 from cegir.base import Cegir
 
 DBG = pdb.set_trace
@@ -20,25 +21,23 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirUpperBinSearch(Cegir):
-    __metaclass__ = abc.ABCMeta
-
+class CegirBinSearch(Cegir):
     def __init__(self, symstates, prog):
-        super(CegirUpperBinSearch, self).__init__(symstates, prog)
+        super(CegirBinSearch, self).__init__(symstates, prog)
 
     def gen(self, traces, inps):
         assert isinstance(traces, DTraces) and traces, traces
         assert isinstance(inps, Inps), inps
 
         locs = traces.keys()
-        symbolss = [self.inv_decls[loc].sageExprs for loc in locs]
-        termss = self.get_termss(symbolss)
+        termss = [self.get_terms(self.inv_decls[loc].sageExprs)
+                  for loc in locs]
 
         mlog.debug("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
         maxV = settings.OCT_MAX_V
         minV = -1*maxV
-        refs = {loc: {self.mk_upper(self.to_term(t), maxV): t for t in terms}
+        refs = {loc: {self.mk_lt(t, maxV): t for t in terms}
                 for loc, terms in zip(locs, termss)}
         ieqs = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
 
@@ -56,7 +55,7 @@ class CegirUpperBinSearch(Cegir):
 
         def f(tasks):
             return [(loc,
-                     self.gc(loc, self.to_term(term), minV, maxV, traces))
+                     self.gc(loc, term, minV, maxV, traces))
                     for loc, term in tasks]
         wrs = Miscs.run_mp('guesscheck', tasks, f)
         rs = [(loc, inv) for loc, inv in wrs if inv]
@@ -66,10 +65,11 @@ class CegirUpperBinSearch(Cegir):
         return dinvs
 
     def gc(self, loc, term, minV, maxV, traces):
+        assert isinstance(term, data.poly.base.Poly)
         statsd = {maxV: Inv.PROVED}
 
         # start with this minV
-        vs = self.eval_traces(term, traces[loc])
+        vs = term.eval_traces(traces[loc])
         try:
             mminV = int(max(minV, max(v for v in vs if v < maxV)))
         except ValueError:
@@ -102,7 +102,7 @@ class CegirUpperBinSearch(Cegir):
 
         if (boundV not in statsd or statsd[boundV] != Inv.DISPROVED):
             stat = statsd[boundV] if boundV in statsd else None
-            inv = self.mk_upper(term, boundV)
+            inv = self.mk_lt(term, boundV)
             inv.stat = stat
             mlog.debug("got {}".format(inv))
             return inv
@@ -144,73 +144,51 @@ class CegirUpperBinSearch(Cegir):
 
         return self.guess_check(loc, term, minV, maxV, statsd)
 
-    @abc.abstractmethod
+    def get_terms(self, symbols):
+        terms = []
+
+        def _get_terms(terms_u, is_max):
+            terms_l = [(b, a) for a, b in terms_u]
+            terms = terms_u + terms_l
+            terms = [data.poly.mp.MP(a, b, is_max) for a, b in terms]
+            return terms
+
+        if settings.DO_IEQS:
+            oct_siz = 2
+            terms_ieqs = Miscs.get_terms_fixed_coefs(symbols, oct_siz)
+            terms_ieqs = [data.poly.base.GeneralPoly(t) for t in terms_ieqs]
+            terms.extend(terms_ieqs)
+
+        if settings.DO_MINMAXPLUS:
+            terms_u = data.poly.mp.MP.get_terms(symbols)
+            terms_u_no_octs = [(a, b) for a, b in terms_u
+                               if len(b) >= 2]
+
+            if settings.DO_IEQS:  # ignore oct invs
+                terms_u = terms_u_no_octs
+
+            terms_max = _get_terms(terms_u, is_max=True)
+
+            # BUG when include this with CohenDiv
+            terms_min = []  # _get_terms(terms_u_no_octs, is_max=False)
+            terms.extend(terms_max + terms_min)
+
+        return terms
+
+    def mk_lt(self, term, v):
+        inv = term.mk_lt(v)
+        if isinstance(term, data.poly.base.GeneralPoly):
+            inv = data.invs.ieqs.IeqInv(inv)
+        else:
+            inv = data.invs.mps.MP(inv)
+        return inv
+
     def _mk_upp_and_check(self, loc, term, v):
-        pass
+        inv = self.mk_lt(term, v)
+        inv_ = DInvs.mk(loc, Invs([inv]))
+        cexs, _ = self.symstates.check(inv_, inps=None)
+        return cexs, inv.stat
 
     def _get_max_from_cexs(self, loc, term, cexs):
         mycexs = Traces.extract(cexs[loc], useOne=False)
-        return int(max(self.eval_traces(term, mycexs)))
-
-    @abc.abstractmethod
-    def get_termss(self, symbolss):
-        pass
-
-    @abc.abstractmethod
-    def eval_traces(self, term, traces):
-        pass
-
-    def to_term(self, term):
-        return term
-
-    @abc.abstractmethod
-    def mk_upper(self, term, v):
-        pass
-
-
-class CegirIeqs(CegirUpperBinSearch):
-    def get_termss(self, symbolss):
-        oct_siz = 2
-        termss = [Miscs.get_terms_fixed_coefs(symbols, oct_siz)
-                  for symbols in symbolss]
-        return termss
-
-    def eval_traces(self, term, traces):
-        return traces.myeval(term)
-
-    def _mk_upp_and_check(self, loc, term, v):
-        inv = self.mk_upper(term, v)
-        inv_ = DInvs.mk(loc, Invs([inv]))
-        cexs, _ = self.symstates.check(inv_, inps=None)
-        return cexs, inv.stat
-
-    def mk_upper(self, term, v):
-        return IeqInv(term <= v)
-
-
-class CegirMP(CegirUpperBinSearch):
-    def get_termss(self, symbolss):
-        termss_u = [MPTerm.get_terms(symbols) for symbols in symbolss]
-        termss_l = [[(b, a) for a, b in terms] for terms in termss_u]
-        termss = [ts_u + ts_l for ts_u, ts_l in zip(termss_u, termss_l)]
-        return termss
-
-    def to_term(self, term):
-        assert isinstance(term, tuple) and len(term) == 2, term
-
-        return MPTerm.mk_max(term[0], term[1])
-
-    def eval_traces(self, term, traces):
-        vs = [term.myeval(t.mydict_str) for t in traces]
-        return vs
-
-    def _mk_upp_and_check(self, loc, term, v):
-        inv = self.mk_upper(term, v)
-        inv_ = DInvs.mk(loc, Invs([inv]))
-        cexs, _ = self.symstates.check(inv_, inps=None)
-        return cexs, inv.stat
-
-    def mk_upper(self, term, v):
-        term_u = term.mk_upper(v)
-        return MPInv(term_u)
-        # return term.mk_upper(v)
+        return int(max(term.eval_traces(mycexs)))

@@ -10,7 +10,7 @@ import settings
 
 from data.ds import Prog
 from data.traces import Inps, DTraces
-from data.invs import DInvs
+from data.invs.base import DInvs
 
 
 dbg = pdb.set_trace

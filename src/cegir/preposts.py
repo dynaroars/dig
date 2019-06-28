@@ -9,9 +9,9 @@ from helpers.miscs import Miscs
 import settings
 from cegir.base import Cegir
 from data.traces import DTraces, Traces
-from data.invs import Inv, Invs, DInvs
-from data.eqts import EqtInv
-from data.ieqs import IeqInv
+from data.invs.base import Inv, Invs, DInvs
+from data.invs.eqts import EqtInv
+from data.invs.ieqs import IeqInv
 
 
 dbg = pdb.set_trace

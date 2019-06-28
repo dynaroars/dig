@@ -7,10 +7,10 @@ import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
-from data.invs import Invs, DInvs
 from data.traces import Inps, Traces, DTraces
+from data.invs.base import Invs, DInvs
+from data.invs.eqts import EqtInv
 from cegir.base import Cegir
-from data.eqts import EqtInv
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

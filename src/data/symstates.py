@@ -15,7 +15,7 @@ from helpers.miscs import Miscs, Z3
 import helpers.src_java
 from data.ds import Symbs, DSymbs
 from data.traces import Inps, DTraces
-from data.invs import Inv,  DInvs, Invs
+from data.invs.base import Inv,  DInvs, Invs
 
 
 dbg = pdb.set_trace
