@@ -53,7 +53,7 @@ class Dig(object):
             return dinvs
 
         msg = "uniqify {} invs".format(dinvs.siz)
-        mlog.info(msg)
+        mlog.debug(msg)
         mlog.debug("{}".format(dinvs.__str__(
             print_stat=True, print_first_n=20)))
         st = time.time()
