@@ -6,7 +6,7 @@ public class CohenDiv {
     public static void main (String[] args) {}
      
 
-    public static int mainQ_cohendiv(int x, int y) {
+    public static int mainQ(int x, int y) {
 	assert(y >= 1);
 
 	int q=0;

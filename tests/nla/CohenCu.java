@@ -4,7 +4,7 @@ public class CohenCu {
     public static void main (String[] args) {
     }
 
-    public static int mainQ_cohencu(int a) {
+    public static int mainQ(int a) {
 	int n,x,y,z;
 	n=0; x=0; y=1; z=6;
 	  

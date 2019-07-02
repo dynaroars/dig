@@ -3,7 +3,7 @@ public class CohenDiv1Loc {
     public static void vtrace2(int q, int y){}
     public static void main (String[] args) {}
      
-    public static int mainQ_cohendiv(int x, int y) {
+    public static int mainQ(int x, int y) {
 	assert(x>0 && y>0);
 
 	int q=0;

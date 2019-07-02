@@ -6,7 +6,7 @@ public class DivBin {
     public static void main (String[] args) {	  
     }
 
-    public static int mainQ_divbin(int A, int B) {
+    public static int mainQ(int A, int B) {
 	assert(B >= 1);
  
 	int q = 0;
