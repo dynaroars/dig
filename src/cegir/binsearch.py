@@ -11,9 +11,9 @@ import settings
 from data.traces import Inps, Traces, DTraces
 import data.poly.base
 import data.poly.mp
-from data.invs.base import Inv, Invs, DInvs
-import data.invs.mps
-import data.invs.ieqs
+from data.inv.base import Inv, Invs, DInvs
+import data.inv.mp
+import data.inv.ieq
 from cegir.base import Cegir
 
 DBG = pdb.set_trace
@@ -178,9 +178,9 @@ class CegirBinSearch(Cegir):
     def mk_lt(self, term, v):
         inv = term.mk_lt(v)
         if isinstance(term, data.poly.base.GeneralPoly):
-            inv = data.invs.ieqs.IeqInv(inv)
+            inv = data.inv.ieq.IeqInv(inv)
         else:
-            inv = data.invs.mps.MP(inv)
+            inv = data.inv.mp.MP(inv)
         return inv
 
     def _mk_upp_and_check(self, loc, term, v):

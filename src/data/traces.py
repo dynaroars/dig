@@ -1,10 +1,14 @@
 import pdb
 import z3
 import sage.all
+
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 import settings
-dbg = pdb.set_trace
+
+import data.miscs
+
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -251,8 +255,8 @@ class DTraces(dict):
         'vtrace1: 0 285 2 18 285 9 ',
         'vtrace1: 0 285 4 36 285 9 ']
         """
-        from ds import DSymbs
-        assert isinstance(inv_decls, DSymbs) and inv_decls, inv_decls
+        assert isinstance(
+            inv_decls, data.miscs.DSymbs) and inv_decls, inv_decls
 
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]
@@ -280,8 +284,8 @@ class DTraces(dict):
         v1, v2, v2
         ...
         """
-        from ds import DSymbs
-        assert inv_decls and isinstance(inv_decls, DSymbs), inv_decls
+        assert inv_decls and isinstance(
+            inv_decls, data.miscs.DSymbs), inv_decls
         assert tracefile and isinstance(tracefile, str), tracefile
 
         ss = []
@@ -299,12 +303,11 @@ class DTraces(dict):
 
         trace_str = []
         # determine variable declarations for different locations
-        from ds import DSymbs, Symbs
-        inv_decls = DSymbs()
+        inv_decls = data.miscs.DSymbs()
         for line in CM.iread_strip(tracefile):
             loc, contents = line.split(':')
             if loc not in inv_decls:
-                inv_decls[loc] = Symbs.mk(contents)  # I x, I y
+                inv_decls[loc] = data.miscs.Symbs.mk(contents)  # I x, I y
             else:
                 trace_str.append(line.replace(',', ''))
 

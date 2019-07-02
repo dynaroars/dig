@@ -8,17 +8,17 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 from data.traces import Inps, Traces, DTraces
-from data.invs.base import Invs, DInvs
-import data.invs.eqts
+from data.inv.base import Invs, DInvs
+import data.inv.eqt
 import cegir.base
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirEqts(cegir.base.Cegir):
+class CegirEqt(cegir.base.Cegir):
     def __init__(self, symstates, prog):
-        super(CegirEqts, self).__init__(symstates, prog)
+        super(CegirEqt, self).__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps
 
     def gen(self, deg, traces, inps):
@@ -200,7 +200,7 @@ class CegirEqts(cegir.base.Cegir):
             mlog.debug("{}: check {} unchecked ({} candidates)"
                        .format(loc, len(unchecks), len(new_eqts)))
 
-            dinvs = DInvs.mk(loc, Invs(map(data.invs.eqts.EqtInv, unchecks)))
+            dinvs = DInvs.mk(loc, Invs(map(data.inv.eqt.EqtInv, unchecks)))
             cexs, dinvs = self.symstates.check(dinvs, inps=None)
 
             if cexs:

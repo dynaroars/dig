@@ -8,9 +8,9 @@ import pdb
 import helpers.vcommon as CM
 import settings
 
-from data.ds import Prog
+from data.miscs import Prog
 from data.traces import Inps, DTraces
-from data.invs.base import DInvs
+from data.inv.base import DInvs
 
 
 dbg = pdb.set_trace

@@ -97,9 +97,9 @@ class DigSymStates(Dig):
         self.inv_decls = inv_decls
         self.use_rand_init = True
 
-        import data.ds
+        import data.miscs
         exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
-        self.prog = data.ds.Prog(exe_cmd, inp_decls, inv_decls)
+        self.prog = data.miscs.Prog(exe_cmd, inp_decls, inv_decls)
 
         import data.symstates
         self.symstates = data.symstates.SymStates(inp_decls, inv_decls)
@@ -159,8 +159,8 @@ class DigSymStates(Dig):
                 print_stat=True, print_first_n=20)))
 
     def infer_eqts(self, deg, dtraces, inps):
-        from cegir.eqts import CegirEqts
-        solver = CegirEqts(self.symstates, self.prog)
+        from cegir.eqt import CegirEqt
+        solver = CegirEqt(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
         dinvs = solver.gen(self.deg, dtraces, inps)
         return dinvs
@@ -172,8 +172,8 @@ class DigSymStates(Dig):
         return dinvs
 
     def infer_preposts(self, dinvs, dtraces):
-        from cegir.preposts import CegirPrePosts
-        solver = CegirPrePosts(self.symstates, self.prog)
+        from cegir.prepost import CegirPrePost
+        solver = CegirPrePost(self.symstates, self.prog)
         dinvs = solver.gen(dinvs, dtraces)
         return dinvs
 

@@ -1,7 +1,8 @@
 import os.path
 import helpers.vcommon as CM
 import settings
-from data.ds import Symbs, DSymbs
+from data.miscs import Symbs, DSymbs
+
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 

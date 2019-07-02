@@ -9,18 +9,18 @@ from helpers.miscs import Miscs
 import settings
 from cegir.base import Cegir
 from data.traces import DTraces, Traces
-from data.invs.base import Inv, Invs, DInvs
-from data.invs.eqts import EqtInv
-from data.invs.ieqs import IeqInv
+from data.inv.base import Inv, Invs, DInvs
+from data.inv.eqt import EqtInv
+from data.inv.ieq import IeqInv
 
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirPrePosts(Cegir):
+class CegirPrePost(Cegir):
     def __init__(self, symstates, prog):
-        super(CegirPrePosts, self).__init__(symstates, prog)
+        super(CegirPrePost, self).__init__(symstates, prog)
         self.use_reals = symstates.use_reals
 
     @property

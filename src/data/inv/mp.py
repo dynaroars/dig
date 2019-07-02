@@ -6,15 +6,14 @@ from helpers.miscs import Z3
 import settings
 
 import data.poly.mp
-from data.invs.base import Inv
+import data.inv.base
 from data.traces import Trace
-import data.poly.mp
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class MP(Inv):
+class MP(data.inv.base.Inv):
     def __init__(self, term, is_ieq=True, stat=None):
         assert isinstance(term, data.poly.mp.MP)
         hash_contents = (term.a, term.b, term.is_max, is_ieq)
