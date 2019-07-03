@@ -8,21 +8,21 @@ public class PartialDecrement3 {
     public static void mainQ(int p, int q, int r, int s) {
 	int i = p;
 	while(true){
-	    vtrace_loop1(i,p,q,r,s);
+	    //vtrace_loop1(i,p,q,r,s);
 	    
 	    if (!(i>q)){break;}
 	    i = i - 1;
 	}
 
 	while(true){
-	    vtrace_loop2(i,p,q,r,s);
+	    //vtrace_loop2(i,p,q,r,s);
 	    
 	    if(!(i>r)){break;}
 	    i = i - 1;
 	}
 
 	while(true){
-	    vtrace_loop3(i,p,q,r,s);
+	    // vtrace_loop3(i,p,q,r,s);
 	    
 	    if(!(i>s)){break;}
 	    i = i - 1;

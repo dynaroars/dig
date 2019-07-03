@@ -13,7 +13,7 @@ from data.traces import Inps, DTraces
 from data.inv.base import DInvs
 
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 

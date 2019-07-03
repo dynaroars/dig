@@ -10,14 +10,14 @@ public class PartialIncrement2 {
 	    // assert(i >= min(p,q));
 	    // assert(i <= max(p,q));
 
-	    vtrace_loop1(i,p,q,r);
+	    // vtrace_loop1(i,p,q,r);
 	    
 	    if (!(i<q)){break;}
 	    i = i + 1;
 	}
 
 	while(true){
-	    vtrace_loop2(i,p,q,r);
+	    // vtrace_loop2(i,p,q,r);
 	    
 	    if(!(i<r)){break;}
 	    i = i + 1;

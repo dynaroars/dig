@@ -109,6 +109,8 @@ class DigSymStates(Dig):
         invalid_locs = [loc for loc in inv_decls
                         if loc not in self.symstates.ss]
         for loc in invalid_locs:
+            mlog.warn("{}: no symbolic states. Skipping".format(loc))
+
             self.inv_decls.pop(loc)
 
     def start(self, seed, maxdeg):

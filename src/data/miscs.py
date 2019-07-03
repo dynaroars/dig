@@ -10,12 +10,8 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
 from data.traces import Inps, DTraces, Trace
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
-
-"""
-Data structures
-"""
 
 
 class Prog(object):
@@ -48,6 +44,7 @@ class Prog(object):
             valid_ranges = self._valid_ranges
             inps = set()
         except AttributeError:
+            mlog.debug("compute valid input ranges")
             valid_ranges, inps = self._get_valid_inp_ranges()
             self._valid_ranges = valid_ranges
 
@@ -132,18 +129,23 @@ class Prog(object):
 
     @classmethod
     def _get_inp_ranges(cls, n_inps):
-        tiny = 0.05
         small = 0.10
         large = 1 - small
         maxV = DTraces.inpMaxV
         minV = -1 * maxV
-        rinps = [(0, int(maxV * small)), (0, int(maxV * tiny)),
+        rinps = [(0, int(maxV * small)),
                  (int(maxV * large), maxV),
-                 (int(minV * small), 0), (int(minV * tiny), 0),
+                 (int(minV * small), 0),
                  (minV, int(minV * large))]
 
+        if n_inps <= settings.INP_RANGE_V:
+            # consider some ranges for smaller #'s of inps
+            tiny = 0.05
+            rinps.extend([(0, int(maxV * tiny)),
+                          (int(minV * tiny), 0)])
+
         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
-        rinps = list(itertools.product(*itertools.repeat(rinps, n_inps)))
+        rinps = itertools.product(*itertools.repeat(rinps, n_inps))
         return rinps
 
 

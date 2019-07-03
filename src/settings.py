@@ -19,6 +19,7 @@ MAX_TERM = 200
 OCT_MAX_V = 10  # t <= 10
 LARGE_N = 200000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
+INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 
 # options for full specs analysis
 CTR_VAR = 'Ct'  # counter variable contains this string

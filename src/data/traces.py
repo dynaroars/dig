@@ -32,6 +32,9 @@ class Trace(tuple):
         self.ss = ss  # x,y,z
         self.vs = vs  # 1,2,3
 
+    def __str__(self):
+        return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
+
     @property
     def mydict(self):
         # use for expression substitution
@@ -238,13 +241,15 @@ class DTraces(dict):
         """
         assert isinstance(traces, DTraces), traces
 
-        newTraces = DTraces()
+        new_traces = DTraces()
         for loc in self:
             for trace in self[loc]:
-                notIn = traces.add(loc, trace)
-                assert(notIn), "{} exist".format(trace)
-                newTraces.add(loc, trace)
-        return newTraces
+                not_in = traces.add(loc, trace)
+                if not_in:
+                    new_traces.add(loc, trace)
+                else:
+                    mlog.warn("trace {} exist".format(trace))
+        return new_traces
 
     @staticmethod
     def parse(trace_str, inv_decls):
@@ -255,8 +260,8 @@ class DTraces(dict):
         'vtrace1: 0 285 2 18 285 9 ',
         'vtrace1: 0 285 4 36 285 9 ']
         """
-        assert isinstance(
-            inv_decls, data.miscs.DSymbs) and inv_decls, inv_decls
+        assert isinstance(inv_decls, data.miscs.DSymbs)\
+            and inv_decls, inv_decls
 
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]

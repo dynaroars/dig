@@ -125,6 +125,12 @@ class PrintClassVisitor extends ClassVisitor implements Opcodes{
 	       	    case 2: mv.visitInsn(ICONST_2); break;
 	       	    case 3: mv.visitInsn(ICONST_3); break;
 	       	    case 4: mv.visitInsn(ICONST_4); break;
+		    case 5: mv.visitInsn(ICONST_5); break;
+		    // case 6: mv.visitInsn(ICONST_6); break;
+		    // case 7: mv.visitInsn(ICONST_7); break;
+		    // case 8: mv.visitInsn(ICONST_8); break;
+		    // case 9: mv.visitInsn(ICONST_9); break;
+		    // case 10: mv.visitInsn(ICONST_10); break;
 	       	    default:
 	       		 System.out.println("Didn't consider " + typs.length + "args");
 	       	    }

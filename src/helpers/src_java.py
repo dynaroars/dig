@@ -1,8 +1,10 @@
+import pdb
 import os.path
 import helpers.vcommon as CM
 import settings
 from data.miscs import Symbs, DSymbs
 
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -32,6 +34,7 @@ def parse(filename, tmpdir):
     cmd = settings.INSTRUMENT_RUN(
         filename=filename, tracefile=tracefile, jpffile=jpffile)
     rmsg, errmsg = CM.vcmd(cmd)
+
     assert not errmsg, "'{}': {}".format(cmd, errmsg)
 
     # vtrace2: I x, I y, I q, I r,

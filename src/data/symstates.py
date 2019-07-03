@@ -18,7 +18,7 @@ from data.traces import Inps, DTraces
 from data.inv.base import Inv,  DInvs, Invs
 
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -280,6 +280,11 @@ class SymStates(object):
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
         wrs = Miscs.run_mp("get symstates", tasks, f)
+
+        if not wrs:
+            mlog.warn("cannot obtain symbolic states, unreachable locs?")
+            import sys
+            sys.exit(0)
 
         self.merge(wrs)
 
