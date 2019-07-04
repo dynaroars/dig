@@ -59,7 +59,7 @@ class CegirReachability(Cegir):
         rinps = self.prog.gen_rand_inps()
 
         mlog.debug("gen {} random inps".format(len(rinps)))
-        _ = inps.myupdate(rinps, self.inp_decls.names)
+        _ = inps.merge(rinps, self.inp_decls.names)
         traces = self.prog.get_traces(inps)
         unreach_locs = [loc for loc in dinvs if loc not in traces]
 
@@ -68,7 +68,7 @@ class CegirReachability(Cegir):
                 len(unreach_locs), ','.join(map(str, unreach_locs))))
             unreach_invs = DInvs.mk_false_invs(unreach_locs)
             cexs, _ = self.symstates.check(unreach_invs, inps)
-            newInps = inps.myupdate(cexs, self.inp_decls.names)
+            newInps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug(newInps.__str__(printDetails=True))
             self.get_traces(newInps, traces)
 

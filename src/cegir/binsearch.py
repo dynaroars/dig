@@ -43,7 +43,7 @@ class CegirBinSearch(Cegir):
 
         cexs, ieqs = self.symstates.check(ieqs, inps=None)
         if cexs:
-            cexs_inps = inps.myupdate(cexs, self.inp_decls.names)
+            cexs_inps = inps.merge(cexs, self.inp_decls.names)
             if cexs_inps:
                 self.get_traces(cexs_inps, traces)
 

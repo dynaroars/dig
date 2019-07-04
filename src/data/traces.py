@@ -276,7 +276,7 @@ class Inp(SymbsVals):
 
 
 class Inps(SymbsValsSet):
-    def myupdate(self, ds, ss):
+    def merge(self, ds, ss):
         """
         ds can be
         1. cexs = {loc:{inv: {'x': val, 'y': val}}}

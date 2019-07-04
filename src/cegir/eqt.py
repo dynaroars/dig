@@ -43,7 +43,7 @@ class CegirEqt(cegir.base.Cegir):
         # put results together
         dinvs = DInvs()
         for loc, (eqts, cexs) in wrs:
-            new_inps = inps.myupdate(cexs, self.inp_decls.names)
+            new_inps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug("{}: got {} eqts, {} new inps"
                        .format(loc, len(eqts), len(new_inps)))
             if eqts:
@@ -68,7 +68,7 @@ class CegirEqt(cegir.base.Cegir):
             if doRand:
                 rInps = self.prog.gen_rand_inps(n_eqts_needed - len(exprs))
                 mlog.debug("gen {} random inps".format(len(rInps)))
-                rInps = inps.myupdate(rInps, self.inp_decls.names)
+                rInps = inps.merge(rInps, self.inp_decls.names)
                 if rInps:
                     new_traces = self.get_traces(rInps, traces)
 
@@ -83,7 +83,7 @@ class CegirEqt(cegir.base.Cegir):
                                .format(loc, len(inps)))
                     return
 
-                new_inps = inps.myupdate(cexs, self.inp_decls.names)
+                new_inps = inps.merge(cexs, self.inp_decls.names)
                 new_traces = self.get_traces(new_inps, traces)
 
                 # cannot find new traces (new inps do not produce new traces)
@@ -123,7 +123,7 @@ class CegirEqt(cegir.base.Cegir):
                 mlog.error("{}: cannot generate enough traces".format(loc))
                 return
 
-            new_inps = inps.myupdate(cexs, self.inp_decls.names)
+            new_inps = inps.merge(cexs, self.inp_decls.names)
             new_traces = self.get_traces(new_inps, traces)
             assert new_traces[loc]
             mlog.debug("obtain {} new traces".format(len(new_traces[loc])))
