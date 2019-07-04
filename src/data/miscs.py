@@ -1,8 +1,7 @@
-from abc import ABCMeta, abstractmethod
 import itertools
 import random
 import pdb
-
+from collections import namedtuple
 import sage.all
 
 import settings
@@ -149,26 +148,18 @@ class Prog(object):
         return rinps
 
 
-class Symb(tuple):
+class Symb(namedtuple('Symb', ('name', 'typ'))):
     """
-    Symbolic variable and its type, e.g., (x, 'I') means x is an integer
+    Symbolic variable and its type,
+    e.g., (x, 'I') means x is an integer
     """
-    def __new__(cls, name, typ):
-        assert isinstance(name, str), name
-        assert isinstance(typ, str) and typ in {'D', 'F', 'I'}, typ
-        return super(Symb, cls).__new__(cls, (name, typ))
-
-    def __init__(self, name, typ):
-        self.name = name
-        self.typ = typ
-
     @property
-    def isReal(self):
+    def is_real(self):
         try:
-            return self._isReal
+            return self._is_real
         except AttributeError:
-            self._isReal = self.typ in {'D', 'F'}
-            return self._isReal
+            self._is_real = self.typ in {'D', 'F'}
+            return self._is_real
 
     def __str__(self):
         return "{} {}".format(self.typ, self.name)
@@ -214,20 +205,20 @@ class Symbs(tuple):
             self._exprs = [s.expr(use_reals) for s in self]
             return self._exprs
 
-    @staticmethod
-    def mk(s):
+    @classmethod
+    def mk(cls, s):
         """
-        double x , double y .. ->  {x: int, y: double}
-        where x and y are SAGE's symbolic variables
+        I x , D y .. ->  {x: int, y: double}
         """
         assert isinstance(s, str), s
+
         cs = (x.split() for x in s.split(',') if x.strip())
         symbs = [Symb(k.strip(), t.strip()) for t, k in cs]
-        cs = Symbs(symbs)
-        return cs
-
+        return cls(symbs)
 
 # inv_decls = {loc: Symbs}
+
+
 class DSymbs(dict):
     @property
     def use_reals(self):
@@ -235,5 +226,5 @@ class DSymbs(dict):
             return self._use_reals
         except AttributeError:
             self._use_reals = any(
-                s.isReal for syms in self.itervalues() for s in syms)
+                s.is_real for syms in self.itervalues() for s in syms)
             return self._use_reals

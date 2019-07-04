@@ -1,4 +1,5 @@
 import pdb
+from collections import namedtuple
 import z3
 import sage.all
 
@@ -12,25 +13,11 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Trace(tuple):
+class Trace(namedtuple('Trace', ('ss', 'vs'))):
     """"
     ((x, y), (3, 4))
     """
     maxVal = 100000000
-
-    def __new__(cls, ss, vs):
-        assert all(isinstance(s, str) for s in ss) and \
-            isinstance(ss, tuple) and (vs, tuple) and \
-            len(ss) == len(vs) and ss, (ss, vs)
-        return super(Trace, cls).__new__(cls, (ss, vs))
-
-    def __init__(self, ss, vs):
-        assert all(isinstance(s, str) for s in ss) and \
-            isinstance(ss, tuple) and (vs, tuple) and \
-            len(ss) == len(vs) and ss, (ss, vs)
-
-        self.ss = ss  # x,y,z
-        self.vs = vs  # 1,2,3
 
     def __str__(self):
         return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
@@ -69,7 +56,7 @@ class Trace(tuple):
         # {'y': 1, 'x': 2, 'r': 2, 'b': 2}
         ss = tuple(sorted(d))
         vs = tuple(d[s] for s in ss)
-        return Trace(ss, vs)
+        return cls(ss, vs)
 
     def myeval(self, expr):
         assert Miscs.is_expr(expr), expr

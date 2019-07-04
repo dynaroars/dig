@@ -90,7 +90,7 @@ class DigSymStates(Dig):
         super(DigSymStates, self).__init__(filename)
 
         # call ASM to obtain
-        (inp_decls, inv_decls, clsname, mainQName, jpfdir, jpffile,
+        (inp_decls, inv_decls, clsname, mainQ_name, jpfdir, jpffile,
          tracedir, traceFile) = helpers.src_java.parse(filename, self.tmpdir)
 
         self.inp_decls = inp_decls
@@ -103,38 +103,44 @@ class DigSymStates(Dig):
 
         import data.symstates
         self.symstates = data.symstates.SymStates(inp_decls, inv_decls)
-        self.symstates.compute(self.filename, mainQName, clsname, jpfdir)
+        self.symstates.compute(self.filename, mainQ_name, clsname, jpfdir)
 
         # remove locations with no symbolic states
         invalid_locs = [loc for loc in inv_decls
                         if loc not in self.symstates.ss]
+
         for loc in invalid_locs:
             mlog.warn("{}: no symbolic states. Skipping".format(loc))
-
             self.inv_decls.pop(loc)
+
+        self.locs = self.inv_decls.keys()
 
     def start(self, seed, maxdeg):
         super(DigSymStates, self).start(seed, maxdeg)
 
         st = time.time()
-        import cegir.base
-        solver = cegir.base.Cegir(self.symstates, self.prog)
 
-        mlog.debug("check reachability")
-        dinvs, dtraces, inps = solver.check_reach()
+        mlog.debug("checking reachability")
+        import cegir.base
+        solver = cegir.base.CegirReachability(self.symstates, self.prog)
+        dinvs, dtraces, inps = solver.gen()
         assert dtraces
 
+        mlog.debug("inferring: eqts {}, ieqs {}, min/max {}, preposts {}"
+                   .format(settings.DO_EQTS, settings.DO_IEQS,
+                           settings.DO_MINMAXPLUS, settings.DO_PREPOSTS))
+
         def _infer(typ, f):
-            return self.infer(typ, f, dinvs, dtraces)
+            return self.infer(typ, f, dinvs)
 
         if settings.DO_EQTS:
-            _infer('eqts', lambda: self.infer_eqts(
-                self.deg, dtraces, inps))
+            _infer('eqts', lambda: self.infer_eqts(dtraces, inps))
 
         if settings.DO_IEQS or settings.DO_MINMAXPLUS:
             _infer('ieqs', lambda: self.infer_ieqs(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
+
         if dinvs.n_eqs and settings.DO_PREPOSTS:
             _infer('preposts', lambda: self.infer_preposts(dinvs, dtraces))
 
@@ -145,22 +151,23 @@ class DigSymStates(Dig):
 
         return dinvs, dtraces, self.tmpdir
 
-    def infer(self, typ, f, dinvs, dtraces):
-        mlog.debug("gen '{}' at {} locs".format(typ, len(dtraces)))
-        mlog.debug(self.str_of_locs(dtraces.keys()))
+    def infer(self, typ, f, dinvs):
+        mlog.debug("gen '{}' at {} locs".format(typ, len(self.locs)))
+        mlog.debug(self.str_of_locs(self.locs))
 
         st = time.time()
-        invs = f()
-        if not invs.siz:
+        new_invs = f()
+        if not new_invs.siz:
             mlog.warn("found no {}".format(typ))
         else:
             mlog.info("found {} {} in {}s".format(
-                invs.siz, typ, time.time() - st))
-            dinvs.merge(invs)
+                new_invs.siz, typ, time.time() - st))
+
+            dinvs.merge(new_invs)
             mlog.debug("{}".format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
 
-    def infer_eqts(self, deg, dtraces, inps):
+    def infer_eqts(self, dtraces, inps):
         from cegir.eqt import CegirEqt
         solver = CegirEqt(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init

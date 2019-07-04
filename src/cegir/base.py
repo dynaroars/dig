@@ -28,6 +28,10 @@ class Cegir(object):
         self.inp_decls = symstates.inp_decls
         self.prog = prog
 
+    @abstractmethod
+    def gen(self):
+        pass
+
     def get_traces(self, inps, traces):
         """
         run inps to get new traces (and update them)
@@ -39,7 +43,9 @@ class Cegir(object):
         new_traces = new_traces.update(traces)
         return new_traces
 
-    def check_reach(self):
+
+class CegirReachability(Cegir):
+    def gen(self):
         """
         check if inv location is reachable
         by using inv False (0)
@@ -69,5 +75,4 @@ class Cegir(object):
         for loc in traces:
             assert traces[loc]
             dinvs[loc].clear()
-
         return dinvs, traces, inps
