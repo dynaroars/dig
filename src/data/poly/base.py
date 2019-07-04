@@ -42,6 +42,14 @@ class GeneralPoly(Poly):
 
         super(GeneralPoly, self).__init__(poly)
 
+    @property
+    def symbols(self):
+        try:
+            return self._symbols
+        except AttributeError:
+            self._symbols = Miscs.getVars(self.poly)
+            return self._symbols
+
     def eval_traces(self, traces):
         return traces.myeval(self.poly)
 

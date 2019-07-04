@@ -145,14 +145,8 @@ class CegirBinSearch(Cegir):
         return self.guess_check(loc, term, minV, maxV, statsd)
 
     def get_terms(self, symbols):
+
         terms = []
-
-        def _get_terms(terms_u, is_max):
-            terms_l = [(b, a) for a, b in terms_u]
-            terms = terms_u + terms_l
-            terms = [data.poly.mp.MP(a, b, is_max) for a, b in terms]
-            return terms
-
         if settings.DO_IEQS:
             oct_siz = 2
             terms_ieqs = Miscs.get_terms_fixed_coefs(symbols, oct_siz)
@@ -160,6 +154,7 @@ class CegirBinSearch(Cegir):
             terms.extend(terms_ieqs)
 
         if settings.DO_MINMAXPLUS:
+
             terms_u = data.poly.mp.MP.get_terms(symbols)
             terms_u_no_octs = [(a, b) for a, b in terms_u
                                if len(b) >= 2]
@@ -167,12 +162,26 @@ class CegirBinSearch(Cegir):
             if settings.DO_IEQS:  # ignore oct invs
                 terms_u = terms_u_no_octs
 
+            def _get_terms(terms_u, is_max):
+                terms_l = [(b, a) for a, b in terms_u]
+                terms = terms_u + terms_l
+                terms = [data.poly.mp.MP(a, b, is_max) for a, b in terms]
+                return terms
+
             terms_max = _get_terms(terms_u, is_max=True)
 
-            # BUG when include this with CohenDiv
             terms_min = _get_terms(terms_u_no_octs, is_max=False)
             terms.extend(terms_max + terms_min)
 
+        # filtering to reduce # of terms
+        inp_symbs = set(self.prog.inp_decls.names)
+
+        def contain_inps(term):
+            term_symbols = set(map(str, term.symbols))
+            return (inp_symbs.issubset(term_symbols) or
+                    inp_symbs.issuperset(term_symbols))
+
+        terms = [t for t in terms if not contain_inps(t)]
         return terms
 
     def mk_lt(self, term, v):

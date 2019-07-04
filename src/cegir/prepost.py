@@ -12,7 +12,7 @@ from data.traces import DTraces, Traces
 from data.inv.base import Inv, Invs, DInvs
 from data.inv.eqt import EqtInv
 from data.inv.ieq import IeqInv
-
+from data.inv.prepost import PrePostInv
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

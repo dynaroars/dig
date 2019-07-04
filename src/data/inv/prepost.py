@@ -5,7 +5,7 @@ import helpers.vcommon as CM
 
 
 import settings
-from data.invs.base import Inv, Invs
+from data.inv.base import Inv, Invs
 
 
 dbg = pdb.set_trace
