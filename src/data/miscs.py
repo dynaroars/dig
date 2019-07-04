@@ -7,7 +7,7 @@ import sage.all
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
-from data.traces import Inps, DTraces, Trace
+from data.traces import Inp, Inps, DTraces
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -62,7 +62,7 @@ class Prog(object):
 
     # PRIVATE METHODS
     def _get_traces(self, inp):
-        assert isinstance(inp, Trace), inp
+        assert isinstance(inp, Inp), inp
         assert inp not in self._cache
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
@@ -105,7 +105,7 @@ class Prog(object):
         inp_ranges = self._get_inp_ranges(len(self.inp_decls))
         for inp_range in inp_ranges:
             inp = self._get_inp_from_range(inp_range)
-            myInp = Trace(self.inp_decls.names, inp)
+            myInp = Inp(self.inp_decls.names, inp)
             dr[myInp] = inp_range
             di[myInp] = inp
 
@@ -130,7 +130,7 @@ class Prog(object):
     def _get_inp_ranges(cls, n_inps):
         small = 0.10
         large = 1 - small
-        maxV = DTraces.inpMaxV
+        maxV = settings.INP_MAX_V
         minV = -1 * maxV
         rinps = [(0, int(maxV * small)),
                  (int(maxV * large), maxV),

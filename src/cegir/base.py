@@ -40,7 +40,8 @@ class Cegir(object):
         assert isinstance(traces, DTraces), traces
 
         new_traces = self.prog.get_traces(inps)
-        new_traces = new_traces.update(traces)
+        #new_traces = new_traces.update(traces)
+        new_traces = traces.merge(new_traces)
         return new_traces
 
 

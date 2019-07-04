@@ -13,14 +13,31 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Trace(namedtuple('Trace', ('ss', 'vs'))):
+class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
     """"
     ((x, y), (3, 4))
     """
-    maxVal = 100000000
 
     def __str__(self):
         return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
+
+
+class SymbsValsSet(set):
+    def __init__(self, myset=set()):
+        assert all(isinstance(t, SymbsVals) for t in myset), myset
+        super(SymbsValsSet, self).__init__(myset)
+
+    def __contains__(self, t):
+        assert isinstance(t, SymbsVals), t
+        return super(SymbsValsSet, self).__contains__(t)
+
+    def add(self, t):
+        assert isinstance(t, SymbsVals), t
+        return super(SymbsValsSet, self).add(t)
+
+
+class Trace(SymbsVals):
+    maxVal = 100000000
 
     @property
     def mydict(self):
@@ -75,28 +92,17 @@ class Trace(namedtuple('Trace', ('ss', 'vs'))):
         return z3.And(exprs)
 
 
-class Traces(set):
-    def __init__(self, myset=set()):
-        assert all(isinstance(t, Trace) for t in myset), myset
-        super(Traces, self).__init__(myset)
-
-    def __contains__(self, trace):
-        assert isinstance(trace, Trace), trace
-        return super(Traces, self).__contains__(trace)
-
-    def add(self, trace):
-        assert isinstance(trace, Trace), trace
-        return super(Traces, self).add(trace)
-
-    def myeval(self, expr):
-        assert Miscs.is_expr(expr), expr
-        return [trace.myeval(expr) for trace in self]
+class Traces(SymbsValsSet):
 
     def __str__(self, printDetails=False):
         if printDetails:
             return ", ".join(map(str, sorted(self)))
         else:
             return str(len(self))
+
+    def myeval(self, expr):
+        assert Miscs.is_expr(expr), expr
+        return [trace.myeval(expr) for trace in self]
 
     @classmethod
     def extract(cls, cexs, useOne=True):
@@ -158,50 +164,10 @@ class Traces(set):
         return newTraces
 
 
-class Inps(Traces):
-    def myupdate(self, ds, ss):
-        """
-        ds can be
-        1. cexs = {loc:{inv: {'x': val, 'y': val}}}
-        2. [cexs]
-        3. [inp]
-        """
-
-        if not ds:
-            return Inps()
-
-        def f(d):
-            inps = []
-            for loc in d:
-                for inv in d[loc]:
-                    for d_ in d[loc][inv]:
-                        inp = tuple(d_[s] for s in ss)
-                        inps.append(inp)
-            return inps
-
-        if (isinstance(ds, list) and all(isinstance(d, dict) for d in ds)):
-            newInps = [inp for d in ds for inp in f(d)]
-
-        elif isinstance(ds, dict):
-            newInps = f(ds)
-
-        else:
-            assert isinstance(ds, set) and\
-                all(isinstance(d, tuple) for d in ds), ds
-            newInps = [inp for inp in ds]
-
-        newInps = [Trace(ss, inp) for inp in newInps]
-        newInps = set(inp for inp in newInps if inp not in self)
-        for inp in newInps:
-            self.add(inp)
-        return Inps(newInps)
-
-
 class DTraces(dict):
     """
     {loc: Traces}
     """
-    inpMaxV = settings.INP_MAX_V
 
     @property
     def siz(self): return sum(map(len, self.itervalues()))
@@ -217,26 +183,24 @@ class DTraces(dict):
         if loc not in self:
             self[loc] = Traces()
 
-        notIn = trace not in self[loc]
-        if notIn:
+        not_in = trace not in self[loc]
+        if not_in:
             self[loc].add(trace)
-        return notIn
+        return not_in
 
-    def update(self, traces):
+    def merge(self, new_traces):
         """
-        Update dtraces to contain contents of self and return diffs
+        add new traces and return those that are really new
         """
-        assert isinstance(traces, DTraces), traces
-
-        new_traces = DTraces()
-        for loc in self:
-            for trace in self[loc]:
-                not_in = traces.add(loc, trace)
+        new_traces_ = DTraces()
+        for loc in new_traces:
+            for trace in new_traces[loc]:
+                not_in = self.add(loc, trace)
                 if not_in:
-                    new_traces.add(loc, trace)
+                    new_traces_.add(loc, trace)
                 else:
                     mlog.warn("trace {} exist".format(trace))
-        return new_traces
+        return new_traces_
 
     @staticmethod
     def parse(trace_str, inv_decls):
@@ -305,3 +269,46 @@ class DTraces(dict):
 
         dtraces = DTraces.parse(trace_str, inv_decls)
         return inv_decls, dtraces
+
+
+class Inp(SymbsVals):
+    pass
+
+
+class Inps(SymbsValsSet):
+    def myupdate(self, ds, ss):
+        """
+        ds can be
+        1. cexs = {loc:{inv: {'x': val, 'y': val}}}
+        2. [cexs]
+        3. [inp]
+        """
+
+        if not ds:
+            return Inps()
+
+        def f(d):
+            inps = []
+            for loc in d:
+                for inv in d[loc]:
+                    for d_ in d[loc][inv]:
+                        inp = tuple(d_[s] for s in ss)
+                        inps.append(inp)
+            return inps
+
+        if (isinstance(ds, list) and all(isinstance(d, dict) for d in ds)):
+            newInps = [inp for d in ds for inp in f(d)]
+
+        elif isinstance(ds, dict):
+            newInps = f(ds)
+
+        else:
+            assert isinstance(ds, set) and\
+                all(isinstance(d, tuple) for d in ds), ds
+            newInps = [inp for inp in ds]
+
+        newInps = [Inp(ss, inp) for inp in newInps]
+        newInps = set(inp for inp in newInps if inp not in self)
+        for inp in newInps:
+            self.add(inp)
+        return Inps(newInps)

@@ -14,7 +14,7 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
 import helpers.src_java
 from data.miscs import Symbs, DSymbs
-from data.traces import Inps, DTraces
+from data.traces import Inps
 from data.inv.base import Inv,  DInvs, Invs
 
 
@@ -290,7 +290,7 @@ class SymStates(object):
 
     @classmethod
     def mk(cls, depth, filename, mainQName, clsName, jpfDir, nInps):
-        max_val = DTraces.inpMaxV
+        max_val = settings.INP_MAX_V
         ssfile = "{}.{}_{}_{}.straces".format(
             filename, mainQName, max_val, depth)
 
