@@ -8,7 +8,7 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 from data.traces import Inps, Traces, DTraces
-from data.inv.base import Invs, DInvs
+from data.inv.invs import Invs, DInvs
 import data.inv.eqt
 import cegir.base
 
@@ -200,7 +200,7 @@ class CegirEqt(cegir.base.Cegir):
             mlog.debug("{}: check {} unchecked ({} candidates)"
                        .format(loc, len(unchecks), len(new_eqts)))
 
-            dinvs = DInvs.mk(loc, Invs(map(data.inv.eqt.EqtInv, unchecks)))
+            dinvs = DInvs.mk(loc, Invs(map(data.inv.eqt.Eqt, unchecks)))
             cexs, dinvs = self.symstates.check(dinvs, inps=None)
 
             if cexs:

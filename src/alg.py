@@ -47,7 +47,7 @@ class Dig(object):
         mlog.debug(msg)
         st = time.time()
         dinvs = dinvs.test(dtraces)
-        mlog.info("{} in {}s".format(msg, time.time() - st))
+        mlog.info("{} in {:.2f}s".format(msg, time.time() - st))
 
         if not dinvs.siz:
             return dinvs
@@ -58,21 +58,25 @@ class Dig(object):
             print_stat=True, print_first_n=20)))
         st = time.time()
         dinvs = dinvs.uniqify(self.inv_decls.use_reals)
-        mlog.info("{} in {}s".format(msg, time.time() - st))
+        mlog.info("{} in {:.2f}s".format(msg, time.time() - st))
         return dinvs
 
     def print_results(self, dinvs, dtraces, inps, st):
         result = ("*** '{}', {} locs, "
-                  "invs {} ({} eqts), traces {}, inps {}, "
-                  "time {:02f}s, rand seed {}, test {} {}:\n{}")
-        print(result.format(self.filename, len(dinvs),
-                            dinvs.siz, dinvs.n_eqs, dtraces.siz,
-                            len(inps) if inps else 0,
-                            time.time() - st,
-                            self.seed,
-                            random.randint(0, 100),
-                            sage.all.randint(0, 100),
-                            dinvs.__str__(print_stat=True)))
+                  "invs {} ({}), traces {}, inps {}, "
+                  "time {:.2f}s, rand seed {}, test {} {}:\n{}")
+        print(result.format(
+            self.filename, len(dinvs),
+            dinvs.siz,
+            ', '.join('{}: {}'.format(t, c)
+                      for t, c in dinvs.typ_ctr.iteritems()),
+            dtraces.siz,
+            len(inps) if inps else 0,
+            time.time() - st,
+            self.seed,
+            random.randint(0, 100),
+            sage.all.randint(0, 100),
+            dinvs.__str__(print_stat=True)))
 
     @property
     def tmpdir(self):
@@ -160,7 +164,7 @@ class DigSymStates(Dig):
         if not new_invs.siz:
             mlog.warn("found no {}".format(typ))
         else:
-            mlog.info("found {} {} in {}s".format(
+            mlog.info("found {} {} in {:.2f}s".format(
                 new_invs.siz, typ, time.time() - st))
 
             dinvs.merge(new_invs)

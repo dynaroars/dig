@@ -57,13 +57,11 @@ class Prog(object):
                 if len(inps) == old_siz:
                     mlog.warn("can't gen new random inps")
                     break
-
         return inps
 
     # PRIVATE METHODS
     def _get_traces(self, inp):
         assert isinstance(inp, Inp), inp
-        assert inp not in self._cache
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                 for v in inp.vs)
@@ -79,20 +77,15 @@ class Prog(object):
         run program on inps and obtain traces in parallel
         return {inp: traces}
         """
-
         assert isinstance(inps, Inps), inps
-
-        # mp doesn't like inp so have to use str
-        mydict = {str(inp): inp for inp in inps}
 
         tasks = [inp for inp in inps if inp not in self._cache]
 
         def f(tasks):
-            return [(str(inp), self._get_traces(inp)) for inp in tasks]
+            return [(inp, self._get_traces(inp)) for inp in tasks]
         wrs = Miscs.run_mp("get traces", tasks, f)
 
-        for inp_str, traces in wrs:
-            inp = mydict[inp_str]
+        for inp, traces in wrs:
             assert inp not in self._cache
             self._cache[inp] = traces
 
@@ -118,7 +111,7 @@ class Prog(object):
                 valid_ranges.add(dr[myInp])
                 valid_inps.add(di[myInp])
             else:
-                mlog.debug("inp range {} invalid".format(format(dr[myInp])))
+                mlog.debug("inp range {} invalid".format(dr[myInp]))
 
         return valid_ranges, valid_inps
 

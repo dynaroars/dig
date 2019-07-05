@@ -10,7 +10,7 @@ import settings
 
 from data.miscs import Prog
 from data.traces import Inps, DTraces
-from data.inv.base import DInvs
+from data.inv.invs import DInvs
 
 
 DBG = pdb.set_trace
@@ -40,7 +40,6 @@ class Cegir(object):
         assert isinstance(traces, DTraces), traces
 
         new_traces = self.prog.get_traces(inps)
-        #new_traces = new_traces.update(traces)
         new_traces = traces.merge(new_traces)
         return new_traces
 

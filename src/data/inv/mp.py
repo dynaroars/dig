@@ -27,9 +27,6 @@ class MP(data.inv.base.Inv):
             s = "{} {}".format(s, self.stat)
         return s
 
-    def is_mpinv(self):
-        return True
-
     def expr(self, use_reals):
         """
         # sage: x, y, z = sage.all.var('x y z')

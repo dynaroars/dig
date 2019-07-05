@@ -15,8 +15,8 @@ from helpers.miscs import Miscs, Z3
 import helpers.src_java
 from data.miscs import Symbs, DSymbs
 from data.traces import Inps
-from data.inv.base import Inv,  DInvs, Invs
-
+from data.inv.base import Inv
+from data.inv.invs import Invs, DInvs
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

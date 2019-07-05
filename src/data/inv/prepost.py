@@ -5,31 +5,27 @@ import helpers.vcommon as CM
 
 
 import settings
-from data.inv.base import Inv, Invs
-
+from data.inv.base import Inv
+from data.inv.invs import Invs
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class PrePostInv(Inv):
+class PrePost(Inv):
     """
     Set of Preconds  -> PostInv
     """
 
     def __init__(self, preconds, postcond, stat=None):
         assert isinstance(preconds, Invs), preconds
-        assert postcond.is_eqt, postcond
+        #assert postcond.is_eqt, postcond
 
-        super(PrePostInv, self).__init__(
+        super(PrePost, self).__init__(
             (frozenset(preconds), postcond), stat)
 
         self.preconds = preconds
         self.postcond = postcond
-
-    @property
-    def is_prepost(self):
-        return True
 
     def expr(self, use_reals):
         """

@@ -9,10 +9,11 @@ from helpers.miscs import Miscs
 import settings
 from cegir.base import Cegir
 from data.traces import DTraces, Traces
-from data.inv.base import Inv, Invs, DInvs
-from data.inv.eqt import EqtInv
-from data.inv.ieq import IeqInv
-from data.inv.prepost import PrePostInv
+from data.inv.base import Inv
+from data.inv.invs import Invs, DInvs
+from data.inv.eqt import Eqt
+from data.inv.oct import Oct
+from data.inv.prepost import PrePost
 
 dbg = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -53,10 +54,10 @@ class CegirPrePost(Cegir):
          y == 0]
 
         """
-        t1 = [EqtInv(t == 0) for t in symbols]  # M=0, N=0
-        t2 = [IeqInv(t < 0)  # +/M+/-N >0
+        t1 = [Eqt(t == 0) for t in symbols]  # M=0, N=0
+        t2 = [Oct(t < 0)  # +/M+/-N >0
               for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
-        t3 = [IeqInv(t <= 0)  # +/M+/-N >=0
+        t3 = [Oct(t <= 0)  # +/M+/-N >=0
               for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
         return t1 + t2 + t3
 
@@ -71,7 +72,7 @@ class CegirPrePost(Cegir):
 
             mydisjs = []
             for inv in dinvs[loc]:
-                if not isinstance(inv, EqtInv):
+                if not isinstance(inv, Eqt):
                     continue
 
                 disjss = self.get_disjs(inv.inv)
@@ -88,8 +89,8 @@ class CegirPrePost(Cegir):
         assert disjs, disjs
         assert all(disj.operator() == operator.eq for disj in disjs), disjs
         assert isinstance(traces, Traces), traces
-        print 'orig', disjs
-        mydisjs = [EqtInv(disj) for disj in disjs]
+        #print 'orig', disjs
+        mydisjs = [Eqt(disj) for disj in disjs]
         disjs_traces = {d: traces.get_satisfying_traces(d) for d in mydisjs}
         print disjs_traces
 
@@ -119,7 +120,7 @@ class CegirPrePost(Cegir):
             preconds = Invs(preconds)
             if not preconds:
                 continue
-            prepost = PrePostInv(preconds, disj, stat=Inv.PROVED)
+            prepost = PrePost(preconds, disj, stat=Inv.PROVED)
             preposts.append(prepost)
 
         return preposts
