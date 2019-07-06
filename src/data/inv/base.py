@@ -88,6 +88,7 @@ class RelInv(Inv):
             s = "{} {}".format(s, self.stat)
         return s
 
+    @staticmethod
     @cached_function
     def strOfExp(p):
         """

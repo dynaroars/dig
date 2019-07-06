@@ -2,6 +2,7 @@ import itertools
 import pdb
 
 import sage.all
+from sage.all import cached_function
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
@@ -30,7 +31,7 @@ class MP(Poly):
         try:
             return self._symbols
         except AttributeError:
-            self._symbols = Miscs.getVars(self.a + self.b)
+            self._symbols = set(map(str, Miscs.getVars(self.a + self.b)))
             return self._symbols
 
     def __str__(self):
@@ -42,7 +43,7 @@ class MP(Poly):
         try:
             return self._str
         except AttributeError:
-            s1 = ','.join(map(str, self.symbols))
+            s1 = ','.join(self.symbols)
             s2 = self._to_str(self.a, self.b, self.is_max)
             self._str = "lambda {}: {}".format(s1, s2)
             return self._str

@@ -172,18 +172,37 @@ class CegirBinSearch(Cegir):
             terms_max = _get_terms(terms_u, is_max=True)
 
             terms_min = _get_terms(terms_u_no_octs, is_max=False)
-            terms.extend(terms_max + terms_min)
+            terms.extend(terms_min + terms_max)
 
-        # filtering to reduce # of terms
-        inp_symbs = set(self.prog.inp_decls.names)
-
-        def contain_inps(term):
-            term_symbols = set(map(str, term.symbols))
-            return (inp_symbs.issubset(term_symbols) or
-                    inp_symbs.issuperset(term_symbols))
-
-        terms = [t for t in terms if not contain_inps(t)]
+        terms = self.filter_terms(terms, set(self.prog.inp_decls.names))
         return terms
+
+    @staticmethod
+    def filter_terms(terms, inps):
+        assert isinstance(inps, set), inps
+        if not inps:
+            mlog.warn("Have not tested case with no inps")
+
+        excludes = set()
+        for term in terms:
+            if isinstance(term, data.poly.mp.MP):
+                a_symbs = map(str, Miscs.getVars(term.a))
+                b_symbs = map(str, Miscs.getVars(term.b))
+                inp_in_a = any(s in inps for s in a_symbs)
+                inp_in_b = any(s in inps for s in b_symbs)
+
+                if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
+                    excludes.add(term)
+                    continue
+
+            else:
+                t_symbs = set(map(str, term.symbols))
+                if inps.issuperset(t_symbs):
+                    excludes.add(term)
+                    continue
+
+        new_terms = [term for term in terms if term not in excludes]
+        return new_terms
 
     def mk_lt(self, term, v):
         inv = term.mk_lt(v)

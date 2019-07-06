@@ -204,6 +204,7 @@ class PC(object):
         pcs = [cls.parsePC(pc) for pc in parts]
         return pcs
 
+    @staticmethod
     @cached_function
     def replaceStr(s):
         s_ = (s.replace('&&', '').
@@ -216,6 +217,7 @@ class PC(object):
               strip())
         return s_
 
+    @staticmethod
     @cached_function
     def replaceMod(s):
         if "%" not in s:
