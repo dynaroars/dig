@@ -67,12 +67,20 @@ class CegirBinSearch(Cegir):
 
     def gc(self, loc, term, minV, maxV, traces):
         assert isinstance(term, data.poly.base.Poly)
+        assert minV <= maxV, (minV, maxV)
+
         statsd = {maxV: Inv.PROVED}
 
         # start with this minV
         vs = term.eval_traces(traces[loc])
         try:
-            mminV = int(max(minV, max(v for v in vs if v < maxV)))
+            mymaxV = int(max(v for v in vs))
+            if mymaxV > maxV:
+                # occurs when checking above fails
+                # (e.g., cannot show term <= maxV even though it is true)
+                return None
+
+            mminV = int(max(minV, mymaxV))
         except ValueError:
             mminV = minV
 
@@ -93,15 +101,21 @@ class CegirBinSearch(Cegir):
 
             if loc in cexs:  # disproved
                 mminV = self._get_max_from_cexs(loc, term, cexs)
+                if mminV >= maxV:
+                    return None
+
             else:  # proved , term <= v
                 break
 
         mmaxV = v if v < maxV else maxV
-        mlog.debug("{}: compute ub for '{}', start w/ minV {}, maxV {})"
+        mlog.debug("{}: compute ub for '{}', start with minV {}, maxV {})"
                    .format(loc, term, mminV, mmaxV))
+
+        assert mminV <= mmaxV, (term, mminV, mmaxV)
         boundV = self.guess_check(loc, term, mminV, mmaxV, statsd)
 
-        if (boundV not in statsd or statsd[boundV] != Inv.DISPROVED):
+        if (boundV and
+                (boundV not in statsd or statsd[boundV] != Inv.DISPROVED)):
             stat = statsd[boundV] if boundV in statsd else None
             inv = self.mk_lt(term, boundV)
             inv.stat = stat
@@ -112,8 +126,12 @@ class CegirBinSearch(Cegir):
 
     def guess_check(self, loc, term, minV, maxV, statsd):
         assert isinstance(loc, str) and loc, loc
-        assert minV <= maxV, (minV, maxV, term)
         assert isinstance(statsd, dict), statsd  # {v : proved}
+
+        if minV > maxV:
+            mlog.warn("{}: (guess_check) term {} has minV {} > maxV {}".format(
+                loc, term, minV, maxV))
+            return None  # temp fix
 
         if minV == maxV:
             return maxV
@@ -138,10 +156,6 @@ class CegirBinSearch(Cegir):
             minV = self._get_max_from_cexs(loc, term, cexs)
         else:
             maxV = v
-
-        if minV > maxV:
-            mlog.warn("{}, {}, minV {} > maxV {}".format(
-                loc, term, minV, maxV))
 
         return self.guess_check(loc, term, minV, maxV, statsd)
 
@@ -179,7 +193,9 @@ class CegirBinSearch(Cegir):
 
     @staticmethod
     def filter_terms(terms, inps):
-        assert isinstance(inps, set), inps
+        assert isinstance(inps, set) and \
+            all(isinstance(s, str) for s in inps), inps
+
         if not inps:
             mlog.warn("Have not tested case with no inps")
 
@@ -195,11 +211,13 @@ class CegirBinSearch(Cegir):
                     excludes.add(term)
                     continue
 
+                t_symbs = set(a_symbs + b_symbs)
             else:
                 t_symbs = set(map(str, term.symbols))
-                if inps.issuperset(t_symbs):
-                    excludes.add(term)
-                    continue
+
+            if inps.issuperset(t_symbs):
+                excludes.add(term)
+                continue
 
         new_terms = [term for term in terms if term not in excludes]
         return new_terms

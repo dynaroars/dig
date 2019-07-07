@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import functools
 import pdb
 import random
 import os.path
@@ -118,35 +119,36 @@ class DigSymStates(Dig):
             self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()
+        mlog.info("infer invs at {} locs: {}".format(
+            len(self.locs), ', '.join(self.locs)))
 
     def start(self, seed, maxdeg):
         super(DigSymStates, self).start(seed, maxdeg)
 
         st = time.time()
 
-        mlog.debug("checking reachability")
-        import cegir.base
-        solver = cegir.base.CegirReachability(self.symstates, self.prog)
-        dinvs, dtraces, inps = solver.gen()
-        assert dtraces
+        from data.traces import Inps, DTraces
+        from data.inv.invs import DInvs
+
+        dinvs = DInvs()
+        dtraces = DTraces.mk(self.locs)
+        inps = Inps()
 
         mlog.debug("inferring: eqts {}, ieqs {}, min/max {}, preposts {}"
                    .format(settings.DO_EQTS, settings.DO_IEQS,
                            settings.DO_MINMAXPLUS, settings.DO_PREPOSTS))
 
-        def _infer(typ, f):
-            return self.infer(typ, f, dinvs)
-
         if settings.DO_EQTS:
-            _infer('eqts', lambda: self.infer_eqts(dtraces, inps))
+            self.infer('eqts', dinvs, lambda: self.infer_eqts(dtraces, inps))
 
         if settings.DO_IEQS or settings.DO_MINMAXPLUS:
-            _infer('ieqs', lambda: self.infer_ieqs(dtraces, inps))
+            self.infer('ieqs', dinvs, lambda: self.infer_ieqs(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
         if dinvs.n_eqs and settings.DO_PREPOSTS:
-            _infer('preposts', lambda: self.infer_preposts(dinvs, dtraces))
+            self.infer('preposts', dinvs,
+                       lambda: self.infer_preposts(dinvs, dtraces))
 
         self.print_results(dinvs, dtraces, inps, st)
 
@@ -155,9 +157,8 @@ class DigSymStates(Dig):
 
         return dinvs, dtraces, self.tmpdir
 
-    def infer(self, typ, f, dinvs):
-        mlog.debug("gen '{}' at {} locs".format(typ, len(self.locs)))
-        mlog.debug(self.str_of_locs(self.locs))
+    def infer(self, typ, dinvs, f):
+        mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
 
         st = time.time()
         new_invs = f()
@@ -168,27 +169,21 @@ class DigSymStates(Dig):
                 new_invs.siz, typ, time.time() - st))
 
             dinvs.merge(new_invs)
-            mlog.debug("{}".format(dinvs.__str__(
+            mlog.debug('{}'.format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
 
     def infer_eqts(self, dtraces, inps):
         from cegir.eqt import CegirEqt
         solver = CegirEqt(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
-        dinvs = solver.gen(self.deg, dtraces, inps)
-        return dinvs
+        return solver.gen(self.deg, dtraces, inps)
 
     def infer_ieqs(self, dtraces, inps):
         from cegir.binsearch import CegirBinSearch
         solver = CegirBinSearch(self.symstates, self.prog)
-        dinvs = solver.gen(dtraces, inps)
-        return dinvs
+        return solver.gen(dtraces, inps)
 
     def infer_preposts(self, dinvs, dtraces):
         from cegir.prepost import CegirPrePost
         solver = CegirPrePost(self.symstates, self.prog)
-        dinvs = solver.gen(dinvs, dtraces)
-        return dinvs
-
-    def str_of_locs(self, locs):
-        return '; '.join("{} ({})".format(l, self.inv_decls[l]) for l in locs)
+        return solver.gen(dinvs, dtraces)

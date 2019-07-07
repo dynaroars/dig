@@ -2,6 +2,8 @@ import pdb
 import itertools
 import operator
 from collections import Iterable
+import time
+import functools
 
 import sage.all
 from sage.all import cached_function, fork
@@ -491,6 +493,15 @@ class Miscs(object):
                for p, ps in pss if len(ps) >= 2]
         return pss
 
+    @staticmethod
+    def show_removed(s, orig_siz, new_siz, elapsed_time):
+        assert orig_siz >= new_siz, (orig_siz, new_siz)
+        n_removed = orig_siz - new_siz
+        if not n_removed:
+            return
+        mlog.debug("{}: removed {} invs ({:.2f}s, orig {}, new {})"
+                   .format(s, n_removed, elapsed_time, orig_siz, new_siz))
+
     @classmethod
     def get_workload(cls, tasks, n_cpus):
         """
@@ -784,3 +795,15 @@ class Z3(object):
         if use_mod:
             mlog.debug("mod hack: {} => {}".format(p, res))
         return res
+
+
+def time_infer(func):
+    @functools.wraps(func)
+    def f(*args, **kwargs):
+        st = time.time()
+        mlog.debug("infer '{}'".format(func.__name__))
+        results = f(*args, **kwargs)
+        print('{} {:.2f}s'.format(
+            func.__name__, time.time() - st))
+        return results
+    return f

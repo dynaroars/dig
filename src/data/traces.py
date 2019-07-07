@@ -21,6 +21,17 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
     def __str__(self):
         return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
 
+    def mkExpr(self, ss):
+        # create z3 expression
+
+        assert len(ss) == len(self.vs), (ss, self.vs)
+        try:
+            exprs = [s == v for s, v in zip(ss, self.vs)]
+        except Exception:
+            myvals = map(int, self.vs)
+            exprs = [s == v for s, v in zip(ss, myvals)]
+        return z3.And(exprs)
+
 
 class SymbsValsSet(set):
     def __init__(self, myset=set()):
@@ -79,17 +90,6 @@ class Trace(SymbsVals):
         assert Miscs.is_expr(expr), expr
         rs = expr.subs(self.mydict)
         return rs
-
-    def mkExpr(self, ss):
-        # create z3 expression
-
-        assert len(ss) == len(self.vs), (ss, self.vs)
-        try:
-            exprs = [s == v for s, v in zip(ss, self.vs)]
-        except Exception:
-            myvals = map(int, self.vs)
-            exprs = [s == v for s, v in zip(ss, myvals)]
-        return z3.And(exprs)
 
 
 class Traces(SymbsValsSet):
@@ -201,6 +201,11 @@ class DTraces(dict):
                 else:
                     mlog.warn("trace {} exist".format(trace))
         return new_traces_
+
+    @classmethod
+    def mk(cls, locs):
+        assert locs
+        return cls({loc: Traces() for loc in locs})
 
     @staticmethod
     def parse(trace_str, inv_decls):

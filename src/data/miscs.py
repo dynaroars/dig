@@ -47,16 +47,19 @@ class Prog(object):
             valid_ranges, inps = self._get_valid_inp_ranges()
             self._valid_ranges = valid_ranges
 
-        if not inps:
-            while len(inps) < n_needed:
-                old_siz = len(inps)
-                for inp_range in valid_ranges:
-                    myinp = self._get_inp_from_range(inp_range)
-                    inps.add(myinp)
+        if inps:
+            return inps
 
-                if len(inps) == old_siz:
-                    mlog.warn("can't gen new random inps")
-                    break
+        while len(inps) < n_needed:
+            old_siz = len(inps)
+            for inp_range in valid_ranges:
+                myinp = self._get_inp_from_range(inp_range)
+                inps.add(myinp)
+
+            if len(inps) == old_siz:
+                mlog.debug("can't gen new rand inps (current {})".format(
+                    len(inps)))
+                break
         return inps
 
     # PRIVATE METHODS
