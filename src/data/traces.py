@@ -147,9 +147,6 @@ class Traces(SymbsValsSet):
             exprs = set(exprs[:nTraces])
         return exprs
 
-    def get_satisfying_traces(self, inv):
-        return Traces([t for t in self if inv.test_single_trace(t)])
-
     def padZeros(self, ss):
         newTraces = Traces()
         for t in self:

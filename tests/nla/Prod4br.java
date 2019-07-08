@@ -3,7 +3,7 @@ public class Prod4br {
     public static void vtrace2(int x, int y, int a, int b, int p, int q){}    
     public static void main (String[] args) {}
     public static int mainQ(int x, int y){
-	//assert(x>=1);
+	assert(x>=1);
 	assert(y>=1); 
 
 	int a,b,p,q;
@@ -40,7 +40,7 @@ public class Prod4br {
 	}
 
 	//assert(q == x*y);
-	vtrace2(x, y, a, b, p, q);	
+	//vtrace2(x, y, a, b, p, q);	
 	return q; 
     }
 }

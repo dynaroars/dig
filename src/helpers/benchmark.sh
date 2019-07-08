@@ -2,7 +2,7 @@
 
 
 # f=../../results/all062819 ; rm -rf $f; sh benchmark.sh 2>&1 | tee $f
-FILES=../../tests/mp/*.java
+FILES=../../tests/complexity/*.java
 END=5
 TIMEOUT=600   #10 mins
 for f in $FILES

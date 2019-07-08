@@ -15,7 +15,7 @@ from data.inv.eqt import Eqt
 from data.inv.oct import Oct
 from data.inv.prepost import PrePost
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
@@ -70,15 +70,11 @@ class CegirPrePost(Cegir):
             if settings.POST_LOC not in loc:
                 continue
 
-            mydisjs = []
-            for inv in dinvs[loc]:
-                if not isinstance(inv, Eqt):
-                    continue
-
-                disjss = self.get_disjs(inv.inv)
-                mydisjs.extend([disj for disjs in disjss for disj in disjs])
-
-            preposts = self.get_preposts(loc, set(mydisjs), traces[loc])
+            disjs = [self.get_disjs(inv.inv) for inv in dinvs[loc]
+                     if isinstance(inv, Eqt)]
+            disjs = [disj for disj in disjs if disj]
+            disjs = [d for disj in disjs for d in disj]
+            preposts = self.get_preposts(loc, set(disjs), traces[loc])
             if preposts:
                 dinvs_[loc] = Invs(preposts)
 
@@ -89,43 +85,21 @@ class CegirPrePost(Cegir):
         assert disjs, disjs
         assert all(disj.operator() == operator.eq for disj in disjs), disjs
         assert isinstance(traces, Traces), traces
-        #print 'orig', disjs
+
         mydisjs = [Eqt(disj) for disj in disjs]
-        disjs_traces = {d: traces.get_satisfying_traces(d) for d in mydisjs}
-        print disjs_traces
-
-        # for k1, k2 in itertools.combinations(disjs_traces.keys(), 2):
-        #     common_traces = disjs_traces[k1] & disjs_traces[k2]
-        #     if common_traces:
-        #         disjs_traces[k1] = disjs_traces[k1] - common_traces
-        #         disjs_traces[k2] = disjs_traces[k2] - common_traces
-        # disjs_traces = {d: disjs_traces[d]
-        #                 for d in disjs_traces if disjs_traces[d]}
-
+        mytraces = {d: Traces([t for t in traces if d.test_single_trace(t)])
+                    for d in mydisjs}
         preposts = []  # results
-        for disj in disjs_traces:
-            print 'disj', disj
-
-            preconds = []
-            for pc in self.preconds:
-                if pc.test(disjs_traces[disj]):
-                    preconds.append(pc)
-                else:
-                    print 'discard', pc
-
-            print disjs_traces[disj].__str__(True)
-            print 'preconds', preconds
-            preconds = self.strengthen_preconds(loc, preconds, disj)
-            print 'preconds simplified', preconds
-            preconds = Invs(preconds)
+        for disj in mytraces:
+            preconds = [pc for pc in self.preconds if pc.test(mytraces[disj])]
+            preconds = self.strengthen(loc, preconds, disj)
             if not preconds:
                 continue
-            prepost = PrePost(preconds, disj, stat=Inv.PROVED)
+            prepost = PrePost(Invs(preconds), disj, stat=Inv.PROVED)
             preposts.append(prepost)
-
         return preposts
 
-    def strengthen_preconds(self, loc, preconds, postcond):
+    def strengthen(self, loc, preconds, postcond):
         """
         preconds  =>  post  can be strengthened by removing some preconds
         e.g., a&b => post is stronger than a&b&c => post
@@ -148,41 +122,38 @@ class CegirPrePost(Cegir):
                 return False
             return True
 
-        preconds_exprs = [c.expr(self.use_reals) for c in preconds]
+        preconds_exprs = list(d.keys())
         if not check(preconds_exprs):
             return []
-        #preconds_exprs = sorted(preconds_exprs, cmp=Z3._mycmp_, reverse=True)
-        print preconds_exprs
         results = range(len(preconds_exprs))
-
         for i, _ in enumerate(preconds_exprs):
             if i not in results:
                 continue
             xclude = [j for j in results if j != i]
             xclude_exprs = [preconds_exprs[j] for j in xclude]
-            print 'exclude exprs', preconds_exprs[i], xclude_exprs
+            #print 'exclude exprs', preconds_exprs[i], xclude_exprs
             if xclude_exprs and check(xclude_exprs):
-                print 'exclude', preconds_exprs[i]
+                #print 'exclude', preconds_exprs[i]
                 results = xclude
-            else:
-                print 'cannot exclude', preconds_exprs[i]
+            # else:
+            #     print 'cannot exclude', preconds_exprs[i]
 
         results = [d[preconds_exprs[j]] for j in results]
         return results
 
-    def get_disjs(self, eqt):
+    @classmethod
+    def get_disjs(cls, eqt):
+        assert Miscs.is_expr(eqt), eqt
         assert eqt.operator() == operator.eq, eqt
 
-        symbols = Miscs.getVars(eqt)  # x,y,z
+        symbols = [s for s in Miscs.getVars(eqt)
+                   if settings.CTR_VAR in str(s)]
+        assert len(symbols) == 1, "should only have 1 special symbol"
+        ct_symbol = symbols[0]
 
-        # if special symbols, e.g., tCtr, exist, then only consider those
-        symbols_ = [s for s in symbols if settings.CTR_VAR in str(s)]
-        if symbols_:
-            assert len(symbols_) == 1, "should only have 1 special symbol"
-            symbols = symbols_
-
-        disjss = [sage.all.solve(eqt, s) for s in symbols]
-
-        # len(disjs) >= 2 indicate disj, e.g., x^2 = 1 -> [x=1,x=-1]
-        disjss = [disjs for disjs in disjss if len(disjs) >= 2]
-        return disjss
+        disjs = sage.all.solve(eqt, ct_symbol)
+        if len(disjs) >= 2:
+            # len(disjs) >= 2 indicate disj, e.g., x^2 = 1 -> [x=1,x=-1]
+            return disjs
+        else:
+            return None

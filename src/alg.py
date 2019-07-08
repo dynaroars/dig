@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-import functools
 import pdb
 import random
 import os.path
@@ -11,6 +10,11 @@ import settings
 from helpers.miscs import Miscs
 import helpers.vcommon as CM
 import helpers.src_java
+
+import data.miscs
+import data.symstates
+from data.traces import Inps, DTraces
+from data.inv.invs import DInvs
 
 DBG = pdb.set_trace
 
@@ -26,18 +30,13 @@ class Dig(object):
         self.filename = filename
 
     @abstractmethod
-    def start(self, seed, maxdeg):
-        assert maxdeg is None or maxdeg >= 1, maxdeg
+    def start(self, seed):
 
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
         mlog.debug("set seed to: {} (test {} {})".format(
             seed, random.randint(0, 100), sage.all.randint(0, 100)))
-
-        # determine degree
-        maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
-        self.deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
 
     def sanitize(self, dinvs, dtraces):
         if not dinvs.siz:
@@ -102,11 +101,9 @@ class DigSymStates(Dig):
         self.inv_decls = inv_decls
         self.use_rand_init = True
 
-        import data.miscs
         exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
         self.prog = data.miscs.Prog(exe_cmd, inp_decls, inv_decls)
 
-        import data.symstates
         self.symstates = data.symstates.SymStates(inp_decls, inv_decls)
         self.symstates.compute(self.filename, mainQ_name, clsname, jpfdir)
 
@@ -115,31 +112,31 @@ class DigSymStates(Dig):
                         if loc not in self.symstates.ss]
 
         for loc in invalid_locs:
-            mlog.warn("{}: no symbolic states. Skipping".format(loc))
+            mlog.warn('{}: no symbolic states. Skip'.format(loc))
             self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()
-        mlog.info("infer invs at {} locs: {}".format(
-            len(self.locs), ', '.join(self.locs)))
 
     def start(self, seed, maxdeg):
-        super(DigSymStates, self).start(seed, maxdeg)
+        assert maxdeg is None or maxdeg >= 1, maxdeg
+
+        super(DigSymStates, self).start(seed)
+
+        mlog.info('infer invs (eqts {}, ieqs {}, min/max {}, preposts {}) '
+                  'at {} locs: {}'
+                  .format(settings.DO_EQTS, settings.DO_IEQS,
+                          settings.DO_MINMAXPLUS, settings.DO_PREPOSTS,
+                          len(self.locs), ', '.join(self.locs)))
 
         st = time.time()
-
-        from data.traces import Inps, DTraces
-        from data.inv.invs import DInvs
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
         inps = Inps()
 
-        mlog.debug("inferring: eqts {}, ieqs {}, min/max {}, preposts {}"
-                   .format(settings.DO_EQTS, settings.DO_IEQS,
-                           settings.DO_MINMAXPLUS, settings.DO_PREPOSTS))
-
         if settings.DO_EQTS:
-            self.infer('eqts', dinvs, lambda: self.infer_eqts(dtraces, inps))
+            self.infer('eqts', dinvs, lambda: self.infer_eqts(
+                maxdeg, dtraces, inps))
 
         if settings.DO_IEQS or settings.DO_MINMAXPLUS:
             self.infer('ieqs', dinvs, lambda: self.infer_ieqs(dtraces, inps))
@@ -162,9 +159,7 @@ class DigSymStates(Dig):
 
         st = time.time()
         new_invs = f()
-        if not new_invs.siz:
-            mlog.warn("found no {}".format(typ))
-        else:
+        if new_invs.siz:
             mlog.info("found {} {} in {:.2f}s".format(
                 new_invs.siz, typ, time.time() - st))
 
@@ -172,11 +167,15 @@ class DigSymStates(Dig):
             mlog.debug('{}'.format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
 
-    def infer_eqts(self, dtraces, inps):
+    def infer_eqts(self, maxdeg, dtraces, inps):
         from cegir.eqt import CegirEqt
         solver = CegirEqt(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
-        return solver.gen(self.deg, dtraces, inps)
+
+        # determine degree
+        maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
+        deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
+        return solver.gen(deg, dtraces, inps)
 
     def infer_ieqs(self, dtraces, inps):
         from cegir.binsearch import CegirBinSearch

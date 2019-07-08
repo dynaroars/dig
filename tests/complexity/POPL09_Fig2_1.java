@@ -1,10 +1,10 @@
 public class POPL09_Fig2_1 {
-    public static void vtrace1(int n, int m, int x0, int y0, int t){}
+    public static void vtrace1(int n, int m, int x0, int y0, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int x0, int y0, int n, int m){
 	int x = x0;
 	int y = y0;
-	int t = 0;
+	int tCtr = 0;
 	while(x < n){
 	    if(y < m){
 		y++;
@@ -12,9 +12,9 @@ public class POPL09_Fig2_1 {
 	    else{
 		x++;
 	    }
-	    t++;
+	    tCtr++;
 	}
-	vtrace1(n, m, x0, y0, t);
+	vtrace1(n, m, x0, y0, tCtr);
      
 	//NOTE: have to manually pass in the flag -maxdeg 3 (otherwise SAGE's eqt solver seems to hang).
 	//dig2:  l17: m*n*t + (n*n)*t - m*(t*t) - 2*n*(t*t) + (t*t*t) - m*t*x0 - 2*n*t*x0 + 2*(t*t)*x0 + t*(x0*x0) - n*t*y0 + (t*t)*y0 + t*x0*y0 == 0, -t <= 0

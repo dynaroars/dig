@@ -1,5 +1,5 @@
 public class PLDI09_Fig4_4 {
-    public static void vtrace1(int n, int m, int t, int h){}
+    public static void vtrace1(int n, int m, int tCtr, int h){}
     public static void main (String[] args) {
     }
 
@@ -22,10 +22,10 @@ public class PLDI09_Fig4_4 {
 	    }else{
 		i = i-m;
 	    }
-	    t++;
+	    tCtr++;
 	}
      
-	vtrace1(n, m, t, h);
+	vtrace1(n, m, tCtr, h);
      
 	//dig2: l26: -c2 <= -1, c2*m - c2 - n + t == 0, c1 - m <= -1, -t <= -2, c1 + c2 - t == 0, c2 - t <= 0
 
