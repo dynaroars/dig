@@ -8,7 +8,7 @@ public class PLDI09_Fig4_4 {
 	assert (n>0);
 
 	int i = n;
-	int t = 0;
+	int tCtr = 0;
 	int h = n/m;
      
 	/* int h = 0; */

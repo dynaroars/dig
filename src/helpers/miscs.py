@@ -12,7 +12,7 @@ import z3
 import vcommon as CM
 import settings
 
-dbg = pdb.set_trace
+DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -782,8 +782,12 @@ class Z3(object):
                         c = cls.toZ3(c, use_reals, use_mod)
                         res = reduce(operator.mod, [t, c])
                     else:
-                        vs = [t] * c
-                        res = reduce(operator.mul, vs)
+                        if c == -1:  # 1/x
+                            res = 1/t
+                        else:
+                            assert c >= 0
+                            vs = [t] * c
+                            res = reduce(operator.mul, vs)
                 else:
                     oprs = [cls.toZ3(o, use_reals, use_mod) for o in oprs]
                     res = reduce(op, oprs)
