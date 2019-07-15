@@ -212,12 +212,15 @@ class CegirBinSearch(Cegir):
                     continue
 
                 t_symbs = set(a_symbs + b_symbs)
+                if inps.issuperset(t_symbs):
+                    excludes.add(term)
+                    continue
+
             else:
                 t_symbs = set(map(str, term.symbols))
-
-            if inps.issuperset(t_symbs):
-                excludes.add(term)
-                continue
+                if len(t_symbs) >= 2 and inps.issuperset(t_symbs):
+                    excludes.add(term)
+                    continue
 
         new_terms = [term for term in terms if term not in excludes]
         return new_terms
