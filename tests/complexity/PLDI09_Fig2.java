@@ -32,7 +32,7 @@ public class PLDI09_Fig2 {
 	/*
 	  N = 0 => t = 0 
 	  N <= P (N-P <= 0) => t = P + M + 1
-	  N > P (-N+P < 0)  =>  t = N -M(P-N)
+	  N > P (-N+P < 0)  =>  t = N -M(P-N)  // -N +P < 0
 	 */
 	return 0;
     }

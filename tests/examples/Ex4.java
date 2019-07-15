@@ -13,7 +13,7 @@ public class Ex4 {
 	else if (N <= P){
 	    tCtr = P + M + 1;
 	}
-	else if (N > P){ // P - N < 0  
+	else if (N > P){ // P - N < 0  ;  -N + P < 0
 	    tCtr = N - M*(P-N);
 	}
 	vtrace1_post(M, N, P, tCtr);
