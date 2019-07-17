@@ -302,12 +302,12 @@ class Miscs(object):
             return p
 
     @classmethod
-    def getCoefs(cls, p):
+    def get_coefs(cls, p):
         """
         Return coefficients of an expression
         sage: var('y')
         y
-        sage: Miscs.getCoefs(3*x+5*y^2 == 9)
+        sage: Miscs.get_coefs(3*x+5*y^2 == 9)
         [5, 3]
         """
         Q = sage.all.PolynomialRing(sage.all.QQ, cls.getVars(p))
@@ -332,10 +332,10 @@ class Miscs(object):
         sols = [cls.elim_denom(s) for s in sols]
 
         def okCoefs(s): return all(
-            abs(c) <= settings.MAX_LARGE_COEFS or
+            abs(c) <= settings.MAX_LARGE_COEF or
             sage.all.mod(c, 10) == 0 or
             sage.all.mod(c, 5) == 0
-            for c in cls.getCoefs(s))
+            for c in cls.get_coefs(s))
 
         if ignoreLargeCoefs:  # don't allow large coefs
             sols_ = []
@@ -344,7 +344,7 @@ class Miscs(object):
                     sols_.append(s)
                 else:
                     mlog.debug("large coefs: ignore {} ..".format(
-                        str(s)[:settings.MAX_LARGE_COEFS]))
+                        str(s)[:settings.MAX_LARGE_COEF]))
             sols = sols_
         return sols
 
@@ -360,7 +360,7 @@ class Miscs(object):
         def mysolve(eqts, uks, solution_dict):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 
-        #rs = sage.all.solve(eqts, *uks, solution_dict=True)
+        # rs = sage.all.solve(eqts, *uks, solution_dict=True)
         rs = mysolve(eqts, uks, solution_dict=True)
         assert isinstance(rs, list), rs
         assert all(isinstance(s, dict) for s in rs), rs
@@ -708,10 +708,13 @@ class Z3(object):
         return cls._imply(fs, g)
 
     @classmethod
-    def _imply(cls, fs, g):
+    def _imply(cls, fs, g, is_conj=True):
         assert fs
+        if is_conj:  # And(fs) => g
+            claim = z3.Implies(z3.And(fs), g)
+        else:  # g => Or(fs)
+            claim = z3.Implies(g, z3.Or(fs))
 
-        claim = z3.Implies(z3.And(fs), g)
         models, _ = cls.get_models(z3.Not(claim), k=1)
         return models is False
 

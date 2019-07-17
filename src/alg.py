@@ -52,12 +52,12 @@ class Dig(object):
         if not dinvs.siz:
             return dinvs
 
-        msg = "uniqify {} invs".format(dinvs.siz)
+        msg = "simplify {} invs".format(dinvs.siz)
         mlog.debug(msg)
         mlog.debug("{}".format(dinvs.__str__(
             print_stat=True, print_first_n=20)))
         st = time.time()
-        dinvs = dinvs.uniqify(self.inv_decls.use_reals)
+        dinvs = dinvs.simplify(self.inv_decls.use_reals)
         mlog.info("{} in {:.2f}s".format(msg, time.time() - st))
         return dinvs
 

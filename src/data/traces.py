@@ -147,8 +147,8 @@ class Traces(SymbsValsSet):
             exprs = set(exprs[:nTraces])
         return exprs
 
-    def padZeros(self, ss):
-        newTraces = Traces()
+    def padzeros(self, ss):
+        new_traces = Traces()
         for t in self:
             tss = set(t.ss)
             if len(tss) < len(ss):
@@ -156,9 +156,9 @@ class Traces(SymbsValsSet):
                 newss = t.ss + tuple(ss_)
                 newvs = t.vs + (0,) * len(ss_)
                 t = Trace(newss, newvs)
-            newTraces.add(t)
+            new_traces.add(t)
 
-        return newTraces
+        return new_traces
 
 
 class DTraces(dict):

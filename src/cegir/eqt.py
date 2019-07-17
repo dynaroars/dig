@@ -215,7 +215,7 @@ class CegirEqt(cegir.base.Cegir):
                 break
 
             cexs = Traces.extract(cexs[loc])
-            cexs = cexs.padZeros(set(self.inv_decls[loc].names))
+            cexs = cexs.padzeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
             mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
             exprs.extend(exprs_)

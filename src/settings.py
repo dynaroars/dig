@@ -14,7 +14,7 @@ EQT_SOLVER_TIMEOUT = 120  # secs
 JPF_MIN_DEPTH = 9
 JPF_DEPTH_INCR = 4  # jpfmaxdepth = jpfmindepth + jpfdepth_incr
 EQT_RATE = 1.5
-MAX_LARGE_COEFS = 50
+MAX_LARGE_COEF = 50
 MAX_TERM = 200
 OCT_MAX_V = 10  # t <= 10
 LARGE_N = 200000  # powersum programs can go up to very large vals

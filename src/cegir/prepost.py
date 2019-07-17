@@ -10,7 +10,7 @@ import settings
 from cegir.base import Cegir
 from data.traces import DTraces, Traces
 from data.inv.base import Inv
-from data.inv.invs import Invs, DInvs
+import data.inv.invs
 from data.inv.eqt import Eqt
 from data.inv.oct import Oct
 from data.inv.prepost import PrePost
@@ -63,9 +63,9 @@ class CegirPrePost(Cegir):
         return t1 + t2 + t3
 
     def gen(self, dinvs, traces):
-        assert isinstance(dinvs, DInvs), dinvs
+        assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert isinstance(traces, DTraces), traces
-        dinvs_ = DInvs()
+        dinvs_ = data.inv.invs.DInvs()
 
         post_locs = [loc for loc in dinvs if settings.POST_LOC in loc]
         for loc in post_locs:
@@ -76,7 +76,7 @@ class CegirPrePost(Cegir):
                            key=lambda d: len(str(d)))
             preposts = self.get_preposts(loc, disjs, traces[loc])
             if preposts:
-                dinvs_[loc] = Invs(preposts)
+                dinvs_[loc] = data.inv.invs.Invs(preposts)
 
         return dinvs_
 
@@ -110,14 +110,18 @@ class CegirPrePost(Cegir):
             preconds = self.get_conj_preconds(loc, preconds, curr_post)
             #print '{}: preconds {}'.format(curr_post, preconds)
             if preconds:
-                prepost = PrePost(Invs(preconds), curr_post, stat=Inv.PROVED)
+                prepost = PrePost(data.inv.invs.Invs(preconds),
+                                  curr_post, stat=data.inv.invs.Inv.PROVED)
                 preposts.append(prepost)
             else:
                 preconds = self.get_disj_preconds(loc, curr_post, traces)
-                for pc in preconds:
-                    prepost = PrePost(Invs([pc]), curr_post, stat=Inv.PROVED)
+                if preconds:
+                    prepost = PrePost(data.inv.invs.Invs(preconds),
+                                      curr_post, stat=data.inv.invs.Inv.PROVED)
+                    prepost.is_conj = False
                     preposts.append(prepost)
 
+        preposts = data.inv.invs.Invs(preposts)
         return preposts
 
     def check(self, pcs, postcond_expr, loc):
@@ -149,6 +153,11 @@ class CegirPrePost(Cegir):
             if isOK(pc, postcond):
                 if self.check(pc.expr(self.use_reals), postcond_expr, loc):
                     preconds.append(pc)
+
+        if len(preconds) >= 2:
+            is_conj = False
+            preconds = data.inv.invs.Invs._simplify(
+                preconds, is_conj, self.use_reals)
         return preconds
 
     def get_conj_preconds(self, loc, preconds, postcond):
@@ -173,12 +182,8 @@ class CegirPrePost(Cegir):
                 continue
             xclude = [j for j in results if j != i]
             xclude_exprs = [preconds_exprs[j] for j in xclude]
-            # print 'exclude exprs', preconds_exprs[i], xclude_exprs
             if xclude_exprs and self.check(xclude_exprs, postcond_expr, loc):
-                # print 'exclude', preconds_exprs[i]
                 results = xclude
-            # else:
-            #     print 'cannot exclude', preconds_exprs[i]
 
         results = [d[preconds_exprs[j]] for j in results]
         return results
@@ -194,7 +199,7 @@ class CegirPrePost(Cegir):
         ct_symbol = symbols[0]
 
         postconds = sage.all.solve(eqt, ct_symbol)
-        if len(postconds) >= 2:
+        if len(postconds) >= 1:
             # len(postconds) >= 2 indicate disj, e.g., x^2 = 1 -> [x=1,x=-1]
             return postconds
         else:

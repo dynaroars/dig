@@ -13,6 +13,7 @@ from data.inv.base import Inv
 from data.inv.eqt import Eqt
 from data.inv.oct import Oct
 from data.inv.mp import MP
+import data.inv.prepost
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -55,53 +56,32 @@ class Invs(set):
         invs = self.__class__([inv for inv, passed in wrs if passed])
         return invs
 
-    def uniqify(self, use_reals):
+    def simplify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
 
-        eqts, eqtsLargeCoefs, octs, mps, others = self._classify()
+        eqts, eqts_largecoefs, octs, mps, others = self.classify()
         non_mps = eqts + octs + others
 
-        if non_mps and len(mps) >= 2:  # parallelizing uniqifying mps
+        if non_mps and len(mps) >= 2:  # parallelizing simplifying mps
             non_mps_exprs = [e.expr(use_reals) for e in non_mps]
 
             def f(mps):
                 return [mp for mp in mps
                         if not Z3._imply(non_mps_exprs, mp.expr(use_reals))]
-            wrs = Miscs.run_mp("uniqifying {} mps".format(len(mps)), mps, f)
+            wrs = Miscs.run_mp("simplifying {} mps".format(len(mps)), mps, f)
 
             mps = [mp for mp in wrs]
 
-        rs = self._uniq(non_mps + mps, use_reals)
-        return Invs(rs + eqtsLargeCoefs)
+        is_conj = True
+        rs = self._simplify(non_mps + mps, is_conj, use_reals)
+        return Invs(rs + eqts_largecoefs)
 
-    # PRIVATE
-    @classmethod
-    def _uniq(cls, invs, use_reals):
-        def _imply(js, i):
-            jexprs = [invs[j].expr(use_reals) for j in js]
-            iexpr = invs[i].expr(use_reals)
-            return Z3._imply(jexprs, iexpr)
-
-        st = time()
-        rs = set(range(len(invs)))
-        for i in reversed(range(len(invs))):
-            if i not in rs:
-                continue
-            xclude = rs - {i}
-            if xclude and _imply(xclude, i):
-                rs = xclude
-
-        rs = [invs[i] for i in sorted(rs)]
-
-        Miscs.show_removed('_uniq', len(invs), len(rs), time() - st)
-        return rs
-
-    def _classify(self):
-        eqts, eqtsLargeCoefs, octs, mps, others = [], [], [], [], []
+    def classify(self):
+        eqts, eqts_largecoefs, octs, mps, preposts = [], [], [], [], []
         for inv in self:
             if isinstance(inv, Eqt):
-                if len(Miscs.getCoefs(inv.inv)) > 10:
-                    eqtsLargeCoefs.append(inv)
+                if len(Miscs.get_coefs(inv.inv)) > 10:
+                    eqts_largecoefs.append(inv)
                 else:
                     eqts.append(inv)
             elif isinstance(inv, Oct):
@@ -109,8 +89,31 @@ class Invs(set):
             elif isinstance(inv, MP):
                 mps.append(inv)
             else:
-                others.append(inv)
-        return eqts, eqtsLargeCoefs, octs, mps, others
+                assert isinstance(inv, data.inv.prepost.PrePost), inv
+                preposts.append(inv)
+        return eqts, eqts_largecoefs, octs, mps, preposts
+
+    # PRIVATE
+    @classmethod
+    def _simplify(cls, invs, is_conj, use_reals):
+        def _imply(js, i):
+            jexprs = [invs[j].expr(use_reals) for j in js]
+            iexpr = invs[i].expr(use_reals)
+            return Z3._imply(jexprs, iexpr, is_conj)
+
+        st = time()
+        rs = set(range(len(invs)))
+        for i in reversed(range(len(invs))):
+            if i not in rs:
+                continue
+            others = rs - {i}
+            if others and _imply(others, i):
+                rs = others
+
+        rs = [invs[i] for i in sorted(rs)]
+
+        Miscs.show_removed('_simplify', len(invs), len(rs), time() - st)
+        return rs
 
 
 class DInvs(dict):
@@ -144,22 +147,12 @@ class DInvs(dict):
         ss = []
 
         for loc in sorted(self):
-            eqts, octs, mps, others = [], [], [], []
-            for inv in self[loc]:
-                if isinstance(inv, Eqt):
-                    eqts.append(inv)
-                elif isinstance(inv, Oct):
-                    octs.append(inv)
-                elif isinstance(inv, MP):
-                    mps.append(inv)
-                else:
-                    others.append(inv)
-
+            eqts, eqts_largecoefs, octs, mps, preposts = self[loc].classify()
             ss.append("{} ({} invs):".format(loc, len(self[loc])))
-            invs = sorted(eqts, reverse=True) + \
+            invs = sorted(eqts + eqts_largecoefs, reverse=True) + \
+                sorted(preposts, reverse=True) + \
                 sorted(octs, reverse=True) + \
-                sorted(mps, reverse=True) + \
-                sorted(others, reverse=True)
+                sorted(mps, reverse=True)
 
             if print_first_n and print_first_n < len(invs):
                 invs = invs[:print_first_n] + ['...']
@@ -229,18 +222,18 @@ class DInvs(dict):
 
         return deltas
 
-    def uniqify(self, use_reals):
+    def simplify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
         assert(self.siz), self
 
         st = time()
 
         def f(tasks):
-            return [(loc, self[loc].uniqify(use_reals)) for loc in tasks]
-        wrs = Miscs.run_mp('uniqify', list(self), f)
+            return [(loc, self[loc].simplify(use_reals)) for loc in tasks]
+        wrs = Miscs.run_mp('simplify', list(self), f)
 
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
-        Miscs.show_removed('uniqify', self.siz, dinvs.siz, time() - st)
+        Miscs.show_removed('simplify', self.siz, dinvs.siz, time() - st)
         return dinvs
 
     @classmethod
