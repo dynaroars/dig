@@ -28,7 +28,7 @@ class Poly(object):
         pass
 
     @abc.abstractmethod
-    def mk_lt(self, val):
+    def mk_le(self, val):
         pass
 
 
@@ -55,6 +55,9 @@ class GeneralPoly(Poly):
 
     def mk_lt(self, val):
         return self._mk_rel(operator.lt, val)
+
+    def mk_le(self, val):
+        return self._mk_rel(operator.le, val)
 
     def mk_eq(self, val):
         return self._mk_rel(operator.eq, val)

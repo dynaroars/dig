@@ -44,35 +44,3 @@ class Cegir(object):
         return new_traces
 
 
-# class CegirReachability(Cegir):
-#     def gen(self):
-#         """
-#         check if inv location is reachable
-#         by using inv False (0)
-#         """
-
-#         dinvs = DInvs.mk_false_invs(self.inv_decls)
-#         inps = Inps()
-
-#         # use some initial inps first
-#         rinps = self.prog.gen_rand_inps()
-
-#         mlog.debug("gen {} random inps".format(len(rinps)))
-#         _ = inps.merge(rinps, self.inp_decls.names)
-#         traces = self.prog.get_traces(inps)
-#         unreach_locs = [loc for loc in dinvs if loc not in traces]
-
-#         if unreach_locs:
-#             mlog.debug("use RT to generate traces for {} locs: {}".format(
-#                 len(unreach_locs), ','.join(map(str, unreach_locs))))
-#             unreach_invs = DInvs.mk_false_invs(unreach_locs)
-#             cexs, _ = self.symstates.check(unreach_invs, inps)
-#             newInps = inps.merge(cexs, self.inp_decls.names)
-#             mlog.debug(newInps.__str__(printDetails=True))
-#             self.get_traces(newInps, traces)
-
-#         # remove FALSE invs indicating unreached locs
-#         for loc in traces:
-#             assert traces[loc]
-#             dinvs[loc].clear()
-#         return dinvs, traces, inps

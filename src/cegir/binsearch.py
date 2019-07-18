@@ -21,7 +21,6 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
 class CegirBinSearch(Cegir):
     def __init__(self, symstates, prog):
         super(CegirBinSearch, self).__init__(symstates, prog)
@@ -38,7 +37,7 @@ class CegirBinSearch(Cegir):
             sum(map(len, termss)), len(locs)))
         maxV = settings.OCT_MAX_V
         minV = -1*maxV
-        refs = {loc: {self.mk_lt(t, maxV): t for t in terms}
+        refs = {loc: {self.mk_le(t, maxV): t for t in terms}
                 for loc, terms in zip(locs, termss)}
         ieqs = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
 
@@ -117,7 +116,7 @@ class CegirBinSearch(Cegir):
         if (boundV and
                 (boundV not in statsd or statsd[boundV] != Inv.DISPROVED)):
             stat = statsd[boundV] if boundV in statsd else None
-            inv = self.mk_lt(term, boundV)
+            inv = self.mk_le(term, boundV)
             inv.stat = stat
             mlog.debug("got {}".format(inv))
             return inv
@@ -225,8 +224,8 @@ class CegirBinSearch(Cegir):
         new_terms = [term for term in terms if term not in excludes]
         return new_terms
 
-    def mk_lt(self, term, v):
-        inv = term.mk_lt(v)
+    def mk_le(self, term, v):
+        inv = term.mk_le(v)
         if isinstance(term, data.poly.base.GeneralPoly):
             inv = data.inv.oct.Oct(inv)
         else:
@@ -234,7 +233,7 @@ class CegirBinSearch(Cegir):
         return inv
 
     def _mk_upp_and_check(self, loc, term, v):
-        inv = self.mk_lt(term, v)
+        inv = self.mk_le(term, v)
         inv_ = DInvs.mk(loc, Invs([inv]))
         cexs, _ = self.symstates.check(inv_, inps=None)
         return cexs, inv.stat

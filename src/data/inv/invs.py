@@ -59,8 +59,8 @@ class Invs(set):
     def simplify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
 
-        eqts, eqts_largecoefs, octs, mps, others = self.classify()
-        non_mps = eqts + octs + others
+        eqts, eqts_largecoefs, octs, mps, preposts = self.classify()
+        non_mps = eqts + preposts + octs
 
         if non_mps and len(mps) >= 2:  # parallelizing simplifying mps
             non_mps_exprs = [e.expr(use_reals) for e in non_mps]
@@ -78,6 +78,7 @@ class Invs(set):
 
     def classify(self):
         eqts, eqts_largecoefs, octs, mps, preposts = [], [], [], [], []
+        #DBG()
         for inv in self:
             if isinstance(inv, Eqt):
                 if len(Miscs.get_coefs(inv.inv)) > 10:
