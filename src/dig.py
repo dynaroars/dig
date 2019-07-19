@@ -96,7 +96,8 @@ if __name__ == "__main__":
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
         settings.logger_level = args.log_level
-    settings.logger_level = helpers.vcommon.getLogLevel(settings.logger_level)
+        settings.logger_level = helpers.vcommon.getLogLevel(
+            settings.logger_level)
 
     mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
 

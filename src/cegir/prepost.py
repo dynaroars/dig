@@ -7,11 +7,11 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 import settings
-from cegir.base import Cegir
-from data.traces import DTraces, Traces
-from data.inv.base import Inv
+import cegir.base
+import data.traces
+import data.inv.base
 import data.inv.invs
-from data.inv.eqt import Eqt
+import data.inv.eqt
 from data.inv.oct import Oct
 from data.inv.prepost import PrePost
 
@@ -19,7 +19,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirPrePost(Cegir):
+class CegirPrePost(cegir.base.Cegir):
     def __init__(self, symstates, prog):
         super(CegirPrePost, self).__init__(symstates, prog)
         self.use_reals = symstates.use_reals
@@ -55,7 +55,7 @@ class CegirPrePost(Cegir):
          y == 0]
 
         """
-        t1 = [Eqt(t == 0) for t in symbols]  # M=0, N=0
+        t1 = [data.inv.eqt.Eqt(t == 0) for t in symbols]  # M=0, N=0
         t2 = [Oct(t < 0)  # +/M+/-N >0
               for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
         t3 = [Oct(t <= 0)  # +/M+/-N >=0
@@ -64,13 +64,13 @@ class CegirPrePost(Cegir):
 
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
-        assert isinstance(traces, DTraces), traces
+        assert isinstance(traces, data.traces.DTraces), traces
         dinvs_ = data.inv.invs.DInvs()
 
         post_locs = [loc for loc in dinvs if settings.POST_LOC in loc]
         for loc in post_locs:
             disjs = [self.get_postconds(inv.inv) for inv in dinvs[loc]
-                     if isinstance(inv, Eqt)]
+                     if isinstance(inv, data.inv.eqt.Eqt)]
             disjs = [disj for disj in disjs if disj]
             disjs = sorted(set(d for disj in disjs for d in disj),
                            key=lambda d: len(str(d)))
@@ -85,10 +85,10 @@ class CegirPrePost(Cegir):
         assert isinstance(postconds, list), postconds
         assert all(disj.operator() ==
                    operator.eq for disj in postconds), postconds
-        assert isinstance(traces, Traces), traces
+        assert isinstance(traces, data.traces.Traces), traces
 
-        mypostconds = [Eqt(disj) for disj in postconds]
-        mytraces = {d: Traces([t for t in traces if d.test_single_trace(t)])
+        mypostconds = [data.inv.eqt.Eqt(disj) for disj in postconds]
+        mytraces = {d: data.traces.Traces([t for t in traces if d.test_single_trace(t)])
                     for d in mypostconds}
         mypostconds = sorted(
             mypostconds, key=lambda d: len(mytraces[d]), reverse=True)
@@ -105,7 +105,7 @@ class CegirPrePost(Cegir):
                          if all(t not in mytraces[other_post]
                                 for other_post in other_posts)]
 
-            mytraces_ = Traces(mytraces_)
+            mytraces_ = data.traces.Traces(mytraces_)
             preconds = [pc for pc in self.preconds if pc.test(mytraces_)]
             preconds = self.get_conj_preconds(loc, preconds, curr_post)
             #print '{}: preconds {}'.format(curr_post, preconds)
@@ -165,7 +165,8 @@ class CegirPrePost(Cegir):
         preconds  =>  post  can be strengthened by removing some preconds
         e.g., a&b => post is stronger than a&b&c => post
         """
-        assert all(isinstance(p, Inv) for p in preconds), preconds
+        assert all(isinstance(p, data.inv.base.Inv)
+                   for p in preconds), preconds
 
         if not preconds:
             return []
@@ -195,7 +196,13 @@ class CegirPrePost(Cegir):
 
         symbols = [s for s in Miscs.getVars(eqt)
                    if settings.CTR_VAR in str(s)]
-        assert len(symbols) == 1, "should only have 1 special symbol"
+
+        if not symbols:
+            return
+
+        assert len(symbols) == 1, \
+            "should only have 1 special symbol: {}".format(symbols)
+
         ct_symbol = symbols[0]
 
         postconds = sage.all.solve(eqt, ct_symbol)
@@ -203,4 +210,4 @@ class CegirPrePost(Cegir):
             # len(postconds) >= 2 indicate disj, e.g., x^2 = 1 -> [x=1,x=-1]
             return postconds
         else:
-            return None
+            return

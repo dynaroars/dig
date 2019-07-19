@@ -31,8 +31,7 @@ class CegirEqt(cegir.base.Cegir):
         tasks = [(loc, self._get_init_traces(loc, deg, traces, inps,
                                              settings.EQT_RATE))
                  for loc in locs]
-        if not tasks:  # e.g., cannot obtain enough traces
-            return
+        tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
 
         # then solve/prove in parallel
         def f(tasks):
@@ -88,11 +87,10 @@ class CegirEqt(cegir.base.Cegir):
 
                 # cannot find new traces (new inps do not produce new traces)
                 if loc not in new_traces:
-                    ss = ["{}: cannot find new traces".format(loc),
-                          "(new inps {}, ".format(len(new_inps)),
-                          "curr traces {})".format(
-                              len(traces[loc]) if loc in traces else 0)]
-                    mlog.debug(', '.join(ss))
+                    mlog.debug("{}: cannot find new traces ".format(loc) +
+                               "(new inps {}, ".format(len(new_inps)) +
+                               "curr traces {})".format(
+                                   len(traces[loc]) if loc in traces else 0))
                     return
 
             assert new_traces[loc]

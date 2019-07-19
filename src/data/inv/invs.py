@@ -59,7 +59,8 @@ class Invs(set):
     def simplify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
 
-        eqts, eqts_largecoefs, octs, mps, preposts = self.classify()
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify()
+        assert not falseinvs, falseinvs
         non_mps = eqts + preposts + octs
 
         if non_mps and len(mps) >= 2:  # parallelizing simplifying mps
@@ -77,7 +78,7 @@ class Invs(set):
         return Invs(rs + eqts_largecoefs)
 
     def classify(self):
-        eqts, eqts_largecoefs, octs, mps, preposts = [], [], [], [], []
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
         #DBG()
         for inv in self:
             if isinstance(inv, Eqt):
@@ -89,10 +90,12 @@ class Invs(set):
                 octs.append(inv)
             elif isinstance(inv, MP):
                 mps.append(inv)
-            else:
-                assert isinstance(inv, data.inv.prepost.PrePost), inv
+            elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
-        return eqts, eqts_largecoefs, octs, mps, preposts
+            else:
+                assert isinstance(inv, data.inv.invs.FalseInv), inv
+                falseinvs.append(inv)
+        return eqts, eqts_largecoefs, octs, mps, preposts, falseinvs
 
     # PRIVATE
     @classmethod
@@ -148,12 +151,14 @@ class DInvs(dict):
         ss = []
 
         for loc in sorted(self):
-            eqts, eqts_largecoefs, octs, mps, preposts = self[loc].classify()
+            eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
+                self[loc].classify()
             ss.append("{} ({} invs):".format(loc, len(self[loc])))
             invs = sorted(eqts + eqts_largecoefs, reverse=True) + \
                 sorted(preposts, reverse=True) + \
                 sorted(octs, reverse=True) + \
-                sorted(mps, reverse=True)
+                sorted(mps, reverse=True) +\
+                sorted(falseinvs, reverse=True)
 
             if print_first_n and print_first_n < len(invs):
                 invs = invs[:print_first_n] + ['...']

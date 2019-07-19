@@ -122,13 +122,8 @@ class DigSymStates(Dig):
 
         super(DigSymStates, self).start(seed)
 
-        mlog.info('infer invs ({}) at {} locs: {}'
-                  .format(','.join(x for x in 
-                                ['eqt' if settings.DO_EQTS else '', 
-                                'ieqt' if settings.DO_IEQS else '',
-                                'min/max-plus' if settings.DO_MINMAXPLUS else '', 
-                                'prepost' if settings.DO_EQTS and settings.DO_PREPOSTS else ''] if x),
-                   len(self.locs), ', '.join(self.locs)))
+        mlog.info('infer invs at {} locs: {}'.format(
+            len(self.locs), ', '.join(self.locs)))
 
         st = time.time()
 
