@@ -59,7 +59,9 @@ class Invs(set):
     def simplify(self, use_reals):
         assert isinstance(use_reals, bool), use_reals
 
-        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify()
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
+            self._classify(self)
+
         assert not falseinvs, falseinvs
         non_mps = eqts + preposts + octs
 
@@ -77,10 +79,11 @@ class Invs(set):
         rs = self._simplify(non_mps + mps, is_conj, use_reals)
         return Invs(rs + eqts_largecoefs)
 
-    def classify(self):
+    @classmethod
+    def _classify(cls, invs):
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
-        #DBG()
-        for inv in self:
+        # DBG()
+        for inv in invs:
             if isinstance(inv, Eqt):
                 if len(Miscs.get_coefs(inv.inv)) > 10:
                     eqts_largecoefs.append(inv)
@@ -100,21 +103,36 @@ class Invs(set):
     # PRIVATE
     @classmethod
     def _simplify(cls, invs, is_conj, use_reals):
-        def _imply(js, i):
-            jexprs = [invs[j].expr(use_reals) for j in js]
-            iexpr = invs[i].expr(use_reals)
-            return Z3._imply(jexprs, iexpr, is_conj)
+        assert invs, invs
 
         st = time()
-        rs = set(range(len(invs)))
-        for i in reversed(range(len(invs))):
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
+            cls._classify(invs)
+
+        def mysorted(ps):
+            return sorted(ps, key=lambda s: len(str(s)), reverse=True)
+        eqts = mysorted(eqts+eqts_largecoefs)
+        octs = mysorted(octs)
+        mps = mysorted(mps)
+
+        myinvs = mps + octs + preposts + falseinvs + eqts
+
+        def _imply(js, i):
+            jexprs = [myinvs[j].expr(use_reals) for j in js]
+            iexpr = myinvs[i].expr(use_reals)
+            return Z3._imply(jexprs, iexpr, is_conj)
+
+        rs = set(range(len(myinvs)))
+        ordered_invs = range(len(myinvs))
+        for i in ordered_invs:
+            print i, myinvs[i]
             if i not in rs:
                 continue
             others = rs - {i}
             if others and _imply(others, i):
                 rs = others
 
-        rs = [invs[i] for i in sorted(rs)]
+        rs = [myinvs[i] for i in sorted(rs)]
 
         Miscs.show_removed('_simplify', len(invs), len(rs), time() - st)
         return rs
@@ -152,7 +170,7 @@ class DInvs(dict):
 
         for loc in sorted(self):
             eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
-                self[loc].classify()
+                self[loc]._classify(self[loc])
             ss.append("{} ({} invs):".format(loc, len(self[loc])))
             invs = sorted(eqts + eqts_largecoefs, reverse=True) + \
                 sorted(preposts, reverse=True) + \

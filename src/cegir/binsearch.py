@@ -21,6 +21,7 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
+
 class CegirBinSearch(Cegir):
     def __init__(self, symstates, prog):
         super(CegirBinSearch, self).__init__(symstates, prog)
@@ -67,7 +68,6 @@ class CegirBinSearch(Cegir):
     def gc(self, loc, term, minV, maxV, traces):
         assert isinstance(term, data.poly.base.Poly)
         assert minV <= maxV, (minV, maxV)
-
         statsd = {maxV: Inv.PROVED}
 
         # start with this minV
@@ -113,7 +113,7 @@ class CegirBinSearch(Cegir):
         assert mminV <= mmaxV, (term, mminV, mmaxV)
         boundV = self.guess_check(loc, term, mminV, mmaxV, statsd)
 
-        if (boundV and
+        if (boundV is not None and
                 (boundV not in statsd or statsd[boundV] != Inv.DISPROVED)):
             stat = statsd[boundV] if boundV in statsd else None
             inv = self.mk_le(term, boundV)
@@ -141,8 +141,8 @@ class CegirBinSearch(Cegir):
             cexs, stat = self._mk_upp_and_check(loc, term, minV)
             assert minV not in statsd
             statsd[minV] = stat
-
-            return maxV if loc in cexs else minV
+            ret = maxV if loc in cexs else minV
+            return ret
 
         v = (maxV + minV)/2.0
         v = int(math.ceil(v))

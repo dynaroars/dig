@@ -88,8 +88,9 @@ class CegirPrePost(cegir.base.Cegir):
         assert isinstance(traces, data.traces.Traces), traces
 
         mypostconds = [data.inv.eqt.Eqt(disj) for disj in postconds]
-        mytraces = {d: data.traces.Traces([t for t in traces if d.test_single_trace(t)])
-                    for d in mypostconds}
+        mytraces = {d: data.traces.Traces(
+            [t for t in traces if d.test_single_trace(t)])
+            for d in mypostconds}
         mypostconds = sorted(
             mypostconds, key=lambda d: len(mytraces[d]), reverse=True)
 
