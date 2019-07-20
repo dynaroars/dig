@@ -24,44 +24,6 @@ class CegirPrePost(cegir.base.Cegir):
         super(CegirPrePost, self).__init__(symstates, prog)
         self.use_reals = symstates.use_reals
 
-    @property
-    def preconds(self):
-        symbols = self.symstates.inp_decls.sageExprs
-        return self._preconds(symbols, term_siz=2)
-
-    @classmethod
-    def _preconds(cls, symbols, term_siz):
-        """
-        sage: x,y,z = sage.all.var('x y z')
-        #doctest: +NORMALIZE_WHITESPACE
-        sage: sorted(CegirPrePosts._preconds([x,y], 2), key=str)
-        [-x + y < 0,
-         -x + y <= 0,
-         -x - y < 0,
-         -x - y <= 0,
-         -x < 0,
-         -x <= 0,
-         -y < 0,
-         -y <= 0,
-         x + y < 0,
-         x + y <= 0,
-         x - y < 0,
-         x - y <= 0,
-         x < 0,
-         x <= 0,
-         x == 0,
-         y < 0,
-         y <= 0,
-         y == 0]
-
-        """
-        t1 = [data.inv.eqt.Eqt(t == 0) for t in symbols]  # M=0, N=0
-        t2 = [Oct(t < 0)  # +/M+/-N >0
-              for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
-        t3 = [Oct(t <= 0)  # +/M+/-N >=0
-              for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
-        return t1 + t2 + t3
-
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert isinstance(traces, data.traces.DTraces), traces
@@ -69,58 +31,67 @@ class CegirPrePost(cegir.base.Cegir):
 
         post_locs = [loc for loc in dinvs if settings.POST_LOC in loc]
         for loc in post_locs:
-            disjs = [self.get_postconds(inv.inv) for inv in dinvs[loc]
-                     if isinstance(inv, data.inv.eqt.Eqt)]
-            disjs = [disj for disj in disjs if disj]
-            disjs = sorted(set(d for disj in disjs for d in disj),
-                           key=lambda d: len(str(d)))
-            preposts = self.get_preposts(loc, disjs, traces[loc])
+            postconds = [self.get_postconds(inv.inv) for inv in dinvs[loc]
+                         if isinstance(inv, data.inv.eqt.Eqt)]
+            postconds = [pcs for pcs in postconds if pcs]
+            postconds = set(p for postconds_ in postconds
+                            for p in postconds_)
+            preposts = self.get_preposts(loc, postconds, traces[loc])
             if preposts:
                 dinvs_[loc] = data.inv.invs.Invs(preposts)
 
         return dinvs_
 
+    @property
+    def preconds(self):
+        try:
+            return self._preconds
+        except AttributeError:
+            symbols = self.symstates.inp_decls.sageExprs
+            self._preconds = self.get_preconds(symbols, term_siz=2)
+            return self._preconds
+
     def get_preposts(self, loc, postconds, traces):
         assert isinstance(loc, str), loc
-        assert isinstance(postconds, list), postconds
-        assert all(disj.operator() ==
-                   operator.eq for disj in postconds), postconds
+        assert isinstance(postconds, set) and postconds, postconds
+        assert all(p.operator() == operator.eq for p in postconds), postconds
         assert isinstance(traces, data.traces.Traces), traces
 
-        mypostconds = [data.inv.eqt.Eqt(disj) for disj in postconds]
-        mytraces = {d: data.traces.Traces(
-            [t for t in traces if d.test_single_trace(t)])
-            for d in mypostconds}
-        mypostconds = sorted(
-            mypostconds, key=lambda d: len(mytraces[d]), reverse=True)
+        postconds = sorted(postconds, key=lambda d: len(str(d)))
+        postconds = [data.inv.eqt.Eqt(p) for p in postconds]
+
+        # find all traces satifies each postcond
+        traces = {p: data.traces.Traces(
+            t for t in traces if p.test_single_trace(t))
+            for p in postconds}
 
         preposts = []  # results
-        idxs = range(len(mypostconds))
 
+        def myappend(preconds, is_conj):
+            prepost = PrePost(data.inv.invs.Invs(preconds),
+                              postcond, stat=data.inv.invs.Inv.PROVED)
+            prepost.is_conj = is_conj
+            preposts.append(prepost)
+
+        postconds = sorted(
+            postconds, key=lambda d: len(traces[d]), reverse=True)
+
+        idxs = range(len(postconds))
         for idx in idxs:
-            other_idxs = idxs[:idx] + idxs[idx+1:]
-            curr_post = mypostconds[idx]
-            other_posts = [mypostconds[i] for i in other_idxs]
+            postcond = postconds[idx]
+            others = [postconds[i] for i in idxs[:idx] + idxs[idx+1:]]
+            traces_ = [t for t in traces[postcond]
+                       if all(t not in traces[other] for other in others)]
+            traces_ = data.traces.Traces(traces_)
 
-            mytraces_ = [t for t in mytraces[curr_post]
-                         if all(t not in mytraces[other_post]
-                                for other_post in other_posts)]
-
-            mytraces_ = data.traces.Traces(mytraces_)
-            preconds = [pc for pc in self.preconds if pc.test(mytraces_)]
-            preconds = self.get_conj_preconds(loc, preconds, curr_post)
-            #print '{}: preconds {}'.format(curr_post, preconds)
-            if preconds:
-                prepost = PrePost(data.inv.invs.Invs(preconds),
-                                  curr_post, stat=data.inv.invs.Inv.PROVED)
-                preposts.append(prepost)
+            preconds = [pc for pc in self.preconds if pc.test(traces_)]
+            conj_preconds = self.get_conj_preconds(loc, preconds, postcond)
+            if conj_preconds:
+                myappend(conj_preconds, is_conj=True)
             else:
-                preconds = self.get_disj_preconds(loc, curr_post, traces)
-                if preconds:
-                    prepost = PrePost(data.inv.invs.Invs(preconds),
-                                      curr_post, stat=data.inv.invs.Inv.PROVED)
-                    prepost.is_conj = False
-                    preposts.append(prepost)
+                disj_preconds = self.get_disj_preconds(loc, postcond, traces)
+                if disj_preconds:
+                    myappend(disj_preconds, is_conj=False)
 
         preposts = data.inv.invs.Invs(preposts)
         return preposts
@@ -168,26 +139,39 @@ class CegirPrePost(cegir.base.Cegir):
         """
         assert all(isinstance(p, data.inv.base.Inv)
                    for p in preconds), preconds
+        assert isinstance(postcond, data.inv.eqt.Eqt), postcond
 
         if not preconds:
             return []
 
-        d = {p.expr(self.use_reals): p for p in preconds}
         postcond_expr = postcond.expr(self.use_reals)
 
+        # preconds_exprs = [pc.expr(self.use_reals) for pc in preconds]
+        # if not self.check(preconds_exprs, postcond_expr, loc):
+        #     return []
+
+        # def _imply(js, _):
+        #     jexprs = [preconds_exprs[j] for j in js]
+        #     return self.check(jexprs, postcond_expr, loc)
+
+        # results = Miscs.simplify_idxs(range(len(preconds)), _imply)
+        # results = [preconds[i] for i in results]
+
+        d = {p.expr(self.use_reals): p for p in preconds}
         preconds_exprs = list(d.keys())
         if not self.check(preconds_exprs, postcond_expr, loc):
             return []
+
         results = range(len(preconds_exprs))
-        for i, _ in enumerate(preconds_exprs):
+        for i in range(len(preconds_exprs)):
             if i not in results:
                 continue
             xclude = [j for j in results if j != i]
             xclude_exprs = [preconds_exprs[j] for j in xclude]
             if xclude_exprs and self.check(xclude_exprs, postcond_expr, loc):
                 results = xclude
-
         results = [d[preconds_exprs[j]] for j in results]
+
         return results
 
     @classmethod
@@ -197,18 +181,46 @@ class CegirPrePost(cegir.base.Cegir):
 
         symbols = [s for s in Miscs.getVars(eqt)
                    if settings.CTR_VAR in str(s)]
-
         if not symbols:
             return
-
         assert len(symbols) == 1, \
-            "should only have 1 special symbol: {}".format(symbols)
+            "should only have 1 {} symbol: {}".format(
+                symbols, settings.CTR_VAR)
 
-        ct_symbol = symbols[0]
+        postconds = sage.all.solve(eqt, symbols[0])
+        return postconds if len(postconds) >= 1 else None
 
-        postconds = sage.all.solve(eqt, ct_symbol)
-        if len(postconds) >= 1:
-            # len(postconds) >= 2 indicate disj, e.g., x^2 = 1 -> [x=1,x=-1]
-            return postconds
-        else:
-            return
+    # PRIVATE METHODS
+
+    @classmethod
+    def get_preconds(cls, symbols, term_siz):
+        """
+        sage: x,y,z = sage.all.var('x y z')
+        #doctest: +NORMALIZE_WHITESPACE
+        sage: sorted(CegirPrePosts._preconds([x,y], 2), key=str)
+        [-x + y < 0,
+         -x + y <= 0,
+         -x - y < 0,
+         -x - y <= 0,
+         -x < 0,
+         -x <= 0,
+         -y < 0,
+         -y <= 0,
+         x + y < 0,
+         x + y <= 0,
+         x - y < 0,
+         x - y <= 0,
+         x < 0,
+         x <= 0,
+         x == 0,
+         y < 0,
+         y <= 0,
+         y == 0]
+
+        """
+        t1 = [data.inv.eqt.Eqt(t == 0) for t in symbols]  # M=0, N=0
+        t2 = [Oct(t < 0)  # +/M+/-N >0
+              for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
+        t3 = [Oct(t <= 0)  # +/M+/-N >=0
+              for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
+        return t1 + t2 + t3

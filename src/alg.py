@@ -31,7 +31,6 @@ class Dig(object):
 
     @abstractmethod
     def start(self, seed):
-
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)

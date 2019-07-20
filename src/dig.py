@@ -26,7 +26,6 @@ if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
-
     ag("inp", help="inp")
 
     # 0 Error #1 Warn #2 Info #3 Debug #4 Detail

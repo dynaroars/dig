@@ -9,7 +9,7 @@ import sage.all
 from sage.all import cached_function, fork
 
 import z3
-import vcommon as CM
+import helpers.vcommon as CM
 import settings
 
 DBG = pdb.set_trace
@@ -261,8 +261,8 @@ class Miscs(object):
         assert (p.operator() == sage.all.operator.eq for p in ps), ps
         try:
             Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.getVars(ps))
-            I = Q*ps
-            ps = I.radical().interreduced_basis()
+            myIdeal = Q*ps
+            ps = myIdeal.radical().interreduced_basis()
             ps = [(sage.all.SR(p) == 0) for p in ps]
         except AttributeError:
             pass
@@ -471,28 +471,6 @@ class Miscs(object):
 
         return sols
 
-    @classmethod
-    def getDisj(cls, p, v):
-        assert cls.is_expr(p), p
-        assert cls.is_expr(v) and v.is_symbol(), v
-        sols = sage.all.solve(p, v)
-        return sols
-
-    @classmethod
-    def strOfDisj(cls, ps):
-        assert len(ps) >= 2, ps
-        return "{}".format(" | ".join(map(str, ps)))
-
-    @classmethod
-    def getDisjs(cls, ps):
-        assert ps, ps
-        vs = cls.getVars(ps)
-        pss = [(p, cls.getDisj(p, v)) for p in ps for v in vs
-               if p.operator() == sage.all.operator.eq]
-        pss = ["{} => ({})".format(p, cls.strOfDisj(ps))
-               for p, ps in pss if len(ps) >= 2]
-        return pss
-
     @staticmethod
     def show_removed(s, orig_siz, new_siz, elapsed_time):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
@@ -568,6 +546,22 @@ class Miscs(object):
             wrs = wprocess(tasks, myQ=None)
 
         return wrs
+
+    @staticmethod
+    def simplify_idxs(idxs, imply_f):
+        """
+        attempt to remove i in idxs if imply_f returns true
+        """
+        results = set(idxs)
+
+        for i in range(len(idxs)):
+            if i not in results:
+                continue
+            others = results - {i}
+            if others and imply_f(others, i):
+                results = others
+
+        return sorted(results)
 
 
 class Z3(object):
@@ -659,11 +653,7 @@ class Z3(object):
         else:
             rs = models
 
-        if isinstance(rs, list) and not rs:
-            print 'bug'
-            print(f)
-            print(k)
-            print(rs, stat)
+        assert not (isinstance(rs, list) and not rs), rs
         return rs, stat
 
     @classmethod
@@ -802,15 +792,3 @@ class Z3(object):
         if use_mod:
             mlog.debug("mod hack: {} => {}".format(p, res))
         return res
-
-
-def time_infer(func):
-    @functools.wraps(func)
-    def f(*args, **kwargs):
-        st = time.time()
-        mlog.debug("infer '{}'".format(func.__name__))
-        results = f(*args, **kwargs)
-        print('{} {:.2f}s'.format(
-            func.__name__, time.time() - st))
-        return results
-    return f

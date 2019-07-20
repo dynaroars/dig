@@ -116,26 +116,18 @@ class Invs(set):
         mps = mysorted(mps)
 
         myinvs = mps + octs + preposts + falseinvs + eqts
+        myinvs_exprs = [inv.expr(use_reals) for inv in myinvs]
 
         def _imply(js, i):
-            jexprs = [myinvs[j].expr(use_reals) for j in js]
-            iexpr = myinvs[i].expr(use_reals)
+            jexprs = [myinvs_exprs[j] for j in js]
+            iexpr = myinvs_exprs[i]
             return Z3._imply(jexprs, iexpr, is_conj)
 
-        rs = set(range(len(myinvs)))
-        ordered_invs = range(len(myinvs))
-        for i in ordered_invs:
-            print i, myinvs[i]
-            if i not in rs:
-                continue
-            others = rs - {i}
-            if others and _imply(others, i):
-                rs = others
+        results = Miscs.simplify_idxs(range(len(myinvs)), _imply)
+        results = [myinvs[i] for i in results]
 
-        rs = [myinvs[i] for i in sorted(rs)]
-
-        Miscs.show_removed('_simplify', len(invs), len(rs), time() - st)
-        return rs
+        Miscs.show_removed('_simplify', len(invs), len(results), time() - st)
+        return results
 
 
 class DInvs(dict):
