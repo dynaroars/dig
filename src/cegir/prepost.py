@@ -61,8 +61,8 @@ class CegirPrePost(cegir.base.Cegir):
         postconds = [data.inv.eqt.Eqt(p) for p in postconds]
 
         # find all traces satifies each postcond
-        traces = {p: data.traces.Traces(
-            t for t in traces if p.test_single_trace(t))
+        traces = {p: data.traces.Traces([
+            t for t in traces if p.test_single_trace(t)])
             for p in postconds}
 
         preposts = []  # results
@@ -84,8 +84,10 @@ class CegirPrePost(cegir.base.Cegir):
                        if all(t not in traces[other] for other in others)]
             traces_ = data.traces.Traces(traces_)
 
-            preconds = [pc for pc in self.preconds if pc.test(traces_)]
-            conj_preconds = self.get_conj_preconds(loc, preconds, postcond)
+            conj_preconds = [pc for pc in self.preconds if pc.test(traces_)]
+            conj_preconds = self.get_conj_preconds(
+                loc, conj_preconds, postcond)
+
             if conj_preconds:
                 myappend(conj_preconds, is_conj=True)
             else:
@@ -146,31 +148,34 @@ class CegirPrePost(cegir.base.Cegir):
 
         postcond_expr = postcond.expr(self.use_reals)
 
-        # preconds_exprs = [pc.expr(self.use_reals) for pc in preconds]
-        # if not self.check(preconds_exprs, postcond_expr, loc):
-        #     return []
-
-        # def _imply(js, _):
-        #     jexprs = [preconds_exprs[j] for j in js]
-        #     return self.check(jexprs, postcond_expr, loc)
-
-        # results = Miscs.simplify_idxs(range(len(preconds)), _imply)
-        # results = [preconds[i] for i in results]
-
-        d = {p.expr(self.use_reals): p for p in preconds}
-        preconds_exprs = list(d.keys())
+        preconds = sorted(preconds, key=lambda p: len(Miscs.getVars(p.inv)))
+        preconds_exprs = [pc.expr(self.use_reals) for pc in preconds]
         if not self.check(preconds_exprs, postcond_expr, loc):
             return []
 
-        results = range(len(preconds_exprs))
-        for i in range(len(preconds_exprs)):
-            if i not in results:
-                continue
-            xclude = [j for j in results if j != i]
-            xclude_exprs = [preconds_exprs[j] for j in xclude]
-            if xclude_exprs and self.check(xclude_exprs, postcond_expr, loc):
-                results = xclude
-        results = [d[preconds_exprs[j]] for j in results]
+        def _imply(js, _):
+            jexprs = [preconds_exprs[j] for j in js]
+            return self.check(jexprs, postcond_expr, loc)
+
+        results = Miscs.simplify_idxs(range(len(preconds)), _imply)
+        results = [preconds[i] for i in results]
+
+        # d = {p.expr(self.use_reals): p for p in preconds}
+        # preconds_exprs = list(d.keys())
+        # if not self.check(preconds_exprs, postcond_expr, loc):
+        #     return []
+
+        # results = range(len(preconds_exprs))
+        # for i in range(len(preconds_exprs)):
+        #     if i not in results:
+        #         continue
+        #     xclude = [j for j in results if j != i]
+        #     xclude_exprs = [preconds_exprs[j] for j in xclude]
+        #     if xclude_exprs and self.check(xclude_exprs, postcond_expr, loc):
+        #         print 'remove', preconds_exprs[i]
+        #         DBG()
+        #         results = xclude
+        # results = [d[preconds_exprs[j]] for j in results]
 
         return results
 

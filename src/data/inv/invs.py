@@ -116,6 +116,7 @@ class Invs(set):
         mps = mysorted(mps)
 
         myinvs = mps + octs + preposts + falseinvs + eqts
+        myinvs = eqts + falseinvs + preposts + octs + mps
         myinvs_exprs = [inv.expr(use_reals) for inv in myinvs]
 
         def _imply(js, i):

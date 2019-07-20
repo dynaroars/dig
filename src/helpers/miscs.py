@@ -548,13 +548,16 @@ class Miscs(object):
         return wrs
 
     @staticmethod
-    def simplify_idxs(idxs, imply_f):
+    def simplify_idxs(ordered_idxs, imply_f):
         """
         attempt to remove i in idxs if imply_f returns true
+        Note: the order of idxs determine what to get checked (and removed) 
         """
-        results = set(idxs)
+        assert ordered_idxs == list(range(len(ordered_idxs))), ordered_idxs
 
-        for i in range(len(idxs)):
+        results = set(ordered_idxs)
+
+        for i in reversed(ordered_idxs):
             if i not in results:
                 continue
             others = results - {i}
