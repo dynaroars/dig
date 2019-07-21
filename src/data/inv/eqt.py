@@ -7,7 +7,7 @@ import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 import data.inv.base
-
+import data.traces
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -18,6 +18,8 @@ class Eqt(data.inv.base.RelInv):
         super(Eqt, self).__init__(eqt, stat)
 
     def test_single_trace(self, trace):
+        assert isinstance(trace, data.traces.Trace), trace
+
         # temp fix: disable repeating rational when testing equality
         if (any(not x.is_integer() and Miscs.isRepeatingRational(x)
                 for x in trace.vs)):

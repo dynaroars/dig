@@ -61,7 +61,7 @@ class CegirPrePost(cegir.base.Cegir):
         postconds = [data.inv.eqt.Eqt(p) for p in postconds]
 
         # find all traces satifies each postcond
-        traces = {p: data.traces.Traces([
+        mytraces = {p: data.traces.Traces([
             t for t in traces if p.test_single_trace(t)])
             for p in postconds}
 
@@ -74,14 +74,14 @@ class CegirPrePost(cegir.base.Cegir):
             preposts.append(prepost)
 
         postconds = sorted(
-            postconds, key=lambda d: len(traces[d]), reverse=True)
+            postconds, key=lambda d: len(mytraces[d]), reverse=True)
 
         idxs = range(len(postconds))
         for idx in idxs:
             postcond = postconds[idx]
             others = [postconds[i] for i in idxs[:idx] + idxs[idx+1:]]
-            traces_ = [t for t in traces[postcond]
-                       if all(t not in traces[other] for other in others)]
+            traces_ = [t for t in mytraces[postcond]
+                       if all(t not in mytraces[other] for other in others)]
             traces_ = data.traces.Traces(traces_)
 
             conj_preconds = [pc for pc in self.preconds if pc.test(traces_)]
@@ -124,9 +124,9 @@ class CegirPrePost(cegir.base.Cegir):
 
         for pc in self.preconds:
             # pc => postcond    ~>   ~pc or postcond
-            if isOK(pc, postcond):
-                if self.check(pc.expr(self.use_reals), postcond_expr, loc):
-                    preconds.append(pc)
+            # if isOK(pc, postcond):
+            if self.check(pc.expr(self.use_reals), postcond_expr, loc):
+                preconds.append(pc)
 
         if len(preconds) >= 2:
             is_conj = False
