@@ -87,15 +87,15 @@ class CegirPrePost(cegir.base.Cegir):
             conj_preconds = [pc for pc in self.preconds if pc.test(traces_)]
             conj_preconds = self.get_conj_preconds(
                 loc, conj_preconds, postcond)
-
             if conj_preconds:
                 myappend(conj_preconds, is_conj=True)
-            else:
-                disj_preconds = self.get_disj_preconds(loc, postcond, traces)
-                if disj_preconds:
-                    myappend(disj_preconds, is_conj=False)
+
+            disj_preconds = self.get_disj_preconds(loc, postcond, traces)
+            if disj_preconds:
+                myappend(disj_preconds, is_conj=False)
 
         preposts = data.inv.invs.Invs(preposts)
+        preposts = preposts.simplify(self.use_reals)
         return preposts
 
     def check(self, pcs, postcond_expr, loc):
@@ -159,24 +159,6 @@ class CegirPrePost(cegir.base.Cegir):
 
         results = Miscs.simplify_idxs(range(len(preconds)), _imply)
         results = [preconds[i] for i in results]
-
-        # d = {p.expr(self.use_reals): p for p in preconds}
-        # preconds_exprs = list(d.keys())
-        # if not self.check(preconds_exprs, postcond_expr, loc):
-        #     return []
-
-        # results = range(len(preconds_exprs))
-        # for i in range(len(preconds_exprs)):
-        #     if i not in results:
-        #         continue
-        #     xclude = [j for j in results if j != i]
-        #     xclude_exprs = [preconds_exprs[j] for j in xclude]
-        #     if xclude_exprs and self.check(xclude_exprs, postcond_expr, loc):
-        #         print 'remove', preconds_exprs[i]
-        #         DBG()
-        #         results = xclude
-        # results = [d[preconds_exprs[j]] for j in results]
-
         return results
 
     @classmethod

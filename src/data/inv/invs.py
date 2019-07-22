@@ -110,19 +110,21 @@ class Invs(set):
             cls._classify(invs)
 
         def mysorted(ps):
-            return sorted(ps, key=lambda s: len(str(s)), reverse=True)
+            return sorted(ps, key=lambda p: len(Miscs.getVars(p.inv)))
         eqts = mysorted(eqts+eqts_largecoefs)
         octs = mysorted(octs)
         mps = mysorted(mps)
 
-        myinvs = mps + octs + preposts + falseinvs + eqts
         myinvs = eqts + falseinvs + preposts + octs + mps
         myinvs_exprs = [inv.expr(use_reals) for inv in myinvs]
 
         def _imply(js, i):
             jexprs = [myinvs_exprs[j] for j in js]
             iexpr = myinvs_exprs[i]
-            return Z3._imply(jexprs, iexpr, is_conj)
+            ret = Z3._imply(jexprs, iexpr, is_conj)
+            # if ret:
+            #     print '{} => {}'.format(jexprs, iexpr)
+            return ret
 
         results = Miscs.simplify_idxs(range(len(myinvs)), _imply)
         results = [myinvs[i] for i in results]
