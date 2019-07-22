@@ -2,8 +2,6 @@ import pdb
 import itertools
 import operator
 from collections import Iterable
-import time
-import functools
 
 import sage.all
 from sage.all import cached_function, fork

@@ -1,8 +1,11 @@
+import pdb
 import sys
 import os.path
 import datetime
 import time
 import helpers.vcommon
+
+DBG = pdb.set_trace
 
 
 def run(inp, seed, maxdeg, do_rmtmp):
@@ -95,8 +98,7 @@ if __name__ == "__main__":
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
         settings.logger_level = args.log_level
-        settings.logger_level = helpers.vcommon.getLogLevel(
-            settings.logger_level)
+    settings.logger_level = helpers.vcommon.getLogLevel(settings.logger_level)
 
     mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
 
