@@ -14,7 +14,7 @@ import helpers.src_java
 import data.miscs
 import data.symstates
 from data.traces import Inps, DTraces
-from data.inv.invs import DInvs
+from data.inv.invs import Invs, DInvs
 
 DBG = pdb.set_trace
 
@@ -36,6 +36,11 @@ class Dig(object):
         sage.all.set_random_seed(seed)
         mlog.debug("set seed to: {} (test {} {})".format(
             seed, random.randint(0, 100), sage.all.randint(0, 100)))
+
+    def get_auto_deg(self, maxdeg):
+        maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
+        deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
+        return deg
 
     def sanitize(self, dinvs, dtraces):
         if not dinvs.siz:
@@ -169,9 +174,8 @@ class DigSymStates(Dig):
         solver.use_rand_init = self.use_rand_init
 
         # determine degree
-        maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
-        deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
-        return solver.gen(deg, dtraces, inps)
+        auto_deg = self.get_auto_deg(maxdeg)
+        return solver.gen(auto_deg, dtraces, inps)
 
     def infer_ieqs(self, dtraces, inps):
         from cegir.binsearch import CegirBinSearch
@@ -182,3 +186,52 @@ class DigSymStates(Dig):
         from cegir.prepost import CegirPrePost
         solver = CegirPrePost(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
+
+
+class DigTraces(Dig):
+    def __init__(self, tracefile):
+        super(DigTraces, self).__init__(tracefile)
+
+        self.inv_decls, self.dtraces = DTraces.vread(tracefile)
+
+    def start(self, seed, maxdeg):
+        assert maxdeg is None or maxdeg >= 1, maxdeg
+
+        super(DigTraces, self).start(seed)
+
+        import data.inv.eqt
+        import data.inv.oct
+
+        st = time.time()
+        dinvs = DInvs()
+        for loc in self.dtraces:
+            symbols = self.inv_decls[loc]
+            dinvs[loc] = Invs()
+            traces = self.dtraces[loc]
+
+            if settings.DO_EQTS:
+                auto_deg = self.get_auto_deg(maxdeg)
+                terms, template, uks, n_eqts_needed = Miscs.init_terms(
+                    symbols.names, auto_deg, settings.EQT_RATE)
+                exprs = list(traces.instantiate(template, n_eqts_needed))
+                eqts = Miscs.solve_eqts(exprs, uks, template)
+                for eqt in eqts:
+                    dinvs[loc].add(data.inv.eqt.Eqt(eqt))
+
+            if settings.DO_IEQS:
+                maxV = settings.OCT_MAX_V
+                minV = -1*maxV
+
+                oct_siz = 2
+                terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, oct_siz)
+                for t in terms:
+                    upperbound = max(traces.myeval(t))
+                    if upperbound > maxV or upperbound < minV:
+                        continue
+
+                    oct = t <= upperbound
+                    dinvs[loc].add(data.inv.oct.Oct(oct))
+
+        dinvs = self.sanitize(dinvs, self.dtraces)
+        self.print_results(dinvs, self.dtraces, None, st)
+        return dinvs, None, self.tmpdir

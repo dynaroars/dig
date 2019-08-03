@@ -14,7 +14,6 @@ def run(inp, seed, maxdeg, do_rmtmp):
         dig = alg.DigSymStates(inp)
     else:
         dig = alg.DigTraces(inp)
-
     invs, traces, tmpdir = dig.start(seed, maxdeg)
 
     if do_rmtmp:
