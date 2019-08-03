@@ -121,7 +121,6 @@ export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
 export JAVA_HOME=/PATH/TO/JAVA
 export PATH=$SAGE:$JAVA_HOME/bin:$PATH
 export JPF_HOME=/PATH/TO/JPF
-export JPF_HOME=$DEVEL/JPF
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 ```
 
