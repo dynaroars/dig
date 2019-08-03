@@ -1,5 +1,5 @@
 public class Cav09_Fig5b {
-    public static void vtrace1(int a, int n, int y, int x, int tCtr){}
+    public static void vtrace_post(int a, int n, int y, int x, int tCtr){}
     public static void main (String[] args) {}
 
     public static int mainQ(int a, int n){
@@ -15,7 +15,7 @@ public class Cav09_Fig5b {
 
 	//%%%traces: int a, int n, int y, int x, int t
 	//dig2:  (y*y) - (a*a) - 2*x + y - a == 0, -x <= 0, n - x <= 0, t - y + a == 0, -y + a <= 0
-	vtrace1(a, n, y, x, tCtr);
+	vtrace_post(a, n, y, x, tCtr);
 	
 	return 0;
     }

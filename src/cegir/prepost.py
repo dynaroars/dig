@@ -165,7 +165,6 @@ class CegirPrePost(cegir.base.Cegir):
     def get_postconds(cls, eqt):
         assert Miscs.is_expr(eqt), eqt
         assert eqt.operator() == operator.eq, eqt
-
         symbols = [s for s in Miscs.getVars(eqt)
                    if settings.CTR_VAR in str(s)]
         if not symbols:

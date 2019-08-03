@@ -1,5 +1,5 @@
 public class Cav09_Fig2d {
-    public static void vtrace1(int n, int m, int tCtr){}
+    public static void vtrace_post(int n, int m, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int n, int m){
 	//these assertions are based on gulwani pldi fig 4_3
@@ -19,7 +19,7 @@ public class Cav09_Fig2d {
 	    x++;
 	    //TVN: why not add a tCtr++ here?
 	}
-	vtrace1(n, m, tCtr);
+	vtrace_post(n, m, tCtr);
 	//%%%traces: int n, int m, int t
 	//dig2: -m <= -1, m*n - t == 0, m - n <= -1
 	return 0;

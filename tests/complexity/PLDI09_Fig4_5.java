@@ -1,5 +1,5 @@
 public class PLDI09_Fig4_5 {
-    public static void vtrace1(int n, int m, int j, int tCtr){}
+    public static void vtrace_post(int n, int m, int j, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int n, int m, int j){
 	assert (m > 0);
@@ -14,7 +14,7 @@ public class PLDI09_Fig4_5 {
 	    }
 	    tCtr++;
 	}
-	vtrace1(n, m, j, tCtr);
+	vtrace_post(n, m, j, tCtr);
      
 	//NOTE: With DIG1 I got m^2*t - m*n*t + n*t^2 - t^3 == 0, whose solutions are t = n-m, t = m, t =0. They seem correct.
 	//j plays the role of a fixed truth value representing dir=fwd

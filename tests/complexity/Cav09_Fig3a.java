@@ -1,5 +1,5 @@
 public class Cav09_Fig3a {
-    public static void vtrace1(int n, int tCtr){}
+    public static void vtrace_post(int n, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int n){
 	int x = 0;
@@ -15,7 +15,7 @@ public class Cav09_Fig3a {
 	    x=y+1;
 	}
 
-	vtrace1(n, tCtr);
+	vtrace_post(n, tCtr);
 	//%%%traces: int n, int t
 	//dig2:  n*t - (t*t) == 0, -t <= 0, n - t <= 0
 	return 0;

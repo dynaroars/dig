@@ -1,5 +1,5 @@
 public class PLDI09_Fig4_1 {
-    public static void 	vtrace1(int id, int n, int tCtr){}
+    public static void 	vtrace_post(int id, int n, int tCtr){}
     public static void main (String[] args) {
     }
 
@@ -17,7 +17,7 @@ public class PLDI09_Fig4_1 {
 	    }
 	    tCtr++;
 	}
-	vtrace1(id, n, tCtr);
+	vtrace_post(id, n, tCtr);
 	//dig2: n - t + 1 == 0, -id <= 0, id - n <= -1 
 	return 0;
     }

@@ -1,3 +1,4 @@
+#! /usr/bin/env python2
 import os
 import os.path
 import time
@@ -41,7 +42,8 @@ ntimes = 2
 # NLA
 dir_nla = "../tests/nla/"
 dir_mp = "../tests/mp/"
-run(dir_nla, ntimes)
+dir_complexity = "../tests/complexity/"
+run(dir_complexity, ntimes)
 
 
 # dirComplexity = "programs/complexity/gulwani_cav09"

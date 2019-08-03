@@ -1,5 +1,5 @@
 public class PLDI09_Fig4_3 {
-    public static void vtrace1(int n, int m, int tCtr){}
+    public static void vtrace_post(int n, int m, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int n, int m){
 	assert (m > 0);
@@ -16,7 +16,7 @@ public class PLDI09_Fig4_3 {
 	    }
 	    tCtr++;
 	}
-	vtrace1(n, m, tCtr);
+	vtrace_post(n, m, tCtr);
 	//dig2: -m <= -1, m*n + n - t == 0, m - n <= -1
 
 	return 0;

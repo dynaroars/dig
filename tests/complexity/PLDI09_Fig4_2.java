@@ -1,5 +1,5 @@
 public class PLDI09_Fig4_2 {
-    public static void vtrace1(int n, int m, int tCtr, int x, int y){}
+    public static void vtrace_post(int n, int m, int tCtr, int x, int y){}
     public static void main (String[] args) {}
     public static int mainQ(int n, int m){
 	assert (n > 0);
@@ -18,7 +18,7 @@ public class PLDI09_Fig4_2 {
 	}
 
      
-	vtrace1(n, m, tCtr, x, y);
+	vtrace_post(n, m, tCtr, x, y);
 	//dig2: l23: -t + y <= 0, -m + y <= 0, x == 0, m*n - m*t + n - y == 0, x - y <= -1
 	//Note: cannot find relationship among t and m,n  (annotated n+n/m)
 	return 0;

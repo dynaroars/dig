@@ -1,5 +1,5 @@
 public class POPL09_Fig4_1 {
-    public static void vtrace1(int n, int m, int tCtr){}
+    public static void vtrace_post(int n, int m, int tCtr){}
     public static void main (String[] args) {}
 
     public static int mainQ(int n, int m){
@@ -16,7 +16,7 @@ public class POPL09_Fig4_1 {
 	    }
 	    tCtr++;
 	}
-	vtrace1(n, m, tCtr);
+	vtrace_post(n, m, tCtr);
 	//dig2:n - t <= 0, -t <= 0    nothing useful ??
 	//NOTE: should we expect t = something here ? 
 	return 0;
