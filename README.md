@@ -127,7 +127,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 * Some troubleshooting tips:
   *  Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
   *  Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
-
+  *  Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
 
 ## Usage
 
