@@ -161,7 +161,7 @@ class PC(object):
             ps = p.split('=')
             assert len(ps) == 2
             v = sage.all.sage_eval(ps[1])
-            if Miscs.isNum(v) and v >= settings.LARGE_N:
+            if Miscs.is_num(v) and v >= settings.LARGE_N:
                 mlog.warn("ignore {} (larger than {})".format(
                     p, settings.LARGE_N))
                 return True

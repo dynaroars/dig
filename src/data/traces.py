@@ -76,7 +76,7 @@ class Trace(SymbsVals):
         assert isinstance(ss, (tuple, list)), ss
         assert isinstance(vs, (tuple, list)), vs
 
-        vs = tuple(Miscs.ratOfStr(t) for t in vs)
+        vs = tuple(Miscs.rat2str(t) for t in vs)
         return Trace(ss, vs)
 
     @classmethod

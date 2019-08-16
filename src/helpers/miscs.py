@@ -36,7 +36,7 @@ class Miscs(object):
     def is_int(x): return isinstance(x, sage.rings.integer.Integer)
 
     @classmethod
-    def isNum(cls, x): return cls.is_real(x) or cls.is_int(x)
+    def is_num(cls, x): return cls.is_real(x) or cls.is_int(x)
 
     @staticmethod
     def is_rel(f, rel=None):
@@ -100,23 +100,23 @@ class Miscs(object):
 
     @staticmethod
     @cached_function
-    def ratOfStr(s):
+    def rat2str(s):
         """
         Convert the input 's' to a rational number if possible.
 
         Examples:
 
         sage: from helpers.miscs import Miscs
-        sage: assert Miscs.ratOfStr('.3333333') == 3333333/10000000
-        sage: assert Miscs.ratOfStr('3/7') == 3/7
-        sage: assert Miscs.ratOfStr('1.') == 1
-        sage: assert Miscs.ratOfStr('1.2') == 6/5
-        sage: assert Miscs.ratOfStr('.333') == 333/1000
-        sage: assert Miscs.ratOfStr('-.333') == -333/1000
-        sage: assert Miscs.ratOfStr('-12.13') == -1213/100
+        sage: assert Miscs.rat2str('.3333333') == 3333333/10000000
+        sage: assert Miscs.rat2str('3/7') == 3/7
+        sage: assert Miscs.rat2str('1.') == 1
+        sage: assert Miscs.rat2str('1.2') == 6/5
+        sage: assert Miscs.rat2str('.333') == 333/1000
+        sage: assert Miscs.rat2str('-.333') == -333/1000
+        sage: assert Miscs.rat2str('-12.13') == -1213/100
 
         # Returns None because cannot convert this str
-        sage: Miscs.ratOfStr('333333333333333s')
+        sage: Miscs.rat2str('333333333333333s')
         Traceback (most recent call last):
         ...
         TypeError: unable to convert '333333333333333s' to a real number
@@ -124,7 +124,7 @@ class Miscs(object):
 
         Note: this version seems to be the *fastest*
         among several ones I've tried
-        %timeit ratOfStr('322')
+        %timeit rat2str('322')
         """
         try:
             return sage.all.QQ(s)
