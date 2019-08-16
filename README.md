@@ -258,10 +258,9 @@ Note that most of the inequality results here are spurious, i.e., they are corre
 
 
 ### Additional Info
-To run doctests, use `sage -t`
+To run doctests
 ```
-$ export SAGE_PATH=$Z3/src/api/python:.
-$ sage -t miscs.py
+make test
 ```
 
 ## Publications ##

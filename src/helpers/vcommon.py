@@ -3,7 +3,6 @@ import logging
 """
 To run doctest
 $ python -m doctest -v common.py
-$ sage -t common0.py
 """
 
 

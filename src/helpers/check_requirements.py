@@ -71,20 +71,6 @@ def check_ext_progs():
         print("* {}".format(prog))
 
     try:
-        prog = "compute_ext_rays_polar"
-        run(prog)
-    except OSError as e:
-        import os
-        if e.errno == os.errno.ENOENT:
-            msg = (("'{}' not found (install 'tpplib'), "
-                    "will not infer *general* min/max-plus invariants")
-                   .format(prog))
-            print(msg)
-        else:
-            # Something else went wrong while trying to run `cmd`
-            raise
-
-    try:
         import os
         prog = os.path.join(os.path.expandvars("$JPF_HOME"),
                             "jpf-core/bin/jpf")

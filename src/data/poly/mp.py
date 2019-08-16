@@ -13,6 +13,7 @@ from data.poly.base import Poly
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
+
 class MP(Poly):
     def __init__(self, a, b, is_max=True):
         if not isinstance(a, tuple):
