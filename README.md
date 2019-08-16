@@ -1,3 +1,5 @@
+[[_TOC_]]
+
 # DIG
 DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.
 
