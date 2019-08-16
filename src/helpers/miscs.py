@@ -76,7 +76,7 @@ class Miscs(object):
         return isinstance(x, sage.symbolic.expression.Expression)
 
     @classmethod
-    def getVars(cls, ps):
+    def get_vars(cls, ps):
         """
         Returns a list of uniq variables from a list of properties
 
@@ -86,11 +86,11 @@ class Miscs(object):
         (a, b, c, x)
 
         sage: from helpers.miscs import Miscs
-        sage: assert [a, b, c, x] == Miscs.getVars([x^(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
-        sage: assert Miscs.getVars(a**2+b+5*c+2==0) == [a, b, c]
-        sage: assert Miscs.getVars(x+x^2) == [x]
-        sage: assert Miscs.getVars([3]) == []
-        sage: assert Miscs.getVars((3,'x + c',x+b)) == [b, x]
+        sage: assert [a, b, c, x] == Miscs.get_vars([x^(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
+        sage: assert Miscs.get_vars(a**2+b+5*c+2==0) == [a, b, c]
+        sage: assert Miscs.get_vars(x+x^2) == [x]
+        sage: assert Miscs.get_vars([3]) == []
+        sage: assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
         """
 
         ps = ps if isinstance(ps, Iterable) else [ps]
@@ -270,7 +270,7 @@ class Miscs(object):
 
         assert (p.operator() == sage.all.operator.eq for p in ps), ps
         try:
-            Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.getVars(ps))
+            Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.get_vars(ps))
             myIdeal = Q*ps
             ps = myIdeal.radical().interreduced_basis()
             ps = [(sage.all.SR(p) == 0) for p in ps]
@@ -322,7 +322,7 @@ class Miscs(object):
         sage: Miscs.get_coefs(3*x+5*y^2 == 9)
         [5, 3]
         """
-        Q = sage.all.PolynomialRing(sage.all.QQ, cls.getVars(p))
+        Q = sage.all.PolynomialRing(sage.all.QQ, cls.get_vars(p))
         rs = Q(p.lhs()).coefficients()
         return rs
 
@@ -467,7 +467,7 @@ class Miscs(object):
 
         def fEq(d):
             f_ = template(d)
-            uk_vars = cls.getVars(d.values())  # e.g., r15,r16 ...
+            uk_vars = cls.get_vars(d.values())  # e.g., r15,r16 ...
 
             if not uk_vars:
                 return f_
@@ -589,7 +589,7 @@ class Z3(object):
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 
     @classmethod
-    def _getVars(cls, f, rs):
+    def _get_vars(cls, f, rs):
         """
         Helper method to obtain variables from a formula f recursively.
         Results are stored in the list rs.
@@ -600,21 +600,21 @@ class Z3(object):
                 rs.add(f)
         else:
             for c in f.children():
-                cls._getVars(c, rs)
+                cls._get_vars(c, rs)
 
     @classmethod
     @cached_function
-    def getVars(cls, f):
+    def get_vars(cls, f):
         """
         sage: from helpers.miscs import Z3
         sage: import z3
         sage: x,y,z = z3.Ints("x y z")
-        sage: assert(Z3.getVars(z3.And(x + y == z , y + z == z)) == {z, y, x})
+        sage: assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
         assert z3.is_expr(f), f
 
         rs = set()
-        cls._getVars(f, rs)
+        cls._get_vars(f, rs)
         return frozenset(rs)
 
     @classmethod

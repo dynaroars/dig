@@ -31,7 +31,7 @@ class MP(Poly):
         try:
             return self._symbols
         except AttributeError:
-            self._symbols = set(map(str, Miscs.getVars(self.a + self.b)))
+            self._symbols = set(map(str, Miscs.get_vars(self.a + self.b)))
             return self._symbols
 
     def __str__(self):

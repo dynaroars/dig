@@ -47,7 +47,7 @@ class GeneralPoly(Poly):
         try:
             return self._symbols
         except AttributeError:
-            self._symbols = Miscs.getVars(self.poly)
+            self._symbols = Miscs.get_vars(self.poly)
             return self._symbols
 
     def eval_traces(self, traces):

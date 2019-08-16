@@ -110,7 +110,7 @@ class Invs(set):
             cls._classify(invs)
 
         def mysorted(ps):
-            return sorted(ps, key=lambda p: len(Miscs.getVars(p.inv)))
+            return sorted(ps, key=lambda p: len(Miscs.get_vars(p.inv)))
         eqts = mysorted(eqts+eqts_largecoefs)
         octs = mysorted(octs)
         mps = mysorted(mps)

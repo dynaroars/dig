@@ -201,8 +201,8 @@ class CegirBinSearch(Cegir):
         excludes = set()
         for term in terms:
             if isinstance(term, data.poly.mp.MP):
-                a_symbs = map(str, Miscs.getVars(term.a))
-                b_symbs = map(str, Miscs.getVars(term.b))
+                a_symbs = map(str, Miscs.get_vars(term.a))
+                b_symbs = map(str, Miscs.get_vars(term.b))
                 inp_in_a = any(s in inps for s in a_symbs)
                 inp_in_b = any(s in inps for s in b_symbs)
 

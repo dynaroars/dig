@@ -148,7 +148,7 @@ class CegirPrePost(cegir.base.Cegir):
 
         postcond_expr = postcond.expr(self.use_reals)
 
-        preconds = sorted(preconds, key=lambda p: len(Miscs.getVars(p.inv)))
+        preconds = sorted(preconds, key=lambda p: len(Miscs.get_vars(p.inv)))
         preconds_exprs = [pc.expr(self.use_reals) for pc in preconds]
         if not self.check(preconds_exprs, postcond_expr, loc):
             return []
@@ -165,7 +165,7 @@ class CegirPrePost(cegir.base.Cegir):
     def get_postconds(cls, eqt):
         assert Miscs.is_expr(eqt), eqt
         assert eqt.operator() == operator.eq, eqt
-        symbols = [s for s in Miscs.getVars(eqt)
+        symbols = [s for s in Miscs.get_vars(eqt)
                    if settings.CTR_VAR in str(s)]
         if not symbols:
             return
