@@ -41,6 +41,7 @@ class Miscs(object):
     @staticmethod
     def is_rel(f, rel=None):
         """
+        sage: from helpers.miscs import Miscs
         sage: assert not Miscs.is_rel(7.2)
         sage: assert not Miscs.is_rel(x)
         sage: assert not Miscs.is_rel(x+7)
@@ -84,6 +85,7 @@ class Miscs(object):
         sage: var('a b c x')
         (a, b, c, x)
 
+        sage: from helpers.miscs import Miscs
         sage: assert [a, b, c, x] == Miscs.getVars([x^(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
         sage: assert Miscs.getVars(a**2+b+5*c+2==0) == [a, b, c]
         sage: assert Miscs.getVars(x+x^2) == [x]
@@ -103,6 +105,8 @@ class Miscs(object):
         Convert the input 's' to a rational number if possible.
 
         Examples:
+
+        sage: from helpers.miscs import Miscs
         sage: assert Miscs.ratOfStr('.3333333') == 3333333/10000000
         sage: assert Miscs.ratOfStr('3/7') == 3/7
         sage: assert Miscs.ratOfStr('1.') == 1
@@ -149,6 +153,8 @@ class Miscs(object):
 
         Note: itertools is faster than Sage's MultichooseNK(len(ss)+1,deg)
 
+        sage: from helpers.miscs import Miscs
+
         sage: ts = Miscs.get_terms(list(var('a b')), 3)
         sage: assert ts == [1, a, b, a^2, a*b, b^2, a^3, a^2*b, a*b^2, b^3]
 
@@ -177,8 +183,10 @@ class Miscs(object):
     def get_deg(cls, nvs, nts, max_deg=7):
         """
         Generates a degree wrt to a (maximum) number of terms (nss)
-        sage: Miscs.get_deg(3, 4, 5)
-        1
+
+        sage: from helpers.miscs import Miscs
+
+        sage: assert Miscs.get_deg(3, 4, 5) == 1
         sage: Miscs.get_deg(3, 1, 5)
         Traceback (most recent call last):
         ...
@@ -211,6 +219,8 @@ class Miscs(object):
     @staticmethod
     def get_terms_fixed_coefs(ss, subset_siz):
         """
+        sage: from helpers.miscs import Miscs
+
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
 
@@ -239,6 +249,8 @@ class Miscs(object):
         """
         Return the basis (e.g., a min subset of ps that implies ps)
         of the set of eqts input ps using Groebner basis
+
+        sage: from helpers.miscs import Miscs
 
         sage: var('a y b q k')
         (a, y, b, q, k)
@@ -274,7 +286,7 @@ class Miscs(object):
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
 
         Examples:
-
+        sage: from helpers.miscs import Miscs
         sage: var('x y z')
         (x, y, z)
 
@@ -303,6 +315,8 @@ class Miscs(object):
     def get_coefs(cls, p):
         """
         Return coefficients of an expression
+
+        sage: from helpers.miscs import Miscs
         sage: var('y')
         y
         sage: Miscs.get_coefs(3*x+5*y^2 == 9)
@@ -384,6 +398,7 @@ class Miscs(object):
 
         Examples:
 
+        sage: from helpers.miscs import Miscs
         sage: var('a,b,x,y')
         (a, b, x, y)
 
@@ -429,6 +444,7 @@ class Miscs(object):
         """
         Instantiate a template with solved coefficient values
 
+        sage: from helpers.miscs import Miscs
         sage: var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
         (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
 
@@ -481,6 +497,8 @@ class Miscs(object):
     @classmethod
     def get_workload(cls, tasks, n_cpus):
         """
+        sage: from helpers.miscs import Miscs
+
         >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
@@ -588,9 +606,10 @@ class Z3(object):
     @cached_function
     def getVars(cls, f):
         """
+        sage: from helpers.miscs import Z3
+        sage: import z3
         sage: x,y,z = z3.Ints("x y z")
-        sage: f = z3.And(x + y == z , y + z == z)
-        sage: assert(Z3.getVars(f) == {z, y, x})
+        sage: assert(Z3.getVars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
         assert z3.is_expr(f), f
 
@@ -660,6 +679,8 @@ class Z3(object):
     @classmethod
     def imply(cls, fs, g, use_reals):
         """
+        sage: from helpers.miscs import Z3
+
         sage: var('x y')
         (x, y)
         sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
@@ -712,6 +733,9 @@ class Z3(object):
     @classmethod
     def _mycmp_(cls, f, g):
         """
+        sage: from helpers.miscs import Z3
+        sage: import z3
+
         sage: x,y = z3.Ints('x y')
         sage: sorted([x>=z3.IntVal('0'), x>= z3.IntVal('3') ,  x>= z3.IntVal('3'), x>= z3.IntVal('1'), x>= z3.IntVal('10'), y - x >= z3.IntVal('20')], cmp=Z3._mycmp_)
         [y - x >= 20, x >= 0, x >= 1, x >= 3, x >= 3, x >= 10]
@@ -738,6 +762,7 @@ class Z3(object):
         e.g. {x:Real('x')} but the code is longer and more complicated.
         This implemention does not require a dictionary pass in.
 
+        sage: from helpers.miscs import Z3
         sage: Z3.toZ3(x*x*x, False, use_mod=False)
         x*x*x
         """
