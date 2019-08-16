@@ -40,8 +40,8 @@ class PC(object):
         pcs_ = []
         pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
         for i, p in enumerate(pcs):
-            p, isReplaced = PC.replaceMod(p)
-            if isReplaced:
+            p, is_replaced = PC.replaceMod(p)
+            if is_replaced:
                 pcsModIdxs.add(i)
             sexpr = Miscs.msage_eval(p, sd)
             assert not isinstance(

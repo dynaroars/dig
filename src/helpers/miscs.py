@@ -327,7 +327,7 @@ class Miscs(object):
         return rs
 
     @staticmethod
-    def isRepeatingRational(x):
+    def is_repeating_rational(x):
         "check if x is a repating rational"
         assert isinstance(x, sage.rings.rational.Rational) \
             and not x.is_integer(), x
@@ -585,7 +585,7 @@ class Miscs(object):
 
 class Z3(object):
     @classmethod
-    def isVar(cls, v):
+    def is_var(cls, v):
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 
     @classmethod
@@ -596,7 +596,7 @@ class Z3(object):
         """
         assert z3.is_expr(f) or z3.is_const(f), f
         if z3.is_const(f):
-            if cls.isVar(f):
+            if cls.is_var(f):
                 rs.add(f)
         else:
             for c in f.children():

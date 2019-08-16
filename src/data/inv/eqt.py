@@ -21,7 +21,7 @@ class Eqt(data.inv.base.RelInv):
         assert isinstance(trace, data.traces.Trace), trace
 
         # temp fix: disable repeating rational when testing equality
-        if (any(not x.is_integer() and Miscs.isRepeatingRational(x)
+        if (any(not x.is_integer() and Miscs.is_repeating_rational(x)
                 for x in trace.vs)):
             mlog.debug("skip trace with repeating rational {}".format(self))
             return True
