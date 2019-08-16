@@ -1,5 +1,3 @@
-[[_TOC_]]
-
 # DIG
 DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.
 
@@ -213,7 +211,7 @@ DIG can infer invariants directly from a file concreting program execution trace
 
 ```
 # in DIG's src directory
-$ less ../test/traces/cohendiv.tcs
+$ less ../test/traces/CohenDiv.tcs
 vtrace1: I q, I r, I a, I b, I x, I y
 vtrace1: 4, 8, 1, 4, 24, 4
 vtrace1: 16, 89, 1, 13, 297, 13
@@ -232,7 +230,7 @@ vtrace2: 2, 287, 0, 2
 
 ```
 # in DIG's src directory
-$ sage -python -O dig.py ../tests/nla/CohenDiv.java  -log 3
+$ sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 alg:INFO:analyze '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs'
 alg:INFO:test 48 invs using 397 traces in 0.12s
 alg:INFO:simplify 45 invs in 0.72s
