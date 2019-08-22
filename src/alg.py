@@ -80,7 +80,7 @@ class Dig(object):
             self.seed,
             random.randint(0, 100),
             sage.all.randint(0, 100),
-            dinvs.__str__(print_stat=True)))
+            dinvs.__str__(print_stat=False)))
 
     @property
     def tmpdir(self):
@@ -189,49 +189,80 @@ class DigSymStates(Dig):
 
 
 class DigTraces(Dig):
-    def __init__(self, tracefile):
-        super(DigTraces, self).__init__(tracefile)
+    def __init__(self, tracefiles):
+        tracefiles = tracefiles.split()
+        assert len(tracefiles) == 1 or len(tracefiles) == 2, tracefiles
+        tracefile = tracefiles[0]
 
+        super(DigTraces, self).__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
+
+        self.test_dtraces = None
+        if len(tracefiles) == 2:
+            test_tracefile = tracefiles[1]
+            _, self.test_dtraces = DTraces.vread(test_tracefile)
 
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super(DigTraces, self).start(seed)
 
-        import data.inv.eqt
-        import data.inv.oct
-
         st = time.time()
-        dinvs = DInvs()
+
+        tasks = []
         for loc in self.dtraces:
             symbols = self.inv_decls[loc]
-            dinvs[loc] = Invs()
             traces = self.dtraces[loc]
-
             if settings.DO_EQTS:
-                auto_deg = self.get_auto_deg(maxdeg)
-                terms, template, uks, n_eqts_needed = Miscs.init_terms(
-                    symbols.names, auto_deg, settings.EQT_RATE)
-                exprs = list(traces.instantiate(template, n_eqts_needed))
-                eqts = Miscs.solve_eqts(exprs, uks, template)
-                for eqt in eqts:
-                    dinvs[loc].add(data.inv.eqt.Eqt(eqt))
+                def _f():
+                    return self.infer_eqts(maxdeg, symbols, traces)
+                tasks.append((loc, _f))
 
             if settings.DO_IEQS:
-                maxV = settings.OCT_MAX_V
-                minV = -1*maxV
+                def _f():
+                    return self.infer_ieqs(symbols, traces)
+                tasks.append((loc, _f))
 
-                oct_siz = 2
-                terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, oct_siz)
-                for t in terms:
-                    upperbound = max(traces.myeval(t))
-                    if upperbound > maxV or upperbound < minV:
-                        continue
+        def f(tasks):
+            rs = [(loc, _f()) for loc, _f in tasks]
+            return rs
+        wrs = Miscs.run_mp("dynamic inference", tasks, f)
 
-                    oct = t <= upperbound
-                    dinvs[loc].add(data.inv.oct.Oct(oct))
+        dinvs = DInvs()
+        for loc, invs in wrs:
+            for inv in invs:
+                dinvs.add(loc, inv)
+
+        if self.test_dtraces:
+            new_traces = self.dtraces.merge(self.test_dtraces)
+            mlog.debug('added {} test traces'.format(new_traces.siz))
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         self.print_results(dinvs, self.dtraces, None, st)
         return dinvs, None, self.tmpdir
+
+    def infer_eqts(self, maxdeg, symbols, traces):
+        import data.inv.eqt
+
+        auto_deg = self.get_auto_deg(maxdeg)
+        terms, template, uks, n_eqts_needed = Miscs.init_terms(
+            symbols.names, auto_deg, settings.EQT_RATE)
+        exprs = list(traces.instantiate(template, n_eqts_needed))
+        eqts = Miscs.solve_eqts(exprs, uks, template)
+        return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
+
+    def infer_ieqs(self, symbols, traces):
+        import data.inv.oct
+        maxV = settings.OCT_MAX_V
+        minV = -1*maxV
+
+        oct_siz = 2
+        terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, oct_siz)
+        octs = []
+        for t in terms:
+            upperbound = max(traces.myeval(t))
+            if upperbound > maxV or upperbound < minV:
+                continue
+            octs.append(t <= upperbound)
+        octs = [data.inv.oct.Oct(oct) for oct in octs]
+        return octs
