@@ -4,7 +4,7 @@ public class OddEven2 {
 
     public static void main (String[] args) {}
      
-    public static void mainQ_cohendiv(int t0, int t1) {
+    public static void mainQ(int t0, int t1) {
 	int x0 = t0;
 	int x1 = t1;
 	if (x0 >= x1){

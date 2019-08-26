@@ -523,9 +523,7 @@ class Miscs(object):
         wloads = {}
         for i, task in enumerate(tasks):
             cpu_id = i % n_cpus
-            if cpu_id not in wloads:
-                wloads[cpu_id] = []
-            wloads[cpu_id].append(task)
+            wloads.setdefault(cpu_id, []).append(task)
 
         wloads = [wl for wl in sorted(
             wloads.itervalues(), key=lambda wl: len(wl))]
@@ -555,9 +553,8 @@ class Miscs(object):
 
             for w in workers:
                 w.start()
-            wrs = []
-            for _ in workers:
-                wrs.extend(Q.get())
+
+            wrs = [x for _ in workers for x in Q.get()]
         else:
             wrs = wprocess(tasks, myQ=None)
 

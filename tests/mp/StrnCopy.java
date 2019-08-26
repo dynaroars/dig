@@ -8,6 +8,37 @@ public class StrnCopy {
 
     public static int mainQ_cohendiv(int n, int siz) {
 
+	
+	
+	assert(!(n <= ls) || ld >= n);
+	assert(!(n > ls) || ld == ls);
+
+	vtrace1(n,siz,ls,ld)
+
+    }
+
+
+    /*  Orig C code
+int mylen(const int k,int arr[], const int arr_siz){
+  int i = 0;
+  for(; i < arr_siz; ++i){
+    if (arr[i] == '\0'){return i;}
+  }
+
+  return arr_siz - 1 ;
+  //return randrange_i(k, arr_siz - 1, INCLUDE);
+}
+
+
+void mk_rand_list(int arr[], const int arr_siz){
+  int i = 0 ;
+  for (;i< arr_siz; ++i){arr[i] = ' ';}
+
+
+  int null_idx = randrange_i(0, arr_siz -1, INCLUDE);
+  arr[null_idx]='\0';
+}
+
 	assert (1 <= siz);
 	assert (0 <= n);
 	assert (n <= siz-1);
@@ -44,4 +75,4 @@ public class StrnCopy {
 	*/
 	
 
-    }
+     */
