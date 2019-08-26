@@ -8,22 +8,6 @@ import helpers.vcommon
 DBG = pdb.set_trace
 
 
-def run(inp, seed, maxdeg, do_rmtmp):
-    import alg
-    if inp.endswith(".java") or inp.endswith(".class"):
-        dig = alg.DigSymStates(inp)
-    else:
-        dig = alg.DigTraces(inp)
-    invs, traces, tmpdir = dig.start(seed, maxdeg)
-
-    if do_rmtmp:
-        import shutil
-        print("clean up: rm -rf {}".format(tmpdir))
-        shutil.rmtree(tmpdir)
-    else:
-        print("tmpdir: {}".format(tmpdir))
-
-
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
@@ -94,6 +78,7 @@ if __name__ == "__main__":
     settings.DO_IEQS = not args.noieqs
     settings.DO_MINMAXPLUS = not args.nominmaxplus
     settings.DO_PREPOSTS = not args.nopreposts
+    settings.DO_RMTMP = not args.normtmp
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
         settings.logger_level = args.log_level
@@ -124,4 +109,9 @@ if __name__ == "__main__":
     inp = os.path.realpath(os.path.expanduser(args.inp))
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
-    run(inp, seed, maxdeg=args.maxdeg, do_rmtmp=not args.normtmp)
+    import alg
+    if inp.endswith(".java") or inp.endswith(".class"):
+        dig = alg.DigSymStates(inp)
+    else:
+        dig = alg.DigTraces(inp)
+    invs, traces = dig.start(seed, args.maxdeg)

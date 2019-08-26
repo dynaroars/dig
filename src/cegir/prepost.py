@@ -105,7 +105,7 @@ class CegirPrePost(cegir.base.Cegir):
             loc, path_idx=None, inv=inv, inps=None)
 
         if cexs or not isSucc:
-            mlog.warn("{}: discard spurious result {}".format(loc, inv))
+            mlog.debug("{}: discard spurious result {}".format(loc, inv))
             return False
         return True
 

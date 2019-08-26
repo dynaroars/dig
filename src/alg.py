@@ -14,7 +14,7 @@ import helpers.src_java
 import data.miscs
 import data.symstates
 from data.traces import Inps, DTraces
-from data.inv.invs import Invs, DInvs
+from data.inv.invs import DInvs
 
 DBG = pdb.set_trace
 
@@ -82,16 +82,6 @@ class Dig(object):
             sage.all.randint(0, 100),
             dinvs.__str__(print_stat=False)))
 
-    @property
-    def tmpdir(self):
-        try:
-            return self._tmpdir
-        except AttributeError:
-            import tempfile
-            self._tmpdir = tempfile.mkdtemp(
-                dir=settings.tmpdir, prefix="Dig_")
-            return self._tmpdir
-
 
 class DigSymStates(Dig):
     def __init__(self, filename):
@@ -150,10 +140,17 @@ class DigSymStates(Dig):
 
         self.print_results(dinvs, dtraces, inps, st)
 
-        tracefile = os.path.join(self.tmpdir, settings.TRACE_DIR, 'all.tcs')
-        dtraces.vwrite(self.inv_decls, tracefile)
+        if settings.DO_RMTMP:
+            import shutil
+            mlog.debug("clean up: rm -rf {}".format(self.tmpdir))
+            shutil.rmtree(self.tmpdir)
+        else:
+            tracefile = os.path.join(
+                self.tmpdir, settings.TRACE_DIR, 'all.tcs')
+            dtraces.vwrite(self.inv_decls, tracefile)
+            mlog.info("tmpdir: {}".format(self.tmpdir))
 
-        return dinvs, dtraces, self.tmpdir
+        return dinvs, dtraces
 
     def infer(self, typ, dinvs, f):
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
@@ -186,6 +183,16 @@ class DigSymStates(Dig):
         from cegir.prepost import CegirPrePost
         solver = CegirPrePost(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
+
+    @property
+    def tmpdir(self):
+        try:
+            return self._tmpdir
+        except AttributeError:
+            import tempfile
+            self._tmpdir = tempfile.mkdtemp(
+                dir=settings.tmpdir, prefix="Dig_")
+            return self._tmpdir
 
 
 class DigTraces(Dig):
@@ -239,7 +246,7 @@ class DigTraces(Dig):
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         self.print_results(dinvs, self.dtraces, None, st)
-        return dinvs, None, self.tmpdir
+        return dinvs, None
 
     def infer_eqts(self, maxdeg, symbols, traces):
         import data.inv.eqt

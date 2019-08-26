@@ -11,14 +11,14 @@ settings.logger_level = CM.getLogLevel(3)
 
 TIMEOUT = 600  # seconds
 CMD = "timeout {} ".format(TIMEOUT) +\
-    "sage -python -O dig.py {filename} -log 4 -octmaxv 20 -seed {seed}"
+    "sage -python -O dig.py {filename} -log 2 -octmaxv 20 -seed {seed}"
 
 
 def run(benchdir, ntimes):
     benchdir = os.path.realpath(os.path.expanduser(benchdir))
     assert os.path.isdir(benchdir), benchdir
 
-    print("**** Benchmark dir '{}' {} times ({})".format(
+    print("# Benchmark dir '{}' {} times ({})".format(
         benchdir, ntimes, datetime.now()))
 
     fs = sorted(f for f in os.listdir(benchdir) if f.endswith(".java"))
@@ -31,9 +31,8 @@ def run(benchdir, ntimes):
 
         for i in range(ntimes):
             i_run_cmd = CMD.format(filename=f, seed=i)
-            print "### {}: {}".format(
-                time.strftime("%c"), i_run_cmd)
-
+            print "## {}/{}. {}: {}".format(
+                i+1, ntimes, time.strftime("%c"), i_run_cmd)
             os.system(i_run_cmd)
 
 
