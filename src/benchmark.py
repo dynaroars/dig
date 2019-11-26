@@ -1,4 +1,8 @@
 #! /usr/bin/env python2
+
+"""
+Example: f=../results/nla_082619 ; rm -rf $f; python benchmark.py 2>&1 | tee $f
+"""
 import os
 import os.path
 import time
@@ -39,8 +43,8 @@ def run(benchdir, ntimes):
 ntimes = 2
 
 # NLA
-dir_nla = "../tests/nla/"
-dir_mp = "../tests/mp/"
+#dir_nla = "../tests/nla/"
+#dir_mp = "../tests/mp/"
 dir_complexity = "../tests/complexity/"
 run(dir_complexity, ntimes)
 
@@ -63,6 +67,3 @@ run(dir_complexity, ntimes)
 
 #dirBm_ice = "programs/PIE/bm_ice/"
 #run(dirBm_ice, ntimes)
-
-
-# f=../results/nla_080219 ; rm -rf $f; python benchmark.py 2>&1 | tee $f
