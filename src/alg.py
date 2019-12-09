@@ -146,7 +146,6 @@ class DigSymStates(Dig):
             mlog.debug("clean up: rm -rf {}".format(self.tmpdir))
             shutil.rmtree(self.tmpdir)
         else:
-            DBG()
             tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
             dtraces.vwrite(self.inv_decls, tracefile)
             mlog.info("tmpdir: {}".format(self.tmpdir))
