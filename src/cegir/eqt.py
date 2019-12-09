@@ -198,7 +198,7 @@ class CegirEqt(cegir.base.Cegir):
             mlog.debug("{}: check {} unchecked ({} candidates)"
                        .format(loc, len(unchecks), len(new_eqts)))
 
-            dinvs = DInvs.mk(loc, Invs(map(data.inv.eqt.Eqt, unchecks)))
+            dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
             cexs, dinvs = self.symstates.check(dinvs, inps=None)
 
             if cexs:
