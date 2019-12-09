@@ -6,11 +6,13 @@ $ python -m doctest -v common.py
 """
 
 
+def is_python3():
+    import sys
+    return sys.version_info > (3, 0)
+
+
 def pause(s=None):
-    try:  # python2
-        raw_input("Press any key to continue ..." if s is None else s)
-    except NameError:
-        input("Press any key to continue ..." if s is None else s)
+    input("Press any key to continue ..." if s is None else s)
 
 
 def iread(filename):
@@ -43,7 +45,11 @@ def vwrite(filename, contents, mode='w'):
 def vcmd(cmd, inp=None, shell=True):
     proc = sp.Popen(cmd, shell=shell, stdin=sp.PIPE,
                     stdout=sp.PIPE, stderr=sp.PIPE)
-    return proc.communicate(input=inp)
+    out, err = proc.communicate(input=inp)
+    if is_python3():
+        return out.decode('utf-8'), err.decode('utf-8')
+    else:
+        return out, err
 
 
 def getLogger(name, level):

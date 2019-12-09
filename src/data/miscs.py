@@ -32,7 +32,7 @@ class Prog(object):
         assert isinstance(inps, Inps), inps
 
         traces = self._get_traces_mp(inps)
-        traces = itertools.chain.from_iterable(traces.itervalues())
+        traces = itertools.chain.from_iterable(traces.values())
         traces = DTraces.parse(traces, self.inv_decls)
         assert all(loc in self.inv_decls for loc in traces), traces.keys()
         return traces
@@ -222,5 +222,5 @@ class DSymbs(dict):
             return self._use_reals
         except AttributeError:
             self._use_reals = any(
-                s.is_real for syms in self.itervalues() for s in syms)
+                s.is_real for syms in self.values() for s in syms)
             return self._use_reals

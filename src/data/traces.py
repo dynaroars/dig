@@ -167,11 +167,11 @@ class DTraces(dict):
     """
 
     @property
-    def siz(self): return sum(map(len, self.itervalues()))
+    def siz(self): return sum(map(len, self.values()))
 
     def __str__(self, printDetails=False):
         return "\n".join("{}: {}".format(loc, traces.__str__(printDetails))
-                         for loc, traces in self.iteritems())
+                         for loc, traces in self.items())
 
     def add(self, loc, trace):
         assert isinstance(loc, str) and loc, loc

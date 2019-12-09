@@ -126,7 +126,7 @@ class Invs(set):
             #     print '{} => {}'.format(jexprs, iexpr)
             return ret
 
-        results = Miscs.simplify_idxs(range(len(myinvs)), _imply)
+        results = Miscs.simplify_idxs(list(range(len(myinvs))), _imply)
         results = [myinvs[i] for i in results]
 
         Miscs.show_removed('_simplify', len(invs), len(results), time() - st)
@@ -146,10 +146,10 @@ class DInvs(dict):
 
     @property
     def invs(self):
-        return (inv for invs in self.itervalues() for inv in invs)
+        return (inv for invs in self.values() for inv in invs)
 
     @property
-    def siz(self): return sum(map(len, self.itervalues()))
+    def siz(self): return sum(map(len, self.values()))
 
     @property
     def typ_ctr(self):
@@ -167,11 +167,12 @@ class DInvs(dict):
             eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
                 self[loc]._classify(self[loc])
             ss.append("{} ({} invs):".format(loc, len(self[loc])))
-            invs = sorted(eqts + eqts_largecoefs, reverse=True) + \
-                sorted(preposts, reverse=True) + \
-                sorted(octs, reverse=True) + \
-                sorted(mps, reverse=True) +\
-                sorted(falseinvs, reverse=True)
+
+            invs = sorted(eqts + eqts_largecoefs, reverse=True, key=str) + \
+                sorted(preposts, reverse=True, key=str) + \
+                sorted(octs, reverse=True, key=str) + \
+                sorted(mps, reverse=True, key=str) +\
+                sorted(falseinvs, reverse=True, key=str)
 
             if print_first_n and print_first_n < len(invs):
                 invs = invs[:print_first_n] + ['...']

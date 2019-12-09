@@ -85,26 +85,30 @@ if __name__ == "__main__":
     settings.logger_level = helpers.vcommon.getLogLevel(settings.logger_level)
 
     mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
-
-    if args.inpMaxV >= 1 and args.inpMaxV != settings.INP_MAX_V:
+    if (args.inpMaxV and args.inpMaxV >= 1 and
+            args.inpMaxV != settings.INP_MAX_V):
         settings.INP_MAX_V = args.inpMaxV
 
-    if args.eqtrate >= 1 and args.eqtrate != settings.EQT_RATE:
+    if (args.eqtrate and args.eqtrate >= 1 and
+            args.eqtrate != settings.EQT_RATE):
         settings.EQT_RATE = args.eqtrate
 
-    if args.jpfmindepth >= 1 and args.jpfmindepth != settings.JPF_MIN_DEPTH:
+    if (args.jpfmindepth and args.jpfmindepth >= 1 and
+            args.jpfmindepth != settings.JPF_MIN_DEPTH):
         settings.JPF_MIN_DEPTH = args.jpfmindepth
 
-    if args.octmaxv >= 1 and args.octmaxv != settings.OCT_MAX_V:
+    if (args.octmaxv and args.octmaxv >= 1 and
+            args.octmaxv != settings.OCT_MAX_V):
         settings.OCT_MAX_V = args.octmaxv
 
-    if args.maxterm >= 1 and args.maxterm != settings.MAX_TERM:
+    if (args.maxterm and args.maxterm >= 1 and
+            args.maxterm != settings.MAX_TERM):
         settings.MAX_TERM = args.maxterm
 
     mlog.info("{}: {}".format(datetime.datetime.now(), ' '.join(sys.argv)))
 
     if __debug__:
-        mlog.warn("DEBUG MODE ON. Can be slow !")
+        mlog.warning("DEBUG MODE ON. Can be slow !")
 
     inp = os.path.realpath(os.path.expanduser(args.inp))
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)

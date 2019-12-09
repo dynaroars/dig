@@ -32,9 +32,9 @@ class PC(object):
             all(isinstance(slocal, str)
                 for slocal in slocals) and slocals, slocals
         assert all(isinstance(s, str) and isinstance(t, str)
-                   for s, t in st.iteritems()), st
+                   for s, t in st.items()), st
         assert all(isinstance(s, str) and Miscs.is_expr(se)
-                   for s, se in sd.iteritems()), sd
+                   for s, se in sd.items()), sd
         assert isinstance(use_reals, bool), bool
 
         pcs_ = []

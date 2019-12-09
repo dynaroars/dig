@@ -38,7 +38,7 @@ class Dig(object):
             seed, random.randint(0, 100), sage.all.randint(0, 100)))
 
     def get_auto_deg(self, maxdeg):
-        maxvars = max(self.inv_decls.itervalues(), key=lambda d: len(d))
+        maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
@@ -73,7 +73,7 @@ class Dig(object):
             self.filename, len(dinvs),
             dinvs.siz,
             ', '.join('{}: {}'.format(t, c)
-                      for t, c in dinvs.typ_ctr.iteritems()),
+                      for t, c in dinvs.typ_ctr.items()),
             dtraces.siz,
             len(inps) if inps else 0,
             time.time() - st,

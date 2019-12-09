@@ -36,7 +36,6 @@ def parse(filename, tmpdir):
     rmsg, errmsg = CM.vcmd(cmd)
 
     assert not errmsg, "'{}': {}".format(cmd, errmsg)
-
     # vtrace2: I x, I y, I q, I r,
     # vtrace1: I q, I r, I a, I b, I x, I y,
     # mainQ_cohendiv: I x, I y,

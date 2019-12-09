@@ -1,3 +1,4 @@
+from functools import reduce
 import pdb
 import itertools
 import operator
@@ -19,7 +20,7 @@ class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
         assert all(isinstance(k, str) and Miscs.is_expr(v)
-                   for k, v in d.iteritems()), d
+                   for k, v in d.items()), d
 
         while True:
             try:
@@ -378,7 +379,7 @@ class Miscs(object):
         assert all(isinstance(s, dict) for s in rs), rs
 
         # filter sols with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
-        rs = [d for d in rs if not all(x == 0 for x in d.itervalues())]
+        rs = [d for d in rs if not all(x == 0 for x in d.values())]
 
         reqts = cls.instantiate_template(template, rs)
         reqts = cls.refine(reqts)
@@ -526,7 +527,7 @@ class Miscs(object):
             wloads.setdefault(cpu_id, []).append(task)
 
         wloads = [wl for wl in sorted(
-            wloads.itervalues(), key=lambda wl: len(wl))]
+            wloads.values(), key=lambda wl: len(wl))]
         return wloads
 
     @classmethod
