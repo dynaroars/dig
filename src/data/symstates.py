@@ -3,7 +3,7 @@ Symbolic States
 """
 import pdb
 from collections import OrderedDict
-import os.path
+from pathlib import Path
 
 import z3
 import sage.all
@@ -61,7 +61,7 @@ class PC(object):
             try:
                 sl = Miscs.msage_eval(p, sd)
             except MemoryError as mex:
-                mlog.warn("{}: {}".format(mex, p))
+                mlog.warning("{}: {}".format(mex, p))
                 sl = Miscs.msage_eval(thack0(p), sd)
 
             slocals_.append(sl)
@@ -162,7 +162,7 @@ class PC(object):
             assert len(ps) == 2
             v = sage.all.sage_eval(ps[1])
             if Miscs.is_num(v) and v >= settings.LARGE_N:
-                mlog.warn("ignore {} (larger than {})".format(
+                mlog.warning("ignore {} (larger than {})".format(
                     p, settings.LARGE_N))
                 return True
             else:
@@ -183,18 +183,21 @@ class PC(object):
 
         start = delim + " START"
         end = delim + " END"
-        doAppend = False
-        for l in CM.iread_strip(filename):
+        do_append = False
+        for l in filename.read_text().splitlines():
+            l = l.strip()
+            if not l:
+                continue
             if l.startswith(start):
-                doAppend = True
+                do_append = True
                 continue
             elif l.startswith(end):
-                doAppend = False
+                do_append = False
                 if curpart:
                     parts.append(curpart)
                     curpart = []
             else:
-                if doAppend:
+                if do_append:
                     curpart.append(l)
 
         if not parts:
@@ -268,10 +271,10 @@ class SymStates(object):
         self.use_reals = inv_decls.use_reals
         self.inp_exprs = inp_decls.exprs(self.use_reals)
 
-    def compute(self, filename, mainQName, clsName, jpfDir):
+    def compute(self, filename, mainQName, clsName, jpf_dir):
 
         def _f(d): return self.mk(
-            d, filename, mainQName, clsName, jpfDir, len(self.inp_decls))
+            d, filename, mainQName, clsName, jpf_dir, len(self.inp_decls))
 
         mindepth = settings.JPF_MIN_DEPTH
         maxdepth = mindepth + settings.JPF_DEPTH_INCR
@@ -284,31 +287,31 @@ class SymStates(object):
         wrs = Miscs.run_mp("get symstates", tasks, f)
 
         if not wrs:
-            mlog.warn("cannot obtain symbolic states, unreachable locs?")
+            mlog.warning("cannot obtain symbolic states, unreachable locs?")
             import sys
             sys.exit(0)
 
         self.merge(wrs)
 
     @classmethod
-    def mk(cls, depth, filename, mainQName, clsName, jpfDir, nInps):
+    def mk(cls, depth, filename, mainQName, clsname, jpf_dir, nInps):
         max_val = settings.INP_MAX_V
-        ssfile = "{}.{}_{}_{}.straces".format(
-            filename, mainQName, max_val, depth)
+        ssfile = Path("{}.{}_{}_{}.straces".format(
+            filename, mainQName, max_val, depth))
 
         mlog.debug("Obtain symbolic states (max val {}, tree depth {}){}"
                    .format(max_val, depth,
-                           ' ({})'.format(ssfile) if os.path.isfile(ssfile)
-                           else ''))
+                           ' ({})'.format(ssfile) if ssfile.is_file() else ''))
 
-        if not os.path.isfile(ssfile):
+        if not ssfile.is_file():
             jpffile = helpers.src_java.mk_JPF_runfile(
-                clsName, mainQName, jpfDir, nInps, max_val, depth)
+                clsname, mainQName, jpf_dir, nInps, max_val, depth)
 
-            ssfile = os.path.join(
-                jpfDir, "{}_{}_{}_{}.straces".format(
-                    clsName, mainQName, max_val, depth))
-            assert not os.path.isfile(ssfile), ssfile
+            ssfile = jpf_dir / \
+                "{}_{}_{}_{}.straces".format(
+                    clsname, mainQName, max_val, depth)
+
+            assert not ssfile.is_file(), ssfile
             cmd = settings.JPF_RUN(jpffile=jpffile, tracefile=ssfile)
             mlog.debug(cmd)
             CM.vcmd(cmd)
@@ -362,13 +365,13 @@ class SymStates(object):
         empties = [(loc, depth) for loc in symstates
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
-            mlog.warn(
+            mlog.warning(
                 "{}: depth {}: no symbolic states found".format(loc, depth))
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]
         for loc in empties:
-            mlog.warn("{}: no symbolic states found".format(loc))
+            mlog.warning("{}: no symbolic states found".format(loc))
             symstates.pop(loc)
 
         if all(not symstates[loc] for loc in symstates):

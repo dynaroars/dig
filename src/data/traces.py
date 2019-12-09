@@ -1,5 +1,7 @@
 import pdb
 from collections import namedtuple
+from pathlib import Path
+
 import z3
 import sage.all
 
@@ -244,7 +246,7 @@ class DTraces(dict):
         """
         assert inv_decls and isinstance(
             inv_decls, data.miscs.DSymbs), inv_decls
-        assert tracefile and isinstance(tracefile, str), tracefile
+        assert isinstance(tracefile, Path), tracefile
 
         ss = []
         for loc in self:
@@ -253,16 +255,19 @@ class DTraces(dict):
             traces = ['{}: {}'.format(loc, t) for t in traces]
             ss.extend(traces)
 
-        CM.vwrite(tracefile, '\n'.join(ss))
+        tracefile.write_text('\n'.join(ss))
 
     @classmethod
     def vread(cls, tracefile):
-        assert tracefile and isinstance(tracefile, str), tracefile
+        assert tracefile.is_file(), tracefile
 
         trace_str = []
         # determine variable declarations for different locations
         inv_decls = data.miscs.DSymbs()
-        for line in CM.iread_strip(tracefile):
+        for line in tracefile.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
             loc, contents = line.split(':')
             if loc not in inv_decls:
                 inv_decls[loc] = data.miscs.Symbs.mk(contents)  # I x, I y

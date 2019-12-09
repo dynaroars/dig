@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import pdb
 import random
-import os.path
+from pathlib import Path
 import time
 
 import sage.all
@@ -25,7 +25,8 @@ class Dig(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, filename):
-        assert os.path.isfile(filename), filename
+        assert filename.is_file(), filename
+
         mlog.info("analyze '{}'".format(filename))
         self.filename = filename
 
@@ -145,8 +146,8 @@ class DigSymStates(Dig):
             mlog.debug("clean up: rm -rf {}".format(self.tmpdir))
             shutil.rmtree(self.tmpdir)
         else:
-            tracefile = os.path.join(
-                self.tmpdir, settings.TRACE_DIR, 'all.tcs')
+            DBG()
+            tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
             dtraces.vwrite(self.inv_decls, tracefile)
             mlog.info("tmpdir: {}".format(self.tmpdir))
 
@@ -190,8 +191,8 @@ class DigSymStates(Dig):
             return self._tmpdir
         except AttributeError:
             import tempfile
-            self._tmpdir = tempfile.mkdtemp(
-                dir=settings.tmpdir, prefix="Dig_")
+            self._tmpdir = Path(tempfile.mkdtemp(
+                dir=settings.tmpdir, prefix="Dig_"))
             return self._tmpdir
 
 

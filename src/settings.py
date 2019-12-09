@@ -1,7 +1,10 @@
+import pdb
 from functools import partial
 import os.path
+from pathlib import Path
+DBG = pdb.set_trace
 
-tmpdir = "/var/tmp/"
+tmpdir = Path("/var/tmp/")
 logger_level = 2
 DO_EQTS = True
 DO_IEQS = True
@@ -27,24 +30,23 @@ CTR_VAR = 'Ct'  # counter variable contains this string
 POST_LOC = 'post'  # vtraceX_post  indicates postconditions
 
 # Program Paths
-SRC_DIR = os.path.dirname(
-    os.path.realpath(os.path.expanduser(__file__)))
-JAVA_INSTRUMENT_DIR = os.path.join(SRC_DIR, 'java')
-ASM_JAR = os.path.join(JAVA_INSTRUMENT_DIR, "asm-all-5.2.jar")
-assert os.path.isdir(JAVA_INSTRUMENT_DIR), JAVA_INSTRUMENT_DIR
-assert os.path.isfile(ASM_JAR), ASM_JAR
+SRC_DIR = Path(__file__).parent
+JAVA_INSTRUMENT_DIR = SRC_DIR / 'java'
+ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
+assert JAVA_INSTRUMENT_DIR.is_dir(), JAVA_INSTRUMENT_DIR
+assert ASM_JAR.is_file(), ASM_JAR
 CLASSPATH = "{}:{}".format(JAVA_INSTRUMENT_DIR, ASM_JAR)
 
 # Must be Java 8 because JPF requires Java 8
-JAVA_HOME = os.path.expandvars("$JAVA_HOME")
-JAVAC_CMD = os.path.join(JAVA_HOME, "bin/javac")
-JAVA_CMD = os.path.join(JAVA_HOME, "bin/java")
-assert os.path.isfile(JAVAC_CMD), JAVAC_CMD
-assert os.path.isfile(JAVA_CMD), JAVA_CMD
+JAVA_HOME = Path(os.path.expandvars("$JAVA_HOME"))
+JAVAC_CMD = JAVA_HOME / "bin/javac"
+JAVA_CMD = JAVA_HOME / "bin/java"
+assert JAVAC_CMD.is_file(), JAVAC_CMD
+assert JAVA_CMD.is_file(), JAVA_CMD
 
-JPF_HOME = os.path.join(os.path.expandvars("$JPF_HOME"), "jpf-core")
-JPF_JAR = os.path.join(JPF_HOME, "build/RunJPF.jar")
-assert os.path.isfile(JPF_JAR), JPF_JAR
+JPF_HOME = Path(os.path.expandvars("$JPF_HOME")) / "jpf-core"
+JPF_JAR = JPF_HOME / "build/RunJPF.jar"
+assert JPF_JAR.is_file(), JPF_JAR
 JVM_FLAGS = "-Xmx1024m -ea"
 
 JPF_RUN = "{java} {flags} -jar {jar} {jpffile} > {tracefile}"

@@ -1,6 +1,5 @@
 import pdb
 import sys
-import os.path
 import datetime
 import time
 import helpers.vcommon
@@ -110,11 +109,12 @@ if __name__ == "__main__":
     if __debug__:
         mlog.warning("DEBUG MODE ON. Can be slow !")
 
-    inp = os.path.realpath(os.path.expanduser(args.inp))
+    import pathlib
+    inp = pathlib.Path(args.inp)
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
     import alg
-    if inp.endswith(".java") or inp.endswith(".class"):
+    if inp.suffix == ".java" or inp.suffix == ".class":
         dig = alg.DigSymStates(inp)
     else:
         dig = alg.DigTraces(inp)
