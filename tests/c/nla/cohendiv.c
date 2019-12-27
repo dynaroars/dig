@@ -3,41 +3,40 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace1(int x, int y, int r, int q){}
-void vtrace2(int x, int y, int r, int q, int a, int b){}
+void vtrace1(int q, int r, int a, int b, int x, int y){}
+void vtrace2(int q, int r, int a, int b, int x, int y){}
 void vtrace3(int x, int y, int r, int q){}
 
 int mainQ(int x, int y){
-  vassume(x>0 && y>0);
-  
-  int q=0;
-  int r=x;
-
-  while(1) {
-    vtrace1(x,y,q,r);
-    if(!(r>=y)) break;
-    int a=1;
-    int b=y;
+    vassume(x >= 1 && y >= 1);
+    
+    int q=0;
+    int r=x;
+    int a=0;
+    int b=0;
+    while(1) {
+	vtrace1(q,r,a,b,x,y);
+	if(!(r>=y)) break;
+	a=1;
+	b=y;
 	  
-    while (1){
-      //assert(r>=2*y*a && b==y*a && x==q*y+r && r>=0);
-      //%%%traces: int x, int y, int q, int a, int b, int r
-      vtrace2(x,y,q,a,b,r);
-      if(!(r >= 2*b))
-	break;
+	while (1){
+	    //assert(r>=2*y*a && b==y*a && x==q*y+r && r>=0);
+
+	    vtrace2(q, r, a, b, x, y);
+	    if(!(r >= 2*b))
+		break;
 	       
-      a = 2*a;
-      b = 2*b;
+	    a = 2*a;
+	    b = 2*b;
+	}
+	r=r-b;
+	q=q+a;
     }
-    r=r-b;
-    q=q+a;
-  }
-  //%%%traces: int x, int y, int r, int q
-  vtrace3(x, y, r, q);
-  return q;
+    vtrace3(x, y, r, q);
+    return q;
 }
 
 void main(int argc, char **argv){
-  mainQ(atoi(argv[1]), atoi(argv[2]));
+    mainQ(atoi(argv[1]), atoi(argv[2]));
 }
-

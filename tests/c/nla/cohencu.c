@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 
-/* http://www.cs.upc.edu/~erodri/webpage/polynomial_invariants/cohencu.htm*/
-/* printing consecutive cubes, by Cohen */
+void vtrace1(int a, int n, int x, int y, int z){}
+void vtrace2(int a, int n, int x, int y, int z){}
 
 int mainQ(int a){
   int n,x,y,z;
@@ -13,7 +14,7 @@ int mainQ(int a){
        //assert(z == 6*n + 6);
        //assert(y == 3*n*n + 3*n + 1);
        //assert(x == n*n*n);
-       //%%%traces: int a, int n, int x, int y, int z
+      vtrace1(a, n, x, y, z);
        
        if(!(n<=a)) break;
        //write_int(x);
@@ -23,12 +24,12 @@ int mainQ(int a){
        y=y+z;
        z=z+6;
   }
+  vtrace2(a, n, x, y, z);
   return x;
 }
 
 
-int main(int argc, char **argv){
+void main(int argc, char **argv){
      mainQ(atoi(argv[1]));
-     return 0;
 }
 

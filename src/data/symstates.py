@@ -1,6 +1,7 @@
 """
 Symbolic States
 """
+from abc import ABCMeta, abstractmethod
 import pdb
 from collections import OrderedDict
 from pathlib import Path
@@ -12,7 +13,6 @@ from sage.all import cached_function
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
-import helpers.src_java
 from data.miscs import Symbs, DSymbs
 from data.traces import Inps
 from data.inv.base import Inv
@@ -22,65 +22,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class PC(object):
-    def __init__(self, loc, depth, pcs, slocals, st, sd, use_reals):
-        assert isinstance(loc, str) and loc, loc
-        assert depth >= 0, depth
-        assert isinstance(pcs, list) and \
-            all(isinstance(pc, str) for pc in pcs), pcs
-        assert isinstance(slocals, list) and \
-            all(isinstance(slocal, str)
-                for slocal in slocals) and slocals, slocals
-        assert all(isinstance(s, str) and isinstance(t, str)
-                   for s, t in st.items()), st
-        assert all(isinstance(s, str) and Miscs.is_expr(se)
-                   for s, se in sd.items()), sd
-        assert isinstance(use_reals, bool), bool
-
-        pcs_ = []
-        pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
-        for i, p in enumerate(pcs):
-            p, is_replaced = PC.replaceMod(p)
-            if is_replaced:
-                pcsModIdxs.add(i)
-            sexpr = Miscs.msage_eval(p, sd)
-            assert not isinstance(
-                sexpr, bool), "pc '{}' evals to '{}'".format(p, sexpr)
-            pcs_.append(sexpr)
-
-        pcs = [Miscs.elim_denom(pc) for pc in pcs_]
-        pcs = [pc for pc in pcs
-               if not (pc.is_relational() and str(pc.lhs()) == str(pc.rhs()))]
-
-        def thack0(s):
-            # for Hola H32.Java program
-            return s.replace("((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((j + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1)", "j + 100")
-
-        slocals_ = []
-        for p in slocals:
-            try:
-                sl = Miscs.msage_eval(p, sd)
-            except MemoryError as mex:
-                mlog.warning("{}: {}".format(mex, p))
-                sl = Miscs.msage_eval(thack0(p), sd)
-
-            slocals_.append(sl)
-        slocals = slocals_
-        slocals = [Miscs.elim_denom(p) for p in slocals]
-        slocals = [p for p in slocals
-                   if not (p.is_relational() and str(p.lhs()) == str(p.rhs()))]
-
-        assert isinstance(loc, str) and loc, loc
-        assert all(Miscs.is_rel(pc) for pc in pcs), pcs
-        assert all(Miscs.is_rel(pc) for pc in slocals), slocals
-
-        self.loc = loc
-        self.depth = depth
-        self.st = st
-        self.pcs = pcs
-        self.pcsModIdxs = pcsModIdxs
-        self.slocals = slocals
-        self.use_reals = use_reals
+class PC(metaclass=ABCMeta):
 
     def __str__(self):
         ss = ['loc: {}'.format(self.loc),
@@ -101,9 +43,9 @@ class PC(object):
         try:
             return self._pcs_z3
         except AttributeError:
-            self._pcs_z3 = [Z3.toZ3(pc, self.use_reals,
-                                    use_mod=i in self.pcsModIdxs)
-                            for i, pc in enumerate(self.pcs)]
+            self._pcs_z3 = [
+                Z3.toZ3(pc, self.use_reals, use_mod=i in self.pcsModIdxs)
+                for i, pc in enumerate(self.pcs)]
             return self._pcs_z3
 
     @property
@@ -134,7 +76,199 @@ class PC(object):
         return f
 
     @classmethod
-    def parsePC(cls, ss):
+    def parse(cls, filename):
+        parts = cls.parse_parts(filename.read_text().splitlines())
+        if not parts:
+            mlog.error("Cannot obtain symstates from '{}'".format(filename))
+            return None
+
+        pcs = [cls.parse_part(pc) for pc in parts]
+        return pcs
+
+
+class PC_CIVL(PC):
+    def __init__(self, loc, depth, pcs, slocals, st, sd, use_reals):
+
+        pcs_ = []
+        pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
+        for i, p in enumerate(pcs):
+            sexpr = Miscs.msage_eval(p, sd)
+            pcs_.append(sexpr)
+        pcs = pcs_
+
+        slocals_ = []
+        for p in slocals:
+            sl = Miscs.msage_eval(p, sd)
+            slocals_.append(sl)
+        slocals = slocals_
+
+        assert all(Miscs.is_rel(pc) for pc in pcs), pcs
+        assert all(Miscs.is_rel(pc) for pc in slocals), slocals
+
+        self.loc = loc
+        self.depth = depth
+        self.st = st
+        self.pcs = pcs
+        self.pcsModIdxs = pcsModIdxs
+        self.slocals = slocals
+        self.use_reals = use_reals
+
+    @classmethod
+    def parse_parts(cls, lines):
+        """
+        vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
+        path condition: (0<=(X_x-1))&&(0<=(X_y-1))
+        vtrace3: x = X_x; y = X_y; r = X_x; q = 0
+        path condition: ((X_x+(-1*X_y)+1)<=0)&&(0<=(X_x-1))&&(0<=(X_y-1))
+        vtrace2: q = 0; r = X_x; a = 1; b = X_y; x = X_x; y = X_y
+        path condition: (0<=(X_x+(-1*X_y)))&&(0<=(X_x-1))&&(0<=(X_y-1))
+        """
+
+        slocals = []
+        pcs = []
+        for l in lines:
+            l = l.strip()
+            if not l:
+                continue
+            if l.startswith('vtrace'):
+                slocals.append(l)
+            elif l.startswith('path condition'):
+                assert len(pcs) == len(slocals) - 1
+                pcs.append(l)
+
+        parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
+        return parts
+
+    @classmethod
+    def parse_part(cls, ss):
+        """
+        ['vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y',
+        'path condition: (0<=(X_x-1))&&(0<=(X_y-1))']
+        """
+        assert isinstance(ss, list) and len(ss) == 2, ss
+        slocals, pc = ss
+        pcs = pc.split(':')[1]
+        pcs = [x.strip() for x in pcs.split("&&")]
+        pcs = [x for x in pcs if x != 'true']
+        loc, slocals = slocals.split(':')
+        slocals = [cls.replace_str(x) for x in slocals.split(';')]
+        fake_vs = [('int', x.split('==')[0].strip()) for x in slocals]
+        fake_vs = list(set(fake_vs))
+        return loc, fake_vs, pcs, slocals
+
+    @staticmethod
+    def replace_str(s):
+        s_ = (s.replace(' = ', '==').strip())
+        return s_
+
+
+class PC_JPF(PC):
+    def __init__(self, loc, depth, pcs, slocals, st, sd, use_reals):
+        assert isinstance(loc, str) and loc, loc
+        assert depth >= 0, depth
+        assert isinstance(pcs, list) and \
+            all(isinstance(pc, str) for pc in pcs), pcs
+        assert isinstance(slocals, list) and \
+            all(isinstance(slocal, str)
+                for slocal in slocals) and slocals, slocals
+        assert all(isinstance(s, str) and isinstance(t, str)
+                   for s, t in st.items()), st
+        assert all(isinstance(s, str) and Miscs.is_expr(se)
+                   for s, se in sd.items()), sd
+        assert isinstance(use_reals, bool), bool
+
+        pcs_ = []
+        pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
+        for i, p in enumerate(pcs):
+            p, is_replaced = self.replace_mod(p)
+            if is_replaced:
+                pcsModIdxs.add(i)
+            sexpr = Miscs.msage_eval(p, sd)
+            assert not isinstance(sexpr, bool), \
+                "pc '{}' evals to '{}'".format(p, sexpr)
+            pcs_.append(sexpr)
+
+        pcs = [Miscs.elim_denom(pc) for pc in pcs_]
+        pcs = [pc for pc in pcs
+               if not (pc.is_relational() and str(pc.lhs()) == str(pc.rhs()))]
+
+        def thack0(s):
+            # for Hola H32.Java program
+            return s.replace("((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((j + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1)", "j + 100")
+
+        slocals_ = []
+        for p in slocals:
+            try:
+                sl = Miscs.msage_eval(p, sd)
+            except MemoryError as mex:
+                mlog.warning("{}: {}".format(mex, p))
+                sl = Miscs.msage_eval(thack0(p), sd)
+
+            slocals_.append(sl)
+        slocals = slocals_
+        slocals = [Miscs.elim_denom(p) for p in slocals]
+        slocals = [p for p in slocals
+                   if not (p.is_relational() and str(p.lhs()) == str(p.rhs()))]
+
+        assert all(Miscs.is_rel(pc) for pc in pcs), pcs
+        assert all(Miscs.is_rel(pc) for pc in slocals), slocals
+
+        self.loc = loc
+        self.depth = depth
+        self.st = st
+        self.pcs = pcs
+        self.pcsModIdxs = pcsModIdxs
+        self.slocals = slocals
+        self.use_reals = use_reals
+
+    @classmethod
+    def parse_parts(cls, lines, delim="**********"):
+        """
+        Return a list of strings representing path conditions
+        [['loc: vtrace1(IIIIII)V',
+        'pc: constraint # = 2',
+        'y_2_SYMINT >= CONST_1 &&', 'x_1_SYMINT >= CONST_1',
+        'vars: int x, int y, int q, int r, int a, int b,',
+        'SYM: x = x_1_SYMINT',
+        'SYM: y = y_2_SYMINT',
+        'CON: q = 0',
+        'SYM: r = x_1_SYMINT',
+        'CON: a = 0',
+        'CON: b = 0']]
+        """
+        parts, curpart = [], []
+
+        start = delim + " START"
+        end = delim + " END"
+        do_append = False
+        for l in lines:
+            l = l.strip()
+            if not l:
+                continue
+            if l.startswith(start):
+                do_append = True
+                continue
+            elif l.startswith(end):
+                do_append = False
+                if curpart:
+                    parts.append(curpart)
+                    curpart = []
+            else:
+                if do_append:
+                    curpart.append(l)
+
+        return parts
+
+    @classmethod
+    def parse_part(cls, ss):
+        """
+        vtrace1
+        [('int', 'x'), ('int', 'y'), ('int', 'q'),
+          ('int', 'r'), ('int', 'a'), ('int', 'b')]
+        ['y_2_SYMINT >= 1', 'x_1_SYMINT >= 1']
+        ['x==x_1_SYMINT', 'y==y_2_SYMINT', 'q==0', 'r==x_1_SYMINT', 'a==0', 'b==0']
+        """
+
         assert isinstance(ss, list) and ss, ss
 
         curpart = []
@@ -169,47 +303,13 @@ class PC(object):
                 return False
 
         slocals = [p for p in slocals if not isTooLarge(p)]
-        slocals = [PC.replaceStr(p) for p in slocals if p]
-        pcs = [PC.replaceStr(pc) for pc in pcs if pc]
+        slocals = [cls.replace_str(p) for p in slocals if p]
+        pcs = [cls.replace_str(pc) for pc in pcs if pc]
         return loc, vs, pcs, slocals
-
-    @classmethod
-    def parse(cls, filename, delim="**********"):
-        """
-        Return a list of strings representing pc's
-        """
-
-        parts, curpart = [], []
-
-        start = delim + " START"
-        end = delim + " END"
-        do_append = False
-        for l in filename.read_text().splitlines():
-            l = l.strip()
-            if not l:
-                continue
-            if l.startswith(start):
-                do_append = True
-                continue
-            elif l.startswith(end):
-                do_append = False
-                if curpart:
-                    parts.append(curpart)
-                    curpart = []
-            else:
-                if do_append:
-                    curpart.append(l)
-
-        if not parts:
-            mlog.error("Cannot obtain symstates from '{}'".format(filename))
-            return None
-
-        pcs = [cls.parsePC(pc) for pc in parts]
-        return pcs
 
     @staticmethod
     @cached_function
-    def replaceStr(s):
+    def replace_str(s):
         s_ = (s.replace('&&', '').
               replace(' = ', '==').
               replace('CONST_', '').
@@ -222,7 +322,7 @@ class PC(object):
 
     @staticmethod
     @cached_function
-    def replaceMod(s):
+    def replace_mod(s):
         if "%" not in s:
             return s, False
         s_ = s.replace("%", "^")
@@ -260,8 +360,9 @@ class PCs(set):
             return self._exprPC
 
 
-class SymStates(object):
-    def __init__(self, inp_decls, inv_decls):
+class SymStates(metaclass=ABCMeta):
+
+    def __init__(self, inp_decls, inv_decls, seed=None):
         assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
         # {'vtrace1': (('q', 'I'), ('r', 'I'), ('x', 'I'), ('y', 'I'))}
         assert isinstance(inv_decls, DSymbs), inv_decls
@@ -270,20 +371,25 @@ class SymStates(object):
         self.inv_decls = inv_decls
         self.use_reals = inv_decls.use_reals
         self.inp_exprs = inp_decls.exprs(self.use_reals)
+        self.seed = seed if seed else 0
 
-    def compute(self, filename, mainQName, clsName, jpf_dir):
+    def compute(self, filename, mainQName, funname, tmpdir):
+        """
+        Run symbolic execution to obtain symbolic states
+        """
+        assert tmpdir.is_dir(), tmpdir
 
-        def _f(d): return self.mk(
-            d, filename, mainQName, clsName, jpf_dir, len(self.inp_decls))
+        def _f(d):
+            return self.mk(
+                d, filename, mainQName, funname, tmpdir, len(self.inp_decls))
 
-        mindepth = settings.JPF_MIN_DEPTH
-        maxdepth = mindepth + settings.JPF_DEPTH_INCR
-        tasks = [depth for depth in range(mindepth, maxdepth)]
+        tasks = [depth for depth in range(self.mindepth, self.maxdepth)]
 
         def f(tasks):
             rs = [(depth, _f(depth)) for depth in tasks]
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
+
         wrs = Miscs.run_mp("get symstates", tasks, f)
 
         if not wrs:
@@ -291,35 +397,10 @@ class SymStates(object):
             import sys
             sys.exit(0)
 
-        self.merge(wrs)
+        self.ss = self.merge(wrs, self.pc_cls, self.use_reals)
 
     @classmethod
-    def mk(cls, depth, filename, mainQName, clsname, jpf_dir, nInps):
-        max_val = settings.INP_MAX_V
-        ssfile = Path("{}.{}_{}_{}.straces".format(
-            filename, mainQName, max_val, depth))
-
-        mlog.debug("Obtain symbolic states (max val {}, tree depth {}){}"
-                   .format(max_val, depth,
-                           ' ({})'.format(ssfile) if ssfile.is_file() else ''))
-
-        if not ssfile.is_file():
-            jpffile = helpers.src_java.mk_JPF_runfile(
-                clsname, mainQName, jpf_dir, nInps, max_val, depth)
-
-            ssfile = jpf_dir / \
-                "{}_{}_{}_{}.straces".format(
-                    clsname, mainQName, max_val, depth)
-
-            assert not ssfile.is_file(), ssfile
-            cmd = settings.JPF_RUN(jpffile=jpffile, tracefile=ssfile)
-            mlog.debug(cmd)
-            CM.vcmd(cmd)
-
-        pcs = PC.parse(ssfile)
-        return pcs
-
-    def merge(self, depthss):
+    def merge(cls, depthss, pc_cls, use_reals):
         """
         Merge PC's info into symbolic states sd[loc][depth]
         """
@@ -336,7 +417,7 @@ class SymStates(object):
                 for _, s in vs:
                     if s not in ssd:
                         ssd[s] = sage.all.var(s)
-                pc = PC(loc, depth, pcs, slocals, sst, ssd, self.use_reals)
+                pc = pc_cls(loc, depth, pcs, slocals, sst, ssd, use_reals)
 
                 symstates.setdefault(loc, {})
                 symstates[loc].setdefault(depth, PCs(loc, depth)).add(pc)
@@ -385,7 +466,7 @@ class SymStates(object):
                       for i, ss in enumerate(symstates[loc][depth])))
             for loc in symstates for depth in symstates[loc]))
 
-        self.ss = symstates
+        return symstates
 
     def check(self, dinvs, inps, path_idx=None):
         """
@@ -513,3 +594,60 @@ def merge(ds):
                 for e in d[loc][inv]:
                     newD[loc][inv].append(e)
     return newD
+
+
+class SymStatesC(SymStates):
+    pc_cls = PC_CIVL
+    mindepth = settings.C.CIVL_MIN_DEPTH
+    maxdepth = mindepth + settings.C.CIVL_DEPTH_INCR
+
+    @classmethod
+    def mk(cls, depth, filename, mainQName, funname, tmpdir, nInps):
+        """
+        civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
+        """
+
+        tracefile = Path("{}.{}_{}.straces".format(filename, mainQName, depth))
+        assert not tracefile.exists(), tracefile
+        mlog.debug("Obtain symbolic states (tree depth {}){}"
+                   .format(depth, ' ({})'.format(tracefile)))
+        cmd = settings.C.CIVL_RUN(
+            maxdepth=depth, file=filename, tracefile=tracefile)
+        mlog.debug(cmd)
+        CM.vcmd(cmd)
+        pcs = PC_CIVL.parse(tracefile)
+        return pcs
+
+
+class SymStatesJava(SymStates):
+    pc_cls = PC_JPF
+    mindepth = settings.Java.JPF_MIN_DEPTH
+    maxdepth = mindepth + settings.Java.JPF_DEPTH_INCR
+
+    @classmethod
+    def mk(cls, depth, filename, mainQName, funname, tmpdir, nInps):
+        max_val = settings.INP_MAX_V
+        tracefile = Path("{}.{}_{}_{}.straces".format(
+            filename, mainQName, max_val, depth))
+
+        mlog.debug("Obtain symbolic states (max val {}, tree depth {}){}"
+                   .format(max_val, depth,
+                           ' ({})'.format(tracefile)
+                           if tracefile.is_file() else ''))
+
+        if not tracefile.is_file():
+            from helpers.src import Java as mysrc
+            jpffile = mysrc.mk_JPF_runfile(
+                funname, mainQName, tmpdir, nInps, max_val, depth)
+
+            tracefile = "{}_{}_{}_{}.straces".format(
+                funname, mainQName, max_val, depth)
+            tracefile = tmpdir / tracefile
+
+            assert not tracefile.is_file(), tracefile
+            cmd = settings.Java.JPF_RUN(jpffile=jpffile, tracefile=tracefile)
+            mlog.debug(cmd)
+            CM.vcmd(cmd)
+
+        pcs = PC_JPF.parse(tracefile)
+        return pcs

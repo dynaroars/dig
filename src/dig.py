@@ -93,8 +93,8 @@ if __name__ == "__main__":
         settings.EQT_RATE = args.eqtrate
 
     if (args.jpfmindepth and args.jpfmindepth >= 1 and
-            args.jpfmindepth != settings.JPF_MIN_DEPTH):
-        settings.JPF_MIN_DEPTH = args.jpfmindepth
+            args.jpfmindepth != settings.Java.JPF_MIN_DEPTH):
+        settings.Java.JPF_MIN_DEPTH = args.jpfmindepth
 
     if (args.octmaxv and args.octmaxv >= 1 and
             args.octmaxv != settings.OCT_MAX_V):
@@ -115,7 +115,9 @@ if __name__ == "__main__":
 
     import alg
     if inp.suffix == ".java" or inp.suffix == ".class":
-        dig = alg.DigSymStates(inp)
+        dig = alg.DigSymStatesJava(inp)
+    elif inp.suffix == ".c":
+        dig = alg.DigSymStatesC(inp)
     else:
         dig = alg.DigTraces(inp)
     invs, traces = dig.start(seed, args.maxdeg)

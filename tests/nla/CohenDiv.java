@@ -7,6 +7,8 @@ public class CohenDiv {
      
 
     public static int mainQ(int x, int y) {
+	//assert(y >= 1);
+	assert(x >= 1);
 	assert(y >= 1);
 
 	int q=0;

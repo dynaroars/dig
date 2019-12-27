@@ -1,51 +1,49 @@
 #include <stdio.h>
 #include <assert.h>
-#include <stdlib.h>  //required for afloat to work
+#include <stdlib.h>
 
+void vassume(int b){}
+void vtrace1(int A, int B, int q, int r, int d, int p){}
+void vtrace2(int A, int B, int q, int r, int d, int p){}
+void vtrace3(int A, int B, int q, int r, int d, int p){}
 
 int mainQ(int A, int B){
-     //hardware integer division program, by Manna
-     //returns q==A//B
+    vassume(A >= 0);
+    vassume(B >= 1);
 
-     assert(A >= 0);
-     assert(B >= 1);
+    int r,d,p,q;
 
-     int r,d,p,q;
+    r=A;
+    d=B;
+    p=1;
+    q=0;
 
-     r=A;
-     d=B;
-     p=1;
-     q=0;
+    while(1){
+	//%%%traces: int A, int B, int q, int r, int d, int p
+	vtrace1(A, B, q, r, d, p);
+	if (!(r >= d)) break;
+	//assert(A >= 0 && B > 0 && q == 0 && r == A && d == B*p);
+	d = 2 * d;
+	p  = 2 * p;
+    }
 
-     while(1){
-	  //%%%traces: int A, int B, int q, int r, int d, int p
-	  if (!(r >= d)) break;
-	  //assert(A >= 0 && B > 0 && q == 0 && r == A && d == B*p);
-	  d = 2 * d;
-	  p  = 2 * p;
-     }
-
-     while(1){
-	  // assert(A == q*B+r && d==B*p);
-	  //%%%traces: int A, int B, int q, int r, int d, int p    
-	  if (!(p!=1)) break;
+    while(1){
+	// assert(A == q*B+r && d==B*p);
+	vtrace2(A, B, q, r, d, p);
+	if (!(p!=1)) break;
     
-	  d=d/2; p=p/2;
-	  if(r>=d){
-	       r=r-d; q=q+p;
-	  }
-     }
+	d=d/2; p=p/2;
+	if(r>=d){
+	    r=r-d; q=q+p;
+	}
+    }
 
-     ///%%%traces: int A, int r
-     //, int q, int r, int d, int p
-     // r == A % B
-     // q == A / B
-     return q;
+    vtrace3(A, B, q, r, d, p);
+    return q;
 }
 
 
-int main(int argc, char **argv){
-     mainQ(atoi(argv[1]), atoi(argv[2]));
-     return 0;
+void  main(int argc, char **argv){
+    mainQ(atoi(argv[1]), atoi(argv[2]));
 }
 

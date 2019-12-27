@@ -19,9 +19,8 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
-        assert all(isinstance(k, str) and Miscs.is_expr(v)
-                   for k, v in d.items()), d
-
+        assert all(isinstance(k, str) and
+                   Miscs.is_expr(v) for k, v in d.items()), d
         while True:
             try:
                 return sage.all.sage_eval(s, d)
@@ -764,9 +763,8 @@ class Z3(object):
         sage: Z3.toZ3(x*x*x, False, use_mod=False)
         x*x*x
         """
-        assert Miscs.is_expr(p) or Miscs.is_int(
-            p) or isinstance(p, int), (p, type(p))
-
+        assert (Miscs.is_expr(p) or Miscs.is_int(p) or
+                isinstance(p, int)), (p, type(p))
         assert isinstance(use_reals, bool), use_reals
         assert isinstance(use_mod, bool), use_mod
 

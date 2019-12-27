@@ -9,20 +9,18 @@ import sage.all
 import settings
 from helpers.miscs import Miscs
 import helpers.vcommon as CM
-import helpers.src_java
+
 
 import data.miscs
 import data.symstates
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs
-
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Dig(object):
-    __metaclass__ = ABCMeta
+class Dig(object, metaclass=ABCMeta):
 
     def __init__(self, filename):
         assert filename.is_file(), filename
@@ -86,24 +84,19 @@ class Dig(object):
 
 class DigSymStates(Dig):
     def __init__(self, filename):
-        super(DigSymStates, self).__init__(filename)
+        super().__init__(filename)
 
-        # call ASM to obtain
-        (inp_decls, inv_decls, clsname, mainQ_name, jpfdir, jpffile,
-         tracedir, traceFile) = helpers.src_java.parse(filename, self.tmpdir)
+        self.set_mysrc()
+        self.inp_decls = self.mysrc.inp_decls
+        self.inv_decls = self.mysrc.inv_decls
 
-        self.inp_decls = inp_decls
-        self.inv_decls = inv_decls
-        self.use_rand_init = True
+        self.prog = data.miscs.Prog(
+            self.exe_cmd, self.inp_decls, self.inv_decls)
 
-        exe_cmd = settings.JAVA_RUN(tracedir=tracedir, clsname=clsname)
-        self.prog = data.miscs.Prog(exe_cmd, inp_decls, inv_decls)
-
-        self.symstates = data.symstates.SymStates(inp_decls, inv_decls)
-        self.symstates.compute(self.filename, mainQ_name, clsname, jpfdir)
+        self.set_symbolic_states()
 
         # remove locations with no symbolic states
-        invalid_locs = [loc for loc in inv_decls
+        invalid_locs = [loc for loc in self.inv_decls
                         if loc not in self.symstates.ss]
 
         for loc in invalid_locs:
@@ -112,10 +105,12 @@ class DigSymStates(Dig):
 
         self.locs = self.inv_decls.keys()
 
+        self.use_rand_init = True
+
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
-        super(DigSymStates, self).start(seed)
+        super().start(seed)
 
         mlog.info('infer invs at {} locs: {}'.format(
             len(self.locs), ', '.join(self.locs)))
@@ -195,13 +190,49 @@ class DigSymStates(Dig):
             return self._tmpdir
 
 
+class DigSymStatesJava(DigSymStates):
+    def set_mysrc(self):
+        from helpers.src import Java as mysrc
+        self.mysrc = mysrc(self.filename, self.tmpdir)
+
+    def set_symbolic_states(self):
+        self.symstates = data.symstates.SymStatesJava(
+            self.inp_decls, self.inv_decls)
+        self.symstates.compute(
+            self.filename, self.mysrc.mainQ_name,
+            self.mysrc.funname, self.mysrc.symexedir)
+
+    @property
+    def exe_cmd(self):
+        return settings.Java.JAVA_RUN(
+            tracedir=self.mysrc.tracedir, funname=self.mysrc.funname)
+
+
+class DigSymStatesC(DigSymStates):
+
+    def set_mysrc(self):
+        from helpers.src import C as mysrc
+        self.mysrc = mysrc(self.filename, self.tmpdir)
+
+    def set_symbolic_states(self):
+        self.symstates = data.symstates.SymStatesC(
+            self.inp_decls, self.inv_decls)
+        self.symstates.compute(
+            self.mysrc.symexefile, self.mysrc.mainQ_name,
+            self.mysrc.funname, self.mysrc.symexedir)
+
+    @property
+    def exe_cmd(self):
+        return settings.C.C_RUN(exe=self.mysrc.traceexe)
+
+
 class DigTraces(Dig):
     def __init__(self, tracefiles):
         tracefiles = tracefiles.split()
         assert len(tracefiles) == 1 or len(tracefiles) == 2, tracefiles
         tracefile = tracefiles[0]
 
-        super(DigTraces, self).__init__(tracefile)
+        super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
 
         self.test_dtraces = None
@@ -212,7 +243,7 @@ class DigTraces(Dig):
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
-        super(DigTraces, self).start(seed)
+        super().start(seed)
 
         st = time.time()
 

@@ -9,7 +9,7 @@ OCAMLOPT =      ocamlopt                        $(OCAML_OPTIONS)
 OCAMLDEP =      ocamldep                        $(OCAML_OPTIONS)
 OCAMLLEX =      ocamllex 
 
-all: preproc.exe
+all: instr.exe
 
 #coverage.exe preproc.exe instr.exe spy.exe modify.exe 
 
@@ -29,11 +29,11 @@ all: preproc.exe
 %.ml: %.mll
 	$(OCAMLLEX) $*.mll
 
-PREPROC_MODULES = \
+INSTR_MODULES = \
 	common.cmo \
-	preproc.cmo \
+	instr.cmo \
 
-preproc.exe: $(PREPROC_MODULES:.cmo=.cmx)
+instr.exe: $(INSTR_MODULES:.cmo=.cmx)
 		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
 
 
@@ -71,5 +71,5 @@ preproc.exe: $(PREPROC_MODULES:.cmo=.cmx)
 # 	$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
 
 clean:
-	rm -f *.cmo *.cmi *.d *.cmx *.dx *.o coverage.exe preproc.exe instr.exe spy.exe modify.exe 
+	rm -f *.cmo *.cmi *.d *.cmx *.dx *.o instr.exe 
 	rm -rf *.pyc *.pyo
