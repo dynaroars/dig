@@ -1,11 +1,11 @@
 public class MannaDiv {
     public static void vtrace1(int q, int a, int b, int x, int y){}
-    public static void vtrace2(int q, int a, int x, int y){}    
+    public static void vtrace2(int q, int a, int x, int y){}         
     public static void main (String[] args) {}
 
     public static int mainQ(int x, int y){
-	assert (x >= 0);
-	assert (y != 0);
+	assert(x >= 0);
+	assert(y != 0);
      
 	int q, a, b;
 	q = 0;

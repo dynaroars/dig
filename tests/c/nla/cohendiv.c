@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 
 void vassume(int b){}
@@ -40,3 +39,5 @@ int mainQ(int x, int y){
 void main(int argc, char **argv){
     mainQ(atoi(argv[1]), atoi(argv[2]));
 }
+
+

@@ -1,39 +1,41 @@
 #include <stdio.h>
-#include <assert.h>
+#include <stdlib.h>
 
-int mainQ(int x1, int x2){
+void vassume(int b){}
+void vtrace1(int q, int a, int b, int x, int y){}  
+void vtrace2(int q, int a, int x, int y){}
+
+int mainQ(int x, int y){
      
-     assert (x1 >= 0);
-     assert (x2 >= 1);
+    vassume(x >= 0);
+    vassume(y != 0);
      
-     int y1,y2,y3;
-     y1 = 0;
-     y2 = 0;
-     y3 = x1;
+    int q, a, b; 
+    q = 0;
+    a = 0;
+    b = x;
 
-     while(1) {
-	  //assert(y1* x2 + y2 + y3 == x1);
-	  //%%%traces: int y1, int y2, int y3, int x1, int x2
+    while(1) {
+	//assert(q* y + a + b == x);
+	vtrace1(q, a, b, x, y);
+	if(!(b != 0)) break;
 	  
-	  if(!(y3 != 0)) break;
-	  
-	  if (y2 + 1 == x2) {
-	       y1 = y1 + 1;
-	       y2 = 0;
-	       y3 = y3 - 1;
-	  }
-	  else {
-	       y2 = y2 + 1;
-	       y3 = y3 - 1;
-	  }
-     }
-
-     //assert(y1 == x1 / x2);
-     return y1;
+	if (a + 1 == y) {
+	    q = q + 1;
+	    a = 0;
+	    b = b - 1;
+	}
+	else {
+	    a = a + 1;
+	    b = b - 1;
+	}
+    }
+    vtrace2(q, a, x, y); 
+    //assert(q == x / y);
+    return q;
 }
 
-int main(int argc, char **argv){
-     mainQ(atoi(argv[1]), atoi(argv[2]));
-     return 0;
+void main(int argc, char **argv){
+    mainQ(atoi(argv[1]), atoi(argv[2]));
 }
 

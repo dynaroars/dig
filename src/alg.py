@@ -100,7 +100,7 @@ class DigSymStates(Dig):
                         if loc not in self.symstates.ss]
 
         for loc in invalid_locs:
-            mlog.warn('{}: no symbolic states. Skip'.format(loc))
+            mlog.warning('{}: no symbolic states. Skip'.format(loc))
             self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()

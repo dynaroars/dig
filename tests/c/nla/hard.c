@@ -1,14 +1,12 @@
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 
 void vassume(int b){}
 void vtrace1(int A, int B, int q, int r, int d, int p){}
 void vtrace2(int A, int B, int q, int r, int d, int p){}
-void vtrace3(int A, int B, int q, int r, int d, int p){}
+void vtrace3(int A, int B, int q, int r, int d){}
 
 int mainQ(int A, int B){
-    vassume(A >= 0);
     vassume(B >= 1);
 
     int r,d,p,q;
@@ -32,13 +30,15 @@ int mainQ(int A, int B){
 	vtrace2(A, B, q, r, d, p);
 	if (!(p!=1)) break;
     
-	d=d/2; p=p/2;
-	if(r>=d){
-	    r=r-d; q=q+p;
+	d = d / 2;
+	p = p / 2;
+	if(r >= d){
+	    r = r - d;
+	    q = q + p;
 	}
     }
 
-    vtrace3(A, B, q, r, d, p);
+    vtrace3(A, B, q, r, d);
     return q;
 }
 
