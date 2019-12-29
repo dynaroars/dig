@@ -9,6 +9,7 @@ from pathlib import Path
 import z3
 import sage.all
 from sage.all import cached_function
+from sage.misc.parser import Parser
 
 import settings
 import helpers.vcommon as CM
@@ -23,11 +24,10 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class PC(metaclass=ABCMeta):
+    sage_parser = Parser(make_var=sage.all.var)
 
     def __str__(self):
         ss = ['loc: {}'.format(self.loc),
-              'vs: {}'.format(', '.join('{} {}'.format(
-                  self.st[v], v) for v in self.st)),
               'pcs: {}'.format(', '.join(map(str, self.pcs))),
               'slocals: {}'.format(', '.join(map(str, self.slocals)))]
         return '\n'.join(ss)
@@ -85,14 +85,58 @@ class PC(metaclass=ABCMeta):
         pcs = [cls.parse_part(pc) for pc in parts]
         return pcs
 
+    @staticmethod
+    @cached_function
+    def replace_mod(s):
+        if "%" not in s:
+            return s, False
+        s_ = s.replace("%", "^")
+        mlog.debug("Uninterpreted (temp hack): {} => {}".format(s, s_))
+        return s_, True
+
+    @classmethod
+    def pcs2sexprs(cls, pcs):
+        pcs_ = []
+        mod_idxs = set()  # contains idxs of pc's with % (modulus ops)
+        for i, p in enumerate(pcs):
+            p, is_replaced = cls.replace_mod(p)
+            if is_replaced:
+                mod_idxs.add(i)
+            sexpr = cls.sage_parser.parse(p)
+            assert not isinstance(sexpr, bool), \
+                "pc '{}' evals to '{}'".format(p, sexpr)
+            pcs_.append(sexpr)
+
+        pcs = cls.cleanup_sexprs(pcs_)
+        return pcs, mod_idxs
+
+    @classmethod
+    def slocals2sexprs(cls, slocals):
+        slocals = [cls.sage_parser.parse(p) for p in slocals]
+        slocals = cls.cleanup_sexprs(slocals)
+        return slocals
+
+    @classmethod
+    def cleanup_sexprs(cls, exprs):
+        exprs = [Miscs.elim_denom(e) for e in exprs]
+        exprs = [e for e in exprs
+                 if not (e.is_relational() and str(e.lhs()) == str(e.rhs()))]
+        assert all(Miscs.is_rel(e) for e in exprs), exprs
+        return exprs
+
 
 class PC_CIVL(PC):
-    def __init__(self, loc, depth, pcs, slocals, st, sd, use_reals):
+    def __init__(self, loc, depth, pcs, slocals, st, use_reals):
 
         pcs_ = []
         pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
         for i, p in enumerate(pcs):
+            p, is_replaced = self.replace_mod(p)
+            if is_replaced:
+                pcsModIdxs.add(i)
             sexpr = Miscs.msage_eval(p, sd)
+            assert not isinstance(sexpr, bool), \
+                "pc '{}' evals to '{}'".format(p, sexpr)
             pcs_.append(sexpr)
         pcs = pcs_
 
@@ -107,7 +151,6 @@ class PC_CIVL(PC):
 
         self.loc = loc
         self.depth = depth
-        self.st = st
         self.pcs = pcs
         self.pcsModIdxs = pcsModIdxs
         self.slocals = slocals
@@ -149,73 +192,38 @@ class PC_CIVL(PC):
         slocals, pc = ss
         pcs = pc.split(':')[1]
         pcs = [x.strip() for x in pcs.split("&&")]
-        pcs = [x for x in pcs if x != 'true']
+        pcs = [cls.replace_str_pcs(x) for x in pcs if x != 'true']
         loc, slocals = slocals.split(':')
-        slocals = [cls.replace_str(x) for x in slocals.split(';')]
-        fake_vs = [('int', x.split('==')[0].strip()) for x in slocals]
-        fake_vs = list(set(fake_vs))
-        return loc, fake_vs, pcs, slocals
+        slocals = [cls.replace_str_pcs(cls.replace_str_slocals(x))
+                   for x in slocals.split(';')]
+        return loc, pcs, slocals
 
     @staticmethod
-    def replace_str(s):
-        s_ = (s.replace(' = ', '==').strip())
+    def replace_str_slocals(s):
+        s_ = s.replace(' = ', '==').strip()
+        return s_
+
+    def replace_str_pcs(s):
+        s_ = s.replace('div ', '/ ').strip()
         return s_
 
 
 class PC_JPF(PC):
-    def __init__(self, loc, depth, pcs, slocals, st, sd, use_reals):
+    def __init__(self, loc, depth, pcs, slocals,  use_reals):
         assert isinstance(loc, str) and loc, loc
         assert depth >= 0, depth
-        assert isinstance(pcs, list) and \
-            all(isinstance(pc, str) for pc in pcs), pcs
-        assert isinstance(slocals, list) and \
-            all(isinstance(slocal, str)
-                for slocal in slocals) and slocals, slocals
-        assert all(isinstance(s, str) and isinstance(t, str)
-                   for s, t in st.items()), st
-        assert all(isinstance(s, str) and Miscs.is_expr(se)
-                   for s, se in sd.items()), sd
+        assert isinstance(pcs, list) and all(isinstance(pc, str)
+                                             for pc in pcs), pcs
+        assert (isinstance(slocals, list) and
+                all(isinstance(slocal, str) for slocal in slocals) and slocals), slocals
+
         assert isinstance(use_reals, bool), bool
 
-        pcs_ = []
-        pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
-        for i, p in enumerate(pcs):
-            p, is_replaced = self.replace_mod(p)
-            if is_replaced:
-                pcsModIdxs.add(i)
-            sexpr = Miscs.msage_eval(p, sd)
-            assert not isinstance(sexpr, bool), \
-                "pc '{}' evals to '{}'".format(p, sexpr)
-            pcs_.append(sexpr)
-
-        pcs = [Miscs.elim_denom(pc) for pc in pcs_]
-        pcs = [pc for pc in pcs
-               if not (pc.is_relational() and str(pc.lhs()) == str(pc.rhs()))]
-
-        def thack0(s):
-            # for Hola H32.Java program
-            return s.replace("((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((j + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1)", "j + 100")
-
-        slocals_ = []
-        for p in slocals:
-            try:
-                sl = Miscs.msage_eval(p, sd)
-            except MemoryError as mex:
-                mlog.warning("{}: {}".format(mex, p))
-                sl = Miscs.msage_eval(thack0(p), sd)
-
-            slocals_.append(sl)
-        slocals = slocals_
-        slocals = [Miscs.elim_denom(p) for p in slocals]
-        slocals = [p for p in slocals
-                   if not (p.is_relational() and str(p.lhs()) == str(p.rhs()))]
-
-        assert all(Miscs.is_rel(pc) for pc in pcs), pcs
-        assert all(Miscs.is_rel(pc) for pc in slocals), slocals
+        pcs, pcsModIdxs = self.pcs2sexprs(pcs)
+        slocals = self.slocals2sexprs(slocals)
 
         self.loc = loc
         self.depth = depth
-        self.st = st
         self.pcs = pcs
         self.pcsModIdxs = pcsModIdxs
         self.slocals = slocals
@@ -278,8 +286,6 @@ class PC_JPF(PC):
                 loc = loc.split('(')[0]  # vtrace30
                 continue
             elif 'vars: ' in s:
-                vs = s.split(':')[1].split(',')  # int x, int y
-                vs = [tuple(tv.split()) for tv in vs if tv]
                 pcs = curpart[1:]  # ignore pc constraint #
                 curpart = []
                 continue
@@ -305,7 +311,7 @@ class PC_JPF(PC):
         slocals = [p for p in slocals if not isTooLarge(p)]
         slocals = [cls.replace_str(p) for p in slocals if p]
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        return loc, vs, pcs, slocals
+        return loc, pcs, slocals
 
     @staticmethod
     @cached_function
@@ -319,15 +325,6 @@ class PC_JPF(PC):
               replace('CON:', '').
               strip())
         return s_
-
-    @staticmethod
-    @cached_function
-    def replace_mod(s):
-        if "%" not in s:
-            return s, False
-        s_ = s.replace("%", "^")
-        mlog.debug("Uninterpreted (temp hack): {} => {}".format(s, s_))
-        return s_, True
 
 
 class PCs(set):
@@ -409,16 +406,9 @@ class SymStates(metaclass=ABCMeta):
                    for depth, ss in depthss), depthss
 
         symstates = {}
-        ssd = {}  # symb:string -> symbols:sage_expr
         for depth, ss in depthss:
-            for (loc, vs, pcs, slocals) in ss:
-                sst = OrderedDict((s, t)
-                                  for t, s in vs)  # symb:str -> types:str
-                for _, s in vs:
-                    if s not in ssd:
-                        ssd[s] = sage.all.var(s)
-                pc = pc_cls(loc, depth, pcs, slocals, sst, ssd, use_reals)
-
+            for (loc, pcs, slocals) in ss:
+                pc = pc_cls(loc, depth, pcs, slocals, use_reals)
                 symstates.setdefault(loc, {})
                 symstates[loc].setdefault(depth, PCs(loc, depth)).add(pc)
 

@@ -8,7 +8,7 @@ void vtrace2(int q, int a, int x, int y){}
 int mainQ(int x, int y){
      
     vassume(x >= 0);
-    vassume(y != 0);
+    vassume(y >= 1);   //can also be y!=0, but CIVL will give disj
      
     int q, a, b; 
     q = 0;
