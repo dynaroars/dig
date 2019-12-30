@@ -2,6 +2,7 @@ from functools import reduce
 import pdb
 import itertools
 import operator
+import ast
 from collections import Iterable
 
 import sage.all
@@ -814,3 +815,82 @@ class Z3(object):
         if use_mod:
             mlog.debug("mod hack: {} => {}".format(p, res))
         return res
+
+    @classmethod
+    def parse(cls, s, use_reals):
+        """
+        parse('0==(X_x%2 - 1)) and (0==(X_y%2 - 1)) and (0<=(X_x-1)) and (0<=(X_y-1))&&((0==(X_x - 1)) or (0==(X_y - 1))', use_reals=False)
+        And(0 == X_x%2 - 1,
+        0 == X_y%2 - 1,
+        0 <= X_x - 1,
+        0 <= X_y - 1,
+        Or(0 == X_x - 1, 0 == X_y - 1))
+        """
+
+        assert isinstance(s, str) and s
+
+        node = ast.parse(s)
+        return cls.convert(node.body[0].value, use_reals)
+
+    @classmethod
+    def convert(cls, node, use_reals):
+
+        # print(ast.dump(node))
+
+        if isinstance(node, ast.BoolOp):
+            vals = [cls.convert(v, use_reals) for v in node.values]
+            op = cls.convert(node.op, use_reals)
+            return op(vals)
+
+        elif isinstance(node, ast.And):
+            return z3.And
+
+        elif isinstance(node, ast.Or):
+            return z3.Or
+
+        elif isinstance(node, ast.BinOp):
+            left = cls.convert(node.left, use_reals)
+            right = cls.convert(node.right, use_reals)
+            op = cls.convert(node.op, use_reals)
+            return op(left, right)
+
+        elif isinstance(node, ast.Add):
+            return operator.add
+
+        elif isinstance(node, ast.Mod):
+            return operator.mod
+
+        elif isinstance(node, ast.Sub):
+            return operator.sub
+
+        # elif isinstance(node, ast.UnaryOp):
+        #     return ast.UnaryOp(node.op, prefix_vars(node.operand, prefix))
+        # elif isinstance(node, ast.Call):
+        #     return ast.Call(prefix_vars(node.func, prefix),
+        #                     [prefix_vars(i, prefix) for i in node.args],
+        #                     node.keywords)
+
+        elif isinstance(node, ast.Compare):
+            assert len(node.ops) == 1 and len(
+                node.comparators) == 1, ast.dump(node)
+            left = cls.convert(node.left, use_reals)
+            right = cls.convert(node.comparators[0], use_reals)
+            op = cls.convert(node.ops[0], use_reals)
+            return op(left, right)
+
+        elif isinstance(node, ast.Eq):
+            return operator.eq
+
+        elif isinstance(node, ast.LtE):
+            return operator.le
+
+        elif isinstance(node, ast.Name):
+            f = z3.Real if use_reals else z3.Int
+            return f(str(node.id))
+
+        elif isinstance(node, ast.Num):
+            f = z3.RealVal if use_reals else z3.IntVal
+            return f(str(node.n))
+
+        else:
+            raise NotImplementedError
