@@ -817,36 +817,24 @@ class Z3(object):
         return res
 
     @classmethod
-    def parse(cls, s, use_reals):
-        """
-        parse('(0==(X_x%2 - 1)) and (0==(X_y%2 - 1)) and (0<=(X_x-1)) and (0<=(X_y-1))and((0==(X_x - 1)) or (0==(X_y - 1))', use_reals=False)
-        And(0 == X_x%2 - 1,
-        0 == X_y%2 - 1,
-        0 <= X_x - 1,
-        0 <= X_y - 1,
-        Or(0 == X_x - 1, 0 == X_y - 1))
-        """
-
-        assert isinstance(s, str) and s
-
-        node = ast.parse(s)
-        node = node.body[0].value
-        try:
-            expr = cls.convert(node, use_reals)
-            expr = z3.simplify(expr)
-            return expr
-        except NotImplementedError:
-            mlog.error("cannot parse: '{}'".format(s))
-            raise
-
-    @classmethod
-    def convert(cls, node, use_reals):
+    def parse(cls, node, use_reals):
 
         # print(ast.dump(node))
 
+        if isinstance(node, str):
+            node = ast.parse(node)
+            node = node.body[0].value
+            try:
+                expr = cls.parse(node, use_reals)
+                expr = z3.simplify(expr)
+                return expr
+            except NotImplementedError:
+                mlog.error("cannot parse: '{}'".format(s))
+                raise
+
         if isinstance(node, ast.BoolOp):
-            vals = [cls.convert(v, use_reals) for v in node.values]
-            op = cls.convert(node.op, use_reals)
+            vals = [cls.parse(v, use_reals) for v in node.values]
+            op = cls.parse(node.op, use_reals)
             return op(vals)
 
         elif isinstance(node, ast.And):
@@ -856,49 +844,23 @@ class Z3(object):
             return z3.Or
 
         elif isinstance(node, ast.BinOp):
-            left = cls.convert(node.left, use_reals)
-            right = cls.convert(node.right, use_reals)
-            op = cls.convert(node.op, use_reals)
+            left = cls.parse(node.left, use_reals)
+            right = cls.parse(node.right, use_reals)
+            op = cls.parse(node.op, use_reals)
             return op(left, right)
 
-        elif isinstance(node, ast.Add):
-            return operator.add
-        elif isinstance(node, ast.Mult):
-            return operator.mul
-        elif isinstance(node, ast.Mod):
-            return operator.mod
-
-        elif isinstance(node, ast.Sub):
-            return operator.sub
-
-        elif isinstance(node, ast.USub):
-            return operator.neg
-
         elif isinstance(node, ast.UnaryOp):
-            operand = cls.convert(node.operand, use_reals)
-            op = cls.convert(node.op, use_reals)
+            operand = cls.parse(node.operand, use_reals)
+            op = cls.parse(node.op, use_reals)
             return op(operand)
-
-        # elif isinstance(node, ast.UnaryOp):
-        #     return ast.UnaryOp(node.op, prefix_vars(node.operand, prefix))
-        # elif isinstance(node, ast.Call):
-        #     return ast.Call(prefix_vars(node.func, prefix),
-        #                     [prefix_vars(i, prefix) for i in node.args],
-        #                     node.keywords)
 
         elif isinstance(node, ast.Compare):
             assert len(node.ops) == 1 and len(
                 node.comparators) == 1, ast.dump(node)
-            left = cls.convert(node.left, use_reals)
-            right = cls.convert(node.comparators[0], use_reals)
-            op = cls.convert(node.ops[0], use_reals)
+            left = cls.parse(node.left, use_reals)
+            right = cls.parse(node.comparators[0], use_reals)
+            op = cls.parse(node.ops[0], use_reals)
             return op(left, right)
-
-        elif isinstance(node, ast.Eq):
-            return operator.eq
-
-        elif isinstance(node, ast.LtE):
-            return operator.le
 
         elif isinstance(node, ast.Name):
             f = z3.Real if use_reals else z3.Int
@@ -907,6 +869,31 @@ class Z3(object):
         elif isinstance(node, ast.Num):
             f = z3.RealVal if use_reals else z3.IntVal
             return f(str(node.n))
+
+        elif isinstance(node, ast.Add):
+            return operator.add
+        elif isinstance(node, ast.Mult):
+            return operator.mul
+        elif isinstance(node, ast.Div):
+            return operator.truediv  # tvn:  WARNING: might not be accurate
+        elif isinstance(node, ast.Mod):
+            return operator.mod
+        elif isinstance(node, ast.Sub):
+            return operator.sub
+        elif isinstance(node, ast.USub):
+            return operator.neg
+        elif isinstance(node, ast.Eq):
+            return operator.eq
+        elif isinstance(node, ast.NotEq):
+            return operator.ne
+        elif isinstance(node, ast.Lt):
+            return operator.lt
+        elif isinstance(node, ast.LtE):
+            return operator.le
+        elif isinstance(node, ast.Gt):
+            return operator.gt
+        elif isinstance(node, ast.GtE):
+            return operator.ge
 
         else:
             raise NotImplementedError(ast.dump(node))

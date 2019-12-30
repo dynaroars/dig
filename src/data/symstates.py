@@ -8,7 +8,6 @@ from pathlib import Path
 import z3
 import sage.all
 from sage.all import cached_function
-from sage.misc.parser import Parser
 
 import settings
 import helpers.vcommon as CM
@@ -23,7 +22,23 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class PC(metaclass=ABCMeta):
-    sage_parser = Parser(make_var=sage.all.var)
+
+    def __init__(self, loc, depth, pcs, slocals, use_reals):
+        assert isinstance(loc, str) and loc, loc
+        assert depth >= 0, depth
+        assert isinstance(pcs, list) and all(isinstance(pc, str)
+                                             for pc in pcs), pcs
+        assert (isinstance(slocals, list) and
+                all(isinstance(slocal, str) for slocal in slocals) and
+                slocals), slocals
+
+        assert isinstance(use_reals, bool), bool
+
+        self.pcs = [Z3.parse(p, use_reals) for p in pcs]
+        self.slocals = [Z3.parse(p, use_reals) for p in slocals]
+        self.loc = loc
+        self.depth = depth
+        self.use_reals = use_reals
 
     def __str__(self):
         ss = ['loc: {}'.format(self.loc),
@@ -38,36 +53,17 @@ class PC(metaclass=ABCMeta):
         return hash(self.__str__())
 
     @property
-    def pcs_z3(self):
-        try:
-            return self._pcs_z3
-        except AttributeError:
-            self._pcs_z3 = [
-                Z3.toZ3(pc, self.use_reals, use_mod=i in self.pcsModIdxs)
-                for i, pc in enumerate(self.pcs)]
-            return self._pcs_z3
-
-    @property
-    def slocals_z3(self):
-        try:
-            return self._slocals_z3
-        except AttributeError:
-            self._slocals_z3 = [Z3.toZ3(p, self.use_reals, use_mod=False)
-                                for p in self.slocals]
-            return self._slocals_z3
-
-    @property
     def expr(self):
-        constrs = self.pcs_z3 + self.slocals_z3
-        return self.andConstrs(constrs)
+        constrs = self.pcs + self.slocals
+        return self._and(constrs)
 
     @property
     def exprPC(self):
         constrs = self.pcs_z3
-        return self.andConstrs(constrs)
+        return self._and(constrs)
 
     @classmethod
-    def andConstrs(cls, fs):
+    def _and(cls, fs):
         assert all(z3.is_expr(f) for f in fs), fs
 
         f = z3.And(fs)
@@ -81,7 +77,7 @@ class PC(metaclass=ABCMeta):
             mlog.error("Cannot obtain symstates from '{}'".format(filename))
             return None
 
-        pcs = [cls.parse_part(pc) for pc in parts]
+        pcs = [cls.parse_part(p) for p in parts]
         return pcs
 
     @staticmethod
@@ -125,20 +121,6 @@ class PC(metaclass=ABCMeta):
 
 
 class PC_CIVL(PC):
-    def __init__(self, loc, depth, pcs, slocals, use_reals):
-
-        self._pcs_z3 = [Z3.parse(p, use_reals) for p in pcs]
-        self._slocals_z3 = [Z3.parse(p, use_reals) for p in slocals]
-
-        print(self._pcs_z3)
-        print(self._slocals_z3)
-
-        self.loc = loc
-        self.depth = depth
-        self.pcs = pcs
-        #self.pcsModIdxs = pcsModIdxs
-        self.slocals = slocals
-        self.use_reals = use_reals
 
     @classmethod
     def parse_parts(cls, lines):
@@ -188,30 +170,11 @@ class PC_CIVL(PC):
         return s_
 
     def replace_str_pcs(s):
-        s_ = s.replace('div ', '/ ').strip()
+        s_ = s.replace('div ', '// ').strip()
         return s_
 
 
 class PC_JPF(PC):
-    def __init__(self, loc, depth, pcs, slocals,  use_reals):
-        assert isinstance(loc, str) and loc, loc
-        assert depth >= 0, depth
-        assert isinstance(pcs, list) and all(isinstance(pc, str)
-                                             for pc in pcs), pcs
-        assert (isinstance(slocals, list) and
-                all(isinstance(slocal, str) for slocal in slocals) and slocals), slocals
-
-        assert isinstance(use_reals, bool), bool
-
-        pcs, pcsModIdxs = self.pcs2sexprs(pcs)
-        slocals = self.slocals2sexprs(slocals)
-
-        self.loc = loc
-        self.depth = depth
-        self.pcs = pcs
-        self.pcsModIdxs = pcsModIdxs
-        self.slocals = slocals
-        self.use_reals = use_reals
 
     @classmethod
     def parse_parts(cls, lines, delim="**********"):
