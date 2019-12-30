@@ -819,7 +819,7 @@ class Z3(object):
     @classmethod
     def parse(cls, s, use_reals):
         """
-        parse('0==(X_x%2 - 1)) and (0==(X_y%2 - 1)) and (0<=(X_x-1)) and (0<=(X_y-1))&&((0==(X_x - 1)) or (0==(X_y - 1))', use_reals=False)
+        parse('(0==(X_x%2 - 1)) and (0==(X_y%2 - 1)) and (0<=(X_x-1)) and (0<=(X_y-1))and((0==(X_x - 1)) or (0==(X_y - 1))', use_reals=False)
         And(0 == X_x%2 - 1,
         0 == X_y%2 - 1,
         0 <= X_x - 1,
@@ -830,7 +830,14 @@ class Z3(object):
         assert isinstance(s, str) and s
 
         node = ast.parse(s)
-        return cls.convert(node.body[0].value, use_reals)
+        node = node.body[0].value
+        try:
+            expr = cls.convert(node, use_reals)
+            expr = z3.simplify(expr)
+            return expr
+        except NotImplementedError:
+            mlog.error("cannot parse: '{}'".format(s))
+            raise
 
     @classmethod
     def convert(cls, node, use_reals):
@@ -856,12 +863,21 @@ class Z3(object):
 
         elif isinstance(node, ast.Add):
             return operator.add
-
+        elif isinstance(node, ast.Mult):
+            return operator.mul
         elif isinstance(node, ast.Mod):
             return operator.mod
 
         elif isinstance(node, ast.Sub):
             return operator.sub
+
+        elif isinstance(node, ast.USub):
+            return operator.neg
+
+        elif isinstance(node, ast.UnaryOp):
+            operand = cls.convert(node.operand, use_reals)
+            op = cls.convert(node.op, use_reals)
+            return op(operand)
 
         # elif isinstance(node, ast.UnaryOp):
         #     return ast.UnaryOp(node.op, prefix_vars(node.operand, prefix))
@@ -893,4 +909,4 @@ class Z3(object):
             return f(str(node.n))
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(ast.dump(node))

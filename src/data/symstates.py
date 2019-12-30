@@ -3,7 +3,6 @@ Symbolic States
 """
 from abc import ABCMeta, abstractmethod
 import pdb
-from collections import OrderedDict
 from pathlib import Path
 
 import z3
@@ -126,33 +125,18 @@ class PC(metaclass=ABCMeta):
 
 
 class PC_CIVL(PC):
-    def __init__(self, loc, depth, pcs, slocals, st, use_reals):
+    def __init__(self, loc, depth, pcs, slocals, use_reals):
 
-        pcs_ = []
-        pcsModIdxs = set()  # contains idxs of pc's with % (modulus ops)
-        for i, p in enumerate(pcs):
-            p, is_replaced = self.replace_mod(p)
-            if is_replaced:
-                pcsModIdxs.add(i)
-            sexpr = Miscs.msage_eval(p, sd)
-            assert not isinstance(sexpr, bool), \
-                "pc '{}' evals to '{}'".format(p, sexpr)
-            pcs_.append(sexpr)
-        pcs = pcs_
+        self._pcs_z3 = [Z3.parse(p, use_reals) for p in pcs]
+        self._slocals_z3 = [Z3.parse(p, use_reals) for p in slocals]
 
-        slocals_ = []
-        for p in slocals:
-            sl = Miscs.msage_eval(p, sd)
-            slocals_.append(sl)
-        slocals = slocals_
-
-        assert all(Miscs.is_rel(pc) for pc in pcs), pcs
-        assert all(Miscs.is_rel(pc) for pc in slocals), slocals
+        print(self._pcs_z3)
+        print(self._slocals_z3)
 
         self.loc = loc
         self.depth = depth
         self.pcs = pcs
-        self.pcsModIdxs = pcsModIdxs
+        #self.pcsModIdxs = pcsModIdxs
         self.slocals = slocals
         self.use_reals = use_reals
 
