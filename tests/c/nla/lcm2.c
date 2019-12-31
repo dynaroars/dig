@@ -1,9 +1,12 @@
 #include <stdio.h>
-#include <assert.h>
+#include <stdlib.h>
+
+void vassume(int b){}
+
 
 int mainQ(int a, int b){
-     assert(a>=1);
-     assert(b>=1);
+     vassume(a>=1);
+     vassume(b>=1);
      int x,y,u,v;
 
      x=a;
@@ -34,8 +37,7 @@ int mainQ(int a, int b){
 }
 
 
-int main(int argc, char **argv){
+void main(int argc, char **argv){
      mainQ(atoi(argv[1]), atoi(argv[2]));
-     return 0;
 }
 

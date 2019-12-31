@@ -50,19 +50,6 @@ class PC(metaclass=ABCMeta):
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
 
-    # @property
-    # def exprPC(self):
-    #     constrs = self.pcs_z3
-    #     return self._and(constrs)
-
-    # @classmethod
-    # def _and(cls, fs):
-    #     assert all(z3.is_expr(f) for f in fs), fs
-
-    #     f = z3.And(fs)
-    #     f = z3.simplify(f)
-    #     return f
-
     @classmethod
     def parse(cls, filename):
         parts = cls.parse_parts(filename.read_text().splitlines())
@@ -118,15 +105,14 @@ class PC_CIVL(PC):
 
     @staticmethod
     def replace_str(s):
-        s_ = (s.
-              replace(' = ', ' == ').
-              replace(';', ' and ').
-              replace('&&', 'and').
-              replace('||', 'or').
-              replace('div ', '/ ').
-              replace('^', '**').
-              strip())
-        return s_
+        return (s.
+                replace(' = ', ' == ').
+                replace(';', ' and ').
+                replace('&&', 'and').
+                replace('||', 'or').
+                replace('div ', '/ ').
+                replace('^', '**').
+                strip())
 
 
 class PC_JPF(PC):
@@ -218,15 +204,14 @@ class PC_JPF(PC):
     @staticmethod
     @cached_function
     def replace_str(s):
-        s_ = (s.replace('&&', '').
-              replace(' = ', '==').
-              replace('CONST_', '').
-              replace('REAL_', '').
-              replace('%NonLinInteger%', '').
-              replace('SYM:', '').
-              replace('CON:', '').
-              strip())
-        return s_
+        return (s.replace('&&', '').
+                replace(' = ', '==').
+                replace('CONST_', '').
+                replace('REAL_', '').
+                replace('%NonLinInteger%', '').
+                replace('SYM:', '').
+                replace('CON:', '').
+                strip())
 
 
 class PCs(set):
