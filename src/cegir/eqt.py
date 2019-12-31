@@ -78,7 +78,7 @@ class CegirEqt(cegir.base.Cegir):
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
                 # cannot find new inputs
                 if loc not in cexs:
-                    mlog.debug("{}: cannot find new inps (curr inps :{})"
+                    mlog.debug("{}: cannot find new inps ({} curr inps)"
                                .format(loc, len(inps)))
                     return
 

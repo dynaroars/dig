@@ -462,9 +462,9 @@ class Miscs(object):
         if not sols:
             return []
         if len(sols) > 1:
-            mlog.warn('instantiate_templateWithSols: len(sols) = {}'
-                      .format(len(sols)))
-            mlog.warn(str(sols))
+            mlog.warning('instantiate_templateWithSols: len(sols) = {}'
+                         .format(len(sols)))
+            mlog.warning(str(sols))
 
         def fEq(d):
             f_ = template(d)
@@ -822,17 +822,18 @@ class Z3(object):
         # print(ast.dump(node))
 
         if isinstance(node, str):
-            node = ast.parse(node)
-            node = node.body[0].value
+            tnode = ast.parse(node)
+            tnode = tnode.body[0].value
             try:
-                expr = cls.parse(node, use_reals)
+                expr = cls.parse(tnode, use_reals)
                 expr = z3.simplify(expr)
                 return expr
             except NotImplementedError:
-                mlog.error("cannot parse: '{}'".format(s))
+                mlog.error("cannot parse: '{}'\n{}".format(
+                    node, ast.dump(tnode)))
                 raise
 
-        if isinstance(node, ast.BoolOp):
+        elif isinstance(node, ast.BoolOp):
             vals = [cls.parse(v, use_reals) for v in node.values]
             op = cls.parse(node.op, use_reals)
             return op(vals)
@@ -876,8 +877,12 @@ class Z3(object):
             return operator.mul
         elif isinstance(node, ast.Div):
             return operator.truediv  # tvn:  WARNING: might not be accurate
+        elif isinstance(node, ast.FloorDiv):
+            return operator.truediv  # tvn:  WARNING: might not be accurate
         elif isinstance(node, ast.Mod):
             return operator.mod
+        elif isinstance(node, ast.Pow):
+            return operator.pow
         elif isinstance(node, ast.Sub):
             return operator.sub
         elif isinstance(node, ast.USub):

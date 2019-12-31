@@ -198,7 +198,7 @@ class DTraces(dict):
                 if not_in:
                     new_traces_.add(loc, trace)
                 else:
-                    mlog.warn("trace {} exist".format(trace))
+                    mlog.warning("trace {} exist".format(trace))
         return new_traces_
 
     @classmethod
@@ -217,7 +217,6 @@ class DTraces(dict):
         """
         assert isinstance(inv_decls, data.miscs.DSymbs)\
             and inv_decls, inv_decls
-
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]
 
@@ -228,6 +227,12 @@ class DTraces(dict):
             assert len(parts) == 2, parts
             loc, tracevals = parts[0], parts[1]
             loc = loc.strip()  # 22
+            if loc not in inv_decls:
+                """
+                No symbolic states for this loc, so will not 
+                collect concrete states here
+                """
+                continue
             ss = inv_decls[loc].names
             vs = tracevals.strip().split()
             mytrace = Trace.parse(ss, vs)

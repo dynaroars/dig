@@ -1,10 +1,11 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 
 """
 Example: f=../results/nla_082619 ; rm -rf $f; python benchmark.py 2>&1 | tee $f
 """
+from pathlib import Path
+import pdb
 import os
-import os.path
 import time
 from datetime import datetime
 
@@ -13,40 +14,36 @@ import helpers.vcommon as CM
 import settings
 settings.logger_level = CM.getLogLevel(3)
 
+DBG = pdb.set_trace
+
 TIMEOUT = 600  # seconds
 CMD = "timeout {} ".format(TIMEOUT) +\
-    "sage -python -O dig.py {filename} -log 2 -octmaxv 20 -seed {seed}"
+    "$SAGE/git/sage-8.9/sage -python -O " +\
+    "dig.py {filename} -log 2 -octmaxv 20 -seed {seed} -maxdeg 1 -noieqs -nominmax"
 
 
 def run(benchdir, ntimes):
-    benchdir = os.path.realpath(os.path.expanduser(benchdir))
-    assert os.path.isdir(benchdir), benchdir
+    assert benchdir.is_dir(), benchdir
 
     print("# Benchmark dir '{}' {} times ({})".format(
         benchdir, ntimes, datetime.now()))
-
-    fs = sorted(f for f in os.listdir(benchdir) if f.endswith(".java"))
-    fs = [os.path.join(benchdir, f) for f in fs]
+    fs = sorted(f for f in benchdir.iterdir() if f.suffix == ".c")
 
     for f in fs:
-        if not os.path.isfile(f):
-            print "File {} does not exist".format(f)
-            continue
-
         for i in range(ntimes):
             i_run_cmd = CMD.format(filename=f, seed=i)
-            print "## {}/{}. {}: {}".format(
-                i+1, ntimes, time.strftime("%c"), i_run_cmd)
+            print("## {}/{}. {}: {}".format(
+                i+1, ntimes, time.strftime("%c"), i_run_cmd))
             os.system(i_run_cmd)
 
 
-ntimes = 2
+ntimes = 1
 
 # NLA
-#dir_nla = "../tests/nla/"
-#dir_mp = "../tests/mp/"
-dir_complexity = "../tests/complexity/"
-run(dir_complexity, ntimes)
+dir_ = Path("../tests/c/nla/")
+# dir_mp = "../tests/mp/"
+# dir_complexity = "../tests/complexity/"
+run(dir_.resolve(), ntimes)
 
 
 # dirComplexity = "programs/complexity/gulwani_cav09"
@@ -59,11 +56,11 @@ run(dir_complexity, ntimes)
 # run(dirComplexity, ntimes)
 
 
-#dirHola = "programs/hola/"
-#run(dirHola, ntimes)
+# dirHola = "programs/hola/"
+# run(dirHola, ntimes)
 
-#dirBm_oopsla = "programs/PIE/bm_oopsla/"
-#run(dirBm_oopsla, ntimes)
+# dirBm_oopsla = "programs/PIE/bm_oopsla/"
+# run(dirBm_oopsla, ntimes)
 
-#dirBm_ice = "programs/PIE/bm_ice/"
-#run(dirBm_ice, ntimes)
+# dirBm_ice = "programs/PIE/bm_ice/"
+# run(dirBm_ice, ntimes)

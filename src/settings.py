@@ -88,7 +88,7 @@ class C:
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
 
-    CIVL_MIN_DEPTH = 10
+    CIVL_MIN_DEPTH = 20
     CIVL_DEPTH_INCR = 4
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME")) / "civl"

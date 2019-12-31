@@ -128,7 +128,7 @@ class CegirBinSearch(Cegir):
         assert isinstance(statsd, dict), statsd  # {v : proved}
 
         if minV > maxV:
-            mlog.warn("{}: (guess_check) term {} has minV {} > maxV {}".format(
+            mlog.warning("{}: (guess_check) term {} has minV {} > maxV {}".format(
                 loc, term, minV, maxV))
             return None  # temp fix
 
@@ -196,7 +196,7 @@ class CegirBinSearch(Cegir):
             all(isinstance(s, str) for s in inps), inps
 
         if not inps:
-            mlog.warn("Have not tested case with no inps")
+            mlog.warning("Have not tested case with no inps")
 
         excludes = set()
         for term in terms:

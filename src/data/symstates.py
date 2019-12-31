@@ -23,28 +23,22 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class PC(metaclass=ABCMeta):
 
-    def __init__(self, loc, depth, pcs, slocals, use_reals):
+    def __init__(self, loc, depth, pc, slocal, use_reals):
         assert isinstance(loc, str) and loc, loc
         assert depth >= 0, depth
-        assert isinstance(pcs, list) and all(isinstance(pc, str)
-                                             for pc in pcs), pcs
-        assert (isinstance(slocals, list) and
-                all(isinstance(slocal, str) for slocal in slocals) and
-                slocals), slocals
-
+        assert pc is None or isinstance(pc, str) and pc, pc
+        assert isinstance(slocal, str) and slocal, slocal
         assert isinstance(use_reals, bool), bool
 
-        self.pcs = [Z3.parse(p, use_reals) for p in pcs]
-        self.slocals = [Z3.parse(p, use_reals) for p in slocals]
+        self.pc = z3.BoolVal('True') if pc is None else Z3.parse(pc, use_reals)
+        self.slocal = Z3.parse(slocal, use_reals)
         self.loc = loc
         self.depth = depth
         self.use_reals = use_reals
 
     def __str__(self):
-        ss = ['loc: {}'.format(self.loc),
-              'pcs: {}'.format(', '.join(map(str, self.pcs))),
-              'slocals: {}'.format(', '.join(map(str, self.slocals)))]
-        return '\n'.join(ss)
+        return 'loc: {}\npc: {}\nslocal: {}'.format(
+            self.loc, self.pc, self.slocal)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and hash(self) == hash(other)
@@ -54,21 +48,20 @@ class PC(metaclass=ABCMeta):
 
     @property
     def expr(self):
-        constrs = self.pcs + self.slocals
-        return self._and(constrs)
+        return z3.simplify(z3.And(self.pc, self.slocal))
 
-    @property
-    def exprPC(self):
-        constrs = self.pcs_z3
-        return self._and(constrs)
+    # @property
+    # def exprPC(self):
+    #     constrs = self.pcs_z3
+    #     return self._and(constrs)
 
-    @classmethod
-    def _and(cls, fs):
-        assert all(z3.is_expr(f) for f in fs), fs
+    # @classmethod
+    # def _and(cls, fs):
+    #     assert all(z3.is_expr(f) for f in fs), fs
 
-        f = z3.And(fs)
-        f = z3.simplify(f)
-        return f
+    #     f = z3.And(fs)
+    #     f = z3.simplify(f)
+    #     return f
 
     @classmethod
     def parse(cls, filename):
@@ -79,45 +72,6 @@ class PC(metaclass=ABCMeta):
 
         pcs = [cls.parse_part(p) for p in parts]
         return pcs
-
-    @staticmethod
-    @cached_function
-    def replace_mod(s):
-        if "%" not in s:
-            return s, False
-        s_ = s.replace("%", "^")
-        mlog.debug("Uninterpreted (temp hack): {} => {}".format(s, s_))
-        return s_, True
-
-    @classmethod
-    def pcs2sexprs(cls, pcs):
-        pcs_ = []
-        mod_idxs = set()  # contains idxs of pc's with % (modulus ops)
-        for i, p in enumerate(pcs):
-            p, is_replaced = cls.replace_mod(p)
-            if is_replaced:
-                mod_idxs.add(i)
-            sexpr = cls.sage_parser.parse(p)
-            assert not isinstance(sexpr, bool), \
-                "pc '{}' evals to '{}'".format(p, sexpr)
-            pcs_.append(sexpr)
-
-        pcs = cls.cleanup_sexprs(pcs_)
-        return pcs, mod_idxs
-
-    @classmethod
-    def slocals2sexprs(cls, slocals):
-        slocals = [cls.sage_parser.parse(p) for p in slocals]
-        slocals = cls.cleanup_sexprs(slocals)
-        return slocals
-
-    @classmethod
-    def cleanup_sexprs(cls, exprs):
-        exprs = [Miscs.elim_denom(e) for e in exprs]
-        exprs = [e for e in exprs
-                 if not (e.is_relational() and str(e.lhs()) == str(e.rhs()))]
-        assert all(Miscs.is_rel(e) for e in exprs), exprs
-        return exprs
 
 
 class PC_CIVL(PC):
@@ -135,8 +89,8 @@ class PC_CIVL(PC):
 
         slocals = []
         pcs = []
+        lines = [l.strip() for l in lines]
         for l in lines:
-            l = l.strip()
             if not l:
                 continue
             if l.startswith('vtrace'):
@@ -155,22 +109,23 @@ class PC_CIVL(PC):
         'path condition: (0<=(X_x-1))&&(0<=(X_y-1))']
         """
         assert isinstance(ss, list) and len(ss) == 2, ss
-        slocals, pc = ss
-        pcs = pc.split(':')[1]
-        pcs = [x.strip() for x in pcs.split("&&")]
-        pcs = [cls.replace_str_pcs(x) for x in pcs if x != 'true']
-        loc, slocals = slocals.split(':')
-        slocals = [cls.replace_str_pcs(cls.replace_str_slocals(x))
-                   for x in slocals.split(';')]
-        return loc, pcs, slocals
+        slocal, pc = ss
+        pc = pc.split(':')[1].strip()  # path condition: ...
+        pc = None if pc == 'true' else cls.replace_str(pc)
+        loc, slocal = slocal.split(':')
+        slocal = cls.replace_str(slocal)
+        return loc, pc, slocal
 
     @staticmethod
-    def replace_str_slocals(s):
-        s_ = s.replace(' = ', '==').strip()
-        return s_
-
-    def replace_str_pcs(s):
-        s_ = s.replace('div ', '// ').strip()
+    def replace_str(s):
+        s_ = (s.
+              replace(' = ', ' == ').
+              replace(';', ' and ').
+              replace('&&', 'and').
+              replace('||', 'or').
+              replace('div ', '/ ').
+              replace('^', '**').
+              strip())
         return s_
 
 
@@ -292,16 +247,16 @@ class PCs(set):
         try:
             return self._expr
         except AttributeError:
-            self._expr = z3.simplify(z3.Or([pc.expr for pc in self]))
+            self._expr = z3.simplify(z3.Or([p.expr for p in self]))
             return self._expr
 
     @property
-    def exprPC(self):
+    def pc(self):
         try:
-            return self._exprPC
+            return self._pc
         except AttributeError:
-            self._exprPC = z3.simplify(z3.Or([pc.exprPC for pc in self]))
-            return self._exprPC
+            self._pc = z3.simplify(z3.Or([p.pc for p in self]))
+            return self._pc
 
 
 class SymStates(metaclass=ABCMeta):
@@ -384,7 +339,7 @@ class SymStates(metaclass=ABCMeta):
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
             mlog.warning(
-                "{}: depth {}: no symbolic states found".format(loc, depth))
+                "{}: no symbolic states found at depth {}".format(loc, depth))
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]
@@ -461,7 +416,7 @@ class SymStates(metaclass=ABCMeta):
         def f(depth):
             ss = self.ss[loc][depth]
             if inv == z3.BoolVal(False):
-                ss = ss[path_idx].exprPC if path_idx else ss.exprPC
+                ss = ss[path_idx].pc if path_idx else ss.pc
             else:
                 ss = ss[path_idx].expr if path_idx else ss.expr
             return self._mcheck(ss, inv, inps, ncexs)

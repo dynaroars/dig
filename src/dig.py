@@ -111,6 +111,10 @@ if __name__ == "__main__":
 
     import pathlib
     inp = pathlib.Path(args.inp)
+    if not inp.exists():
+        mlog.error("{} does not exist!".format(inp))
+        exit(1)
+
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
     import alg
