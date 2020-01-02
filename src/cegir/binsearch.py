@@ -24,7 +24,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class CegirBinSearch(Cegir):
     def __init__(self, symstates, prog):
-        super(CegirBinSearch, self).__init__(symstates, prog)
+        super().__init__(symstates, prog)
 
     def gen(self, traces, inps):
         assert isinstance(traces, DTraces) and traces, traces
@@ -222,6 +222,8 @@ class CegirBinSearch(Cegir):
                     continue
 
         new_terms = [term for term in terms if term not in excludes]
+        # print(excludes)
+        # print(new_terms)
         return new_terms
 
     def mk_le(self, term, v):

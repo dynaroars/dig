@@ -1,4 +1,5 @@
-import abc
+from abc import ABCMeta, abstractmethod
+
 import pdb
 import operator
 
@@ -11,7 +12,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Poly(metaclass=abc.ABCMeta):
+class Poly(metaclass=ABCMeta):
 
     def __init__(self, poly):
         self.poly = poly
@@ -22,11 +23,11 @@ class Poly(metaclass=abc.ABCMeta):
 
     def __eq__(self, o): return self.poly.__eq__(o.poly)
 
-    @abc.abstractmethod
+    @abstractmethod
     def eval_traces(self, traces):
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def mk_le(self, val):
         pass
 

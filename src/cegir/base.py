@@ -17,9 +17,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Cegir(object):
-    __metaclass__ = ABCMeta
-
+class Cegir(metaclass=ABCMeta):
     def __init__(self, symstates, prog):
         assert isinstance(prog, Prog), prog
 
@@ -42,5 +40,3 @@ class Cegir(object):
         new_traces = self.prog.get_traces(inps)
         new_traces = traces.merge(new_traces)
         return new_traces
-
-
