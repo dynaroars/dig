@@ -12,7 +12,7 @@ The current version of DIG works with Java programs and raw program execution tr
 First, clone DIG
 
 ```shell
-git clone https://github.com/nguyenthanhvuh/dig.git
+git clone https://gitlab.com/nguyenthanhvuh/dig.git
 ```
 Then go to DIG's directory (`cd dig`).  Also make sure that you're in the `master` branch (if not, do `git checkout master`).
 To run DIG, you can either use the [provided  *docker* script](#using-docker) (easiest way) or [install DIG yourself](#installing-dig).
