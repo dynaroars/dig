@@ -15,7 +15,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Eqt(data.inv.base.RelInv):
     def __init__(self, eqt, stat=None):
         assert eqt.operator() == operator.eq, eqt
-        super(Eqt, self).__init__(eqt, stat)
+        super().__init__(eqt, stat)
 
     def test_single_trace(self, trace):
         assert isinstance(trace, data.traces.Trace), trace

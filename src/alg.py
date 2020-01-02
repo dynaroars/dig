@@ -20,7 +20,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Dig(object, metaclass=ABCMeta):
+class Dig(metaclass=ABCMeta):
 
     def __init__(self, filename):
         assert filename.is_file(), filename

@@ -161,7 +161,7 @@ let () = begin
     ignore(visitCilFunction
              (new change_vassume_visitor vassume "$assume") mainQ_fd);
     
-    let includes = ["civlc.cvh"; "stdio.h"] in 
+    let includes = ["civlc.cvh"; "stdio.h"; "math.h"] in 
     let includes = L.map(fun x -> "#include \"" ^ x ^ "\"") includes in
     let inps:string list = create_inps mainQ_fd.sformals in
     let adds = includes @ inps in
@@ -180,7 +180,7 @@ let () = begin
     let mainQ_fd:fundec = CM.find_fun ast_trace mainQ in    
     ignore(visitCilFunction (new change_vassume_visitor vassume "assert") mainQ_fd);
     
-    let includes = ["stdio.h"; "stdlib.h"; "assert.h"] in 
+    let includes = ["stdio.h"; "stdlib.h"; "assert.h"; "math.h"] in 
     let includes = L.map(fun x -> "#include \"" ^ x ^ "\"") includes in
     let adds = S.concat "\n" includes in
     ast_trace.globals <- (GText adds):: ast_trace.globals;

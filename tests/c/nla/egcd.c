@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 
 void vassume(int b){}
@@ -20,9 +19,9 @@ int mainQ(int x, int y){
     s = 1;
 
     while(1){
-	//assert(1 == p*s - r*q);
-	//assert(a == y*r + x*p);
-	//assert(b == x*q + y*s);
+	/* assert(1 == p*s - r*q); */
+	/* assert(a == y*r + x*p); */
+	/* assert(b == x*q + y*s); */
 	  
 	vtrace1(x, y, a, b, p, r, q, s);
 	

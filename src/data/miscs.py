@@ -172,7 +172,8 @@ class Symb(namedtuple('Symb', ('name', 'typ'))):
         try:
             return self._expr
         except AttributeError:
-            self._expr = Z3.toZ3(self.sageExpr, use_reals, use_mod=False)
+            #self._expr = Z3.toZ3(self.sageExpr, use_reals, use_mod=False)
+            self._expr = Z3.parse(str(self.sageExpr), use_reals)
             return self._expr
 
 

@@ -21,7 +21,7 @@ class MP(Poly):
         if not isinstance(b, tuple):
             b = (b, )
 
-        super(MP, self).__init__((a, b, is_max))
+        super().__init__((a, b, is_max))
         self.a = a
         self.b = b
         self.is_max = is_max

@@ -18,4 +18,4 @@ class Oct(data.inv.base.RelInv):
         assert (myoct.operator() == operator.le or
                 myoct.operator() == operator.lt), myoct
 
-        super(Oct, self).__init__(myoct, stat)
+        super().__init__(myoct, stat)

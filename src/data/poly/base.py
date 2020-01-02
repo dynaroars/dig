@@ -11,8 +11,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Poly(object):
-    __metaclass__ = abc.ABCMeta
+class Poly(metaclass=abc.ABCMeta):
 
     def __init__(self, poly):
         self.poly = poly
@@ -40,7 +39,7 @@ class GeneralPoly(Poly):
     def __init__(self, poly):
         assert Miscs.is_expr(poly), poly
 
-        super(GeneralPoly, self).__init__(poly)
+        super().__init__(poly)
 
     @property
     def symbols(self):

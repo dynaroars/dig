@@ -17,7 +17,7 @@ class MP(data.inv.base.Inv):
     def __init__(self, term, is_ieq=True, stat=None):
         assert isinstance(term, data.poly.mp.MP)
         hash_contents = (term.a, term.b, term.is_max, is_ieq)
-        super(MP, self).__init__(hash_contents, stat)
+        super().__init__(hash_contents, stat)
         self.term = term
         self.is_ieq = is_ieq
 
@@ -39,8 +39,11 @@ class MP(data.inv.base.Inv):
         # If(And(y >= z, y >= 0), x <= y, If(z >= 0, x <= z, x <= 0))
         """
 
-        a = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.term.a)
-        b = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.term.b)
+        # a = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.term.a)
+        # b = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.term.b)
+        a = tuple(Z3.parse(str(x), use_reals) for x in self.term.a)
+        b = tuple(Z3.parse(str(x), use_reals) for x in self.term.b)
+
         expr = self.mp2df_expr(a, b, 0, self.term.is_max, self.is_ieq)
 
         if len(b) >= 3:  # more simplification

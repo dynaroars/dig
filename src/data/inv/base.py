@@ -14,8 +14,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Inv(object):
-    __metaclass__ = ABCMeta
+class Inv(metaclass=ABCMeta):
 
     PROVED = "p"
     DISPROVED = "d"
@@ -72,15 +71,14 @@ class Inv(object):
     def is_unknown(self): return self.stat == self.UNKNOWN
 
 
-class RelInv(Inv):
-    __metaclass__ = ABCMeta
+class RelInv(Inv, metaclass=ABCMeta):
 
     def __init__(self, rel, stat=None):
         assert (rel.operator() == operator.eq or
                 rel.operator() == operator.le or
                 rel.operator() == operator.lt), rel
 
-        super(RelInv, self).__init__(rel, stat)
+        super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
         s = self.strOfExp(self.inv)
@@ -143,5 +141,13 @@ class RelInv(Inv):
         """
         cannot make this as property because z3 expr is ctype,
         not compat with multiprocessing Queue
+
+        also, cannot save this to sel._expr
         """
-        return Z3.toZ3(self.inv, use_reals, use_mod=False)
+        # return Z3.toZ3(self.inv, use_reals, use_mod=False)
+        # try:
+        #     return self._expr
+        # except AttributeError:
+        #     self._expr = Z3.parse(str(self.inv), use_reals)
+        #     return self._expr
+        return Z3.parse(str(self.inv), use_reals)

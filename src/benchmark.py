@@ -16,10 +16,10 @@ settings.logger_level = CM.getLogLevel(3)
 
 DBG = pdb.set_trace
 
-TIMEOUT = 600  # seconds
+TIMEOUT = 900  # seconds
 CMD = "timeout {} ".format(TIMEOUT) +\
     "$SAGE/git/sage-8.9/sage -python -O " +\
-    "dig.py {filename} -log 2 -octmaxv 20 -seed {seed} -maxdeg 1 -noieqs -nominmax"
+    "dig.py {filename} -log 3 -octmaxv 20 -seed {seed}"
 
 
 def run(benchdir, ntimes):
@@ -37,7 +37,7 @@ def run(benchdir, ntimes):
             os.system(i_run_cmd)
 
 
-ntimes = 1
+ntimes = 2
 
 # NLA
 dir_ = Path("../tests/c/nla/")

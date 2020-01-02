@@ -30,7 +30,7 @@ class PC(metaclass=ABCMeta):
         assert isinstance(slocal, str) and slocal, slocal
         assert isinstance(use_reals, bool), bool
 
-        self.pc = z3.BoolVal('True') if pc is None else Z3.parse(pc, use_reals)
+        self.pc = z3.BoolVal(True) if pc is None else Z3.parse(pc, use_reals)
         self.slocal = Z3.parse(slocal, use_reals)
         self.loc = loc
         self.depth = depth
@@ -77,9 +77,8 @@ class PC_CIVL(PC):
         slocals = []
         pcs = []
         lines = [l.strip() for l in lines]
+        lines = [l for l in lines if l]
         for l in lines:
-            if not l:
-                continue
             if l.startswith('vtrace'):
                 slocals.append(l)
             elif l.startswith('path condition'):
@@ -137,10 +136,10 @@ class PC_JPF(PC):
         start = delim + " START"
         end = delim + " END"
         do_append = False
+
+        lines = [l.strip() for l in lines]
+        lines = [l for l in lines if l]
         for l in lines:
-            l = l.strip()
-            if not l:
-                continue
             if l.startswith(start):
                 do_append = True
                 continue
@@ -192,14 +191,17 @@ class PC_JPF(PC):
             if Miscs.is_num(v) and v >= settings.LARGE_N:
                 mlog.warning("ignore {} (larger than {})".format(
                     p, settings.LARGE_N))
+                exit(-1)
                 return True
             else:
                 return False
 
         slocals = [p for p in slocals if not isTooLarge(p)]
         slocals = [cls.replace_str(p) for p in slocals if p]
+        slocal = ' and '.join(slocals)
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        return loc, pcs, slocals
+        pc = ' and '.join(pcs)
+        return loc, pc, slocal
 
     @staticmethod
     @cached_function
@@ -228,19 +230,21 @@ class PCs(set):
         super(PCs, self).add(pc)
 
     @property
-    def expr(self):
+    def myexpr(self):
         try:
             return self._expr
         except AttributeError:
-            self._expr = z3.simplify(z3.Or([p.expr for p in self]))
+            _expr = z3.Or([p.expr for p in self])
+            self._expr = Z3.simplify(_expr)
             return self._expr
 
     @property
-    def pc(self):
+    def mypc(self):
         try:
             return self._pc
         except AttributeError:
-            self._pc = z3.simplify(z3.Or([p.pc for p in self]))
+            _pc = z3.Or([p.pc for p in self])
+            self._pc = Z3.simplify(_pc)
             return self._pc
 
 
@@ -324,7 +328,7 @@ class SymStates(metaclass=ABCMeta):
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
             mlog.warning(
-                "{}: no symbolic states found at depth {}".format(loc, depth))
+                "{}: no symbolic states at depth {}".format(loc, depth))
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]
@@ -401,9 +405,9 @@ class SymStates(metaclass=ABCMeta):
         def f(depth):
             ss = self.ss[loc][depth]
             if inv == z3.BoolVal(False):
-                ss = ss[path_idx].pc if path_idx else ss.pc
+                ss = ss[path_idx].mypc if path_idx else ss.mypc
             else:
-                ss = ss[path_idx].expr if path_idx else ss.expr
+                ss = ss[path_idx].myexpr if path_idx else ss.myexpr
             return self._mcheck(ss, inv, inps, ncexs)
 
         depths = sorted(self.ss[loc].keys())

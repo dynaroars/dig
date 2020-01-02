@@ -1,11 +1,10 @@
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 
 void vassume(int b){}
 void vtrace1(int a, int b, int p, int q, int r, int s, int x, int y){}
-void vtrace2(int a, int b, int p, int q, int r, int s, int x, int y){}
-void vtrace3(int a, int b, int p, int q, int r, int s, int x, int y){}
+void vtrace2(int a, int b, int p, int q, int r, int s, int c, int k, int x, int y){}
+void vtrace3(int a, int p, int q, int r, int s, int x, int y){}
 
 int mainQ(int x, int y){
     vassume(x >= 1);
@@ -31,7 +30,7 @@ int mainQ(int x, int y){
 	    //assert(a == k*b+c);
 	    //assert(a == y*r+x*p);
 	    //assert(b == x*q+y*s);
-	    vtrace2(a, b, p, q, r, s, x, y);
+	    vtrace2(a, b, p, q, r, s, c, k, x, y);
 	    if(!( c>=b )) break;
 	    c=c-b;
 	    k=k+1;
@@ -49,7 +48,7 @@ int mainQ(int x, int y){
 	s=temp-s*k;
     }
     
-    vtrace3(a, b, p, q, r, s, x, y);
+    vtrace3(a, p, q, r, s, x, y);
     return a;
 }
 

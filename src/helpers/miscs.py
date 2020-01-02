@@ -368,6 +368,7 @@ class Miscs(object):
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
+        # print(eqts)
 
         @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
         def mysolve(eqts, uks, solution_dict):
@@ -713,8 +714,12 @@ class Z3(object):
 
         if not fs:
             return False  # conservative approach
-        fs = [cls.toZ3(f, use_reals, use_mod=False) for f in fs]
-        g = cls.toZ3(g, use_reals, use_mod=False)
+        # fs = [cls.toZ3(f, use_reals, use_mod=False) for f in fs]
+        # g = cls.toZ3(g, use_reals, use_mod=False)
+
+        fs = [Z3.parse(str(f), use_reals) for f in fs]
+        g = Z3.parse(str(g), use_reals)
+
         return cls._imply(fs, g)
 
     @classmethod
@@ -750,71 +755,71 @@ class Z3(object):
         else:
             return -1
 
-    @classmethod
-    @cached_function
-    def toZ3(cls, p, use_reals, use_mod):
-        """
-        Convert a Sage expression to a Z3 expression
+    # @classmethod
+    # @cached_function
+    # def toZ3(cls, p, use_reals, use_mod):
+    #     """
+    #     Convert a Sage expression to a Z3 expression
 
-        Initially implements with a dictionary containing variables
-        e.g. {x:Real('x')} but the code is longer and more complicated.
-        This implemention does not require a dictionary pass in.
+    #     Initially implements with a dictionary containing variables
+    #     e.g. {x:Real('x')} but the code is longer and more complicated.
+    #     This implemention does not require a dictionary pass in.
 
-        sage: from helpers.miscs import Z3
-        sage: Z3.toZ3(x*x*x, False, use_mod=False)
-        x*x*x
-        """
-        assert (Miscs.is_expr(p) or Miscs.is_int(p) or
-                isinstance(p, int)), (p, type(p))
-        assert isinstance(use_reals, bool), use_reals
-        assert isinstance(use_mod, bool), use_mod
+    #     sage: from helpers.miscs import Z3
+    #     sage: Z3.toZ3(x*x*x, False, use_mod=False)
+    #     x*x*x
+    #     """
+    #     assert (Miscs.is_expr(p) or Miscs.is_int(p) or
+    #             isinstance(p, int)), (p, type(p))
+    #     assert isinstance(use_reals, bool), use_reals
+    #     assert isinstance(use_mod, bool), use_mod
 
-        def retval(p):
-            if p.is_symbol():
-                _f = z3.Real if use_reals else z3.Int
-            else:
-                _f = z3.RealVal if use_reals else z3.IntVal
+    #     def retval(p):
+    #         if p.is_symbol():
+    #             _f = z3.Real if use_reals else z3.Int
+    #         else:
+    #             _f = z3.RealVal if use_reals else z3.IntVal
 
-            try:
-                return _f(str(p))
-            except Exception:
-                assert False, "cannot parse {}".format(p)
+    #         try:
+    #             return _f(str(p))
+    #         except Exception:
+    #             assert False, "cannot parse {}".format(p)
 
-        if isinstance(p, int) or Miscs.is_int(p):
-            _f = z3.RealVal if use_reals else z3.IntVal
-            res = _f(str(p))
+    #     if isinstance(p, int) or Miscs.is_int(p):
+    #         _f = z3.RealVal if use_reals else z3.IntVal
+    #         res = _f(str(p))
 
-        else:
-            oprs = p.operands()
-            if oprs:
-                op = p.operator()
+    #     else:
+    #         oprs = p.operands()
+    #         if oprs:
+    #             op = p.operator()
 
-                # z3 has problem w/ t^c , so use t*t*t..
-                if op == operator.pow:
-                    assert len(oprs) == 2, oprs
-                    t, c = oprs
-                    t = cls.toZ3(t, use_reals, use_mod)
-                    if use_mod:
-                        c = cls.toZ3(c, use_reals, use_mod)
-                        res = reduce(operator.mod, [t, c])
-                    else:
-                        if c == -1:  # 1/x
-                            res = 1/t
-                        else:
-                            assert c >= 0
-                            vs = [t] * c
-                            res = reduce(operator.mul, vs)
-                else:
-                    oprs = [cls.toZ3(o, use_reals, use_mod) for o in oprs]
-                    res = reduce(op, oprs)
+    #             # z3 has problem w/ t^c , so use t*t*t..
+    #             if op == operator.pow:
+    #                 assert len(oprs) == 2, oprs
+    #                 t, c = oprs
+    #                 t = cls.toZ3(t, use_reals, use_mod)
+    #                 if use_mod:
+    #                     c = cls.toZ3(c, use_reals, use_mod)
+    #                     res = reduce(operator.mod, [t, c])
+    #                 else:
+    #                     if c == -1:  # 1/x
+    #                         res = 1/t
+    #                     else:
+    #                         assert c >= 0
+    #                         vs = [t] * c
+    #                         res = reduce(operator.mul, vs)
+    #             else:
+    #                 oprs = [cls.toZ3(o, use_reals, use_mod) for o in oprs]
+    #                 res = reduce(op, oprs)
 
-            else:
-                res = retval(p)
+    #         else:
+    #             res = retval(p)
 
-        assert z3.is_expr(res), res
-        if use_mod:
-            mlog.debug("mod hack: {} => {}".format(p, res))
-        return res
+    #     assert z3.is_expr(res), res
+    #     if use_mod:
+    #         mlog.debug("mod hack: {} => {}".format(p, res))
+    #     return res
 
     @classmethod
     def parse(cls, node, use_reals):
@@ -822,6 +827,8 @@ class Z3(object):
         # print(ast.dump(node))
 
         if isinstance(node, str):
+            node = node.replace('^', '**')
+
             tnode = ast.parse(node)
             tnode = tnode.body[0].value
             try:
@@ -902,3 +909,10 @@ class Z3(object):
 
         else:
             raise NotImplementedError(ast.dump(node))
+
+    @classmethod
+    def simplify(cls, f):
+        assert z3.is_expr(f), f
+        t = z3.Tactic('ctx-solver-simplify')
+        f_ = t(f).as_expr()
+        return f_
