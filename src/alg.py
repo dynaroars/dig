@@ -66,13 +66,14 @@ class Dig(metaclass=ABCMeta):
 
     def print_results(self, dinvs, dtraces, inps, st):
         result = ("*** '{}', {} locs, "
-                  "invs {} ({}), traces {}, inps {}, "
+                  "{} invs ({}), {} traces, {} inps, "
                   "time {:.2f}s, rand seed {}, test {} {}:\n{}")
+
         print(result.format(
             self.filename, len(dinvs),
             dinvs.siz,
-            ', '.join('{}: {}'.format(t, c)
-                      for t, c in dinvs.typ_ctr.items()),
+            ', '.join('{} {}'.format(dinvs.typ_ctr[t], t)
+                      for t in sorted(dinvs.typ_ctr)),
             dtraces.siz,
             len(inps) if inps else 0,
             time.time() - st,

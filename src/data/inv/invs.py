@@ -22,7 +22,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Invs(set):
     def __init__(self, invs=set()):
         assert all(isinstance(inv, Inv) for inv in invs), invs
-        super(Invs, self).__init__(invs)
+        super().__init__(invs)
 
     def __str__(self, print_stat=False, delim='\n'):
         invs = sorted(self, reverse=True,
@@ -31,7 +31,7 @@ class Invs(set):
 
     def __contains__(self, inv):
         assert isinstance(inv, Inv), inv
-        return super(Invs, self).__contains__(inv)
+        return super().__contains__(inv)
 
     @property
     def typ_ctr(self):
@@ -43,7 +43,7 @@ class Invs(set):
 
         not_in = inv not in self
         if not_in:
-            super(Invs, self).add(inv)
+            super().add(inv)
         return not_in
 
     def test(self, traces):
@@ -142,7 +142,7 @@ class DInvs(dict):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(invs, Invs), invs
 
-        super(DInvs, self).__setitem__(loc, invs)
+        super().__setitem__(loc, invs)
 
     @property
     def invs(self):
@@ -207,7 +207,7 @@ class DInvs(dict):
 
     def test(self, dtraces):
         assert isinstance(dtraces, DTraces)
-        assert(self.siz), self
+        assert self.siz, self
 
         st = time()
         tasks = [loc for loc in self if self[loc]]
@@ -274,7 +274,7 @@ class DInvs(dict):
 class FalseInv(Inv):
     def __init__(self, inv, stat=None):
         assert inv == 0, inv
-        super(FalseInv, self).__init__(inv, stat)
+        super().__init__(inv, stat)
 
     def __str__(self, print_stat=False):
         s = str(self.inv)

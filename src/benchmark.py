@@ -19,7 +19,7 @@ DBG = pdb.set_trace
 TIMEOUT = 900  # seconds
 CMD = "timeout {} ".format(TIMEOUT) +\
     "$SAGE/git/sage-8.9/sage -python -O " +\
-    "dig.py {filename} -log 3 -octmaxv 20 -seed {seed}"
+    "dig.py {filename} -log 3 -seed {seed}"
 
 
 def run(benchdir, ntimes):

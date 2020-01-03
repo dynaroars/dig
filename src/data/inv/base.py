@@ -81,44 +81,45 @@ class RelInv(Inv, metaclass=ABCMeta):
         super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
-        s = self.strOfExp(self.inv)
+        #s = self.strOfExp(self.inv)
+        s = str(self.inv)
         if print_stat:
             s = "{} {}".format(s, self.stat)
         return s
 
-    @staticmethod
-    @cached_function
-    def strOfExp(p):
-        """
-        -p^3 => -(p*p*p)
-        n*p^4 => n*(p*p*p*p)
-        ab^3 => (ab*ab*ab)
-        x*y*z^3 => x*y*(z*z*z)
-        """
-        assert Miscs.is_expr(p), p
+    # @staticmethod
+    # @cached_function
+    # def strOfExp(p):
+    #     """
+    #     -p^3 => -(p*p*p)
+    #     n*p^4 => n*(p*p*p*p)
+    #     ab^3 => (ab*ab*ab)
+    #     x*y*z^3 => x*y*(z*z*z)
+    #     """
+    #     assert Miscs.is_expr(p), p
 
-        def getPow(p):
-            try:
-                oprs = p.operands()
-            except Exception:
-                return []
+    #     def getPow(p):
+    #         try:
+    #             oprs = p.operands()
+    #         except Exception:
+    #             return []
 
-            if p.operator() == sage.all.operator.pow:
-                x, y = oprs
-                pow_s = '*'.join(
-                    [str(x) if x.is_symbol() else "({})".format(x)] * int(y))
-                return [(str(p), '({})'.format(pow_s))]
+    #         if p.operator() == sage.all.operator.pow:
+    #             x, y = oprs
+    #             pow_s = '*'.join(
+    #                 [str(x) if x.is_symbol() else "({})".format(x)] * int(y))
+    #             return [(str(p), '({})'.format(pow_s))]
 
-            else:
-                return [xy for o in oprs for xy in getPow(o)]
+    #         else:
+    #             return [xy for o in oprs for xy in getPow(o)]
 
-        s = str(p)
-        if '^' not in s:
-            return s
-        rs = getPow(p)
-        for (x, y) in rs:
-            s = s.replace(x, y)
-        return s
+    #     s = str(p)
+    #     if '^' not in s:
+    #         return s
+    #     rs = getPow(p)
+    #     for (x, y) in rs:
+    #         s = s.replace(x, y)
+    #     return s
 
     def test_single_trace(self, trace):
         assert isinstance(trace, Trace), trace
@@ -144,10 +145,4 @@ class RelInv(Inv, metaclass=ABCMeta):
 
         also, cannot save this to sel._expr
         """
-        # return Z3.toZ3(self.inv, use_reals, use_mod=False)
-        # try:
-        #     return self._expr
-        # except AttributeError:
-        #     self._expr = Z3.parse(str(self.inv), use_reals)
-        #     return self._expr
         return Z3.parse(str(self.inv), use_reals)

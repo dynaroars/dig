@@ -3,7 +3,7 @@ Find upperbound of polynomials using binary search-CEGIR approach
 """
 import math
 import pdb
-
+from time import time
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
@@ -187,8 +187,11 @@ class CegirBinSearch(Cegir):
             terms_min = _get_terms(terms_u_no_octs, is_max=False)
             terms.extend(terms_min + terms_max)
 
-        terms = self.filter_terms(terms, set(self.prog.inp_decls.names))
-        return terms
+        st = time()
+        new_terms = self.filter_terms(terms, set(self.prog.inp_decls.names))
+        Miscs.show_removed('term filter',
+                           len(terms), len(new_terms), time() - st)
+        return new_terms
 
     @staticmethod
     def filter_terms(terms, inps):
@@ -206,24 +209,24 @@ class CegirBinSearch(Cegir):
                 inp_in_a = any(s in inps for s in a_symbs)
                 inp_in_b = any(s in inps for s in b_symbs)
 
-                if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
+                if ((inp_in_a and inp_in_b) or
+                        (not inp_in_a and not inp_in_b)):
                     excludes.add(term)
                     continue
 
                 t_symbs = set(a_symbs + b_symbs)
-                if inps.issuperset(t_symbs):
-                    excludes.add(term)
-                    continue
 
             else:
                 t_symbs = set(map(str, term.symbols))
-                if len(t_symbs) >= 2 and inps.issuperset(t_symbs):
-                    excludes.add(term)
+                if len(t_symbs) <= 1:
                     continue
 
+            assert len(t_symbs) > 1
+            if (inps.issuperset(t_symbs) or
+                    all(s not in inps for s in t_symbs)):
+                excludes.add(term)
+
         new_terms = [term for term in terms if term not in excludes]
-        # print(excludes)
-        # print(new_terms)
         return new_terms
 
     def mk_le(self, term, v):
