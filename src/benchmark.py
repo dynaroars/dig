@@ -26,14 +26,15 @@ def run(benchdir, ntimes):
     assert benchdir.is_dir(), benchdir
 
     print("# Benchmark dir '{}' {} times ({})".format(
-        benchdir, ntimes, datetime.now()))
+        benchdir, ntimes, datetime.now()), flush=True)
     fs = sorted(f for f in benchdir.iterdir() if f.suffix == ".c")
 
-    for f in fs:
-        for i in range(ntimes):
-            i_run_cmd = CMD.format(filename=f, seed=i)
-            print("## {}/{}. {}: {}".format(
-                i+1, ntimes, time.strftime("%c"), i_run_cmd))
+    for i, f in enumerate(fs):
+        for j in range(ntimes):
+            i_run_cmd = CMD.format(filename=f, seed=j)
+            print("## {}/{}, run {}/{}. {}: {}".format(
+                i+1, len(fs), j+1, ntimes,
+                time.strftime("%c"), i_run_cmd), flush=True)
             os.system(i_run_cmd)
 
 

@@ -38,15 +38,15 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
 class SymbsValsSet(set):
     def __init__(self, myset=set()):
         assert all(isinstance(t, SymbsVals) for t in myset), myset
-        super(SymbsValsSet, self).__init__(myset)
+        super().__init__(myset)
 
     def __contains__(self, t):
         assert isinstance(t, SymbsVals), t
-        return super(SymbsValsSet, self).__contains__(t)
+        return super().__contains__(t)
 
     def add(self, t):
         assert isinstance(t, SymbsVals), t
-        return super(SymbsValsSet, self).add(t)
+        return super().add(t)
 
 
 class Trace(SymbsVals):

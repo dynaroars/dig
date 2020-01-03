@@ -26,4 +26,4 @@ class Eqt(data.inv.base.RelInv):
             mlog.debug("skip trace with repeating rational {}".format(self))
             return True
 
-        return super(Eqt, self).test_single_trace(trace)
+        return super().test_single_trace(trace)

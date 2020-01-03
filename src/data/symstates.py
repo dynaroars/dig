@@ -221,13 +221,13 @@ class PCs(set):
         assert isinstance(loc, str), loc
         assert depth >= 1, depth
 
-        super(PCs, self).__init__(set())
+        super().__init__(set())
         self.loc = loc
         self.depth = depth
 
     def add(self, pc):
         assert isinstance(pc, PC), pc
-        super(PCs, self).add(pc)
+        super().add(pc)
 
     @property
     def myexpr(self):

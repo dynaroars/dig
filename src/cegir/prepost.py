@@ -21,7 +21,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class CegirPrePost(cegir.base.Cegir):
     def __init__(self, symstates, prog):
-        super(CegirPrePost, self).__init__(symstates, prog)
+        super().__init__(symstates, prog)
         self.use_reals = symstates.use_reals
 
     def gen(self, dinvs, traces):

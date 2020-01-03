@@ -21,8 +21,7 @@ class PrePost(Inv):
         assert isinstance(preconds, data.inv.invs.Invs), preconds
         # assert postcond.is_eqt, postcond
 
-        super(PrePost, self).__init__(
-            (frozenset(preconds), postcond), stat)
+        super().__init__((frozenset(preconds), postcond), stat)
 
         self.preconds = preconds
         self.is_conj = True   # conj preconds
