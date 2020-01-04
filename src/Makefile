@@ -1,7 +1,7 @@
 
 test_general_requirements:
 	$(info >>> Testing General Requirements)
-	sage helpers/check_requirements.py
+	sage3 helpers/check_requirements.py
 
 test_doctests:
 	$(info >>> Testing Python Doctests)

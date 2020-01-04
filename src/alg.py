@@ -23,7 +23,12 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Dig(metaclass=ABCMeta):
 
     def __init__(self, filename):
-        assert filename.is_file(), filename
+        if not isinstance(filename, Path):
+            filename = pathlib.Path(filename)
+
+        if not filename.is_file():
+            mlog.error("'{}' is invalid!".format(filename))
+            exit(1)
 
         mlog.info("analyze '{}'".format(filename))
         self.filename = filename
@@ -231,14 +236,15 @@ class DigTraces(Dig):
     def __init__(self, tracefiles):
         tracefiles = tracefiles.split()
         assert len(tracefiles) == 1 or len(tracefiles) == 2, tracefiles
-        tracefile = tracefiles[0]
+
+        tracefile = Path(tracefiles[0])
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
 
         self.test_dtraces = None
         if len(tracefiles) == 2:
-            test_tracefile = tracefiles[1]
+            test_tracefile = Path(tracefiles[1])
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 
     def start(self, seed, maxdeg):

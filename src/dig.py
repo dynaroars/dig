@@ -109,18 +109,13 @@ if __name__ == "__main__":
     if __debug__:
         mlog.warning("DEBUG MODE ON. Can be slow !")
 
-    import pathlib
-    inp = pathlib.Path(args.inp)
-    if not inp.exists():
-        mlog.error("{} does not exist!".format(inp))
-        exit(1)
-
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
     import alg
-    if inp.suffix == ".java" or inp.suffix == ".class":
+    inp = args.inp
+    if inp.endswith(".java") or inp.endswith(".class"):
         dig = alg.DigSymStatesJava(inp)
-    elif inp.suffix == ".c":
+    elif inp.endswith(".c"):
         dig = alg.DigSymStatesC(inp)
     else:
         dig = alg.DigTraces(inp)
