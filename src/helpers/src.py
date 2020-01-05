@@ -1,8 +1,8 @@
 import pdb
 from pathlib import Path
-import helpers.vcommon as CM
 import settings
-from data.miscs import Symbs, DSymbs
+import helpers.vcommon as CM
+from data.prog import Symbs, DSymbs
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -138,7 +138,7 @@ class C(Src):
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
         rmsg, errmsg = CM.vcmd(cmd)
         assert not errmsg, "cmd: {} gives err:\n{}".format(cmd, errmsg)
-        assert out.exists(), out
+        assert out.is_file(), out
 
     @property
     def instrument_cmd(self):

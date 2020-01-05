@@ -44,8 +44,8 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 
 class Java:
-    JPF_MIN_DEPTH = 9
-    JPF_DEPTH_INCR = 4  # jpfmaxdepth = jpfmindepth + jpfdepth_incr
+    SE_MIN_DEPTH = 9
+    SE_DEPTH_INCR = 4  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
     ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
@@ -88,8 +88,8 @@ class C:
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
 
-    CIVL_MIN_DEPTH = 20
-    CIVL_DEPTH_INCR = 4
+    SE_MIN_DEPTH = 20
+    SE_DEPTH_INCR = 4
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME")) / "civl"
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"

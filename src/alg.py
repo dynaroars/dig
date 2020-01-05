@@ -11,8 +11,7 @@ from helpers.miscs import Miscs
 import helpers.vcommon as CM
 
 
-import data.miscs
-import data.symstates
+from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs
 DBG = pdb.set_trace
@@ -24,7 +23,7 @@ class Dig(metaclass=ABCMeta):
 
     def __init__(self, filename):
         if not isinstance(filename, Path):
-            filename = pathlib.Path(filename)
+            filename = Path(filename)
 
         if not filename.is_file():
             mlog.error("'{}' is invalid!".format(filename))
@@ -55,7 +54,7 @@ class Dig(metaclass=ABCMeta):
         mlog.debug(msg)
         st = time.time()
         dinvs = dinvs.test(dtraces)
-        mlog.info("{} in {:.2f}s".format(msg, time.time() - st))
+        mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
 
         if not dinvs.siz:
             return dinvs
@@ -66,7 +65,7 @@ class Dig(metaclass=ABCMeta):
             print_stat=True, print_first_n=20)))
         st = time.time()
         dinvs = dinvs.simplify(self.inv_decls.use_reals)
-        mlog.info("{} in {:.2f}s".format(msg, time.time() - st))
+        mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
         return dinvs
 
     def print_results(self, dinvs, dtraces, inps, st):
@@ -96,9 +95,7 @@ class DigSymStates(Dig):
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
-        self.prog = data.miscs.Prog(
-            self.exe_cmd, self.inp_decls, self.inv_decls)
-
+        self.prog = Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
         self.set_symbolic_states()
 
         # remove locations with no symbolic states
@@ -159,7 +156,7 @@ class DigSymStates(Dig):
         st = time.time()
         new_invs = f()
         if new_invs.siz:
-            mlog.info("found {} {} in {:.2f}s".format(
+            mlog.info("found {} {} ({:.2f}s)".format(
                 new_invs.siz, typ, time.time() - st))
 
             dinvs.merge(new_invs)
@@ -202,8 +199,8 @@ class DigSymStatesJava(DigSymStates):
         self.mysrc = mysrc(self.filename, self.tmpdir)
 
     def set_symbolic_states(self):
-        self.symstates = data.symstates.SymStatesJava(
-            self.inp_decls, self.inv_decls)
+        from data.symstates import SymStatesJava
+        self.symstates = SymStatesJava(self.inp_decls, self.inv_decls)
         self.symstates.compute(
             self.filename, self.mysrc.mainQ_name,
             self.mysrc.funname, self.mysrc.symexedir)
@@ -221,8 +218,8 @@ class DigSymStatesC(DigSymStates):
         self.mysrc = mysrc(self.filename, self.tmpdir)
 
     def set_symbolic_states(self):
-        self.symstates = data.symstates.SymStatesC(
-            self.inp_decls, self.inv_decls)
+        from data.symstates import SymStatesC
+        self.symstates = SymStatesC(self.inp_decls, self.inv_decls)
         self.symstates.compute(
             self.mysrc.symexefile, self.mysrc.mainQ_name,
             self.mysrc.funname, self.mysrc.symexedir)

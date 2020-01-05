@@ -568,6 +568,7 @@ class Miscs(object):
         attempt to remove i in idxs if imply_f returns true
         Note: the order of idxs determine what to get checked (and removed) 
         """
+        assert isinstance(ordered_idxs, list), ordered_idxs
         assert ordered_idxs == list(range(len(ordered_idxs))), ordered_idxs
 
         results = set(ordered_idxs)

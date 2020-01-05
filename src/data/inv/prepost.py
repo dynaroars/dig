@@ -35,8 +35,7 @@ class PrePost(Inv):
             pre = z3.And([c.expr(use_reals) for c in self.preconds])
         else:
             pre = z3.Or([c.expr(use_reals) for c in self.preconds])
-        post = c.expr(use_reals)
-        raise NotImplementedError
+        post = self.postcond.expr(use_reals)
         return z3.Implies(pre, post)
 
     def __str__(self, print_stat=False):

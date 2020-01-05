@@ -12,7 +12,7 @@ from sage.all import cached_function
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
-from data.miscs import Symbs, DSymbs
+from data.prog import Symbs, DSymbs
 from data.traces import Inps
 from data.inv.base import Inv
 from data.inv.invs import Invs, DInvs
@@ -479,8 +479,8 @@ def merge(ds):
 
 class SymStatesC(SymStates):
     pc_cls = PC_CIVL
-    mindepth = settings.C.CIVL_MIN_DEPTH
-    maxdepth = mindepth + settings.C.CIVL_DEPTH_INCR
+    mindepth = settings.C.SE_MIN_DEPTH
+    maxdepth = mindepth + settings.C.SE_DEPTH_INCR
 
     @classmethod
     def mk(cls, depth, filename, mainQName, funname, tmpdir, nInps):
@@ -502,8 +502,8 @@ class SymStatesC(SymStates):
 
 class SymStatesJava(SymStates):
     pc_cls = PC_JPF
-    mindepth = settings.Java.JPF_MIN_DEPTH
-    maxdepth = mindepth + settings.Java.JPF_DEPTH_INCR
+    mindepth = settings.Java.SE_MIN_DEPTH
+    maxdepth = mindepth + settings.Java.SE_DEPTH_INCR
 
     @classmethod
     def mk(cls, depth, filename, mainQName, funname, tmpdir, nInps):

@@ -13,7 +13,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Prog(object):
+class Prog:
     def __init__(self, exe_cmd, inp_decls, inv_decls):
         assert isinstance(exe_cmd, str), exe_cmd
         assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
@@ -172,7 +172,6 @@ class Symb(namedtuple('Symb', ('name', 'typ'))):
         try:
             return self._expr
         except AttributeError:
-            #self._expr = Z3.toZ3(self.sageExpr, use_reals, use_mod=False)
             self._expr = Z3.parse(str(self.sageExpr), use_reals)
             return self._expr
 

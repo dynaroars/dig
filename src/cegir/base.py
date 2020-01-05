@@ -8,7 +8,7 @@ import pdb
 import helpers.vcommon as CM
 import settings
 
-from data.miscs import Prog
+from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs
 

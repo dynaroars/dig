@@ -7,9 +7,9 @@ import sage.all
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
+import data.prog
 import settings
 
-import data.miscs
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -215,7 +215,7 @@ class DTraces(dict):
         'vtrace1: 0 285 2 18 285 9 ',
         'vtrace1: 0 285 4 36 285 9 ']
         """
-        assert isinstance(inv_decls, data.miscs.DSymbs)\
+        assert isinstance(inv_decls, data.prog.DSymbs)\
             and inv_decls, inv_decls
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]
@@ -250,7 +250,7 @@ class DTraces(dict):
         ...
         """
         assert inv_decls and isinstance(
-            inv_decls, data.miscs.DSymbs), inv_decls
+            inv_decls, data.prog.DSymbs), inv_decls
         assert isinstance(tracefile, Path), tracefile
 
         ss = []
@@ -268,14 +268,14 @@ class DTraces(dict):
 
         trace_str = []
         # determine variable declarations for different locations
-        inv_decls = data.miscs.DSymbs()
+        inv_decls = data.prog.DSymbs()
         for line in tracefile.read_text().splitlines():
             line = line.strip()
             if not line:
                 continue
             loc, contents = line.split(':')
             if loc not in inv_decls:
-                inv_decls[loc] = data.miscs.Symbs.mk(contents)  # I x, I y
+                inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
             else:
                 trace_str.append(line.replace(',', ''))
 

@@ -38,9 +38,9 @@ if __name__ == "__main__":
        type=int,
        help="max inp value")
 
-    ag("--jpfmindepth", "-jpfmindepth",
+    ag("--se_mindepth", "-se_mindepth",
        type=int,
-       help="JPF depthlimit")
+       help="depthlimit of symbolic execution")
 
     ag("--octmaxv", "-octmaxv",
        type=int,
@@ -92,10 +92,6 @@ if __name__ == "__main__":
             args.eqtrate != settings.EQT_RATE):
         settings.EQT_RATE = args.eqtrate
 
-    if (args.jpfmindepth and args.jpfmindepth >= 1 and
-            args.jpfmindepth != settings.Java.JPF_MIN_DEPTH):
-        settings.Java.JPF_MIN_DEPTH = args.jpfmindepth
-
     if (args.octmaxv and args.octmaxv >= 1 and
             args.octmaxv != settings.OCT_MAX_V):
         settings.OCT_MAX_V = args.octmaxv
@@ -114,8 +110,14 @@ if __name__ == "__main__":
     import alg
     inp = args.inp
     if inp.endswith(".java") or inp.endswith(".class"):
+        if (args.se_mindepth and args.se_mindepth >= 1 and
+                args.se_mindepth != settings.Java.SE_MIN_DEPTH):
+            settings.Java.SE_MIN_DEPTH = args.se_mindepth
         dig = alg.DigSymStatesJava(inp)
     elif inp.endswith(".c"):
+        if (args.se_mindepth and args.se_mindepth >= 1 and
+                args.se_mindepth != settings.C.SE_MIN_DEPTH):
+            settings.C.SE_MIN_DEPTH = args.se_mindepth
         dig = alg.DigSymStatesC(inp)
     else:
         dig = alg.DigTraces(inp)

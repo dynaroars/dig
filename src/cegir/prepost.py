@@ -7,11 +7,11 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 import settings
-import cegir.base
-import data.traces
-import data.inv.base
-import data.inv.invs
-import data.inv.eqt
+from cegir.base import Cegir
+from data.traces import Traces, DTraces
+from data.inv.base import Inv
+from data.inv.invs import Invs, DInvs
+from data.inv.eqt import Eqt
 from data.inv.oct import Oct
 from data.inv.prepost import PrePost
 
@@ -19,26 +19,26 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirPrePost(cegir.base.Cegir):
+class CegirPrePost(Cegir):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_reals = symstates.use_reals
 
     def gen(self, dinvs, traces):
-        assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
-        assert isinstance(traces, data.traces.DTraces), traces
-        dinvs_ = data.inv.invs.DInvs()
+        assert isinstance(dinvs, DInvs), dinvs
+        assert isinstance(traces, DTraces), traces
+        dinvs_ = DInvs()
 
         post_locs = [loc for loc in dinvs if settings.POST_LOC in loc]
         for loc in post_locs:
             postconds = [self.get_postconds(inv.inv) for inv in dinvs[loc]
-                         if isinstance(inv, data.inv.eqt.Eqt)]
+                         if isinstance(inv, Eqt)]
             postconds = [pcs for pcs in postconds if pcs]
             postconds = set(p for postconds_ in postconds
                             for p in postconds_)
             preposts = self.get_preposts(loc, postconds, traces[loc])
             if preposts:
-                dinvs_[loc] = data.inv.invs.Invs(preposts)
+                dinvs_[loc] = Invs(preposts)
 
         return dinvs_
 
@@ -55,34 +55,33 @@ class CegirPrePost(cegir.base.Cegir):
         assert isinstance(loc, str), loc
         assert isinstance(postconds, set) and postconds, postconds
         assert all(p.operator() == operator.eq for p in postconds), postconds
-        assert isinstance(traces, data.traces.Traces), traces
+        assert isinstance(traces, Traces), traces
 
         postconds = sorted(postconds, key=lambda d: len(str(d)))
-        postconds = [data.inv.eqt.Eqt(p) for p in postconds]
+        postconds = [Eqt(p) for p in postconds]
 
         # find all traces satifies each postcond
-        mytraces = {p: data.traces.Traces([
+        mytraces = {p: Traces([
             t for t in traces if p.test_single_trace(t)])
             for p in postconds}
 
         preposts = []  # results
 
         def myappend(preconds, is_conj):
-            prepost = PrePost(data.inv.invs.Invs(preconds),
-                              postcond, stat=data.inv.invs.Inv.PROVED)
+            prepost = PrePost(Invs(preconds), postcond, stat=Inv.PROVED)
             prepost.is_conj = is_conj
             preposts.append(prepost)
 
         postconds = sorted(
             postconds, key=lambda d: len(mytraces[d]), reverse=True)
 
-        idxs = range(len(postconds))
+        idxs = list(range(len(postconds)))
         for idx in idxs:
             postcond = postconds[idx]
             others = [postconds[i] for i in idxs[:idx] + idxs[idx+1:]]
             traces_ = [t for t in mytraces[postcond]
                        if all(t not in mytraces[other] for other in others)]
-            traces_ = data.traces.Traces(traces_)
+            traces_ = Traces(traces_)
 
             conj_preconds = [pc for pc in self.preconds if pc.test(traces_)]
             conj_preconds = self.get_conj_preconds(
@@ -94,7 +93,7 @@ class CegirPrePost(cegir.base.Cegir):
             if disj_preconds:
                 myappend(disj_preconds, is_conj=False)
 
-        preposts = data.inv.invs.Invs(preposts)
+        preposts = Invs(preposts)
         preposts = preposts.simplify(self.use_reals)
         return preposts
 
@@ -130,7 +129,7 @@ class CegirPrePost(cegir.base.Cegir):
 
         if len(preconds) >= 2:
             is_conj = False
-            preconds = data.inv.invs.Invs._simplify(
+            preconds = Invs._simplify(
                 preconds, is_conj, self.use_reals)
         return preconds
 
@@ -139,9 +138,8 @@ class CegirPrePost(cegir.base.Cegir):
         preconds  =>  post  can be strengthened by removing some preconds
         e.g., a&b => post is stronger than a&b&c => post
         """
-        assert all(isinstance(p, data.inv.base.Inv)
-                   for p in preconds), preconds
-        assert isinstance(postcond, data.inv.eqt.Eqt), postcond
+        assert all(isinstance(p, Inv) for p in preconds), preconds
+        assert isinstance(postcond, Eqt), postcond
 
         if not preconds:
             return []
@@ -157,7 +155,7 @@ class CegirPrePost(cegir.base.Cegir):
             jexprs = [preconds_exprs[j] for j in js]
             return self.check(jexprs, postcond_expr, loc)
 
-        results = Miscs.simplify_idxs(range(len(preconds)), _imply)
+        results = Miscs.simplify_idxs(list(range(len(preconds))), _imply)
         results = [preconds[i] for i in results]
         return results
 
@@ -204,7 +202,7 @@ class CegirPrePost(cegir.base.Cegir):
          y == 0]
 
         """
-        t1 = [data.inv.eqt.Eqt(t == 0) for t in symbols]  # M=0, N=0
+        t1 = [Eqt(t == 0) for t in symbols]  # M=0, N=0
         t2 = [Oct(t < 0)  # +/M+/-N >0
               for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
         t3 = [Oct(t <= 0)  # +/M+/-N >=0
