@@ -39,22 +39,13 @@ class MP(data.inv.base.Inv):
         # If(And(y >= z, y >= 0), x <= y, If(z >= 0, x <= z, x <= 0))
         """
 
-        # a = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.term.a)
-        # b = tuple(Z3.toZ3(x, use_reals, use_mod=False) for x in self.term.b)
         a = tuple(Z3.parse(str(x), use_reals) for x in self.term.a)
         b = tuple(Z3.parse(str(x), use_reals) for x in self.term.b)
 
         expr = self.mp2df_expr(a, b, 0, self.term.is_max, self.is_ieq)
 
         if len(b) >= 3:  # more simplification
-            simpl = z3.Tactic('ctx-solver-simplify')
-            simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
-            try:
-                myexpr = simpl(expr)[0][0]
-                assert z3.is_expr(myexpr), myexpr
-                expr = myexpr
-            except z3.Z3Exception:
-                pass
+            expr = Z3.simplify(expr)
 
         return expr
 

@@ -914,6 +914,10 @@ class Z3(object):
     @classmethod
     def simplify(cls, f):
         assert z3.is_expr(f), f
-        t = z3.Tactic('ctx-solver-simplify')
-        f_ = t(f).as_expr()
-        return f_
+        simpl = z3.Tactic('ctx-solver-simplify')
+        simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
+        try:
+            f = simpl(f).as_expr()
+        except z3.Z3Exception:
+            pass
+        return f

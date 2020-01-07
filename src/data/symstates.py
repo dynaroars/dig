@@ -340,12 +340,14 @@ class SymStates(metaclass=ABCMeta):
             mlog.error("No symbolic states found for any locs. Exit !!")
             exit(1)
 
-        # output info
-        mlog.debug('\n'.join("{}: depth {}: {} symstates\n{}".format(
-            loc, depth, len(symstates[loc][depth]),
-            '\n'.join("{}. {}".format(i, ss)
-                      for i, ss in enumerate(symstates[loc][depth])))
-            for loc in symstates for depth in symstates[loc]))
+        # compute the z3 exprs once
+        for loc in symstates:
+            for depth in sorted(symstates[loc]):
+                pcs = symstates[loc][depth]
+                pcs.myexpr
+                pcs.mypc
+                mlog.debug("{} has {} uniq symstates at depth {}".format(
+                    loc, len(pcs), depth))
 
         return symstates
 
