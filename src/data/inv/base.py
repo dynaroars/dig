@@ -2,10 +2,7 @@ from abc import ABCMeta
 import pdb
 import operator
 
-import sage.all
-from sage.all import cached_function
-
-from helpers.miscs import Miscs, Z3
+from helpers.miscs import Z3
 import helpers.vcommon as CM
 import settings
 from data.traces import Trace, Traces
@@ -81,45 +78,10 @@ class RelInv(Inv, metaclass=ABCMeta):
         super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
-        #s = self.strOfExp(self.inv)
         s = str(self.inv)
         if print_stat:
             s = "{} {}".format(s, self.stat)
         return s
-
-    # @staticmethod
-    # @cached_function
-    # def strOfExp(p):
-    #     """
-    #     -p^3 => -(p*p*p)
-    #     n*p^4 => n*(p*p*p*p)
-    #     ab^3 => (ab*ab*ab)
-    #     x*y*z^3 => x*y*(z*z*z)
-    #     """
-    #     assert Miscs.is_expr(p), p
-
-    #     def getPow(p):
-    #         try:
-    #             oprs = p.operands()
-    #         except Exception:
-    #             return []
-
-    #         if p.operator() == sage.all.operator.pow:
-    #             x, y = oprs
-    #             pow_s = '*'.join(
-    #                 [str(x) if x.is_symbol() else "({})".format(x)] * int(y))
-    #             return [(str(p), '({})'.format(pow_s))]
-
-    #         else:
-    #             return [xy for o in oprs for xy in getPow(o)]
-
-    #     s = str(p)
-    #     if '^' not in s:
-    #         return s
-    #     rs = getPow(p)
-    #     for (x, y) in rs:
-    #         s = s.replace(x, y)
-    #     return s
 
     def test_single_trace(self, trace):
         assert isinstance(trace, Trace), trace
