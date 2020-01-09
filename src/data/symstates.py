@@ -348,6 +348,7 @@ class SymStates(metaclass=ABCMeta):
                 pcs.mypc
                 mlog.debug("{} has {} uniq symstates at depth {}".format(
                     loc, len(pcs), depth))
+                # print(pcs.myexpr)
 
         return symstates
 

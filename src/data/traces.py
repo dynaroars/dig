@@ -304,9 +304,18 @@ class Inps(SymbsValsSet):
             for loc in d:
                 for inv in d[loc]:
                     for d_ in d[loc][inv]:
-                        inp = tuple(d_[s] for s in ss)
-                        inps.append(inp)
+                        try:
+                            inp = tuple(d_[s] for s in ss)
+                            inps.append(inp)
+                        except KeyError:
+                            # happens when the cex does not contain inp v
+                            # e.g., when we only have symstates over
+                            # non input vars
+                            # see Hola 01.div.c
+                            pass
             return inps
+
+        print(ds)
 
         if (isinstance(ds, list) and all(isinstance(d, dict) for d in ds)):
             newInps = [inp for d in ds for inp in f(d)]
