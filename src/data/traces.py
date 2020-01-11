@@ -308,28 +308,26 @@ class Inps(SymbsValsSet):
                             inp = tuple(d_[s] for s in ss)
                             inps.append(inp)
                         except KeyError:
-                            # happens when the cex does not contain inp v
+                            # happens when the cex does not contain inp var
                             # e.g., when we only have symstates over
                             # non input vars
                             # see Hola 01.div.c
                             pass
             return inps
 
-        print(ds)
-
         if (isinstance(ds, list) and all(isinstance(d, dict) for d in ds)):
-            newInps = [inp for d in ds for inp in f(d)]
+            new_inps = [inp for d in ds for inp in f(d)]
 
         elif isinstance(ds, dict):
-            newInps = f(ds)
+            new_inps = f(ds)
 
         else:
             assert isinstance(ds, set) and\
                 all(isinstance(d, tuple) for d in ds), ds
-            newInps = [inp for inp in ds]
+            new_inps = [inp for inp in ds]
 
-        newInps = [Inp(ss, inp) for inp in newInps]
-        newInps = set(inp for inp in newInps if inp not in self)
-        for inp in newInps:
+        new_inps = [Inp(ss, inp) for inp in new_inps]
+        new_inps = set(inp for inp in new_inps if inp not in self)
+        for inp in new_inps:
             self.add(inp)
-        return Inps(newInps)
+        return Inps(new_inps)
