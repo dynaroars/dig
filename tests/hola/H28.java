@@ -19,7 +19,6 @@ public class H28 {
 	    x--;
 	    y--;
 	}
-	//%%%traces: int y, int n, int x, int u, int i0
 	vtrace(y, n);
 	//assert(y == n);
     }
