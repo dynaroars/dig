@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+
+void vtrace(int i, int j){}
 
 void mainQ(int k, int u1, int u2, int u3) {
   int z = k;
   int x = 0;
   int y = 0;
   int i1 = 0;
-  int i2 = 0; 
+  int i2 = 0;
   int i3 = 0;
 
   while (i1 < u1) {
@@ -26,7 +27,7 @@ void mainQ(int k, int u1, int u2, int u3) {
         c++;
       }
     }
-    
+
     i3 = 0;
     while (i3 < u3) {
       i3++;
@@ -38,10 +39,10 @@ void mainQ(int k, int u1, int u2, int u3) {
   }
 
   //%%%traces: int x, int y
+  vtrace(x, y);
   //assert(x == y);
 }
 
-int main(int argc, char *argv[]) {
+void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]));
-  return 0;
 }
