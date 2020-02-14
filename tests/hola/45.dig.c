@@ -1,16 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+
+void vassume(int b){}
+void vtrace(int x, int y){}
 
 void mainQ(int flag, int u1, int u2, int u3) {
-  assert(u1 > 0 && u2 > 0 && u3 > 0);
+  vassume(u1 > 0 && u2 > 0 && u3 > 0);
   int x = 0;
   int y = 0;
   int j = 0;
   int i = 0;
   int c = 0;
   int d = 1;
-  
+
   int i1 = 0;
   while (i1 < u1) {
     i1++;
@@ -45,10 +47,10 @@ void mainQ(int flag, int u1, int u2, int u3) {
   }
 
   //%%%traces: int x, int y
+  vtrace(x, y);
   //assert(x == y);
 }
 
 int main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]));
-  return 0;
 }
