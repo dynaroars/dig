@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
-void mainQ(int x, int y, int u1) { 
-  assert(u1 > 0);
-  assert(x != y);
+void vassume(int b){}
+void vtrace(int y, int t, int i){}
+
+void mainQ(int x, int y, int u1) {
+  vassume(u1 > 0);
+  vassume(x != y);
 
   int i = 0;
   int t = y;
@@ -14,10 +16,10 @@ void mainQ(int x, int y, int u1) {
     if (x > 0) y = y + x;
   }
   //%%%traces: int y, int t, int i
+  vtrace(y, t, i);
   //assert(y >= t);
 }
 
-int main(int argc, char *argv[]) {
+void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-  return 0;
 }
