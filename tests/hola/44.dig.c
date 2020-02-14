@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+
+void vtrace(int j, int i, int k){}
 
 void mainQ(int k, int flag) {
   int j = 0;
@@ -18,12 +19,12 @@ void mainQ(int k, int flag) {
     i++;
     j = j + n;
   }
-  
+
   //%%%traces: int j, int i, int k
+  vtrace(j, i, k);
   //if (flag == 1) assert(j == i);
 }
 
 int main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]));
-  return 0;
 }
