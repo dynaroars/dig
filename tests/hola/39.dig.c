@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+
+void vassume(int b){}
+void vtrace(int i, int j){}
 
 void mainQ(int MAXPATHLEN, int u) {
-  assert(MAXPATHLEN > 0);
+  vassume(MAXPATHLEN > 0);
 
   int buf_off = 0;
   int pattern_off = 0;
@@ -26,6 +28,7 @@ void mainQ(int MAXPATHLEN, int u) {
 
     glob3_dc++;
     //%%%traces: int glob3_dc, int MAXPATHLEN
+    vtrace(glob3_dc, MAXPATHLEN);
     //assert(0 <= glob3_dc);
     //assert(glob3_dc < MAXPATHLEN + 1);
 
@@ -38,7 +41,6 @@ void mainQ(int MAXPATHLEN, int u) {
   }
 }
 
-int main(int argc, char *argv[]) {
+void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]));
-  return 0;
 }
