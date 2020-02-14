@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
-void mainQ(int flag, int u1) { 
-  assert(u1 > 0);
+void vassume(int b){}
+void vtrace(int a, int y, int x){}
+
+void mainQ(int flag, int u1) {
+  vassume(u1 > 0);
   int x = 1;
   int y = 1;
   int a = 0;
@@ -33,10 +35,10 @@ void mainQ(int flag, int u1) {
 
   if (flag != 0) a++;
   //%%%traces: int a, int y, int x
+  vtrace(a, y, x);
   //assert(a % 2 == 1);
 }
 
-int main(int argc, char *argv[]) {
+void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]));
-  return 0;
 }
