@@ -25,6 +25,6 @@ void mainQ(int k, int flag) {
   //if (flag == 1) assert(j == i);
 }
 
-int main(int argc, char *argv[]) {
+void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]));
 }
