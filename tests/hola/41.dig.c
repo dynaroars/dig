@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+
+void vassume(int b){}
+void vtrace(int z, int n, int i, int j){}
 
 void mainQ(int n, int kt, int flag) {
-  assert(n >= 0);
+  vassume(n >= 0);
   int k = 1;
   if (flag != 0) {
-    assert(kt >= 0);
+    vassume(kt >= 0);
     k = kt;
   }
   int i = 0;
@@ -19,10 +21,10 @@ void mainQ(int n, int kt, int flag) {
 
   int z = k + i + j;
   //%%%traces: int z, int n, int i, int j
+  vtrace(z, n, i, j);
   //assert(z > 2 * n);
 }
 
-int main(int argc, char *argv[]) {
+void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-  return 0;
 }
