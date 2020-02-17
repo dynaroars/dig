@@ -75,8 +75,11 @@ class Invs(set):
 
             mps = [mp for mp in wrs]
 
-        is_conj = True
-        rs = self._simplify(non_mps + mps, is_conj, use_reals)
+        rs = non_mps + mps
+        if rs:
+            is_conj = True
+            rs = self._simplify(rs, is_conj, use_reals)
+
         return Invs(rs + eqts_largecoefs)
 
     @classmethod
