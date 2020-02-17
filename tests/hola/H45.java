@@ -1,5 +1,6 @@
 public class H45 {
 
+    public static void vtrace(int x, int y){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]),Integer.parseInt(args[3]));
      }
@@ -12,7 +13,7 @@ public class H45 {
 	  int i = 0;
 	  int c = 0;
 	  int d = 1;
-  
+
 	  int i1 = 0;
 	  while (i1 < u1) {
 	       i1++;
@@ -47,6 +48,7 @@ public class H45 {
 	  }
 
 	  //%%%traces: int x, int y
+    vtrace(x, y);
 	  //assert(x == y);
 
      }

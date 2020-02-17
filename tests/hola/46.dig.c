@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace(int x, int z, int y, int w){}
+void vtrace(int x){}
 
 void mainQ(int u1) {
   vassume(u1 > 0);
@@ -23,7 +23,7 @@ void mainQ(int u1) {
     };
   }
   //%%%traces: int x, int z, int y, int w
-  vtrace(x, z, y, w);
+  vtrace(x);
   //assert(x <= 1);
 }
 

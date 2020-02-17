@@ -1,5 +1,6 @@
 public class H44 {
 
+      public static void vtrace(int j, int i, int flag){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
      }
@@ -20,8 +21,10 @@ public class H44 {
 	       i++;
 	       j = j + n;
 	  }
-  
+
 	  //%%%traces: int j, int i, int k, int flag
-	  //if (flag == 1) assert(j == i);
+
+	  if (flag == 1) vtrace(j, i, flag);
+    //assert(j==i)
      }
 }

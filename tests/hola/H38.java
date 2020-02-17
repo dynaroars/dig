@@ -1,5 +1,5 @@
 public class H38 {
-
+  public static void vtrace(int i, int x, int y, int n){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]));
      }
@@ -15,7 +15,10 @@ public class H38 {
 	       if (i % 2 == 0) y++;
 	  }
 	  //%%%traces: int i, int x, int y, int n
-	  //if (i % 2 == 0) assert(x == 2 * y);
+    //vtrace(i, x, y, n);
+	  if (i % 2 == 0){
+      vtrace(x,y);
+      //assert(x == 2 * y);
+    }
      }
 }
-

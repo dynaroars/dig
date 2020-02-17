@@ -1,7 +1,8 @@
 public class H46 {
 
-    public static void main (String[] args) {
-	mainQ(Integer.parseInt(args[0]));
+  public static void vtrace(int x){}
+  public static void main (String[] args) {
+	   mainQ(Integer.parseInt(args[0]));
     }
 
     public static void mainQ(int u1){
@@ -23,8 +24,8 @@ public class H46 {
 	    };
 	}
 	//%%%traces: int x, int z, int y, int w, int u1
+  vtrace(x);
 	//assert(x <= 1);
-  
+
     }
 }
-
