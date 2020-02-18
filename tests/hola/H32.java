@@ -1,5 +1,6 @@
 public class H32 {
 
+    public static void vtrace(int i, int j) {}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]));
      }
@@ -19,7 +20,7 @@ public class H32 {
 	       }
 	  }
 	  //%%%traces: int i, int j, int k, int b, int n
+    vtrace(i, j);
 	  //assert(i == j);
      }
 }
-

@@ -15,7 +15,7 @@ void mainQ(int m, int n, int u1) {
 
       if (u1) {
         //%%%traces: int j
-        //vtrace(j);
+        vtrace(j, i, n);
         //assert(j >= 0);
         j++;
         k = 0;
@@ -24,14 +24,14 @@ void mainQ(int m, int n, int u1) {
         }
       } else {
         //%%%traces: int n, int j, int i
-        vtrace(n, j, i);
+        vtrace(j, i, n);
         //assert(n + j + 5 > i);
         j += 2;
       }
     }
   }
   //%%%traces: int n, int j, int i
-  vtrace(n, j, i);
+  vtrace(j, i, n);
 }
 
 void main(int argc, char *argv[]) {

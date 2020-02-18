@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void vtrace(int i, int j, int k, int b, int n){}
+void vtrace(int i, int j){}
 
 void mainQ(int j) {
   int i = j;
@@ -18,7 +18,7 @@ void mainQ(int j) {
     }
   }
   //%%%traces: int i, int j, int k, int b, int n
-  vtrace(i, j, k, b, n);
+  vtrace(i, j);
   //assert(i == j);
 }
 

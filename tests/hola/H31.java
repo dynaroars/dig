@@ -1,5 +1,6 @@
 public class H31 {
 
+    public static void vtrace(int j, int n, int i){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]));
      }
@@ -15,6 +16,7 @@ public class H31 {
 
 		    if (u1!=0) {
 			 //%%%traces: int m, int n, int u1, int i, int j
+       vtrace(j, n, i);
 			 //assert(j >= 0);
 			 j++;
 			 k = 0;
@@ -23,12 +25,13 @@ public class H31 {
 			 }
 		    } else {
 			 //%%%traces: int m, int n, int u1, int i, int j
+       vtrace(j, n, i);
 			 //assert(n + j + 5 > i);
 			 j += 2;
 		    }
 	       }
 	  }
 	  ////%%%traces: int n, int j, int i
-  
+    vtrace(j, i, n);
      }
 }

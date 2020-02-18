@@ -2,9 +2,9 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace(int y, int n){}
+void vtrace(int k){}
 
-void mainQ(int l, int i, int k, int n) { 
+void mainQ(int l, int i, int k, int n) {
     vassume(l > 0);
 
     for (k = 1; k < n; k++) {
