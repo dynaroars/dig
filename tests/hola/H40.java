@@ -1,10 +1,11 @@
 public class H40 {
 
+  public static void vtrace(int a, int b){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]));
      }
 
-     public static void mainQ(int flag, int u1, int u2) { 
+     public static void mainQ(int flag, int u1, int u2) {
 	  assert(u1 > 0 && u2 > 0);
 
 	  int j = 1;
@@ -36,8 +37,11 @@ public class H40 {
 	  }
 
 	  //%%%traces: int a, int b, int i, int j, int u1, int u2, int flag
-	  //if (flag != 0) assert(a == //b);
-				
+	  if (flag != 0) {
+      vtrace(a, b);
+    }
+    //assert(a == //b);
+
 
      }
-}  
+}

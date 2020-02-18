@@ -1,5 +1,6 @@
 public class H39 {
 
+    public static void vtrace(int glob3_dc, int MAXPATHLEN) {}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
      }
@@ -28,6 +29,7 @@ public class H39 {
 
 	       glob3_dc++;
 	       //%%%traces: int glob3_dc, int MAXPATHLEN
+         vtrace(glob3_dc, MAXPATHLEN);
 	       //assert(0 <= glob3_dc);
 	       //assert(glob3_dc < MAXPATHLEN + 1);
 
@@ -42,4 +44,3 @@ public class H39 {
 
 
 }
-

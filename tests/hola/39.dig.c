@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace(int i, int j){}
+void vtrace(int glob3_dc, int MAXPATHLEN){}
 
 void mainQ(int MAXPATHLEN, int u) {
   vassume(MAXPATHLEN > 0);

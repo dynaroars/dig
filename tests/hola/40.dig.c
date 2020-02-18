@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace(int a, int b, int i, int j){}
+void vtrace(int a, int b) {}
 
 void mainQ(int flag, int u1, int u2) {
   vassume(u1 > 0 && u2 > 0);
@@ -36,11 +36,13 @@ void mainQ(int flag, int u1, int u2) {
   }
 
   //%%%traces: int a, int b, int i, int j
-  vtrace(a, b, i, j);
-  //if (flag != 0) assert(a ==b);
+
+  if (flag != 0) {
+    vtrace(a, b);
+    //assert(a ==b);
+}
 }
 
 void main(int argc, char *argv[]) {
   mainQ(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-
 }

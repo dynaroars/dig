@@ -1,5 +1,6 @@
 public class H42 {
 
+    public static void vtrace(int a, int y, int x){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
      }
@@ -35,6 +36,7 @@ public class H42 {
 
 	  if (flag != 0) a++;
 	  //%%%traces: int a, int y, int x
+    vtrace(a, y, x);
 	  //assert(a % 2 == 1);
      }
 }

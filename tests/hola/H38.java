@@ -1,5 +1,5 @@
 public class H38 {
-  public static void vtrace(int i, int x, int y, int n){}
+  public static void vtrace(int x, int y){}
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]));
      }
