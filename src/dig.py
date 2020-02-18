@@ -6,7 +6,6 @@ import helpers.vcommon
 
 DBG = pdb.set_trace
 
-
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")

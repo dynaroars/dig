@@ -33,6 +33,23 @@ public class PLDI09_Fig2 {
 	  N = 0 => t = 0 
 	  N <= P (N-P <= 0) => t = P + M + 1
 	  N > P (-N+P < 0)  =>  t = N -M(P-N)  // -N +P < 0
+
+
+	  #each precond simplifies to N = 0
+	  # N <= 0  =>  N = 0
+	  # N + P <= 0  => N = 0 ,  P = 0
+	  # M + N <= 0  => N = 0 , M = 0
+	  (N <= 0 | N + P <= 0 | M + N <= 0) => tCtr == 0 p
+
+	  # N has to be > 0 (otherwise tCtr = 0)
+	  # M has to be > 0 (otherwise tCtr = P + 1)
+	  (N > 0 & N  <= P & M > 0) => tCtr == M + P + 1 p
+
+	  # M <= 0  =>  M = 0
+	  # N + P <= 0  => N = 0 ,  P = 0
+	  # M + N <= 0  => N = 0 , M = 0
+	  
+	  (P < N | M <= 0 | N + P <= 0 | M + N <= 0) => tCtr == M*(N - P) + N p
 	 */
 	return 0;
     }

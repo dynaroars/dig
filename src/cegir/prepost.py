@@ -27,15 +27,15 @@ class CegirPrePost(Cegir):
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs
         assert isinstance(traces, DTraces), traces
-        dinvs_ = DInvs()
 
+        dinvs_ = DInvs()
         post_locs = [loc for loc in dinvs if settings.POST_LOC in loc]
         for loc in post_locs:
+
             postconds = [self.get_postconds(inv.inv) for inv in dinvs[loc]
                          if isinstance(inv, Eqt)]
             postconds = [pcs for pcs in postconds if pcs]
-            postconds = set(p for postconds_ in postconds
-                            for p in postconds_)
+            postconds = set(p for pcs in postconds for p in pcs)
             preposts = self.get_preposts(loc, postconds, traces[loc])
             if preposts:
                 dinvs_[loc] = Invs(preposts)
@@ -57,39 +57,50 @@ class CegirPrePost(Cegir):
         assert all(p.operator() == operator.eq for p in postconds), postconds
         assert isinstance(traces, Traces), traces
 
+        preconds = [pc for pc in self.preconds
+                    if self._check(pc.expr(self.use_reals), loc,
+                                   check_consistency_only=True)]
+        #print("preconds", preconds)
         postconds = sorted(postconds, key=lambda d: len(str(d)))
         postconds = [Eqt(p) for p in postconds]
 
-        # find all traces satifies each postcond
-        mytraces = {p: Traces([
-            t for t in traces if p.test_single_trace(t)])
-            for p in postconds}
+        # find traces satifies each postcond
+        ptraces = {p: Traces([t for t in traces if p.test_single_trace(t)])
+                   for p in postconds}
 
         preposts = []  # results
 
-        def myappend(preconds, is_conj):
-            prepost = PrePost(Invs(preconds), postcond, stat=Inv.PROVED)
+        def myappend(mypreconds, is_conj):
+            # TODO: check, stat=Inv.PROVED ?
+            prepost = PrePost(Invs(mypreconds), postcond, stat=Inv.PROVED)
             prepost.is_conj = is_conj
             preposts.append(prepost)
 
         postconds = sorted(
-            postconds, key=lambda d: len(mytraces[d]), reverse=True)
-
+            postconds, key=lambda d: len(ptraces[d]), reverse=True)
         idxs = list(range(len(postconds)))
         for idx in idxs:
             postcond = postconds[idx]
+            postcond_expr = postcond.expr(self.use_reals)
+            #print("postcond", postcond)
+
             others = [postconds[i] for i in idxs[:idx] + idxs[idx+1:]]
-            traces_ = [t for t in mytraces[postcond]
-                       if all(t not in mytraces[other] for other in others)]
+            traces_ = [t for t in ptraces[postcond]
+                       if all(t not in ptraces[other] for other in others)]
             traces_ = Traces(traces_)
 
-            conj_preconds = [pc for pc in self.preconds if pc.test(traces_)]
+            conj_preconds = [pc for pc in preconds if pc.test(traces_)]
+            #print(conj_preconds, conj_preconds)
+
             conj_preconds = self.get_conj_preconds(
-                loc, conj_preconds, postcond)
+                loc, conj_preconds, postcond_expr)
+            #print('cpreconds', conj_preconds)
             if conj_preconds:
                 myappend(conj_preconds, is_conj=True)
 
-            disj_preconds = self.get_disj_preconds(loc, postcond, traces)
+            disj_preconds = self.get_disj_preconds(
+                loc, preconds, postcond_expr, traces)
+            #print('dpreconds', disj_preconds)
             if disj_preconds:
                 myappend(disj_preconds, is_conj=False)
 
@@ -100,51 +111,49 @@ class CegirPrePost(Cegir):
     def check(self, pcs, postcond_expr, loc):
         precond_expr = z3.And(pcs) if isinstance(pcs, list) else pcs
         inv = z3.Implies(precond_expr, postcond_expr)
+        return self._check(inv, loc, check_consistency_only=False)
+
+    def _check(self, inv, loc, check_consistency_only=False):
         cexs, isSucc = self.symstates._mcheck_d(
-            loc, path_idx=None, inv=inv, inps=None)
+            loc, path_idx=None, inv=inv, inps=None,
+            check_consistency_only=check_consistency_only)
 
-        if cexs or not isSucc:
-            mlog.debug("{}: discard spurious result {}".format(loc, inv))
+        if check_consistency_only:
+            if cexs:
+                return True
             return False
-        return True
+        else:
+            if cexs or not isSucc:
+                # mlog.debug("{}: discard {}".format(loc, inv))
+                return False
+            return True
 
-    def get_disj_preconds(self, loc, postcond, traces):
-        postcond_expr = postcond.expr(self.use_reals)
-        preconds = []
+    def get_disj_preconds(self, loc, preconds, postcond_expr, traces):
+        assert all(isinstance(p, Inv) for p in preconds), preconds
+        assert z3.is_expr(postcond_expr), postcond_expr
 
-        def isOK(pre, post):
-            ret = False
-            for t in traces:
-                if pre.test_single_trace(t):
-                    ret = True
-                    if not post.test_single_trace(t):
-                        return False
-            return ret
-
-        for pc in self.preconds:
-            # pc => postcond    ~>   ~pc or postcond
-            # if isOK(pc, postcond):
+        preconds_ = []
+        for pc in preconds:
             if self.check(pc.expr(self.use_reals), postcond_expr, loc):
-                preconds.append(pc)
+                #print("hello: {} => {}".format(pc, postcond_expr))
+                preconds_.append(pc)
 
-        if len(preconds) >= 2:
+        if len(preconds_) >= 2:
             is_conj = False
-            preconds = Invs._simplify(
-                preconds, is_conj, self.use_reals)
-        return preconds
+            preconds_ = Invs._simplify(preconds_, is_conj, self.use_reals)
 
-    def get_conj_preconds(self, loc, preconds, postcond):
+        return preconds_
+
+    def get_conj_preconds(self, loc, preconds, postcond_expr):
         """
-        preconds  =>  post  can be strengthened by removing some preconds
+        preconds  =>  post can be strengthened by removing some preconds
         e.g., a&b => post is stronger than a&b&c => post
         """
         assert all(isinstance(p, Inv) for p in preconds), preconds
-        assert isinstance(postcond, Eqt), postcond
+        assert z3.is_expr(postcond_expr), postcond_expr
 
         if not preconds:
             return []
-
-        postcond_expr = postcond.expr(self.use_reals)
 
         preconds = sorted(preconds, key=lambda p: len(Miscs.get_vars(p.inv)))
         preconds_exprs = [pc.expr(self.use_reals) for pc in preconds]
@@ -163,12 +172,16 @@ class CegirPrePost(Cegir):
     def get_postconds(cls, eqt):
         assert Miscs.is_expr(eqt), eqt
         assert eqt.operator() == operator.eq, eqt
-        symbols = [s for s in Miscs.get_vars(eqt)
-                   if settings.CTR_VAR in str(s)]
+
+        # tCtr
+        symbols = [s for s in Miscs.get_vars(
+            eqt) if settings.CTR_VAR in str(s)]
+
         if not symbols:
             return
+
         assert len(symbols) == 1, \
-            "should only have 1 {} symbol: {}".format(
+            "should only have 1 tCtr symbol: {}, {}".format(
                 symbols, settings.CTR_VAR)
 
         postconds = sage.all.solve(eqt, symbols[0])

@@ -395,7 +395,8 @@ class SymStates(metaclass=ABCMeta):
 
     # PRIVATE
 
-    def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1):
+    def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1,
+                  check_consistency_only=False):
         assert isinstance(loc, str), loc
         assert path_idx is None or path_idx >= 0
         assert inv is None or z3.is_expr(inv), inv
@@ -411,7 +412,7 @@ class SymStates(metaclass=ABCMeta):
                 ss = ss[path_idx].mypc if path_idx else ss.mypc
             else:
                 ss = ss[path_idx].myexpr if path_idx else ss.myexpr
-            return self._mcheck(ss, inv, inps, ncexs)
+            return self._mcheck(ss, inv, inps, ncexs, check_consistency_only)
 
         depths = sorted(self.ss[loc].keys())
         depth_idx = 0
@@ -428,12 +429,16 @@ class SymStates(metaclass=ABCMeta):
 
         return cexs, isSucc
 
-    def _mcheck(self, symstatesExpr, inv, inps, ncexs=1):
+    def _mcheck(self, symstatesExpr, inv, inps, ncexs=1,
+                check_consistency_only=False):
         """
         check if pathcond => inv
         if not, return cex
 
-        return inps, cexs, isSucc (if the solver does not timeout)
+        if check_consistency_only is set, then check if 
+        pathcond & inv is satisfiable
+
+        return cexs, isSucc (if the solver does not timeout)
         """
         assert z3.is_expr(symstatesExpr), symstatesExpr
         assert inv is None or z3.is_expr(inv), inv
@@ -445,7 +450,10 @@ class SymStates(metaclass=ABCMeta):
         if iconstr is not None:
             f = z3.simplify(z3.And(iconstr, f))
         if inv is not None:
-            f = z3.Not(z3.Implies(f, inv))
+            if check_consistency_only:
+                f = z3.And(f, inv)
+            else:
+                f = z3.Not(z3.Implies(f, inv))
 
         models, stat = Z3.get_models(f, ncexs)
         cexs, isSucc = Z3.extract(models)

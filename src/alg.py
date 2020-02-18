@@ -13,7 +13,7 @@ import helpers.vcommon as CM
 
 from data.prog import Prog
 from data.traces import Inps, DTraces
-from data.inv.invs import DInvs
+from data.inv.invs import DInvs, Invs
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -26,7 +26,7 @@ class Dig(metaclass=ABCMeta):
             filename = Path(filename)
 
         if not filename.is_file():
-            mlog.error("'{}' is invalid!".format(filename))
+            mlog.error("'{}' is not a valid file!".format(filename))
             exit(1)
 
         mlog.info("analyze '{}'".format(filename))
@@ -124,6 +124,22 @@ class DigSymStates(Dig):
         dtraces = DTraces.mk(self.locs)
         inps = Inps()
 
+        # # BEGIN TESTING
+        # m = sage.all.var("m")
+        # tCtr = sage.all.var("tCtr")
+        # import data.inv.eqt as Eqt
+        # import data.inv.oct as Oct
+        # dinvs['vtrace1_post'] = Invs({
+        #     Oct.Oct(m - tCtr <= 4),
+        #     Eqt.Eqt(m*tCtr ** 2 - tCtr ** 3 + 3*m*tCtr +
+        #             2*tCtr ** 2 - 10*m + 25*tCtr - 50 == 0),
+        #     Eqt.Eqt(m ** 2*tCtr - tCtr ** 3 + 5*m ** 2 + 3*m*tCtr +
+        #             2*tCtr ** 2 + 15*m + 25*tCtr - 50 == 0),
+        #     Oct.Oct(-tCtr <= 5)})
+        # self.infer('preposts', dinvs,
+        #            lambda: self.infer_preposts(dinvs, dtraces))
+        # DBG()
+        # # END TESTING
         if settings.DO_EQTS:
             self.infer('eqts', dinvs, lambda: self.infer_eqts(
                 maxdeg, dtraces, inps))
