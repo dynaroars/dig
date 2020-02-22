@@ -6,8 +6,8 @@ void vtrace1(int a, int b, int x, int y, int z){}
 void vtrace2(int a, int b, int x, int z){}
 
 int mainQ(int a, int b){
-    vassume(a>=0);
-    vassume(b>=0);
+    vassume(a >= 0);
+    vassume(b >= 0);
 
     int x,y,z;
     x = a;
