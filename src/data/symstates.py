@@ -423,8 +423,8 @@ class SymStates(metaclass=ABCMeta):
             cexs_, isSucc_, stat_ = f(depths[depth_idx])
             if stat_ != stat:
                 mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
-                           .format(inv, stat_, depths[depth_idx - 1],
-                                   stat, depths[depth_idx]))
+                           .format(inv, stat_, depths[depth_idx],
+                                   stat, depths[depth_idx - 1]))
             cexs, isSucc, stat = cexs_, isSucc_, stat_
 
         return cexs, isSucc

@@ -3,18 +3,19 @@ public class ProdBin {
     public static void vtrace2(int a, int b, int x, int z){}
     public static void main (String[] args) {}
     public static int mainQ(int a, int b){
-	assert(b>=0);
+	assert(a >= 0);	/* SPF/Z3 has some prob without this*/
+	assert(b >= 0);
 
 	int x,y,z;
 	x = a;
 	y = b;
 	z = 0;
-
+	
 	while(true) { 
 	    //assert(z+x*y==a*b);
 	    vtrace1(a, b, x, y, z);
 	    
-	    if(!(y!=0)) break;
+	    if(!(y != 0)) break;
 	  
 	    if (y % 2 == 1){
 		z = z+x;

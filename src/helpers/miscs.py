@@ -463,7 +463,7 @@ class Miscs(object):
         if not sols:
             return []
         if len(sols) > 1:
-            mlog.warning('instantiate_templateWithSols: len(sols) = {}'
+            mlog.warning('instantiate_template with sols: len(sols) = {}'
                          .format(len(sols)))
             mlog.warning(str(sols))
 
@@ -648,7 +648,6 @@ class Z3(object):
         """
         assert z3.is_expr(f), f
         assert k >= 1, k
-
         solver = cls.create_solver()
         solver.add(f)
 
@@ -658,6 +657,7 @@ class Z3(object):
             i = i + 1
             m = solver.model()
             if not m:  # if m == []
+                mlog.warning("sat but no model")
                 break
             models.append(m)
             # create new constraint to block the current model
@@ -671,7 +671,22 @@ class Z3(object):
         elif stat == z3.unsat and i == 0:
             rs = False
         else:
-            rs = models
+            if models:
+                rs = models
+            else:
+                # tmp fix,  ProdBin has a case when
+                # stat is sat but model is []
+                # so tmp fix is to treat that as unknown
+                rs = None
+                stat = z3.unknown
+
+        if (isinstance(rs, list) and not rs):
+            print(f)
+            print(k)
+            print(stat)
+            print(models)
+
+            DBG()
 
         assert not (isinstance(rs, list) and not rs), rs
         return rs, stat

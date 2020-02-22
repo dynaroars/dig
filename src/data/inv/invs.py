@@ -53,7 +53,15 @@ class Invs(set):
         def f(tasks):
             return [(inv, inv.test(traces)) for inv in tasks]
         wrs = Miscs.run_mp("test", list(self), f)
-        invs = self.__class__([inv for inv, passed in wrs if passed])
+
+        myinvs = []
+        for inv, passed in wrs:
+            if passed:
+                myinvs.append(inv)
+            else:
+                mlog.debug("remove {}".format(inv))
+
+        invs = self.__class__(myinvs)
         return invs
 
     def simplify(self, use_reals):
