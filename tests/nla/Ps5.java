@@ -3,7 +3,7 @@ public class Ps5 {
     public static void vtrace2(int x, int y, int k){}
     public static void main (String[] args) {}
     public static int mainQ(int k){
-	//assert (k>=0);
+	assert (k>=0);
 	assert (k <= 30); //if too large then will cause overflow
 	int y = 0;
 	int x = 0;

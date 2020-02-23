@@ -4,7 +4,7 @@ public class Ps2 {
     
     public static void main (String[] args) {}
     public static int mainQ(int k){
-	//assert (k>=0);
+	assert (k>=0);
 	assert (k<=30);
      
 	int y = 0;
