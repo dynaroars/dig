@@ -100,6 +100,9 @@ class PC_CIVL(PC):
         pc = None if pc == 'true' else cls.replace_str(pc)
         loc, slocal = slocal.split(':')
         slocal = cls.replace_str(slocal)
+
+        assert pc is None or len(pc) >= 1
+        assert slocal
         return loc, pc, slocal
 
     @staticmethod
@@ -198,9 +201,10 @@ class PC_JPF(PC):
 
         slocals = [p for p in slocals if not isTooLarge(p)]
         slocals = [cls.replace_str(p) for p in slocals if p]
-        slocal = ' and '.join(slocals)
+        slocal = ' and '.join(slocals) if slocals else None
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        pc = ' and '.join(pcs)
+        pc = ' and '.join(pcs) if pcs else None
+
         return loc, pc, slocal
 
     @staticmethod
