@@ -5,7 +5,7 @@ public class Sqrt1 {
 
     public static int mainQ(int n){
 	//for a to be sqrt of n,  needs to assume that n >= 0
-	//assert(n >= 0);
+	assert(n >= 0);
 	
 	int a,s,t;
 	a=0;
