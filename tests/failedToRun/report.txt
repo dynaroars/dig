@@ -8,3 +8,8 @@ Egcd2.java, Egcd3.java and Geo.java when tracing line 32 fails. I don't understa
          q <= 10 + s,
          0 <= 10 + s))): sat @ depth 10, unsat @ depth 11"
 Knuth.java fails because JPF does not support Math.sqrt
+Ps6.java fails due to error from JPF (I think). The following error " error #1: gov.nasa.jpf.vm.NoUncaughtExceptionsProperty "java.lang.AssertionError  at Ps6.mainQ(Ps6.java:7)..." is in the output of JPF when I ran the last command dig runs before failing with the following warning "data.symstates:WARNING:ignore CON: x = 220825 (larger than 200000)"
+Geo3.java even when I used --maxdeg 3 DIG generates invariants that are not strong enough to imply known invariants
+Lcm2.java only works when --nominmaxplus flag is used
+CohenCu.java and Sqrt1.java: I haven't figured out why they fail. It seems that dig is able to get symbolic states but fail after that.
+
