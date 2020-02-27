@@ -813,7 +813,7 @@ class Z3(object):
     #             # z3 has problem w/ t^c , so use t*t*t..
     #             if op == operator.pow:
     #                 assert len(oprs) == 2, oprs
-    #                 t, c = oprs
+    #                 print(t, c)
     #                 t = cls.toZ3(t, use_reals, use_mod)
     #                 if use_mod:
     #                     c = cls.toZ3(c, use_reals, use_mod)
@@ -839,7 +839,9 @@ class Z3(object):
 
     @classmethod
     def parse(cls, node, use_reals):
-
+        """
+        cannot parse something like tCtr == y - 1/2*sqrt(4*y**2 - 8*x + 4*y + 1) + 1/2
+        """
         # print(ast.dump(node))
 
         if isinstance(node, str):

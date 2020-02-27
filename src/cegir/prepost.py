@@ -81,7 +81,12 @@ class CegirPrePost(Cegir):
         idxs = list(range(len(postconds)))
         for idx in idxs:
             postcond = postconds[idx]
-            postcond_expr = postcond.expr(self.use_reals)
+            try:
+                postcond_expr = postcond.expr(self.use_reals)
+            except NotImplementedError as ex:
+                # cannot parse something like sqrt(x)
+                continue
+
             #print("postcond", postcond)
 
             others = [postconds[i] for i in idxs[:idx] + idxs[idx+1:]]
