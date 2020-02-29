@@ -91,7 +91,7 @@ class C:
     SE_MIN_DEPTH = 20
     SE_DEPTH_INCR = 4
 
-    CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME")) 
+    CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME"))
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
     # -seed={seed}
     CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file} > {tracefile}"

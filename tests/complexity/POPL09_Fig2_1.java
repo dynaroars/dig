@@ -2,6 +2,8 @@ public class POPL09_Fig2_1 {
     public static void vtrace_post(int n, int m, int a, int b, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int a, int b, int n, int m){
+		
+	
 	int x = a;
 	int y = b;
 	int tCtr = 0;

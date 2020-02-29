@@ -127,21 +127,16 @@ class Prog:
         small = 0.10
         large = 1 - small
         maxV = settings.INP_MAX_V
-        minV = -1 * maxV
         rinps = [(0, int(maxV * small)),
-                 (int(maxV * large), maxV),
-                 (int(minV * small), 0),
-                 (minV, int(minV * large))]
-
+                 (int(maxV * large), maxV)]
         if n_inps <= settings.INP_RANGE_V:
             # consider some ranges for smaller #'s of inps
             tiny = 0.05
-            rinps.extend([(0, int(maxV * tiny)),
-                          (int(minV * tiny), 0)])
+            rinps.extend([(0, int(maxV * tiny))])
 
         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
-        rinps = itertools.product(*itertools.repeat(rinps, n_inps))
-        return rinps
+        rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
+        return rinps_i
 
 
 class Symb(namedtuple('Symb', ('name', 'typ'))):

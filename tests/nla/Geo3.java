@@ -20,7 +20,6 @@ public class Geo3 {
 	    y = y*z;
 
 	}
-	//got nothing here
 	//vtrace2(x, y, z, a, k);
 	return x;
     }
