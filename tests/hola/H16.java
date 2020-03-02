@@ -10,9 +10,10 @@ public class H16 {
 	    x--;
 	    y--;
 	}
-
+	if (i==j){
 	vtrace(i, j, y);
 	//%%%traces: int i, int j, int y
 	//if (i == j) assert(y == 0);
+	}
     }
 }
