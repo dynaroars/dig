@@ -11,6 +11,7 @@ DO_IEQS = True
 DO_MINMAXPLUS = True
 DO_PREPOSTS = True
 DO_RMTMP = True  # remove temporary dir
+DO_TERM_FILTER = True  # remove terms to optimize
 doMP = True
 INP_MAX_V = 300
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs

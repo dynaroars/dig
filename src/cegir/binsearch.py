@@ -187,11 +187,15 @@ class CegirBinSearch(Cegir):
             terms_min = _get_terms(terms_u_no_octs, is_max=False)
             terms.extend(terms_min + terms_max)
 
-        st = time()
-        new_terms = self.filter_terms(terms, set(self.prog.inp_decls.names))
-        Miscs.show_removed('term filter',
-                           len(terms), len(new_terms), time() - st)
-        return new_terms
+        if settings.DO_TERM_FILTER:
+            st = time()
+            new_terms = self.filter_terms(
+                terms, set(self.prog.inp_decls.names))
+            Miscs.show_removed('term filter',
+                               len(terms), len(new_terms), time() - st)
+            return new_terms
+        else:
+            return terms
 
     @staticmethod
     def filter_terms(terms, inps):

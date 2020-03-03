@@ -61,6 +61,9 @@ if __name__ == "__main__":
     ag("--nopreposts", "-nopreposts",
        action="store_true")
 
+    ag("--notermfilter", "-notermfilter",
+       action="store_true")
+
     ag("--nomp", "-nomp",
        action="store_true",
        help="don't use multiprocessing")
@@ -76,6 +79,7 @@ if __name__ == "__main__":
     settings.DO_IEQS = not args.noieqs
     settings.DO_MINMAXPLUS = not args.nominmaxplus
     settings.DO_PREPOSTS = not args.nopreposts
+    settings.DO_TERM_FILTER = not args.notermfilter
     settings.DO_RMTMP = not args.normtmp
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:

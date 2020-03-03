@@ -1,6 +1,6 @@
 public class H41 {
 
-  public static void vtrace (int z, int n){ }
+    public static void vtrace (int z, int n, int i, int j){ }
      public static void main (String[] args) {
 	  mainQ(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]));
      }
@@ -22,7 +22,7 @@ public class H41 {
 
 	  int z = k + i + j;
 	  //%%%traces: int z, int n, int i, int j
-    vtrace(z, n);
+	  vtrace(z, n, i, j);
 	  //assert(z > 2 * n);
 
 
