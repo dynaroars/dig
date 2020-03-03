@@ -3,7 +3,7 @@ public class H29 {
     public static void main (String[] args) {}
 
     public static void mainQ(int u1, int u2) {
-	vtrace(u1 > 0 && u2 > 0);
+	assert(u1 > 0 && u2 > 0);
 	
 	int a = 1;
 	int b = 1;

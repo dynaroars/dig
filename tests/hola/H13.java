@@ -17,9 +17,10 @@ public class H13 {
 		k = k + 1;
 	    }
 	}
-
+	if (k !=0) {
 	vtrace(j, k);
 	//%%%traces: int j, int k
 	//if (k != 0) assert(j == 2 * k + 2);
+	}
     }
 }
