@@ -5,7 +5,7 @@ void vassume(int b){}
 void vtrace(int j, int k){}
 
 void mainQ(int flag, int u1) {
-    assert(u1 > 0);
+    vassume(u1 > 0);
     int j = 2;
     int k = 0;
     int i0 = 0;
