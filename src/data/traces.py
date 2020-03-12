@@ -19,6 +19,11 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
     """"
     ((x, y), (3, 4))
     """
+    def __new__(cls, ss, vs):
+        assert isinstance(ss, tuple), ss
+        assert isinstance(vs, tuple), vs
+        print(ss, vs)
+        return super().__new__(cls, ss, vs)
 
     def __str__(self):
         return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
