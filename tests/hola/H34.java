@@ -17,8 +17,8 @@ public class H34 {
 	    if (i % 2 == 0) y++;
 	}
 	//manual
+  // if (i == m) {
 	vtrace(x, y, n, i, m);
-	// if (i == m) {
 	//     // assert(x == 2 * y);
 	// }
 
