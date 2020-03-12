@@ -22,7 +22,6 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
     def __new__(cls, ss, vs):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
-        print(ss, vs)
         return super().__new__(cls, ss, vs)
 
     def __str__(self):
