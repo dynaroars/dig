@@ -18,7 +18,7 @@ def check_platform():
     print("Platform .. OK")
 
 
-def check_sage(min_version="8.9"):
+def check_sage(min_version="9.0"):
     """
     Check if the requirement for Sage is met
     """

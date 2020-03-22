@@ -42,7 +42,7 @@ You are now ready to use DIG, see instructions in [USAGE](#usage) below
 You can install DIG yourself.  The tool has been tested using the following setup:
 
 * Debian Linux 9 or 10 (64 bit)
-* SageMath `8.7` (64 bit)
+* SageMath `9.0` (64 bit)
 * Microsoft Z3 SMT solver `4.8.3`
 * Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
 * Java PathFinder and Symbolic Finder: 
@@ -59,7 +59,7 @@ You can install DIG yourself.  The tool has been tested using the following setu
 ```shell
 # in DIG's src directory
 $ cd src
-$ sage check_requirements.py
+$ sage helpers/check_requirements.py
 ...
 ...
 Everything seems OK. Have fun with DIG!
