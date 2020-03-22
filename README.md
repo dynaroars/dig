@@ -133,7 +133,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 
 You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java` or a bytecode file `.class`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
 
-### Generating Invariants From A Program
+### Generating Invariants From a Program
 
 Consider the following `CohenDiv.java` program
 
