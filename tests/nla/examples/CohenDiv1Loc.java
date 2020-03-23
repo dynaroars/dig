@@ -1,6 +1,5 @@
 public class CohenDiv1Loc {
     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
-    public static void vtrace2(int q, int y){}
     public static void main (String[] args) {}
      
     public static int mainQ(int x, int y) {
@@ -16,7 +15,8 @@ public class CohenDiv1Loc {
 	    a=1;
 	    b=y;
 
-	    while (true) {		
+	    while (true) {
+		vtrace1(q,r,a,b,x,y);
 		if(!(r >= 2*b)) break;
 
 		a = 2*a;
@@ -25,7 +25,7 @@ public class CohenDiv1Loc {
 	    r=r-b;
 	    q=q+a;
 	}
-	vtrace1(q,r,a,b,x,y);
+	
 	return q;
     }
 }
