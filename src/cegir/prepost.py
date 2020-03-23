@@ -22,7 +22,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class CegirPrePost(Cegir):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
-        self.use_reals = symstates.use_reals
+        self.use_reals = prog.inv_decls.use_reals
 
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs

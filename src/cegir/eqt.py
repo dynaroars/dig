@@ -200,14 +200,7 @@ class CegirEqt(Cegir):
                        .format(loc, len(unchecks), len(new_eqts)))
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
-            if self.symstates:
-                cexs, dinvs = self.symstates.check(dinvs, inps=None)
-            else:
-                for loc in dinvs:
-                    for inv in dinvs[loc]:
-                        inv.stat = Inv.UNKNOWN
-                cexs = {}
-
+            cexs, dinvs = self.mycheck(dinvs, inps=None)
             if cexs:
                 new_cexs.append(cexs)
 

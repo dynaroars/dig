@@ -42,7 +42,8 @@ class CegirBinSearch(Cegir):
                 for loc, terms in zip(locs, termss)}
         ieqs = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
 
-        cexs, ieqs = self.symstates.check(ieqs, inps=None)
+        cexs, ieqs = self.mycheck(ieqs, inps=None)
+
         if cexs:
             cexs_inps = inps.merge(cexs, self.inp_decls.names)
             if cexs_inps:
@@ -244,7 +245,7 @@ class CegirBinSearch(Cegir):
     def _mk_upp_and_check(self, loc, term, v):
         inv = self.mk_le(term, v)
         inv_ = DInvs.mk(loc, Invs([inv]))
-        cexs, _ = self.symstates.check(inv_, inps=None)
+        cexs, _ = self.mycheck(inv_, inps=None)
         return cexs, inv.stat
 
     def _get_max_from_cexs(self, loc, term, cexs):

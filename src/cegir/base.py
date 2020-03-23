@@ -10,6 +10,7 @@ import settings
 
 from data.prog import Prog
 from data.traces import Inps, DTraces
+from data.inv.base import Inv
 from data.inv.invs import DInvs
 
 
@@ -40,3 +41,13 @@ class Cegir(metaclass=ABCMeta):
         new_traces = self.prog.get_traces(inps)
         new_traces = traces.merge(new_traces)
         return new_traces
+
+    def mycheck(self, dinvs, inps):
+        if self.symstates:
+            cexs, dinvs = self.symstates.check(dinvs, inps)
+        else:
+            for loc in dinvs:
+                for inv in dinvs[loc]:
+                    inv.stat = Inv.UNKNOWN
+            cexs = {}
+        return cexs, dinvs
