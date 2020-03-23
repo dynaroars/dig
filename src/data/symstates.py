@@ -22,7 +22,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class PC(metaclass=ABCMeta):
-
     def __init__(self, loc, depth, pc, slocal, use_reals):
         assert isinstance(loc, str) and loc, loc
         assert depth >= 0, depth
@@ -253,6 +252,7 @@ class PCs(set):
 
 
 class SymStates(metaclass=ABCMeta):
+    depth_stat_changes = []
 
     def __init__(self, inp_decls, inv_decls, seed=None):
         assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
@@ -341,7 +341,7 @@ class SymStates(metaclass=ABCMeta):
             symstates.pop(loc)
 
         if all(not symstates[loc] for loc in symstates):
-            mlog.error("No symbolic states found for any locs. Exit !!")
+            mlog.error("No symbolic states found for any locs. Exit!")
             exit(1)
 
         # compute the z3 exprs once
@@ -429,6 +429,8 @@ class SymStates(metaclass=ABCMeta):
                 mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv, stat_, depths[depth_idx],
                                    stat, depths[depth_idx - 1]))
+                self.depth_stat_changes.append((inv, stat_, depths[depth_idx],
+                                                stat, depths[depth_idx - 1]))
             cexs, isSucc, stat = cexs_, isSucc_, stat_
 
         return cexs, isSucc

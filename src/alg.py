@@ -68,10 +68,12 @@ class Dig(metaclass=ABCMeta):
         mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
         return dinvs
 
-    def print_results(self, dinvs, dtraces, inps, st):
+    def print_results(self, dinvs, dtraces, inps, symstates, st):
         result = ("*** '{}', {} locs, "
                   "{} invs ({}), {} traces, {} inps, "
-                  "time {:.2f}s, rand seed {}, test {} {}:\n{}")
+                  "time {:.2f}s, rand seed {}, "
+                  "depth stat changes {}, "
+                  "test {} {}:\n{}")
 
         print(result.format(
             self.filename, len(dinvs),
@@ -82,6 +84,7 @@ class Dig(metaclass=ABCMeta):
             len(inps) if inps else 0,
             time.time() - st,
             self.seed,
+            len(symstates.depth_stat_changes) if symstates else 0,
             random.randint(0, 100),
             sage.all.randint(0, 100),
             dinvs.__str__(print_stat=False)))
@@ -139,7 +142,7 @@ class DigSymStates(Dig):
             self.infer('preposts', dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        self.print_results(dinvs, dtraces, inps, st)
+        self.print_results(dinvs, dtraces, inps, self.symstates, st)
 
         if settings.DO_RMTMP:
             import shutil
