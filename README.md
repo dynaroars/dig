@@ -4,7 +4,7 @@ DIG is a tool for generating (potentially **nonlinear**) numerical invariants us
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
 
-The current version of DIG works with Java programs and concrete program execution traces.  Previous versions also work with C and raw traces.
+The current version of DIG works with Java programs, C programs, and concrete program execution traces.
 
 
 ## Setup
@@ -65,7 +65,7 @@ $ sage check_requirements.py
 Everything seems OK. Have fun with DIG!
 ```
 
-#### Installing Java and PathFinder
+#### For Java files: installing Java and Symbolic PathFinder
 * Install Java 8: either the JDK from Oracle 1.8.0_121 or the OpenJDK packaged in Debian (`apt-get install -y default-jdk`, besure the version is 1.8.0_121 or 1.8.0_122).
 
 * Install both Java PathFinder and the Symbolic Pathfinder extension
@@ -107,7 +107,39 @@ $ cd src/java
 $ make
 ```
 
+#### For C files: install the [CIVL symbolic execution tool](https://vsl.cis.udel.edu/civl/)
 
+* Build CIL
+```shell
+$ git clone https://github.com/cil-project/cil.git
+$ cd cil
+$ ./configure ; make
+```
+
+* Compile the Ocaml files in `ocaml` directory for instrumenting C files (to CIVL format)
+
+```shell
+# in DIG's src directory
+$ cd src/ocaml
+$ edit Makefile  #point the OCAML_OPTIONS to where CIL is
+$ make
+```
+
+* Get CIVL
+
+```shell
+$ wget --no-check-certificate https://vsl.cis.udel.edu/lib/sw/civl/1.20/r5259/release/CIVL-1.20_5259.tgz
+$ tar xf CIVL-1.20_5259.tgz
+$ ln -sf CIVL-1.20_5259 civl
+$ ln -sf civl/lib/ lib
+
+# test CIVL
+/home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
+CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
+vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
+path condition: (0<=(X_x-1))&&(0<=(X_y-1))
+...
+```
 
 #### Setup Paths
 

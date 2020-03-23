@@ -70,6 +70,7 @@ def check_ext_progs():
         subprocess.call(cmd)
         print("* {}".format(prog))
 
+    # check JPF
     try:
         import os
         from path import Path
@@ -86,6 +87,26 @@ def check_ext_progs():
         else:
             # Something else went wrong while trying to run `cmd`
             raise
+
+    # Check CIVL
+    try:
+        import os
+        from path import Path
+        prog = Path(os.path.expandvars("$CIVL_HOME"))
+        prog = prog / "lib" / "civl-1.20_5259.jar"
+        run(prog)
+    except OSError as e:
+        import errno
+        if e.errno == errno.ENOENT:
+            msg = (("'{}' not found (install 'civl'), "
+                    "will not work with C programs")
+                   .format(prog))
+            print(msg)
+        else:
+            if e.errno == errno.EACCES:
+                pass  # expected
+            else:  # Something else went wrong while trying to run `cmd`
+                raise
 
     print("External programs .. OK")
 
