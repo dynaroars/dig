@@ -47,7 +47,7 @@ class CegirPrePost(Cegir):
         try:
             return self._preconds
         except AttributeError:
-            symbols = self.symstates.inp_decls.sageExprs
+            symbols = self.prog.inp_decls.sageExprs
             self._preconds = self.get_preconds(symbols, term_siz=2)
             return self._preconds
 
