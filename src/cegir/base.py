@@ -22,8 +22,8 @@ class Cegir(metaclass=ABCMeta):
         assert isinstance(prog, Prog), prog
 
         self.symstates = symstates
-        self.inv_decls = symstates.inv_decls
-        self.inp_decls = symstates.inp_decls
+        self.inv_decls = prog.inv_decls
+        self.inp_decls = prog.inp_decls
         self.prog = prog
 
     @abstractmethod

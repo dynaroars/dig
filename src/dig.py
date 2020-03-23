@@ -49,6 +49,10 @@ if __name__ == "__main__":
        type=float,
        help="Equation rate multiplier")
 
+    ag("--noss", "-noss",
+       action="store_true",
+       help="don't use symbolic states, i.e., just dynamic analysis")
+
     ag("--noeqts", "-noeqts",
        action="store_true")
 
@@ -74,6 +78,7 @@ if __name__ == "__main__":
     args = aparser.parse_args()
 
     import settings
+    settings.DO_SS = not args.noss
     settings.DO_MP = not args.nomp
     settings.DO_EQTS = not args.noeqts
     settings.DO_IEQS = not args.noieqs

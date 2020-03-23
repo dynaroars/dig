@@ -96,15 +96,17 @@ class DigSymStates(Dig):
         self.inv_decls = self.mysrc.inv_decls
 
         self.prog = Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
-        self.set_symbolic_states()
 
-        # remove locations with no symbolic states
-        invalid_locs = [loc for loc in self.inv_decls
-                        if loc not in self.symstates.ss]
+        self.symstates = None
+        if settings.DO_SS:
+            self.symstates = self.get_symbolic_states()
+            # remove locations with no symbolic states
+            invalid_locs = [loc for loc in self.inv_decls
+                            if loc not in self.symstates.ss]
 
-        for loc in invalid_locs:
-            mlog.warning('{}: no symbolic states. Skip'.format(loc))
-            self.inv_decls.pop(loc)
+            for loc in invalid_locs:
+                mlog.warning('{}: no symbolic states. Skip'.format(loc))
+                self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()
 
@@ -198,12 +200,13 @@ class DigSymStatesJava(DigSymStates):
         from helpers.src import Java as mysrc
         self.mysrc = mysrc(self.filename, self.tmpdir)
 
-    def set_symbolic_states(self):
+    def get_symbolic_states(self):
         from data.symstates import SymStatesJava
-        self.symstates = SymStatesJava(self.inp_decls, self.inv_decls)
-        self.symstates.compute(
+        symstates = SymStatesJava(self.inp_decls, self.inv_decls)
+        symstates.compute(
             self.filename, self.mysrc.mainQ_name,
             self.mysrc.funname, self.mysrc.symexedir)
+        return symstates
 
     @property
     def exe_cmd(self):

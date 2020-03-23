@@ -8,6 +8,7 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 from data.traces import Inps, Traces, DTraces
+from data.inv.base import Inv
 from data.inv.invs import Invs, DInvs
 import data.inv.eqt
 from cegir.base import Cegir
@@ -199,14 +200,19 @@ class CegirEqt(Cegir):
                        .format(loc, len(unchecks), len(new_eqts)))
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
-            cexs, dinvs = self.symstates.check(dinvs, inps=None)
+            if self.symstates:
+                cexs, dinvs = self.symstates.check(dinvs, inps=None)
+            else:
+                for loc in dinvs:
+                    for inv in dinvs[loc]:
+                        inv.stat = Inv.UNKNOWN
+                cexs = {}
 
             if cexs:
                 new_cexs.append(cexs)
 
             [eqts.add(inv) for inv in dinvs[loc] if not inv.is_disproved]
-            [cache.add(inv.inv) for inv in dinvs[loc]
-             if inv.stat is not None]
+            [cache.add(inv.inv) for inv in dinvs[loc] if inv.stat is not None]
 
             if loc not in cexs:
                 mlog.debug("{}: no disproved candidates -- break".format(loc))
