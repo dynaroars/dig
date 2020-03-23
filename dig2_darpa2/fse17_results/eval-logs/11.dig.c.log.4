@@ -1,0 +1,12 @@
+2:15:22:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:15:23:alg:Info:analyze ./programs/hola/11.dig.c
+2:15:23:alg:Info:set seed to: 1493795722.34 (test 57)
+2:15:23:alg:Info:check reachability
+Traceback (most recent call last):
+  File "dig2.py", line 71, in <module>
+    doEqts=not args.noeqts, doIeqs=not args.noieqs)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 384, in start
+    dinvs, traces, inps = solver.checkReach()
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 79, in checkReach
+    rinps = Miscs.genInitInps(len(self.inpdecls), DTraces.inpMaxV)
+TypeError: object of type 'NoneType' has no len()

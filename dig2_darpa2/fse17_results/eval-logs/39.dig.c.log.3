@@ -1,0 +1,17 @@
+4:59:8:dig2:Warn:DEBUG MODE ON. Can be slow !
+4:59:9:alg:Info:analyze ./programs/hola/39.dig.c
+4:59:9:alg:Info:set seed to: 1493805548.33 (test 49)
+4:59:9:alg:Info:check reachability
+4:59:9:alg:Info:gen eqts at 1 locs: l28 (int glob3_dc, int MAXPATHLEN)
+4:59:10:alg:Info:0 invs:
+l28: 
+4:59:10:alg:Info:gen ieqs at 1 locs: l28 (int glob3_dc, int MAXPATHLEN)
+4:59:10:alg:Info:1 locs: check upperbounds for 8 terms
+4:59:11:alg:Info:4 invs:
+l28: -MAXPATHLEN <= -1, -MAXPATHLEN + glob3_dc <= 0, -glob3_dc <= -1, -MAXPATHLEN - glob3_dc <= -2
+4:59:11:alg:Info:test 4 invs on all 728 traces
+4:59:11:alg:Info:find uniq invs
+4:59:11:alg:Info:4 invs:
+l28: -MAXPATHLEN <= -1, -MAXPATHLEN + glob3_dc <= 0, -glob3_dc <= -1, -MAXPATHLEN - glob3_dc <= -2
+4:59:12:alg:Info:*** ./programs/hola/39.dig.c, 1 locs, invs 2, inps 16, time 2.56189680099 s, rand 21: 
+l28: -MAXPATHLEN + glob3_dc <= 0, -glob3_dc <= -1

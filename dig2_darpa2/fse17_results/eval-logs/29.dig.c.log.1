@@ -1,0 +1,17 @@
+4:29:47:dig2:Warn:DEBUG MODE ON. Can be slow !
+4:29:48:alg:Info:analyze ./programs/hola/29.dig.c
+4:29:48:alg:Info:set seed to: 1493803787.94 (test 64)
+4:29:48:alg:Info:check reachability
+4:29:48:alg:Info:gen eqts at 1 locs: l36 (int a, int b, int c, int d)
+4:30:2:alg:Info:2 invs:
+l36: a - d + 1 == 0, b - c + 1 == 0
+4:30:2:alg:Info:gen ieqs at 1 locs: l36 (int a, int b, int c, int d)
+4:30:2:alg:Info:1 locs: check upperbounds for 32 terms
+4:30:7:alg:Info:20 invs:
+l36: a - d + 1 == 0, c <= 1, -d <= -3, a + b <= 2, b <= 0, -a + c <= -1, b - c <= -1, -a - d <= -5, -a + b <= -2, b + d <= 3, c - d <= -2, -a <= -2, c + d <= 4, b + c <= 1, -a + d <= 1, -b + c <= 1, b - d <= -3, a + c <= 3, a - d <= -1, b - c + 1 == 0
+4:30:7:alg:Info:test 20 invs on all 707 traces
+4:30:8:alg:Info:find uniq invs
+4:30:8:alg:Info:20 invs:
+l36: a - d + 1 == 0, c <= 1, -d <= -3, a + b <= 2, b <= 0, -a + c <= -1, b - c <= -1, -a - d <= -5, -a + b <= -2, b + d <= 3, c - d <= -2, -a <= -2, c + d <= 4, b + c <= 1, -a + d <= 1, -b + c <= 1, b - d <= -3, a + c <= 3, a - d <= -1, b - c + 1 == 0
+4:30:8:alg:Info:*** ./programs/hola/29.dig.c, 1 locs, invs 5, inps 707, time 20.2026090622 s, rand 17: 
+l36: -a + d <= 1, a + b <= 2, a - d <= -1, -a <= -2, b - c + 1 == 0

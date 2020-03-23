@@ -1,42 +1,50 @@
-import vcommon as CM
+#! /usr/bin/env python3
+
+"""
+Example: f=../results/nla_082619 ; rm -rf $f; python benchmark.py 2>&1 | tee $f
+"""
+from pathlib import Path
+import pdb
 import os
-import os.path
 import time
+from datetime import datetime
+
+import helpers.vcommon as CM
+
+import settings
+settings.logger_level = CM.getLogLevel(3)
+
+DBG = pdb.set_trace
+
+TIMEOUT = 900  # seconds
+CMD = "timeout {} ".format(TIMEOUT) +\
+    "$SAGE/sage -python -O " +\
+    "dig.py {filename} -log 4 -seed {seed}"
 
 
-# def vcmd(cmd, inp=None, shell=True):
-#     proc = sp.Popen(cmd, shell=shell, stdin=sp.PIPE,
-#                     stdout=sp.PIPE, stderr=sp.PIPE)
-#     return proc.communicate(input=inp)
+def run(benchdir, ntimes):
+    assert benchdir.is_dir(), benchdir
+
+    print("# Benchmark dir '{}' {} times ({})".format(
+        benchdir, ntimes, datetime.now()), flush=True)
+    fs = sorted(f for f in benchdir.iterdir() if f.suffix == ".java")
+
+    for i, f in enumerate(fs):
+        for j in range(ntimes):
+            i_run_cmd = CMD.format(filename=f, seed=j)
+            print("## {}/{}, run {}/{}. {}: {}".format(
+                i+1, len(fs), j+1, ntimes,
+                time.strftime("%c"), i_run_cmd), flush=True)
+            os.system(i_run_cmd)
 
 
-def run(dir_, ntimes):
-    print ("**** Benchmark dir '{}' {} times".format(dir_, ntimes))
-
-    fs = sorted(f for f in os.listdir(dir_) if f.endswith(".java"))
-    fs = [os.path.join(dir_, f) for f in fs]
-
-    for f in fs:
-        if not os.path.isfile(f):
-            print "File {} does not exist".format(f)
-            continue
-
-        run_cmd = "sage -python -O dig.py {} -log 2 -octmaxv 20 -seed {}"
-        for i in range(ntimes):
-            print "##### Running {} with seed {}, {}".format(
-                f, i, time.strftime("%c"))
-            cmd = run_cmd.format(f, i)
-            print cmd
-            stdout, stderr = CM.vcmd(cmd)
-            print stdout
-            print stderr
-
-
-ntimes = 1
+ntimes = 2
 
 # NLA
-dir_nla = "../tests/nla/"
-run(dir_nla, ntimes)
+dir_ = Path("../tests/nla/")
+# dir_mp = "../tests/mp/"
+# dir_complexity = "../tests/complexity/"
+run(dir_.resolve(), ntimes)
 
 
 # dirComplexity = "programs/complexity/gulwani_cav09"
@@ -49,11 +57,11 @@ run(dir_nla, ntimes)
 # run(dirComplexity, ntimes)
 
 
-#dirHola = "programs/hola/"
-#run(dirHola, ntimes)
+# dirHola = "programs/hola/"
+# run(dirHola, ntimes)
 
-#dirBm_oopsla = "programs/PIE/bm_oopsla/"
-#run(dirBm_oopsla, ntimes)
+# dirBm_oopsla = "programs/PIE/bm_oopsla/"
+# run(dirBm_oopsla, ntimes)
 
-#dirBm_ice = "programs/PIE/bm_ice/"
-#run(dirBm_ice, ntimes)
+# dirBm_ice = "programs/PIE/bm_ice/"
+# run(dirBm_ice, ntimes)

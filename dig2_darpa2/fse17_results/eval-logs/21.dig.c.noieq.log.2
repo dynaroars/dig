@@ -1,0 +1,13 @@
+2:46:34:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:46:35:alg:Info:analyze ./programs/hola/21.dig.c
+2:46:35:alg:Info:set seed to: 1493797594.41 (test 58)
+2:46:35:alg:Info:check reachability
+2:46:35:alg:Info:gen eqts at 1 locs: l27 (int k, int n, int j, int v)
+2:46:44:alg:Info:2 invs:
+l27: (v*v) - v == 0, k*v + k - 4000*n == 0
+2:46:44:alg:Info:test 2 invs on all 113 traces
+2:46:44:alg:Info:find uniq invs
+2:46:44:alg:Info:2 invs:
+l27: (v*v) - v == 0, k*v + k - 4000*n == 0
+2:46:44:alg:Info:*** ./programs/hola/21.dig.c, 1 locs, invs 2, inps 278, time 9.43173789978 s, rand 64: 
+l27: k*v + k - 4000*n == 0, (v*v) - v == 0

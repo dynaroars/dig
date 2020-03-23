@@ -1,0 +1,17 @@
+2:5:7:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:5:8:alg:Info:analyze ./programs/hola/07.dig.c
+2:5:8:alg:Info:set seed to: 1493795107.7 (test 5)
+2:5:8:alg:Info:check reachability
+2:5:8:alg:Info:gen eqts at 1 locs: l24 (int a, int b, int n)
+2:5:19:alg:Info:1 invs:
+l24: a + b - 3*n == 0
+2:5:19:alg:Info:gen ieqs at 1 locs: l24 (int a, int b, int n)
+2:5:19:alg:Info:1 locs: check upperbounds for 18 terms
+2:5:25:alg:Info:9 invs:
+l24: a + b - 3*n == 0, -a - b <= 0, -n <= 0, -b + n <= 0, -b <= 0, -b - n <= 0, -a + n <= 0, -a - n <= 0, -a <= 0
+2:5:25:alg:Info:test 9 invs on all 465 traces
+2:5:25:alg:Info:find uniq invs
+2:5:25:alg:Info:9 invs:
+l24: a + b - 3*n == 0, -a - b <= 0, -n <= 0, -b + n <= 0, -b <= 0, -b - n <= 0, -a + n <= 0, -a - n <= 0, -a <= 0
+2:5:25:alg:Info:*** ./programs/hola/07.dig.c, 1 locs, invs 3, inps 484, time 16.8683269024 s, rand 51: 
+l24: -a + n <= 0, a + b - 3*n == 0, -b + n <= 0

@@ -1,0 +1,17 @@
+4:50:41:dig2:Warn:DEBUG MODE ON. Can be slow !
+4:50:42:alg:Info:analyze ./programs/hola/36.dig.c
+4:50:42:alg:Info:set seed to: 1493805041.48 (test 87)
+4:50:42:alg:Info:check reachability
+4:50:42:alg:Info:gen eqts at 1 locs: l69 (int w, int z, int a, int b)
+4:51:2:alg:Info:2 invs:
+l69: a - b == 0, w - z == 0
+4:51:2:alg:Info:gen ieqs at 1 locs: l69 (int w, int z, int a, int b)
+4:51:2:alg:Info:1 locs: check upperbounds for 32 terms
+4:51:48:alg:Info:16 invs:
+l69: a - b <= 0, -w - z <= -2, -b <= -1, -z <= -1, -a - w <= -2, -w + z <= 0, -b - w <= -2, -a - b <= -2, -b - z <= -2, w - z <= 0, -a <= -1, -a + b <= 0, -w <= -1, -a - z <= -2, a - b == 0, w - z == 0
+4:51:48:alg:Info:test 16 invs on all 729 traces
+4:51:49:alg:Info:find uniq invs
+4:51:49:alg:Info:16 invs:
+l69: a - b <= 0, -w - z <= -2, -b <= -1, -z <= -1, -a - w <= -2, -w + z <= 0, -b - w <= -2, -a - b <= -2, -b - z <= -2, w - z <= 0, -a <= -1, -a + b <= 0, -w <= -1, -a - z <= -2, a - b == 0, w - z == 0
+4:51:49:alg:Info:*** ./programs/hola/36.dig.c, 1 locs, invs 5, inps 4533, time 67.0240840912 s, rand 47: 
+l69: -a - b <= -2, -w + z <= 0, -z <= -1, w - z <= 0, a - b == 0

@@ -1,0 +1,17 @@
+2:18:48:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:18:49:alg:Info:analyze ./programs/hola/13.dig.c
+2:18:49:alg:Info:set seed to: 1493795928.85 (test 20)
+2:18:49:alg:Info:check reachability
+2:18:49:alg:Info:gen eqts at 1 locs: l21 (int j, int k)
+2:19:7:alg:Info:1 invs:
+l21: j*k - 2*(k*k) - 2*k == 0
+2:19:7:alg:Info:gen ieqs at 1 locs: l21 (int j, int k)
+2:19:7:alg:Info:1 locs: check upperbounds for 8 terms
+2:19:8:alg:Info:5 invs:
+l21: -k <= 0, -j - k <= -5, -j + k <= -3, -j <= -4, j*k - 2*(k*k) - 2*k == 0
+2:19:8:alg:Info:test 5 invs on all 262 traces
+2:19:8:alg:Info:find uniq invs
+2:19:8:alg:Info:5 invs:
+l21: -k <= 0, -j - k <= -5, -j + k <= -3, -j <= -4, j*k - 2*(k*k) - 2*k == 0
+2:19:8:alg:Info:*** ./programs/hola/13.dig.c, 1 locs, invs 2, inps 826, time 19.0495569706 s, rand 38: 
+l21: j*k - 2*(k*k) - 2*k == 0, -j - k <= -5

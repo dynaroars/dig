@@ -1,0 +1,13 @@
+5:2:47:dig2:Warn:DEBUG MODE ON. Can be slow !
+5:2:48:alg:Info:analyze ./programs/hola/40.dig.c
+5:2:48:alg:Info:set seed to: 1493805767.39 (test 60)
+5:2:48:alg:Info:check reachability
+5:2:48:alg:Info:gen eqts at 1 locs: l36 (int a, int b, int i, int j)
+5:3:3:alg:Info:4 invs:
+l36: (i*i) - 3*i*j + 2*(j*j) + 2*i - 3*j + 1 == 0, (a*a)*j - a*b*j - (a*a) + 2*a*b - (b*b) == 0, a*i - a*j + b == 0, b*i + a*j - 2*b*j - a + 2*b == 0
+5:3:3:alg:Info:test 4 invs on all 714 traces
+5:3:4:alg:Info:find uniq invs
+5:3:4:alg:Info:4 invs:
+l36: (i*i) - 3*i*j + 2*(j*j) + 2*i - 3*j + 1 == 0, (a*a)*j - a*b*j - (a*a) + 2*a*b - (b*b) == 0, a*i - a*j + b == 0, b*i + a*j - 2*b*j - a + 2*b == 0
+5:3:4:alg:Info:*** ./programs/hola/40.dig.c, 1 locs, invs 2, inps 723, time 16.1495981216 s, rand 5: 
+l36: a*i - a*j + b == 0, (i*i) - 3*i*j + 2*(j*j) + 2*i - 3*j + 1 == 0

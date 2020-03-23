@@ -1,34 +1,37 @@
 public class MannaDiv {
-     public static void vtrace1(int y1, int y2, int y3, int x1, int x2){}
-     public static void main (String[] args) {}
+    public static void vtrace1(int q, int a, int b, int x, int y){}
+    public static void vtrace2(int q, int a, int x, int y){}         
+    public static void main (String[] args) {}
 
-     public static int mainQ(int x1, int x2){
-	  assert (x1 >= 0);
-	  assert (x2 >= 1);
+    public static int mainQ(int x, int y){
+	assert(x >= 0);
+	assert(y != 0);
      
-	  int y1,y2,y3;
-	  y1 = 0;
-	  y2 = 0;
-	  y3 = x1;
+	int q, a, b;
+	q = 0;
+	a = 0;
+	b = x;
 
-	  while(true) {
-	       //assert(y1* x2 + y2 + y3 == x1);
-	       vtrace1(y1, y2, y3, x1, x2);
+	while(true) {
+	    //assert(q* y + a + b == x);
+	    vtrace1(q, a, b, x, y);
 	  
-	       if(!(y3 != 0)) break;
+	    if(!(b != 0)) break;
 	  
-	       if (y2 + 1 == x2) {
-		    y1 = y1 + 1;
-		    y2 = 0;
-		    y3 = y3 - 1;
-	       }
-	       else {
-		    y2 = y2 + 1;
-		    y3 = y3 - 1;
-	       }
-	  }
-
-	  //assert(y1 == x1 / x2);
-	  return y1;
-     }
+	    if (a + 1 == y) {
+		q = q + 1;
+		a = 0;
+		b = b - 1;
+	    }
+	    else {
+		a = a + 1;
+		b = b - 1;
+	    }
+	}
+	//assert y*q - x + a == 0
+	//b guarantees to be 0
+	vtrace2(q, a, x, y); 
+	//assert(q == x / y);
+	return q;
+    }
 }

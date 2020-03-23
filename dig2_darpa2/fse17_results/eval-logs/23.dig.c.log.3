@@ -1,0 +1,27 @@
+2:49:31:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:49:32:alg:Info:analyze ./programs/hola/23.dig.c
+2:49:32:alg:Info:set seed to: 1493797771.55 (test 22)
+2:49:32:alg:Info:check reachability
+2:49:32:alg:Info:gen eqts at 1 locs: l12 (int sum, int i, int n)
+/home/tnguyen/Dropbox/git/dig2/alg.py:399: DeprecationWarning: Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)
+See http://trac.sagemath.org/5930 for details.
+  invs = solver.gen(deg, traces, inps)
+2:49:41:alg:Info:2 invs:
+l12: (n*n) - n - 2*sum == 0, i - n == 0
+2:49:41:alg:Info:gen ieqs at 1 locs: l12 (int sum, int i, int n)
+Traceback (most recent call last):
+  File "dig2.py", line 71, in <module>
+    doEqts=not args.noeqts, doIeqs=not args.noieqs)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 407, in start
+    if doIeqs: _gen('ieqs')        
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 399, in _gen
+    invs = solver.gen(deg, traces, inps)
+  File "/home/tnguyen/Dropbox/git/dig2/alg.py", line 243, in gen
+    len(locs), sum(map(len, termss))))
+  File "sage/symbolic/expression.pyx", line 5066, in sage.symbolic.expression.Expression.__call__ (/home/tnguyen/Src/Devel/SAGE/SageMath/src/build/cythonized/sage/symbolic/expression.cpp:30530)
+  File "sage/symbolic/ring.pyx", line 898, in sage.symbolic.ring.SymbolicRing._call_element_ (/home/tnguyen/Src/Devel/SAGE/SageMath/src/build/cythonized/sage/symbolic/ring.cpp:10821)
+  File "sage/symbolic/expression.pyx", line 4972, in sage.symbolic.expression.Expression.substitute (/home/tnguyen/Src/Devel/SAGE/SageMath/src/build/cythonized/sage/symbolic/expression.cpp:29999)
+  File "sage/symbolic/expression.pyx", line 2885, in sage.symbolic.expression.Expression.coerce_in (/home/tnguyen/Src/Devel/SAGE/SageMath/src/build/cythonized/sage/symbolic/expression.cpp:21670)
+  File "sage/structure/parent_old.pyx", line 240, in sage.structure.parent_old.Parent._coerce_ (/home/tnguyen/Src/Devel/SAGE/SageMath/src/build/cythonized/sage/structure/parent_old.c:4949)
+  File "sage/structure/parent.pyx", line 1195, in sage.structure.parent.Parent.coerce (/home/tnguyen/Src/Devel/SAGE/SageMath/src/build/cythonized/sage/structure/parent.c:11166)
+TypeError: no canonical coercion from <type 'list'> to Symbolic Ring

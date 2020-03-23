@@ -1,0 +1,17 @@
+5:13:39:dig2:Warn:DEBUG MODE ON. Can be slow !
+5:13:40:alg:Info:analyze ./programs/hola/41.dig.c
+5:13:40:alg:Info:set seed to: 1493806419.43 (test 46)
+5:13:40:alg:Info:check reachability
+5:13:40:alg:Info:gen eqts at 1 locs: l21 (int z, int n, int i, int j)
+5:13:52:alg:Info:2 invs:
+l21: (n*n) - 2*j + 3*n + 2 == 0, i - n - 1 == 0
+5:13:52:alg:Info:gen ieqs at 1 locs: l21 (int z, int n, int i, int j)
+5:13:52:alg:Info:1 locs: check upperbounds for 32 terms
+5:13:55:alg:Info:19 invs:
+l21: i - j <= 0, -i - z <= -3, -i - n <= -1, -n - z <= -2, -i + n <= -1, -i <= -1, -j + n <= -1, -j - z <= -3, n - z <= -2, i - z <= -1, -j <= -1, i - n <= 1, j - z <= -1, -n <= 0, -i - j <= -2, -j - n <= -1, -z <= -2, (n*n) - 2*j + 3*n + 2 == 0, i - n - 1 == 0
+5:13:55:alg:Info:test 19 invs on all 255 traces
+5:13:55:alg:Info:find uniq invs
+5:13:55:alg:Info:19 invs:
+l21: i - j <= 0, -i - z <= -3, -i - n <= -1, -n - z <= -2, -i + n <= -1, -i <= -1, -j + n <= -1, -j - z <= -3, n - z <= -2, i - z <= -1, -j <= -1, i - n <= 1, j - z <= -1, -n <= 0, -i - j <= -2, -j - n <= -1, -z <= -2, (n*n) - 2*j + 3*n + 2 == 0, i - n - 1 == 0
+5:13:56:alg:Info:*** ./programs/hola/41.dig.c, 1 locs, invs 4, inps 282, time 15.9873189926 s, rand 52: 
+l21: -i <= -1, (n*n) - 2*j + 3*n + 2 == 0, j - z <= -1, i - n - 1 == 0

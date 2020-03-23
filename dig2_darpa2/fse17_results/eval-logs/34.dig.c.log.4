@@ -1,0 +1,18 @@
+4:43:9:dig2:Warn:DEBUG MODE ON. Can be slow !
+4:43:10:alg:Info:analyze ./programs/hola/34.dig.c
+4:43:10:alg:Info:set seed to: 1493804589.43 (test 0)
+4:43:10:alg:Info:check reachability
+4:43:10:alg:Info:gen eqts at 1 locs: l16 (int x, int y, int i, int m)
+4:43:22:alg:Info:3 invs:
+l16: i - x == 0, (x*x) - 4*x*y + 4*(y*y) - x + 2*y == 0, m - 10 == 0
+4:43:22:alg:Info:gen ieqs at 1 locs: l16 (int x, int y, int i, int m)
+4:43:22:alg:Info:1 locs: check upperbounds for 32 terms
+4:43:25:alg:Info:14 invs:
+l16: -x + y <= 0, -y <= 0, i - x <= 0, -m + y <= 9, -i + x <= 0, i - x == 0, (x*x) - 4*x*y + 4*(y*y) - x + 2*y == 0, -x - y <= 0, -i <= 0, -x <= 0, -i - y <= 0, -i + y <= 0, -i - x <= 0, m - 10 == 0
+4:43:25:alg:Info:test 14 invs on all 293 traces
+4:43:25:ds:Warn:l16: -m + y <= 9 disproved
+4:43:26:alg:Info:find uniq invs
+4:43:26:alg:Info:13 invs:
+l16: -x + y <= 0, -y <= 0, i - x <= 0, -i + x <= 0, i - x == 0, (x*x) - 4*x*y + 4*(y*y) - x + 2*y == 0, -x - y <= 0, -i <= 0, -x <= 0, -i - y <= 0, -i + y <= 0, -i - x <= 0, m - 10 == 0
+4:43:26:alg:Info:*** ./programs/hola/34.dig.c, 1 locs, invs 4, inps 294, time 16.4079380035 s, rand 24: 
+l16: -y <= 0, m - 10 == 0, i - x == 0, (x*x) - 4*x*y + 4*(y*y) - x + 2*y == 0

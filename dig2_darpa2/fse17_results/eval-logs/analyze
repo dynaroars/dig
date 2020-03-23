@@ -1,0 +1,50 @@
+#!/usr/bin/env python2
+import glob
+import csv
+import subprocess
+
+NUM_EXPERIMENTS = 46
+NUM_TIMES = 5
+
+output = []
+
+for i in range(1, NUM_EXPERIMENTS+1):
+  print i
+  # Get the ieqs case
+  for j in range(1, NUM_TIMES+1):
+    filename = "%s.dig.c.log.%d" % (format(i, '02'),j)
+    contents = open(filename, 'r').read()
+    splitcontents = contents.split("\n")
+    k = contents.find("time")
+    if k != -1:
+      nextspace = contents.find(" ", k)
+      nextnextspace = contents.find(" ", nextspace+1)
+      noieqtime = contents[nextspace:nextnextspace]
+      invs1 = splitcontents[len(splitcontents)-4][4:]
+      invs2 = splitcontents[len(splitcontents)-2][4:]
+      output.append((i,j,noieqtime,invs1 + "," + invs2,"Y"))
+    else:
+      output.append((i,j,"N/A","","Y"))
+      
+  # Get the noieqs case
+  for j in range(1, NUM_TIMES+1):
+    filename = "%s.dig.c.noieq.log.%d" % (format(i, '02'),j)
+    contents = open(filename, 'r').read()
+    splitcontents = contents.split("\n")
+    k = contents.find("time")
+    if k != -1:
+      nextspace = contents.find(" ", k)
+      nextnextspace = contents.find(" ", nextspace+1)
+      noieqtime = contents[nextspace:nextnextspace]
+      invs1 = splitcontents[len(splitcontents)-4][4:]
+      invs2 = splitcontents[len(splitcontents)-2][4:]
+      output.append((i,j,noieqtime,invs1 + "," + invs2,"N"))
+    else:
+      output.append((i,j,"N/A","","N"))
+
+outfile = open('out.csv', 'w')
+out = csv.writer(outfile, delimiter="|")
+out.writerow(["program","testnum","time","invariants","inequalities"])
+
+for i in output: 
+  out.writerow(i)

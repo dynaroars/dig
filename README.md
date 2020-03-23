@@ -4,7 +4,7 @@ DIG is a tool for generating (potentially **nonlinear**) numerical invariants us
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
 
-The current version of DIG works with Java programs and raw program execution traces.  Previous versions also work with C and raw traces.
+The current version of DIG works with Java programs and concrete program execution traces.  Previous versions also work with C and raw traces.
 
 
 ## Setup
@@ -14,7 +14,7 @@ First, clone DIG
 ```shell
 git clone https://gitlab.com/nguyenthanhvuh/dig.git
 ```
-Then go to DIG's directory (`cd dig`).  Also make sure that you're in the `master` branch (if not, do `git checkout master`).
+Then go to DIG's directory (`cd dig`).  Also make sure that you're in the right branch (e.g., `master` or `dev`).
 To run DIG, you can either use the [provided  *docker* script](#using-docker) (easiest way) or [install DIG yourself](#installing-dig).
 
 ### Using DOCKER
@@ -35,7 +35,7 @@ $ docker run -it dig
 $ root@b53e0bd86c11:/dig/src# 
 ```
 
-You are now ready to use DIG, see instructions in [USAGE](##usage)
+You are now ready to use DIG, see instructions in [USAGE](#usage) below
 
 ### Installing DIG
 
@@ -121,22 +121,26 @@ export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
 export JAVA_HOME=/PATH/TO/JAVA
 export PATH=$SAGE:$JAVA_HOME/bin:$PATH
 export JPF_HOME=/PATH/TO/JPF
-export JPF_HOME=$DEVEL/JPF
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 ```
 
 * Some troubleshooting tips:
   *  Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
   *  Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
-
+  *  Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
 
 ## Usage
 
-### Generating invariants
+You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java` or a bytecode file `.class`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
+
+### Generating Invariants From A Program
 
 Consider the following `CohenDiv.java` program
 
 ```java
+// in DIG's src directory
+// $ less ../test/nla/CohenDiv.java
+
 public class CohenDiv {
      public static void vtrace1(int q, int r, int a, int b, int x, int y){}
      public static void vtrace2(int x, int y, int q, int r){}
@@ -177,7 +181,7 @@ public class CohenDiv {
   * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
   * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these specific variables.
 
-* Next, we run DIG on `CohenDiv.java` and discover the following equality and inequality invariants at `vtracesX` locations:
+* Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following equality and inequality invariants at `vtracesX` locations:
 
 ```
 #in DIG's src directory
@@ -197,14 +201,66 @@ vtrace2: q*y + r - x == 0 p, -q - x <= -1 p, -r <= 0 p, r - y <= -1 p
 
 
 
-### Other programs
+#### Other programs
 The directory `tests/nla/` contains many programs having nonlinear invariants.
 
-### Additional Info
-To run doctests, use `sage -t`
+
+### Generating Invariants From Traces
+
+DIG can infer invariants directly from a file concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+
 ```
-$ export SAGE_PATH=$Z3/src/api/python:.
-$ sage -t miscs.py
+# in DIG's src directory
+$ less ../test/traces/CohenDiv.tcs
+vtrace1: I q, I r, I a, I b, I x, I y
+vtrace1: 4, 8, 1, 4, 24, 4
+vtrace1: 16, 89, 1, 13, 297, 13
+vtrace1: 8, 138, 4, 76, 290, 19
+vtrace1: 0, 294, 8, 192, 294, 24
+vtrace1: 64, 36, 4, 16, 292, 4
+...
+vtrace2: I x, I y, I q, I r
+vtrace2: 280, 24, 11, 16
+vtrace2: 352, 11, 32, 0
+vtrace2: 22, 298, 0, 22
+vtrace2: 274, 275, 0, 274
+vtrace2: 2, 287, 0, 2
+...
+```
+
+```
+# in DIG's src directory
+$ sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
+alg:INFO:analyze '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs'
+alg:INFO:test 48 invs using 397 traces in 0.12s
+alg:INFO:simplify 45 invs in 0.72s
+*** '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs', 2 locs, invs 16 (Oct: 14, Eqt: 2), traces 397, inps 0, time 10.11s, rand seed 1564806847.44, test 99 40:
+vtrace1 (11 invs):
+1. a*y - b == 0 None
+2. b - r <= 0 None
+3. q - x <= -1 None
+4. r - x <= 0 None
+5. -q <= 0 None
+6. -b <= -1 None
+7. -y <= -1 None
+8. -q - r <= -7 None
+9. -x + y <= -2 None
+10. -x - y <= -10 None
+11. -x <= -7 None
+vtrace2 (5 invs):
+1. q*y + r - x == 0 None
+2. r - y <= -1 None
+3. -r <= 0 None
+4. -x - y <= -10 None
+5. -x <= -1 None
+```
+Note that most of the inequality results here are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), then DIG can check and remove spurious results.
+
+
+### Additional Info
+To run doctests
+```
+make test
 ```
 
 ## Publications ##

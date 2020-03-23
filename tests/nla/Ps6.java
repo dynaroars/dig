@@ -1,5 +1,6 @@
 public class Ps6 {
     public static void vtrace1(int x, int y, int k){}
+    public static void vtrace2(int x, int y, int k){}
     public static void main (String[] args){}
     public static int mainQ(int k){
 	assert (k>=0);
@@ -18,8 +19,11 @@ public class Ps6 {
 	    y = y + 1;
 	    x=y*y*y*y*y+x;
 	}
-	return x;
 
-     
+	//assert(2*(y*y*y*y*y*y) + 6*(y*y*y*y*y) + 5*(y*y*y*y) - (y*y) - 12*x == 0)
+	//assert(k*y == y*y);
+	
+	vtrace2(x, y, k);
+	return x;
     }
 }

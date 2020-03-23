@@ -1,0 +1,15 @@
+3:41:0:dig2:Warn:DEBUG MODE ON. Can be slow !
+3:41:4:alg:Info:analyze ./programs/hola/24.dig.c
+3:41:4:alg:Info:set seed to: 1493800860.09 (test 74)
+3:41:4:alg:Info:check reachability
+3:42:36:alg:Info:gen eqts at 2 locs: l18 (int k, int j, int n, int i); l13 (int k, int j, int n, int i)
+3:43:6:alg:Info:3 invs:
+l18: i*k - i*n == 0, i*j - i*n == 0, (i*i) - i*n == 0
+l13: 
+3:43:6:alg:Info:test 3 invs on all 16601270 traces
+3:43:6:alg:Info:find uniq invs
+3:43:6:alg:Info:3 invs:
+l18: i*k - i*n == 0, i*j - i*n == 0, (i*i) - i*n == 0
+l13: 
+3:43:7:alg:Info:*** ./programs/hola/24.dig.c, 1 locs, invs 3, inps 124, time 122.994639874 s, rand 92: 
+l18: i*k - i*n == 0, i*j - i*n == 0, (i*i) - i*n == 0

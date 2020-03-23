@@ -1,0 +1,13 @@
+5:26:38:dig2:Warn:DEBUG MODE ON. Can be slow !
+5:26:39:alg:Info:analyze ./programs/hola/42.dig.c
+5:26:39:alg:Info:set seed to: 1493807198.68 (test 17)
+5:26:39:alg:Info:check reachability
+5:26:39:alg:Info:gen eqts at 1 locs: l35 (int a, int y, int x)
+5:26:52:alg:Info:2 invs:
+l35: x*y - x - y + 1 == 0, a - x - y + 1 == 0
+5:26:52:alg:Info:test 2 invs on all 269 traces
+5:26:52:alg:Info:find uniq invs
+5:26:52:alg:Info:2 invs:
+l35: x*y - x - y + 1 == 0, a - x - y + 1 == 0
+5:26:52:alg:Info:*** ./programs/hola/42.dig.c, 1 locs, invs 2, inps 660, time 12.7555241585 s, rand 76: 
+l35: a - x - y + 1 == 0, x*y - x - y + 1 == 0

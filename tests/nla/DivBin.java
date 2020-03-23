@@ -6,8 +6,8 @@ public class DivBin {
     public static void main (String[] args) {	  
     }
 
-    public static int mainQ_divbin(int A, int B) {
-	assert(A > 0 && B > 0 && A >= B);
+    public static int mainQ(int A, int B) {
+	assert(B >= 1);
  
 	int q = 0;
 	int r = A;
@@ -20,7 +20,7 @@ public class DivBin {
 	}
 
 	while(true){
-	    //assert(A == q*b + r && r >= 0);
+	    //assert(A == q*b + r);
 	    vtrace2(A,B,q,r,b);
 	    if (!(b!=B)) break;
 	  
@@ -31,6 +31,7 @@ public class DivBin {
 		r = r - b;
 	    }
 	}
+	//_assert(A == q * b + r)
 	vtrace3(A,B,q,r,b);
 	return 0;	  
 

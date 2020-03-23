@@ -1,0 +1,12 @@
+Egcd2.java 16 invariants at location line 51. highest degree is 5; 7 vars used; 18 terms took 4.22 seconds on average
+Egcd2.java, Egcd3.java and Geo.java when tracing line 32 fails. I don't understand the following output. That's where DIG gets stuck
+"data.symstates:DEBUG:depth diff If(And(c <= k, c <= q, 0 >= c),
+   c <= 10 + s,
+   If(And(k <= c, k <= q, 0 >= k),
+      k <= 10 + s,
+      If(And(q <= c, q <= k, 0 >= q),
+         q <= 10 + s,
+         0 <= 10 + s))): sat @ depth 10, unsat @ depth 11"
+Knuth.java fails because JPF does not support Math.sqrt
+Geo3.java even when I used --maxdeg 3 DIG generates invariants that are not strong enough to imply known invariants
+

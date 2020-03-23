@@ -1,0 +1,17 @@
+2:0:7:dig2:Warn:DEBUG MODE ON. Can be slow !
+2:0:7:alg:Info:analyze ./programs/hola/05.dig.c
+2:0:7:alg:Info:set seed to: 1493794807.27 (test 33)
+2:0:7:alg:Info:check reachability
+2:0:7:alg:Info:gen eqts at 1 locs: l21 (int i, int j)
+2:0:18:alg:Info:1 invs:
+l21: (i*i*i) - 3*(i*i)*j + 3*i*(j*j) - (j*j*j) - 3*(i*i) + 4*i*j - (j*j) == 0
+2:0:18:alg:Info:gen ieqs at 1 locs: l21 (int i, int j)
+2:0:18:alg:Info:1 locs: check upperbounds for 8 terms
+2:0:19:alg:Info:5 invs:
+l21: -i <= -1, -i - j <= -2, i - j <= 0, -j <= -1, (i*i*i) - 3*(i*i)*j + 3*i*(j*j) - (j*j*j) - 3*(i*i) + 4*i*j - (j*j) == 0
+2:0:19:alg:Info:test 5 invs on all 299 traces
+2:0:19:alg:Info:find uniq invs
+2:0:19:alg:Info:5 invs:
+l21: -i <= -1, -i - j <= -2, i - j <= 0, -j <= -1, (i*i*i) - 3*(i*i)*j + 3*i*(j*j) - (j*j*j) - 3*(i*i) + 4*i*j - (j*j) == 0
+2:0:20:alg:Info:*** ./programs/hola/05.dig.c, 1 locs, invs 3, inps 718, time 12.1495471001 s, rand 0: 
+l21: (i*i*i) - 3*(i*i)*j + 3*i*(j*j) - (j*j*j) - 3*(i*i) + 4*i*j - (j*j) == 0, i - j <= 0, -i <= -1

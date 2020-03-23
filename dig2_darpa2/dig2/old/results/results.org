@@ -1,0 +1,34 @@
+| program   | descr       | Invs | V, D  | deg used | Time *d* | Inps | Note                                                                                           |
+|-----------+-------------+------+-------+----------+----------+------+------------------------------------------------------------------------------------------------|
+| divbin    | div         | 1 eq | 5, 2  |        4 |    62.30 |      | b*q - A + r == 0                                                                               |
+| cohendiv  | div         | 2 eq | 6, 2  |        3 |       57 |      | a*y - b == 0, q*y + r - x == 0                                                                 |
+| mannadiv  | int div     | 1 eq | 5, 2  |        4 |    57.23 |      | x2*y1 - x1 + y2 + y3 == 0                                                                      |
+| hard      | int div     | eq   | 6, 2  |        3 |     29.0 |      | B*p - d == 0, B*q - A + r == 0                                                                 |
+| sqrt1     | square root | 2 eq | 4, 2  |        5 |     82.0 |      | 2*a - t + 1 == 0, (t*t) - 4*s + 2*t + 1 == 0                                                   |
+| dijkstra  | square root | 2 eq | 5, 3  |        4 |    56.24 |      | (h*h)*p - 4*h*n*q + 4*n*p*q - p*(q*q) + 4*h*q*r - 4*p*q*r == 0, (p*p) - n*q + q*r == 0         |
+| cohencube | cubic sum   | 3 eq | 5, 3  |        4 |       68 |      | y*z - 18*x - 12*y + 2*z - 6 == 0, 6*n - z + 6 == 0, (z*z) - 12*y - 6*z + 12 == 0               |
+| egcd      | gcd         | 3 eq | 8, 2  |        3 |     62.1 |      | p*x + r*y - a == 0, q*r - p*s + 1 == 0, q*x + s*y - b == 0                                     |
+| egcd3     | gcd         | 4 eq | 12, 2 |        2 |   125.76 |      | b*k - a + c == 0, p*x + r*y - a == 0, q*x + s*y - b == 0, b*d - v == 0                         |
+| prodbin   | product     | 1 eq | 5, 2  |        4 |    43.20 |      | a*b - x*y - z == 0                                                                             |
+| prod4br   | product     | 1 eq | 6, 3  |        3 |     27.6 |      | a*b*p - x*y + q == 0                                                                           |
+| fermat1   | divisor     | 1 eq | 5, 2  |        4 |    127.1 |      | (u*u) - (v*v) - 4*A - 4*r - 2*u + 2*v == 0                                                     |
+| fermat2   | divisor     | 1 eq | 5, 2  |        4 |     89.9 |      | (u*u) - (v*v) - 4*A - 4*r - 2*u + 2*v == 0                                                     |
+| knuth     | divisor     | 3 eq | 8, 3  |        3 |    118.3 |      | k*t - (t*t) == 0, a*k - d*k - a*t + d*t == 0, (d*d)*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r == 0 |
+| lcm1      | gcd, lcm    | eq   | 6, 2  |        3 |     23.7 |   99 | a*b - u*x - v*y == 0                                                                           |
+| lcm2      | gcd, lcm    | eq   | 6, 2  |        3 |     28.3 |    4 | 2*a*b - u*x - v*y == 0                                                                         |
+| geo1      | geo series  | eq   | 4, 2  |        5 |     36.5 |   66 | x*z - x - y + 1 == 0                                                                           |
+| geo2      | geo series  | 1 eq | 4, 2  |        5 |     33.8 |   55 | x*z - y*z - x + 1 == 0                                                                         |
+| geo3      | geo series  | eq   | 5, 3  |        4 |     90.6 |      | a*y*z - x*z - a + x == 0                                                                       |
+| ps2       | pow sum     | 1 eq | 3, 2  |        7 |     54.5 |      | y*y - 2*x + y == 0                                                                             |
+| ps3       | pow sum     | 1 eq | 3, 3  |        7 |     52.4 |      | 2*(y*y*y) + 3*(y*y) - 6*x + y == 0                                                             |
+| ps4       | pow sum     | 1 eq | 3, 4  |        7 |    52.48 |      | (y*y*y*y) + 2*(y*y*y) + (y*y) - 4*x == 0                                                       |
+| ps5       | pow sum     | 1 eq | 3, 5  |        7 |     60.8 |      | 6*(y*y*y*y*y) + 15*(y*y*y*y) + 10*(y*y*y) - 30*x - y == 0                                      |
+| ps6       | pow sum     | 1 eq | 3, 6  |        7 |     69.5 |      | 2*(y*y*y*y*y*y) + 6*(y*y*y*y*y) + 5*(y*y*y*y) - (y*y) - 12*x == 0                              |
+|-----------+-------------+------+-------+----------+----------+------+------------------------------------------------------------------------------------------------|
+| egcd2     | gcd         | 4 eq | 10, 2 |        2 |          |      | *inconsistent results, SAGE problem*                                                           |
+|-----------+-------------+------+-------+----------+----------+------+------------------------------------------------------------------------------------------------|
+| freire1   | square root | eq   | 3, 2  |          |          |      | floating bug                                                                                   |
+| freire2   | cubic root  | eq   | 4, 2  |          |          |      | floating bug                                                                                   |
+
+
+

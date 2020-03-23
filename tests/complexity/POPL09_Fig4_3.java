@@ -1,12 +1,12 @@
 public class POPL09_Fig4_3 {
-    public static void vtrace1(int n, int m, int y, int x, int t){}
+    public static void vtrace_post(int n, int m, int y, int x, int tCtr){}
     public static void main (String[] args) {}
     public static int mainQ(int n, int m){
 	assert(m >= 0);
 	assert(n >= 0);
 	int x = 0;
 	int y = 0;
-	int t = 0;
+	int tCtr = 0;
 	while(x < n){
 	    if(y < m){
 		y++;
@@ -15,10 +15,10 @@ public class POPL09_Fig4_3 {
 		y=0;
 		x++;
 	    }
-	    t++;
+	    tCtr++;
 	}
 	  
-	vtrace1(n, m, y, x, t);
+	vtrace_post(n, m, y, x, tCtr);
 	//dig2:  y <= 0, -x <= 0, n - t <= 0, -t + x <= 0, n*t - t*x == 0, -y <= 0
 	//NOTE: *** does this eq  n*t - t*x == 0  give us anything useful about the complexity?  ***
 	//Timos: I tried this example with DIG1 and I got m*n + n - t == 0 which looks exactly right. Is there something missing above?

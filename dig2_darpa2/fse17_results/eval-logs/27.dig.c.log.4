@@ -1,0 +1,24 @@
+4:14:2:dig2:Warn:DEBUG MODE ON. Can be slow !
+4:14:3:alg:Info:analyze ./programs/hola/27.dig.c
+4:14:3:alg:Info:set seed to: 1493802842.68 (test 94)
+4:14:3:alg:Info:check reachability
+4:14:5:alg:Info:gen eqts at 2 locs: l14 (int k, int l, int i, int n); l18 (int k, int l, int i, int n)
+4:14:24:alg:Info:1 invs:
+l14: 
+l18: (k*k) - k*n - k + n == 0
+4:14:24:alg:Info:gen ieqs at 2 locs: l14 (int k, int l, int i, int n); l18 (int k, int l, int i, int n)
+4:14:24:alg:Info:2 locs: check upperbounds for 64 terms
+4:16:24:alg:Info:22 invs:
+l14: i - n <= -1, -i + l <= 0, -l - n <= -3, -i - l <= -2, -k <= -1, -n <= -2, -i <= -1, -i - k <= -2, -i - n <= -3, -k - n <= -3, -k - l <= -2, -l <= -1, k - n <= -1, -i + k <= 9, l - n <= -1, k - l <= 9
+l18: (k*k) - k*n - k + n == 0, -l <= -1, -k <= -1, k - l <= 9, -k + n <= 0, -k - l <= -2
+4:16:24:alg:Info:test 22 invs on all 345696 traces
+4:18:47:ds:Warn:l14: k - l <= 9 disproved
+4:20:1:ds:Warn:l14: -i + k <= 9 disproved
+4:20:1:ds:Warn:l18: k - l <= 9 disproved
+4:20:2:alg:Info:find uniq invs
+4:20:2:alg:Info:19 invs:
+l14: i - n <= -1, -i + l <= 0, -l - n <= -3, -i - l <= -2, -k <= -1, -n <= -2, -i <= -1, -i - k <= -2, -i - n <= -3, -k - n <= -3, -k - l <= -2, -l <= -1, k - n <= -1, l - n <= -1
+l18: (k*k) - k*n - k + n == 0, -l <= -1, -k <= -1, -k + n <= 0, -k - l <= -2
+4:20:2:alg:Info:*** ./programs/hola/27.dig.c, 2 locs, invs 9, inps 962, time 358.804047108 s, rand 13: 
+l14: -i + l <= 0, -l <= -1, k - n <= -1, i - n <= -1, -k <= -1
+l18: -k + n <= 0, (k*k) - k*n - k + n == 0, -l <= -1, -k <= -1

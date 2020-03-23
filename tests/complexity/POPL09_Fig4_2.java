@@ -1,21 +1,21 @@
 public class POPL09_Fig4_2 {
-    public static void vtrace1(int n, int m, int x0, int y0, int t){}
+    public static void vtrace_post(int n, int m, int a, int b, int tCtr){}
     public static void main (String[] args) {}
-    public static int mainQ(int x0, int y0, int n, int m){
-	int x = x0;
-	int y = y0;
+    public static int mainQ(int a, int b, int n, int m){
+	int x = a;
+	int y = b;
 
-	int t = 0;
+	int tCtr = 0;
 	while(x < n){
 	    while(y < m){
 		y = y + 1;
-		t++;
+		tCtr++;
 	    }
 	    x = x + 1;
-	    t++;
+	    tCtr++;
 	}
-	vtrace1(n, m, x0, y0, t);
-	//   l17: -t <= 0, m*n*t + (n*n)*t - m*(t*t) - 2*n*(t*t) + (t*t*t) - m*t*x0 - 2*n*t*x0 + 2*(t*t)*x0 + t*(x0*x0) - n*t*y0 + (t*t)*y0 + t*x0*y0 == 0
+	vtrace_post(n, m, a, b, tCtr);
+	//   l17: -t <= 0, m*n*t + (n*n)*t - m*(t*t) - 2*n*(t*t) + (t*t*t) - m*t*a - 2*n*t*a + 2*(t*t)*a + t*(a*a) - n*t*b + (t*t)*b + t*a*b == 0
 	return 0;
     }
 

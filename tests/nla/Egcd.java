@@ -5,7 +5,7 @@ public class Egcd {
 
     public static int mainQ(int x, int y){
 	/* extended Euclid's algorithm */
-	assert(x >= 1);
+	assert(x >= 1);  //inf loop if remove
 	assert(y >= 1);
 	int a,b,p,q,r,s;
     
@@ -21,7 +21,6 @@ public class Egcd {
 	    //assert(a == y*r + x*p);
 	    //assert(b == x*q + y*s);
 	  
-	    //%%%traces: int x, int y, int a, int b, int p, int q, int r, int s
 	    vtrace1(x,y,a,b,p,q,r,s);
 	       
 	    if(!(a!=b)) break;
@@ -36,6 +35,11 @@ public class Egcd {
 		q = q-p; 
 		s = s-r;}
 	}
+	//assert(a - b == 0);    
+	//assert(p*x + r*y - b == 0);
+	//assert(q*r - p*s + 1 == 0);
+	//assert(q*x + s*y - b == 0);
+	
 	vtrace2(x,y,a,b,p,q,r,s);
 	return a;
     }
