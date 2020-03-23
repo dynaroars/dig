@@ -1,4 +1,4 @@
-public class Egcd2 {
+public class Egcd2_bound {
     public static void vtrace1(int x, int y, int a, int b, int p, int q, int r, int s){}
     public static void vtrace2(int x, int y, int a, int b, int p, int q, int r, int s, int c, int k){}
     public static void vtrace3(int x, int y, int a, int p, int q, int r, int s){}
