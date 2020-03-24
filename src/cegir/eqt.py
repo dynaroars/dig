@@ -8,7 +8,6 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 from data.traces import Inps, Traces, DTraces
-from data.inv.base import Inv
 from data.inv.invs import Invs, DInvs
 import data.inv.eqt
 from cegir.base import Cegir
