@@ -14,6 +14,7 @@ import helpers.vcommon as CM
 from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
+from analysis import Analysis
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -68,27 +69,6 @@ class Dig(metaclass=ABCMeta):
         mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
         return dinvs
 
-    def print_results(self, dinvs, dtraces, inps, symstates, st):
-        result = ("*** '{}', {} locs, "
-                  "{} invs ({}), {} traces, {} inps, "
-                  "time {:.2f}s, rand seed {}, "
-                  "depth stat changes {}, "
-                  "test {} {}:\n{}")
-
-        print(result.format(
-            self.filename, len(dinvs),
-            dinvs.siz,
-            ', '.join('{} {}'.format(dinvs.typ_ctr[t], t)
-                      for t in sorted(dinvs.typ_ctr)),
-            dtraces.siz,
-            len(inps) if inps else 0,
-            time.time() - st,
-            self.seed,
-            len(symstates.depth_stat_changes) if symstates else 0,
-            random.randint(0, 100),
-            sage.all.randint(0, 100),
-            dinvs.__str__(print_stat=False)))
-
 
 class DigSymStates(Dig):
     def __init__(self, filename):
@@ -142,7 +122,7 @@ class DigSymStates(Dig):
             self.infer('preposts', dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        self.print_results(dinvs, dtraces, inps, self.symstates, st)
+        Analysis(self, dinvs, dtraces, inps, time.time() - st).doit()
 
         if settings.DO_RMTMP:
             import shutil
@@ -286,7 +266,7 @@ class DigTraces(Dig):
             mlog.debug('added {} test traces'.format(new_traces.siz))
 
         dinvs = self.sanitize(dinvs, self.dtraces)
-        self.print_results(dinvs, self.dtraces, None, st)
+        Analysis(self, dinvs, self.dtraces, None, time.time() - st).doit()
         return dinvs, None
 
     def infer_eqts(self, maxdeg, symbols, traces):
