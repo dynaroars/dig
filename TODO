@@ -1,0 +1,2 @@
+3/23/2020
+- Egcd2_bound seems to run a long time for solving equations.  Need to run with -maxdeg 2.  Suggestion: look at the traces and equations.

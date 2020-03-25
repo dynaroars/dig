@@ -5,7 +5,7 @@ void vtrace(int i, int j){}
 
 void mainQ(int j) {
   int i = j;
-  int k = 100;
+  int k = 2;
   int b = 0;
   int n = 0;
   for (n = 0; n < 2 * k; n++) {

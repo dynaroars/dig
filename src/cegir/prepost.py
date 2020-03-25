@@ -22,7 +22,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class CegirPrePost(Cegir):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
-        self.use_reals = symstates.use_reals
+        self.use_reals = prog.inv_decls.use_reals
 
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs
@@ -47,7 +47,7 @@ class CegirPrePost(Cegir):
         try:
             return self._preconds
         except AttributeError:
-            symbols = self.symstates.inp_decls.sageExprs
+            symbols = self.prog.inp_decls.sageExprs
             self._preconds = self.get_preconds(symbols, term_siz=2)
             return self._preconds
 

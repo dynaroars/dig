@@ -6,6 +6,7 @@ DBG = pdb.set_trace
 
 tmpdir = Path("/var/tmp/")
 logger_level = 2
+DO_SS = True  # use symbolic states to check results
 DO_EQTS = True
 DO_IEQS = True
 DO_MINMAXPLUS = True

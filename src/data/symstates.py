@@ -1,6 +1,7 @@
 """
 Symbolic States
 """
+from multiprocessing import Queue
 from abc import ABCMeta, abstractmethod
 import pdb
 from pathlib import Path
@@ -22,7 +23,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class PC(metaclass=ABCMeta):
-
     def __init__(self, loc, depth, pc, slocal, use_reals):
         assert isinstance(loc, str) and loc, loc
         assert depth >= 0, depth
@@ -253,6 +253,8 @@ class PCs(set):
 
 
 class SymStates(metaclass=ABCMeta):
+    depth_stat_changes = Queue()
+    solver_calls = Queue()
 
     def __init__(self, inp_decls, inv_decls, seed=None):
         assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
@@ -341,7 +343,7 @@ class SymStates(metaclass=ABCMeta):
             symstates.pop(loc)
 
         if all(not symstates[loc] for loc in symstates):
-            mlog.error("No symbolic states found for any locs. Exit !!")
+            mlog.error("No symbolic states found for any locs. Exit!")
             exit(1)
 
         # compute the z3 exprs once
@@ -384,14 +386,14 @@ class SymStates(metaclass=ABCMeta):
         wrs = Miscs.run_mp("prove", tasks, f)
 
         mCexs, mdinvs = [], DInvs()
-        for loc, str_inv, (cexs, isSucc) in wrs:
+        for loc, str_inv, (cexs, is_succ) in wrs:
             inv = refsD[(loc, str_inv)]
 
             if cexs:
                 stat = Inv.DISPROVED
                 mCexs.append({loc: {str(inv): cexs}})
             else:
-                stat = Inv.PROVED if isSucc else Inv.UNKNOWN
+                stat = Inv.PROVED if is_succ else Inv.UNKNOWN
             inv.stat = stat
             mdinvs.setdefault(loc, Invs()).add(inv)
 
@@ -421,17 +423,20 @@ class SymStates(metaclass=ABCMeta):
         depths = sorted(self.ss[loc].keys())
         depth_idx = 0
 
-        cexs, isSucc, stat = f(depths[depth_idx])
+        cexs, is_succ, stat = f(depths[depth_idx])
         while(stat != z3.sat and depth_idx < len(depths) - 1):
             depth_idx = depth_idx + 1
-            cexs_, isSucc_, stat_ = f(depths[depth_idx])
+            cexs_, is_succ_, stat_ = f(depths[depth_idx])
             if stat_ != stat:
                 mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv, stat_, depths[depth_idx],
                                    stat, depths[depth_idx - 1]))
-            cexs, isSucc, stat = cexs_, isSucc_, stat_
+                self.__class__.depth_stat_changes.put(
+                    (str(inv), stat_, depths[depth_idx], stat, depths[depth_idx - 1]))
 
-        return cexs, isSucc
+            cexs, is_succ, stat = cexs_, is_succ_, stat_
+
+        return cexs, is_succ
 
     def _mcheck(self, symstatesExpr, inv, inps, ncexs=1,
                 check_consistency_only=False):
@@ -442,7 +447,7 @@ class SymStates(metaclass=ABCMeta):
         if check_consistency_only is set, then check if 
         pathcond & inv is satisfiable
 
-        return cexs, isSucc (if the solver does not timeout)
+        return cexs, is_succ (if the solver does not timeout)
         """
         assert z3.is_expr(symstatesExpr), symstatesExpr
         assert inv is None or z3.is_expr(inv), inv
@@ -460,8 +465,9 @@ class SymStates(metaclass=ABCMeta):
                 f = z3.Not(z3.Implies(f, inv))
 
         models, stat = Z3.get_models(f, ncexs)
-        cexs, isSucc = Z3.extract(models)
-        return cexs, isSucc, stat
+        cexs, is_succ = Z3.extract(models)
+        self.__class__.solver_calls.put((str(stat), is_succ))
+        return cexs, is_succ, stat
 
     def _get_inp_constrs(self, inps):
         cstrs = []
