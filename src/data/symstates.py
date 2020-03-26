@@ -253,8 +253,8 @@ class PCs(set):
 
 
 class SymStates(metaclass=ABCMeta):
-    depth_stat_changes = Queue()
-    solver_calls = Queue()
+    depth_changes = Queue()  # number of changes when using different depths
+    solver_calls = Queue()  # of solver calls
 
     def __init__(self, inp_decls, inv_decls, seed=None):
         assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
@@ -381,7 +381,7 @@ class SymStates(metaclass=ABCMeta):
             return [(loc, str(inv),
                      self._mcheck_d(
                          loc, path_idx,
-                         inv.expr(self.use_reals), inps, ncexs=1))
+                         inv, inps, ncexs=1))
                     for loc, inv in tasks]
         wrs = Miscs.run_mp("prove", tasks, f)
 
@@ -400,40 +400,54 @@ class SymStates(metaclass=ABCMeta):
         return merge(mCexs), mdinvs
 
     # PRIVATE
+    def _get_inv_expr(self, inv):
+        if isinstance(inv, Inv):
+            return inv.expr(self.use_reals)
+        else:
+            assert inv is None or z3.is_inv(inv)
+            return inv
 
     def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1,
                   check_consistency_only=False):
         assert isinstance(loc, str), loc
         assert path_idx is None or path_idx >= 0
-        assert inv is None or z3.is_expr(inv), inv
+        assert inv is None or isinstance(inv, Inv), inv
         assert inps is None or isinstance(inps, Inps), inps
         assert ncexs >= 1, ncexs
 
-        if inv == z3.BoolVal(False):
-            inv = None
+        inv_expr = self._get_inv_expr(inv)
+
+        if inv_expr == z3.BoolVal(False):
+            inv_expr = None
 
         def f(depth):
             ss = self.ss[loc][depth]
-            if inv == z3.BoolVal(False):
+            if inv_expr == z3.BoolVal(False):
                 ss = ss[path_idx].mypc if path_idx else ss.mypc
             else:
                 ss = ss[path_idx].myexpr if path_idx else ss.myexpr
-            return self._mcheck(ss, inv, inps, ncexs, check_consistency_only)
+            return self._mcheck(ss, inv_expr, inps, ncexs, check_consistency_only)
 
         depths = sorted(self.ss[loc].keys())
         depth_idx = 0
 
         cexs, is_succ, stat = f(depths[depth_idx])
+        if stat != z3.unsat:  # if disprove or unknown first time
+            self.__class__.depth_changes.put(
+                (str(inv_expr), None, None, stat, depths[depth_idx]))
+
         while(stat != z3.sat and depth_idx < len(depths) - 1):
-            depth_idx = depth_idx + 1
-            cexs_, is_succ_, stat_ = f(depths[depth_idx])
+            depth_idx_ = depth_idx + 1
+            cexs_, is_succ_, stat_ = f(depths[depth_idx_])
             if stat_ != stat:
                 mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
-                           .format(inv, stat_, depths[depth_idx],
-                                   stat, depths[depth_idx - 1]))
-                self.__class__.depth_stat_changes.put(
-                    (str(inv), stat_, depths[depth_idx], stat, depths[depth_idx - 1]))
+                           .format(inv_expr,
+                                   stat_, depths[depth_idx_],
+                                   stat, depths[depth_idx]))
+                self.__class__.depth_changes.put(
+                    (str(inv_expr), stat, depths[depth_idx], stat_, depths[depth_idx_]))
 
+            depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
 
         return cexs, is_succ

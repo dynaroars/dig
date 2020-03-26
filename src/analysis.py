@@ -30,7 +30,7 @@ class Analysis:
         def get_str(d):
             return "{} ({})".format(
                 sum(d[k] for k in d),
-                ', '.join('{} {}'.format(k, d[k]) for k in d))
+                ', '.join('{} {}'.format(k, d[k]) for k in sorted(d.keys())))
 
         solver_calls = {}
         while not symstates.solver_calls.empty():
@@ -57,8 +57,8 @@ class Analysis:
         change_stats = {}
         change_typs = {}  # unsat->sat
         change_depths = {}  # 9->10, 10->11
-        while not symstates.depth_stat_changes.empty():
-            (inv,  stat1, depth1, stat0, depth0) = symstates.depth_stat_changes.get()
+        while not symstates.depth_changes.empty():
+            (inv,  stat0, depth0, stat1, depth1) = symstates.depth_changes.get()
 
             typ = get_inv_typ(inv)
             if typ not in change_stats:
@@ -76,7 +76,7 @@ class Analysis:
             change_depths[change_depth] += 1
 
         solver_calls_s = "solver calls {}".format(get_str(solver_calls))
-        change_stats_s = "change stats {}".format(get_str(change_stats))
+        change_stats_s = "stats {}".format(get_str(change_stats))
         change_typs_s = "change typs {}".format(get_str(change_typs))
         change_depths_s = "change depths {}".format(get_str(change_depths))
 
