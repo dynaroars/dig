@@ -93,7 +93,7 @@ class Invs(set):
     @classmethod
     def _classify(cls, invs):
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
-        # DBG()
+
         for inv in invs:
             if isinstance(inv, Eqt):
                 if len(Miscs.get_coefs(inv.inv)) > 10:

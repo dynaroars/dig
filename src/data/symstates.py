@@ -400,6 +400,10 @@ class SymStates(metaclass=ABCMeta):
         return merge(mCexs), mdinvs
 
     # PRIVATE
+    def _update_depth_stats(self, inv, prev_stat, prev_depth, cur_stat, cur_depth):
+        self.__class__.depth_changes.put(
+            (inv, prev_stat, prev_depth, cur_stat, cur_depth))
+
     def _get_inv_expr(self, inv):
         if isinstance(inv, Inv):
             return inv.expr(self.use_reals)
@@ -433,8 +437,7 @@ class SymStates(metaclass=ABCMeta):
 
         cexs, is_succ, stat = f(depths[depth_idx])
         if stat != z3.unsat:  # if disprove or unknown first time
-            self.__class__.depth_changes.put(
-                (str(inv_expr), None, None, stat, depths[depth_idx]))
+            self._update_depth_stats(inv, None, None, stat, depths[depth_idx])
 
         while(stat != z3.sat and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
@@ -444,8 +447,8 @@ class SymStates(metaclass=ABCMeta):
                            .format(inv_expr,
                                    stat_, depths[depth_idx_],
                                    stat, depths[depth_idx]))
-                self.__class__.depth_changes.put(
-                    (str(inv_expr), stat, depths[depth_idx], stat_, depths[depth_idx_]))
+                self._update_depth_stats(
+                    inv, stat, depths[depth_idx], stat_, depths[depth_idx_])
 
             depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
@@ -480,7 +483,7 @@ class SymStates(metaclass=ABCMeta):
 
         models, stat = Z3.get_models(f, ncexs)
         cexs, is_succ = Z3.extract(models)
-        self.__class__.solver_calls.put((str(stat), is_succ))
+        self.__class__.solver_calls.put((stat, is_succ))
         return cexs, is_succ, stat
 
     def _get_inp_constrs(self, inps):

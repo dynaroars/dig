@@ -3,11 +3,15 @@ Analyze and print Dig's results
 """
 import random
 import pdb
+from collections import Counter
 
 import sage.all
 
 import settings
 import helpers.vcommon as CM
+
+from data.inv.base import Inv
+
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -32,47 +36,52 @@ class Analysis:
                 sum(d[k] for k in d),
                 ', '.join('{} {}'.format(k, d[k]) for k in sorted(d.keys())))
 
-        solver_calls = {}
+        solver_calls = Counter()
         while not symstates.solver_calls.empty():
             (stat, is_succ) = symstates.solver_calls.get()
-            if stat not in solver_calls:
-                solver_calls[stat] = 0
+            stat = str(stat)
             solver_calls[stat] += 1
 
         def get_inv_typ(inv):
-            if "If" in inv:
-                return "MinMax"
-            elif ">=" in inv or "<=" in inv:
-                return "Ieq"
-            elif "==" in inv:
-                return "Eqt"
-            else:
+            assert inv is None or isinstance(inv, Inv), inv
+            if inv is None:
                 print('W: unknown inv type: {}'.format(inv))
                 return "Unknown"
+            else:
+                return inv.__class__.__name__
+
+            # inv = str(inv)
+            # if "lambda" in inv:
+            #     typ = "MinMax"
+            # elif ">=" in inv or "<=" in inv:
+            #     typ = "Ieq"
+            # elif "==" in inv:
+            #     typ = "Eqt"
+            # else:
+            #     print('W: unknown inv type: {}'.format(inv))
+            #     typ = "Unknown"
+
+            # print(inv, typ)
+
+            # return typ
 
         def get_change(x, y):
             return "{}->{}".format(x, y)
 
-        depth_stat_changes = {}
-        change_stats = {}
-        change_typs = {}  # unsat->sat
-        change_depths = {}  # 9->10, 10->11
+        depth_stat_changes = Counter()
+        change_stats = Counter()
+        change_typs = Counter()  # unsat->sat
+        change_depths = Counter()  # 9->10, 10->11
         while not symstates.depth_changes.empty():
             (inv,  stat0, depth0, stat1, depth1) = symstates.depth_changes.get()
 
             typ = get_inv_typ(inv)
-            if typ not in change_stats:
-                change_stats[typ] = 0
             change_stats[typ] += 1
 
             change_typ = get_change(stat0, stat1)
-            if change_typ not in change_typs:
-                change_typs[change_typ] = 0
             change_typs[change_typ] += 1
 
             change_depth = get_change(depth0, depth1)
-            if change_depth not in change_depths:
-                change_depths[change_depth] = 0
             change_depths[change_depth] += 1
 
         solver_calls_s = "solver calls {}".format(get_str(solver_calls))
@@ -105,5 +114,5 @@ class Analysis:
               "rand seed {}, test ({}, {})".format(
                   dig.seed, random.randint(0, 100), sage.all.randint(0, 100))
               ]
-        print(" *** ",  ', '.join(s for s in ss if s))
+        print("***",  ', '.join(s for s in ss if s))
         print(self.dinvs.__str__(print_stat=False))

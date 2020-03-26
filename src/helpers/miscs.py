@@ -493,7 +493,7 @@ class Miscs(object):
         n_removed = orig_siz - new_siz
         if not n_removed:
             return
-        mlog.debug("{}: removed {} invs ({:.2f}s, orig {}, new {})"
+        mlog.debug("{}: removed {} invs in {:.2f}s (orig {}, new {})"
                    .format(s, n_removed, elapsed_time, orig_siz, new_siz))
 
     @classmethod
