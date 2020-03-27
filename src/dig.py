@@ -29,36 +29,6 @@ def run(ifile, args):
     return dig
 
 
-def benchmark(bdir, args):
-    assert bdir.is_dir(), bdir
-    bdir = bdir.resolve()
-    ntimes = args.benchmark_times
-    assert ntimes >= 1, ntimes
-
-    import tempfile
-    prefix = str(bdir).replace('/', '_')
-    prefix = "dig_bm_{}".format(prefix)
-    rdir = Path(tempfile.mkdtemp(dir=settings.tmpdir, prefix=prefix))
-
-    settings.tmpdir = rdir
-    settings.norm = True  # don't remove result dir
-
-    print("Running each file in {} {} times. Results stored in {}".format(
-        bdir, ntimes, rdir))
-
-    fs = sorted(f for f in bdir.iterdir() if f.is_file())
-
-    for i, f in enumerate(fs):
-        dig = run(f, args)
-        for j in range(ntimes):
-            print("## file {}/{}, run {}/{}. {}: {}".format(
-                i+1, len(fs), j+1, ntimes, time.strftime("%c"), f))
-
-            dig.start(seed=j, maxdeg=args.maxdeg)
-
-    print("benchmark results dir: {}".format(rdir))
-
-
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
@@ -181,13 +151,14 @@ if __name__ == "__main__":
 
     inp = Path(args.inp)
 
-    if args.benchmark_times:
-        benchmark(inp, args)
-        exit(0)
-
     if inp.is_dir():
-        from analysis import Results
-        Results.load(inp).analyze()
+        from analysis import Benchmark
+        benchmark = Benchmark(inp, args)
+        if args.benchmark_times:
+            benchmark.run(run)
+        else:
+            benchmark.analyze()
+        exit(0)
     else:
         if not inp.is_file():
             mlog.error("'{}' is not a valid file!".format(inp))

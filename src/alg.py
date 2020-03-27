@@ -13,7 +13,7 @@ import helpers.vcommon as CM
 from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
-from analysis import Results
+from analysis import Result
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -66,17 +66,18 @@ class DigSymStates(Dig):
     def __init__(self, filename):
         super().__init__(filename)
 
+    def start(self, seed, maxdeg):
+        assert maxdeg is None or maxdeg >= 1, maxdeg
+
+        super().start(seed)
+        self.tmpdir = self.get_tmpdir()
+
         self.set_mysrc()
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
         self.prog = Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
         self.use_rand_init = True
-
-    def start(self, seed, maxdeg):
-        assert maxdeg is None or maxdeg >= 1, maxdeg
-
-        super().start(seed)
 
         self.symstates = None
         if settings.DO_SS:
@@ -117,7 +118,7 @@ class DigSymStates(Dig):
 
     def postprocess(self, dinvs, dtraces, inps, t_time):
         """
-        Save and analyze results
+        Save and analyze result
         Clean up tmpdir
         """
         solver_calls = []
@@ -132,12 +133,13 @@ class DigSymStates(Dig):
             # no symbolic states
             pass
 
-        results = Results(dinvs, dtraces, inps,
-                          solver_calls,
-                          depth_changes, t_time)
+        result = Result(self.filename, self.seed,
+                        dinvs, dtraces, inps,
+                        solver_calls,
+                        depth_changes, t_time)
 
-        results.save(self.resultdir)
-        results.analyze()
+        result.save(self.tmpdir)
+        result.analyze()
 
         if settings.DO_RMTMP:
             import shutil
@@ -180,26 +182,11 @@ class DigSymStates(Dig):
         solver = CegirPrePost(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
 
-    @property
-    def tmpdir(self):
-        try:
-            return self._tmpdir
-        except AttributeError:
-            import tempfile
-            self._tmpdir = Path(tempfile.mkdtemp(
-                dir=settings.tmpdir, prefix="Dig_"))
-            return self._tmpdir
-
-    @property
-    def resultdir(self):
-        try:
-            return self._resultdir
-        except AttributeError:
-            resultdir = self.tmpdir / "results"
-            assert not resultdir.is_dir()
-            resultdir.mkdir()
-            self._resultdir = resultdir
-            return self._resultdir
+    def get_tmpdir(self):
+        import tempfile
+        tmpdir = Path(tempfile.mkdtemp(
+            dir=settings.tmpdir, prefix="dig_{}_".format(hash(self.seed))))
+        return tmpdir
 
 
 class DigSymStatesJava(DigSymStates):
@@ -254,6 +241,7 @@ class DigTraces(Dig):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed)
+        self.tmpdir = self.get_tmpdir()
 
         st = time.time()
 
