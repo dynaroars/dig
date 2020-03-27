@@ -31,11 +31,12 @@ def run(ifile, args):
 
 def benchmark(bdir, args):
     assert bdir.is_dir(), bdir
+    bdir = bdir.resolve()
     ntimes = args.benchmark_times
     assert ntimes >= 1, ntimes
 
     import tempfile
-    prefix = str(bdir.resolve()).replace('/', '_')
+    prefix = str(bdir).replace('/', '_')
     prefix = "dig_bm_{}".format(prefix)
     rdir = Path(tempfile.mkdtemp(dir=settings.tmpdir, prefix=prefix))
 
@@ -48,7 +49,6 @@ def benchmark(bdir, args):
     fs = sorted(f for f in bdir.iterdir() if f.is_file())
 
     for i, f in enumerate(fs):
-        f = f.resolve()
         dig = run(f, args)
         for j in range(ntimes):
             print("## file {}/{}, run {}/{}. {}: {}".format(

@@ -146,8 +146,7 @@ class DigSymStates(Dig):
         else:
             tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
             dtraces.vwrite(self.inv_decls, tracefile)
-            print("resultdir: {}".format(self.resultdir))
-            print("tmpdir: {}".format(self.tmpdir))
+            mlog.info("tmpdir: {}".format(self.tmpdir))
 
     def infer(self, typ, dinvs, f):
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
