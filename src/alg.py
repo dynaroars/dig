@@ -71,6 +71,12 @@ class DigSymStates(Dig):
         self.inv_decls = self.mysrc.inv_decls
 
         self.prog = Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
+        self.use_rand_init = True
+
+    def start(self, seed, maxdeg):
+        assert maxdeg is None or maxdeg >= 1, maxdeg
+
+        super().start(seed)
 
         self.symstates = None
         if settings.DO_SS:
@@ -84,13 +90,6 @@ class DigSymStates(Dig):
                 self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()
-
-        self.use_rand_init = True
-
-    def start(self, seed, maxdeg):
-        assert maxdeg is None or maxdeg >= 1, maxdeg
-
-        super().start(seed)
 
         mlog.info('infer invs at {} locs: {}'.format(
             len(self.locs), ', '.join(self.locs)))
@@ -147,7 +146,7 @@ class DigSymStates(Dig):
         else:
             tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
             dtraces.vwrite(self.inv_decls, tracefile)
-            print("resultdir: {}".format(todir))
+            print("resultdir: {}".format(self.resultdir))
             print("tmpdir: {}".format(self.tmpdir))
 
     def infer(self, typ, dinvs, f):
