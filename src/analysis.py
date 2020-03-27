@@ -61,9 +61,9 @@ class Result:
     def str_of_dict(self, d):
         return "{} ({})".format(
             sum(d[k] for k in d),
-            ', '.join('{} {}'.format(k, d[k]) for k in sorted(d.keys())))
+            ', '.join('{} {}'.format(k, d[k]) for k in sorted(d)))
 
-    def analyze_symstates(self, as_str=True):
+    def analyze_symstates(self):
 
         solver_calls = Counter(str(stat)
                                for stat, is_succ in self.solver_calls)
@@ -89,44 +89,43 @@ class Result:
         change_depths = Counter(get_change(depth0, depth1)
                                 for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
 
-        if not as_str:
-            return solver_calls, change_stats, change_typs, change_depths
+        return solver_calls, change_stats, change_typs, change_depths
 
-        solver_calls_s = "solver calls {}".format(
-            self.str_of_dict(solver_calls))
-        change_stats_s = "stats {}".format(self.str_of_dict(change_stats))
-        change_typs_s = "change typs {}".format(self.str_of_dict(change_typs))
-        change_depths_s = "change depths {}".format(
-            self.str_of_dict(change_depths))
+        # solver_calls_s = "solver calls {}".format(
+        #     self.str_of_dict(solver_calls))
+        # change_stats_s = "stats {}".format(self.str_of_dict(change_stats))
+        # change_typs_s = "change typs {}".format(self.str_of_dict(change_typs))
+        # change_depths_s = "change depths {}".format(
+        #     self.str_of_dict(change_depths))
 
-        ss = [solver_calls_s, change_stats_s, change_typs_s, change_depths_s]
-        return ', '.join(ss)
+        # ss = [solver_calls_s, change_stats_s, change_typs_s, change_depths_s]
+        # return ', '.join(ss)
 
-    def analyze(self):
-        inv_typs = ', '.join('{} {}'.format(self.invtyps[t], t)
-                             for t in sorted(self.invtyps))
+    # def analyze(self):
+    #     inv_typs = ', '.join('{} {}'.format(self.invtyps[t], t)
+    #                          for t in sorted(self.invtyps))
 
-        symstates_s = self.analyze_symstates()
+    #     symstates_s = self.analyze_symstates()
 
-        ss = [  # "file {}".format(dig.filename),
-            "locs {}".format(len(self.dinvs)),
-            "invs {} ({})".format(self.dinvs.siz, inv_typs),
-            "traces {}".format(self.dtraces.siz),
-            "inps {}".format(len(self.inps) if self.inps else 0),
-            "time {:.2f}s".format(self.t_time),
-            symstates_s,
-            "rand seed {}, test ({}, {})".format(
-                self.seed, random.randint(0, 100), sage.all.randint(0, 100))
-        ]
-        print("***",  ', '.join(s for s in ss if s))
-        print(self.dinvs.__str__(print_stat=False))
+    #     ss = [  # "file {}".format(dig.filename),
+    #         "locs {}".format(len(self.dinvs)),
+    #         "invs {} ({})".format(self.dinvs.siz, inv_typs),
+    #         "traces {}".format(self.dtraces.siz),
+    #         "inps {}".format(len(self.inps) if self.inps else 0),
+    #         "time {:.2f}s".format(self.t_time),
+    #         symstates_s,
+    #         "rand seed {}, test ({}, {})".format(
+    #             self.seed, random.randint(0, 100), sage.all.randint(0, 100))
+    #     ]
+    #     print("***",  ', '.join(s for s in ss if s))
+    #     print(self.dinvs.__str__(print_stat=False))
 
 
 class Stats:
     def __init__(self, prog, results):
         assert isinstance(prog, str), prog
-        assert all(isinstance(result, Result)
-                   for result in results), results
+        assert isinstance(results, list) and results, results
+        assert all(isinstance(r, Result) for r in results), results
 
         self.prog = prog
         self.results = results
@@ -139,6 +138,7 @@ class Stats:
         if msg:
             ss.append(msg)
         if do_len:
+            print(list(d.values()))
             ss.append(sum(v if isinstance(v, (int, float)) else len(v)
                           for v in d.values()))
 
@@ -165,8 +165,7 @@ class Stats:
         change_typs_d = defaultdict(list)
         change_depths_d = defaultdict(list)
         for result in self.results:
-            solver_calls, change_stats, change_typs, change_depths =\
-                result.analyze_symstates(as_str=False)
+            solver_calls, change_stats, change_typs, change_depths = result.analyze_symstates()
 
             self.mk_dict(solver_calls_d, solver_calls)
             self.mk_dict(change_stats_d, change_stats)
@@ -183,6 +182,7 @@ class Stats:
 
     def analyze(self, f):
         rs = self.results
+
         symstates_s = self.analyze_symstates(f)
         ss = [
             "prog {}".format(self.prog),
@@ -193,15 +193,19 @@ class Stats:
             "traces {}".format(f(r.dinvs.siz for r in rs)),
             "inps {}".format(
                 f(len(r.inps) if r.inps else 0 for r in rs)),
-            "time {}".format(f(r.t_time for r in rs)),
+            "time {:.2f}s".format(f(r.t_time for r in rs)),
             symstates_s
         ]
 
         print('**', ', '.join(s for s in ss if s))
+        if len(rs) == 1:
+            print("rand seed {}, test ({}, {})".format(
+                rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
+            print(rs[0].dinvs.__str__(print_stat=False))
 
 
 class Benchmark:
-    def __init__(self, bdir, args):
+    def __init__(self, bdir, args=None):
         assert bdir.is_dir(), bdir
 
         self.bdir = bdir.resolve()
@@ -218,7 +222,7 @@ class Benchmark:
 
         settings.norm = True  # don't remove result dir
 
-        print("Running each file in {} {} times. Result stored in {}".format(
+        mlog.info("Running each file in {} {} times. Result stored in {}".format(
             self.bdir, ntimes, rdir))
 
         fs = sorted(f for f in self.bdir.iterdir() if f.is_file())
@@ -229,24 +233,29 @@ class Benchmark:
 
             dig = run_f(f, self.args)
             for j in range(ntimes):
-                print("## file {}/{}, run {}/{}. {}: {}".format(
+                mlog.info("## file {}/{}, run {}/{}. {}: {}".format(
                     i+1, len(fs), j+1, ntimes, time.strftime("%c"), f))
 
                 dig.start(seed=j, maxdeg=self.args.maxdeg)
 
-        print("benchmark result dir: {}".format(rdir))
+        mlog.info("benchmark result dir: {}".format(rdir))
 
     def analyze(self):
         results_d = defaultdict(list)
-        _ = [results_d[d.name].append(Result.load(f))
-             for d in self.bdir.iterdir() for f in d.iterdir()]
 
-        for d in sorted(results_d):
-            print('analyzing {}'.format(d))
-            for result in results_d[d]:
-                result.analyze()
+        # single result
+        if (self.bdir / Result.resultfile).is_file():
+            result = Result.load(self.bdir)
+            results_d[result.filename.stem].append(result)
+        else:
+            for d in self.bdir.iterdir():
+                for f in d.iterdir():
+                    try:
+                        results_d[d.name].append(Result.load(f))
+                    except FileNotFoundError:
+                        pass
 
         for d in sorted(results_d):
             stats = Stats(d, results_d[d])
             stats.analyze(median)
-            stats.analyze(mean)
+            # stats.analyze(mean)

@@ -13,7 +13,7 @@ import helpers.vcommon as CM
 from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
-from analysis import Result
+from analysis import Result, Benchmark
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -139,7 +139,7 @@ class DigSymStates(Dig):
                         depth_changes, t_time)
 
         result.save(self.tmpdir)
-        result.analyze()
+        Benchmark(self.tmpdir, args=None).analyze()
 
         if settings.DO_RMTMP:
             import shutil
