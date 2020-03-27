@@ -772,76 +772,13 @@ class Z3(object):
         else:
             return -1
 
-    # @classmethod
-    # @cached_function
-    # def toZ3(cls, p, use_reals, use_mod):
-    #     """
-    #     Convert a Sage expression to a Z3 expression
-
-    #     Initially implements with a dictionary containing variables
-    #     e.g. {x:Real('x')} but the code is longer and more complicated.
-    #     This implemention does not require a dictionary pass in.
-
-    #     sage: from helpers.miscs import Z3
-    #     sage: Z3.toZ3(x*x*x, False, use_mod=False)
-    #     x*x*x
-    #     """
-    #     assert (Miscs.is_expr(p) or Miscs.is_int(p) or
-    #             isinstance(p, int)), (p, type(p))
-    #     assert isinstance(use_reals, bool), use_reals
-    #     assert isinstance(use_mod, bool), use_mod
-
-    #     def retval(p):
-    #         if p.is_symbol():
-    #             _f = z3.Real if use_reals else z3.Int
-    #         else:
-    #             _f = z3.RealVal if use_reals else z3.IntVal
-
-    #         try:
-    #             return _f(str(p))
-    #         except Exception:
-    #             assert False, "cannot parse {}".format(p)
-
-    #     if isinstance(p, int) or Miscs.is_int(p):
-    #         _f = z3.RealVal if use_reals else z3.IntVal
-    #         res = _f(str(p))
-
-    #     else:
-    #         oprs = p.operands()
-    #         if oprs:
-    #             op = p.operator()
-
-    #             # z3 has problem w/ t^c , so use t*t*t..
-    #             if op == operator.pow:
-    #                 assert len(oprs) == 2, oprs
-    #                 print(t, c)
-    #                 t = cls.toZ3(t, use_reals, use_mod)
-    #                 if use_mod:
-    #                     c = cls.toZ3(c, use_reals, use_mod)
-    #                     res = reduce(operator.mod, [t, c])
-    #                 else:
-    #                     if c == -1:  # 1/x
-    #                         res = 1/t
-    #                     else:
-    #                         assert c >= 0
-    #                         vs = [t] * c
-    #                         res = reduce(operator.mul, vs)
-    #             else:
-    #                 oprs = [cls.toZ3(o, use_reals, use_mod) for o in oprs]
-    #                 res = reduce(op, oprs)
-
-    #         else:
-    #             res = retval(p)
-
-    #     assert z3.is_expr(res), res
-    #     if use_mod:
-    #         mlog.debug("mod hack: {} => {}".format(p, res))
-    #     return res
-
     @classmethod
     def parse(cls, node, use_reals):
         """
-        cannot parse something like tCtr == y - 1/2*sqrt(4*y**2 - 8*x + 4*y + 1) + 1/2
+        Parse sage expr to z3
+        e.g., parse(str(sage_expr), use_reals=False)
+
+        Note cannot parse something like tCtr == y - 1/2*sqrt(4*y**2 - 8*x + 4*y + 1) + 1/2
         """
         # print(ast.dump(node))
 
