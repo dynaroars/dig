@@ -7,6 +7,58 @@ from pathlib import Path
 
 DBG = pdb.set_trace
 
+
+def run(ifile, args):
+    import alg
+    if ifile.suffix == ".java" or ifile.suffix == ".class":
+        if (args.se_mindepth and args.se_mindepth >= 1 and
+                args.se_mindepth != settings.Java.SE_MIN_DEPTH):
+            settings.Java.SE_MIN_DEPTH = args.se_mindepth
+        dig = alg.DigSymStatesJava(ifile)
+    elif ifile.suffix == ".c":
+        if (args.se_mindepth and args.se_mindepth >= 1 and
+                args.se_mindepth != settings.C.SE_MIN_DEPTH):
+            settings.C.SE_MIN_DEPTH = args.se_mindepth
+        dig = alg.DigSymStatesC(ifile)
+    else:
+        # traces file(s)
+        test_tracefile = Path(
+            args.test_tracefile) if args.test_tracefile else None
+        dig = alg.DigTraces(ifile, test_tracefile)
+
+    return dig
+
+
+def benchmark(bdir, args):
+    assert bdir.is_dir(), bdir
+    ntimes = args.benchmark_times
+    assert ntimes >= 1, ntimes
+
+    import tempfile
+    prefix = str(bdir.resolve()).replace('/', '_')
+    prefix = "dig_bm_{}".format(prefix)
+    rdir = Path(tempfile.mkdtemp(dir=settings.tmpdir, prefix=prefix))
+
+    settings.tmpdir = rdir
+    settings.norm = True  # don't remove result dir
+
+    print("Running each file in {} {} times. Results stored in {}".format(
+        bdir, ntimes, rdir))
+
+    fs = sorted(f for f in bdir.iterdir() if f.is_file())
+
+    for i, f in enumerate(fs):
+        f = f.resolve()
+        dig = run(f, args)
+        for j in range(ntimes):
+            print("## file {}/{}, run {}/{}. {}: {}".format(
+                i+1, len(fs), j+1, ntimes, time.strftime("%c"), f))
+
+            dig.start(seed=j, maxdeg=args.maxdeg)
+
+    print("benchmark results dir: {}".format(rdir))
+
+
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
@@ -82,6 +134,11 @@ if __name__ == "__main__":
        default=None,
        help="tracefile to test")
 
+    ag("--benchmark_times", "-benchmark_times",
+       type=int,
+       default=None,
+       help="run Dig this many times")
+
     args = aparser.parse_args()
 
     import settings
@@ -124,6 +181,10 @@ if __name__ == "__main__":
 
     inp = Path(args.inp)
 
+    if args.benchmark_times:
+        benchmark(inp, args)
+        exit(0)
+
     if inp.is_dir():
         from analysis import Results
         Results.load(inp).analyze()
@@ -131,22 +192,5 @@ if __name__ == "__main__":
         if not inp.is_file():
             mlog.error("'{}' is not a valid file!".format(inp))
             exit(1)
-
-        import alg
-        if inp.suffix == ".java" or inp.suffix == ".class":
-            if (args.se_mindepth and args.se_mindepth >= 1 and
-                    args.se_mindepth != settings.Java.SE_MIN_DEPTH):
-                settings.Java.SE_MIN_DEPTH = args.se_mindepth
-            dig = alg.DigSymStatesJava(inp)
-        elif inp.suffix == ".c":
-            if (args.se_mindepth and args.se_mindepth >= 1 and
-                    args.se_mindepth != settings.C.SE_MIN_DEPTH):
-                settings.C.SE_MIN_DEPTH = args.se_mindepth
-            dig = alg.DigSymStatesC(inp)
-        else:
-            # traces file(s)
-            test_tracefile = Path(
-                args.test_tracefile) if args.test_tracefile else None
-            dig = alg.DigTraces(inp, test_tracefile)
-
-        dig.start(seed, args.maxdeg)
+        dig = run(inp, args)
+        _ = dig.start(seed, args.maxdeg)
