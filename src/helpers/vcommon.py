@@ -78,6 +78,24 @@ def getLogLevel(level):
         return logging.DEBUG
 
 
+def vsave(filename, sobj, mode='wb'):
+    with open(filename, mode) as fh:
+        import pickle
+        pickle.dump(sobj, fh)
+
+
+def vload(filename, mode='rb'):
+    with open(filename, mode) as fh:
+        import pickle
+        sobj = pickle.load(fh)
+    return sobj
+
+
+def vread(filename):
+    with open(filename, 'r') as fh:
+        return fh.read()
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

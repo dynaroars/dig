@@ -13,10 +13,10 @@ from sage.all import cached_function
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, Z3
-from data.prog import Symbs, DSymbs
-from data.traces import Inps
-from data.inv.base import Inv
-from data.inv.invs import Invs, DInvs
+import data.prog
+import data.traces
+import data.inv.base
+import data.inv.invs
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -257,9 +257,9 @@ class SymStates(metaclass=ABCMeta):
     solver_calls = Queue()  # of solver calls
 
     def __init__(self, inp_decls, inv_decls, seed=None):
-        assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
+        assert isinstance(inp_decls, data.prog.Symbs), inp_decls  # I x, I y
         # {'vtrace1': (('q', 'I'), ('r', 'I'), ('x', 'I'), ('y', 'I'))}
-        assert isinstance(inv_decls, DSymbs), inv_decls
+        assert isinstance(inv_decls, data.prog.DSymbs), inv_decls
 
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
@@ -363,8 +363,8 @@ class SymStates(metaclass=ABCMeta):
         Check invs.
         Also update inps
         """
-        assert isinstance(dinvs, DInvs), dinvs
-        assert not inps or (isinstance(inps, Inps) and inps), inps
+        assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
+        assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
         mlog.debug("checking {} invs:\n{}".format(
             dinvs.siz, dinvs.__str__(print_first_n=20)))
@@ -385,17 +385,17 @@ class SymStates(metaclass=ABCMeta):
                     for loc, inv in tasks]
         wrs = Miscs.run_mp("prove", tasks, f)
 
-        mCexs, mdinvs = [], DInvs()
+        mCexs, mdinvs = [], data.inv.invs.DInvs()
         for loc, str_inv, (cexs, is_succ) in wrs:
             inv = refsD[(loc, str_inv)]
 
             if cexs:
-                stat = Inv.DISPROVED
+                stat = data.inv.base.Inv.DISPROVED
                 mCexs.append({loc: {str(inv): cexs}})
             else:
-                stat = Inv.PROVED if is_succ else Inv.UNKNOWN
+                stat = data.inv.base.Inv.PROVED if is_succ else data.inv.base.Inv.UNKNOWN
             inv.stat = stat
-            mdinvs.setdefault(loc, Invs()).add(inv)
+            mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
         return merge(mCexs), mdinvs
 
@@ -404,24 +404,19 @@ class SymStates(metaclass=ABCMeta):
         self.__class__.depth_changes.put(
             (inv, prev_stat, prev_depth, cur_stat, cur_depth))
 
-    def _get_inv_expr(self, inv):
-        if isinstance(inv, Inv):
-            return inv.expr(self.use_reals)
-        else:
-            assert inv is None or z3.is_inv(inv)
-            return inv
-
     def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1,
                   check_consistency_only=False):
         assert isinstance(loc, str), loc
         assert path_idx is None or path_idx >= 0
-        assert inv is None or isinstance(inv, Inv), inv
-        assert inps is None or isinstance(inps, Inps), inps
+        assert inv is None or isinstance(inv, data.inv.base.Inv), inv
+        assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
-        inv_expr = self._get_inv_expr(inv)
-
-        if inv_expr == z3.BoolVal(False):
+        try:
+            inv_expr = inv.expr(self.use_reals)
+            if inv_expr == z3.BoolVal(False):
+                inv_expr = None
+        except AttributeError:
             inv_expr = None
 
         def f(depth):
@@ -468,7 +463,7 @@ class SymStates(metaclass=ABCMeta):
         """
         assert z3.is_expr(symstatesExpr), symstatesExpr
         assert inv is None or z3.is_expr(inv), inv
-        assert inps is None or isinstance(inps, Inps), inps
+        assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
 
         f = symstatesExpr
@@ -488,7 +483,7 @@ class SymStates(metaclass=ABCMeta):
 
     def _get_inp_constrs(self, inps):
         cstrs = []
-        if isinstance(inps, Inps) and inps:
+        if isinstance(inps, data.traces.Inps) and inps:
             inpCstrs = [inp.mkExpr(self.inp_exprs) for inp in inps]
             inpCstrs = [z3.Not(expr) for expr in inpCstrs if expr is not None]
             cstrs.extend(inpCstrs)

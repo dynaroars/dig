@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 import pdb
 import random
-from pathlib import Path
 import time
+from pathlib import Path
 
 import sage.all
 
@@ -10,11 +10,10 @@ import settings
 from helpers.miscs import Miscs
 import helpers.vcommon as CM
 
-
 from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
-from analysis import Analysis
+from analysis import Results
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -23,13 +22,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Dig(metaclass=ABCMeta):
 
     def __init__(self, filename):
-        if not isinstance(filename, Path):
-            filename = Path(filename)
-
-        if not filename.is_file():
-            mlog.error("'{}' is not a valid file!".format(filename))
-            exit(1)
-
         mlog.info("analyze '{}'".format(filename))
         self.filename = filename
 
@@ -122,7 +114,31 @@ class DigSymStates(Dig):
             self.infer('preposts', dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        Analysis(self, dinvs, dtraces, inps, time.time() - st).doit()
+        self.postprocess(dinvs, dtraces, inps, time.time() - st)
+
+    def postprocess(self, dinvs, dtraces, inps, t_time):
+        """
+        Save and analyze results
+        Clean up tmpdir
+        """
+        solver_calls = []
+        depth_changes = []
+        try:
+            while not self.symstates.solver_calls.empty():
+                solver_calls.append(self.symstates.solver_calls.get())
+
+            while not self.symstates.depth_changes.empty():
+                depth_changes.append(self.symstates.depth_changes.get())
+        except AttributeError:
+            # no symbolic states
+            pass
+
+        results = Results(dinvs, dtraces, inps,
+                          solver_calls,
+                          depth_changes, t_time)
+
+        results.save(self.resultdir)
+        results.analyze()
 
         if settings.DO_RMTMP:
             import shutil
@@ -131,9 +147,8 @@ class DigSymStates(Dig):
         else:
             tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
             dtraces.vwrite(self.inv_decls, tracefile)
-            mlog.info("tmpdir: {}".format(self.tmpdir))
-
-        return dinvs, dtraces
+            print("resultdir: {}".format(todir))
+            print("tmpdir: {}".format(self.tmpdir))
 
     def infer(self, typ, dinvs, f):
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
@@ -177,6 +192,17 @@ class DigSymStates(Dig):
                 dir=settings.tmpdir, prefix="Dig_"))
             return self._tmpdir
 
+    @property
+    def resultdir(self):
+        try:
+            return self._resultdir
+        except AttributeError:
+            resultdir = self.tmpdir / "results"
+            assert not resultdir.is_dir()
+            resultdir.mkdir()
+            self._resultdir = resultdir
+            return self._resultdir
+
 
 class DigSymStatesJava(DigSymStates):
     def set_mysrc(self):
@@ -216,18 +242,14 @@ class DigSymStatesC(DigSymStates):
 
 
 class DigTraces(Dig):
-    def __init__(self, tracefiles):
-        tracefiles = tracefiles.split()
-        assert len(tracefiles) == 1 or len(tracefiles) == 2, tracefiles
-
-        tracefile = Path(tracefiles[0])
+    def __init__(self, tracefile, test_tracefile):
+        assert tracefile.is_file(), tracefile
+        assert test_tracefile is None or test_tracefile.is_file()
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
 
-        self.test_dtraces = None
-        if len(tracefiles) == 2:
-            test_tracefile = Path(tracefiles[1])
+        if test_tracefile:
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 
     def start(self, seed, maxdeg):
@@ -266,7 +288,7 @@ class DigTraces(Dig):
             mlog.debug('added {} test traces'.format(new_traces.siz))
 
         dinvs = self.sanitize(dinvs, self.dtraces)
-        Analysis(self, dinvs, self.dtraces, None, time.time() - st).doit()
+        # Analysis(self, dinvs, self.dtraces, None, time.time() - st).doit()
         return dinvs, None
 
     def infer_eqts(self, maxdeg, symbols, traces):

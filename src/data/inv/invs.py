@@ -8,7 +8,7 @@ import settings
 from helpers.miscs import Miscs, Z3
 import helpers.vcommon as CM
 
-from data.traces import Traces, DTraces
+# from data.traces import Traces, DTraces
 from data.inv.base import Inv
 from data.inv.eqt import Eqt
 from data.inv.oct import Oct
@@ -47,7 +47,7 @@ class Invs(set):
         return not_in
 
     def test(self, traces):
-        assert isinstance(traces, Traces)
+        # assert isinstance(traces, Traces)
         assert(self), self
 
         def f(tasks):
@@ -217,7 +217,7 @@ class DInvs(dict):
         return dinvs
 
     def test(self, dtraces):
-        assert isinstance(dtraces, DTraces)
+        # assert isinstance(dtraces, DTraces)
         assert self.siz, self
 
         st = time()
@@ -283,6 +283,10 @@ class DInvs(dict):
 
 
 class FalseInv(Inv):
+    """
+    Use
+    """
+
     def __init__(self, inv, stat=None):
         assert inv == 0, inv
         super().__init__(inv, stat)

@@ -3,6 +3,7 @@ import sys
 import datetime
 import time
 import helpers.vcommon
+from pathlib import Path
 
 DBG = pdb.set_trace
 
@@ -10,7 +11,8 @@ if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
-    ag("inp", help="inp")
+    ag("inp", help=("input file (.c, .java. , .class, trace_text_file) "
+                    "for invariant generation or result directory for analysis"))
 
     # 0 Error #1 Warn #2 Info #3 Debug #4 Detail
     ag("--log_level", "-log_level",
@@ -75,6 +77,11 @@ if __name__ == "__main__":
     ag("--normtmp", "-normtmp",
        action="store_true")
 
+    ag("--test_tracefile", "-test_tracefile",
+       type=str,
+       default=None,
+       help="tracefile to test")
+
     args = aparser.parse_args()
 
     import settings
@@ -115,18 +122,31 @@ if __name__ == "__main__":
 
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
-    import alg
-    inp = args.inp
-    if inp.endswith(".java") or inp.endswith(".class"):
-        if (args.se_mindepth and args.se_mindepth >= 1 and
-                args.se_mindepth != settings.Java.SE_MIN_DEPTH):
-            settings.Java.SE_MIN_DEPTH = args.se_mindepth
-        dig = alg.DigSymStatesJava(inp)
-    elif inp.endswith(".c"):
-        if (args.se_mindepth and args.se_mindepth >= 1 and
-                args.se_mindepth != settings.C.SE_MIN_DEPTH):
-            settings.C.SE_MIN_DEPTH = args.se_mindepth
-        dig = alg.DigSymStatesC(inp)
+    inp = Path(args.inp)
+
+    if inp.is_dir():
+        from analysis import Results
+        Results.load(inp).analyze()
     else:
-        dig = alg.DigTraces(inp)
-    invs, traces = dig.start(seed, args.maxdeg)
+        if not inp.is_file():
+            mlog.error("'{}' is not a valid file!".format(inp))
+            exit(1)
+
+        import alg
+        if inp.suffix == ".java" or inp.suffix == ".class":
+            if (args.se_mindepth and args.se_mindepth >= 1 and
+                    args.se_mindepth != settings.Java.SE_MIN_DEPTH):
+                settings.Java.SE_MIN_DEPTH = args.se_mindepth
+            dig = alg.DigSymStatesJava(inp)
+        elif inp.suffix == ".c":
+            if (args.se_mindepth and args.se_mindepth >= 1 and
+                    args.se_mindepth != settings.C.SE_MIN_DEPTH):
+                settings.C.SE_MIN_DEPTH = args.se_mindepth
+            dig = alg.DigSymStatesC(inp)
+        else:
+            # traces file(s)
+            test_tracefile = Path(
+                args.test_tracefile) if args.test_tracefile else None
+            dig = alg.DigTraces(inp, test_tracefile)
+
+        dig.start(seed, args.maxdeg)
