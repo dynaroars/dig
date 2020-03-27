@@ -130,9 +130,13 @@ class Invs(set):
         myinvs_exprs = [inv.expr(use_reals) for inv in myinvs]
 
         def _imply(js, i):
-            jexprs = [myinvs_exprs[j] for j in js]
             iexpr = myinvs_exprs[i]
-            ret = Z3._imply(jexprs, iexpr, is_conj)
+            # don't consider/remove equality
+            if iexpr.decl().kind() == z3.Z3_OP_EQ:
+                ret = False
+            else:
+                jexprs = [myinvs_exprs[j] for j in js]
+                ret = Z3._imply(jexprs, iexpr, is_conj)
             # if ret:
             #     print '{} => {}'.format(jexprs, iexpr)
             return ret
