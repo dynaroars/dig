@@ -37,19 +37,26 @@ class Result:
         self.t_time = t_time
 
     def analyze(self):
+        def get_inv_typ(inv):
+            assert inv is not None, inv
+            return inv.__class__.__name__
+
+        def get_change(x, y):
+            return "{}->{}".format(x, y)
+
         self.solver_calls_ctr = Counter(
             str(stat) for stat, is_succ in self.solver_calls)
 
         self.change_stats_ctr = Counter(
-            self.get_inv_typ(inv)
+            get_inv_typ(inv)
             for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
 
         self.change_typs_ctr = Counter(
-            self.get_change(stat0, stat1)
+            get_change(stat0, stat1)
             for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
 
         self.change_depths_ctr = Counter(
-            self.get_change(depth0, depth1)
+            get_change(depth0, depth1)
             for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
 
     def save(self, todir):
@@ -61,19 +68,6 @@ class Result:
         assert isinstance(fromdir, Path) and fromdir.is_dir(), fromdir
 
         return CM.vload(fromdir / cls.resultfile)
-
-    @classmethod
-    def get_inv_typ(cls, inv):
-        try:
-            return inv.__class__.__name__
-        except AttributeError:
-            assert inv is None
-            print('W: unknown inv type: {}'.format(inv))
-            return "Unknown"
-
-    @classmethod
-    def get_change(cls, x, y):
-        return "{}->{}".format(x, y)
 
 
 class Stats:
@@ -87,7 +81,7 @@ class Stats:
 
     @classmethod
     def analyze_dicts(cls, ds, f, label):
-        ks = [k for d in ds for k in d]
+        ks = set(k for d in ds for k in d)
         dd = defaultdict(list)
         for d in ds:
             for k in ks:
@@ -97,6 +91,8 @@ class Stats:
                     dd[k].append(0)
 
             dd['siz'].append(sum(v for v in d.values()))
+
+        assert all(len(dd[k]) == len(ds) for k in dd), dd
 
         s = ', '.join('{} {}'.format(k, f(dd[k]))
                       for k in sorted(dd) if k != 'siz')
@@ -151,17 +147,17 @@ class Benchmark:
         ntimes = self.args.benchmark_times
         assert ntimes >= 1, ntimes
 
-        benchmark_dir = Path(self.args.benchmark_dir).resolve()
-        if not benchmark_dir:
+        if not self.args.benchmark_dir:
             import tempfile
             prefix = str(self.bdir).replace('/', '_')
-            prefix = "dig_bm{}_".format(prefix)
+            prefix = "dig_bm{}{}_".format(ntimes, prefix)
             benchmark_dir = Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
         else:
+            benchmark_dir = Path(self.args.benchmark_dir).resolve()
             assert benchmark_dir.is_dir(), benchmark_dir
 
-        settings.norm = True  # don't remove result dir
+        settings.DO_RMTMP = False  # don't remove result dir
 
         mlog.info("Running each file in {} {} times. Result stored in {}".format(
             self.bdir, ntimes, benchmark_dir))
@@ -184,7 +180,7 @@ class Benchmark:
 
                 dig.start(seed=j, maxdeg=self.args.maxdeg)
 
-        mlog.info("benchmark result dir: {}".format(rdir))
+        mlog.info("benchmark result dir: {}".format(benchmark_dir))
 
     def analyze(self):
 
@@ -213,6 +209,9 @@ class Benchmark:
             _ = [load2(d) for d in self.bdir.iterdir() if d.is_dir()]
 
         for prog in sorted(results_d):
+            if not results_d[prog]:
+                continue
+
             mlog.info("analyzing {}".format(prog))
             stats = Stats(prog, results_d[prog])
             stats.analyze(median)
