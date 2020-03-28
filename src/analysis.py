@@ -151,21 +151,31 @@ class Benchmark:
         ntimes = self.args.benchmark_times
         assert ntimes >= 1, ntimes
 
-        import tempfile
-        prefix = str(self.bdir).replace('/', '_')
-        prefix = "dig_bm{}_".format(prefix)
-        rdir = Path(tempfile.mkdtemp(dir=settings.tmpdir, prefix=prefix))
+        benchmark_dir = Path(self.args.benchmark_dir).resolve()
+        if not benchmark_dir:
+            import tempfile
+            prefix = str(self.bdir).replace('/', '_')
+            prefix = "dig_bm{}_".format(prefix)
+            benchmark_dir = Path(tempfile.mkdtemp(
+                dir=settings.tmpdir, prefix=prefix))
+        else:
+            assert benchmark_dir.is_dir(), benchmark_dir
 
         settings.norm = True  # don't remove result dir
 
         mlog.info("Running each file in {} {} times. Result stored in {}".format(
-            self.bdir, ntimes, rdir))
+            self.bdir, ntimes, benchmark_dir))
 
         fs = sorted(f for f in self.bdir.iterdir() if f.is_file())
 
         for i, f in enumerate(fs):
-            settings.tmpdir = rdir / f.stem
-            settings.tmpdir.mkdir()
+            bmdir = benchmark_dir / f.stem
+            if bmdir.is_dir():
+                mlog.warning("{} 'exists', skip '{}'".format(bmdir, f))
+                continue
+            else:
+                settings.tmpdir = bmdir
+                settings.tmpdir.mkdir()
 
             dig = run_f(f, self.args)
             for j in range(ntimes):

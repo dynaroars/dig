@@ -109,6 +109,11 @@ if __name__ == "__main__":
        default=None,
        help="run Dig this many times")
 
+    ag("--benchmark_dir", "-benchmark_dir",
+       type=str,
+       default=None,
+       help="store benchmark results in this dir")
+
     args = aparser.parse_args()
 
     import settings
