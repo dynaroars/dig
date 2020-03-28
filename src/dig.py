@@ -78,16 +78,20 @@ if __name__ == "__main__":
        help="don't use symbolic states, i.e., just dynamic analysis")
 
     ag("--noeqts", "-noeqts",
-       action="store_true")
+       action="store_true",
+       help="don't compute eq invariants")
 
     ag("--noieqs", "-noieqs",
-       action="store_true")
+       action="store_true",
+       help="don't compute ieq/oct invariants")
 
     ag("--nominmaxplus", "-nominmaxplus",
-       action="store_true")
+       action="store_true",
+       help="don't compute min/max-plus invariants")
 
     ag("--nopreposts", "-nopreposts",
-       action="store_true")
+       action="store_true",
+       help="don't compute prepost specs")
 
     ag("--notermfilter", "-notermfilter",
        action="store_true")
