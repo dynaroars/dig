@@ -58,10 +58,10 @@ class Result:
     def invtyps(self):
         return self.dinvs.typ_ctr
 
-    def str_of_dict(self, d):
-        return "{} ({})".format(
-            sum(d[k] for k in d),
-            ', '.join('{} {}'.format(k, d[k]) for k in sorted(d)))
+    # def str_of_dict(self, d):
+    #     return "{} ({})".format(
+    #         sum(d[k] for k in d),
+    #         ', '.join('{} {}'.format(k, d[k]) for k in sorted(d)))
 
     def analyze_symstates(self):
 
@@ -131,70 +131,59 @@ class Stats:
         self.results = results
 
     @classmethod
-    def mk_str(cls, d, f, msg=None, do_len=False):
-        s = ', '.join('{} {}'.format(k, f(d[k])) for k in sorted(d))
+    def analyze_dicts(cls, ds, f, label):
+        ks = [k for d in ds for k in d]
+        dd = defaultdict(list)
+        for d in ds:
+            for k in ks:
+                try:
+                    dd[k].append(d[k])
+                except KeyError:
+                    dd[k].append(0)
 
-        ss = []
-        if msg:
-            ss.append(msg)
-        if do_len:
-            print(list(d.values()))
-            ss.append(sum(v if isinstance(v, (int, float)) else len(v)
-                          for v in d.values()))
+            dd['siz'].append(sum(v for v in d.values()))
 
-        if ss:
-            return '{} ({})'.format(' '.join(map(str, ss)), s)
-        else:
-            return s
+        s = ', '.join('{} {}'.format(k, f(dd[k]))
+                      for k in sorted(dd) if k != 'siz')
+        return '{} {} ({})'.format(label, f(dd['siz']), s)
 
-    @classmethod
-    def mk_dict(cls, d1, d2):
-        for k in d2:
-            d1[k].append(d2[k])
-
-    def analyze_invtyps(self, f):
-        invtyps_d = defaultdict(list)
+    def analyze2(self, f):
+        invtypss = []
+        solver_callss = []
+        change_statss = []
+        change_typss = []
+        change_depthss = []
         for result in self.results:
-            self.mk_dict(invtyps_d, result.invtyps)
-        return self.mk_str(invtyps_d, f)
-
-    def analyze_symstates(self, f):
-
-        solver_calls_d = defaultdict(list)
-        change_stats_d = defaultdict(list)
-        change_typs_d = defaultdict(list)
-        change_depths_d = defaultdict(list)
-        for result in self.results:
-            solver_calls, change_stats, change_typs, change_depths = result.analyze_symstates()
-
-            self.mk_dict(solver_calls_d, solver_calls)
-            self.mk_dict(change_stats_d, change_stats)
-            self.mk_dict(change_typs_d, change_typs)
-            self.mk_dict(change_depths_d, change_depths)
+            invtypss.append(result.invtyps)
+            solver_calls, change_stats, change_typs, change_depths = \
+                result.analyze_symstates()
+            solver_callss.append(solver_calls)
+            change_statss.append(change_stats)
+            change_typss.append(change_typs)
+            change_depthss.append(change_depths)
 
         ss = [
-            self.mk_str(solver_calls_d, f, 'solver calls', do_len=True),
-            self.mk_str(change_stats_d, f, 'change stats', do_len=True),
-            self.mk_str(change_typs_d, f, 'change typs', do_len=True),
-            self.mk_str(change_depths_d, f, 'change depths', do_len=True),
+            self.analyze_dicts(invtypss, f, 'invtyps'),
+            self.analyze_dicts(solver_callss, f, 'solver calls'),
+            self.analyze_dicts(change_statss, f, 'change stats'),
+            self.analyze_dicts(change_typss, f, 'change typs'),
+            self.analyze_dicts(change_depthss, f, 'change depths'),
         ]
+
         return ', '.join(ss)
 
     def analyze(self, f):
         rs = self.results
 
-        symstates_s = self.analyze_symstates(f)
         ss = [
             "prog {}".format(self.prog),
             "runs {}".format(len(rs)),
             "locs {}".format(f(r.nlocs for r in rs)),
-            "invs {} ({})".format(
-                f(r.ninvs for r in rs), self.analyze_invtyps(f)),
             "traces {}".format(f(r.dinvs.siz for r in rs)),
             "inps {}".format(
                 f(len(r.inps) if r.inps else 0 for r in rs)),
             "time {:.2f}s".format(f(r.t_time for r in rs)),
-            symstates_s
+            self.analyze2(f)
         ]
 
         print('**', ', '.join(s for s in ss if s))
@@ -241,21 +230,33 @@ class Benchmark:
         mlog.info("benchmark result dir: {}".format(rdir))
 
     def analyze(self):
+
         results_d = defaultdict(list)
+
+        def load1(prog, resultdir):
+            try:
+                results_d[prog].append(Result.load(resultdir))
+            except FileNotFoundError as ex:
+                mlog.error(ex)
+                pass
+
+        def load2(dir_):
+            _ = [load1(dir_.stem, d) for d in dir_.iterdir() if d.is_dir()]
 
         # single result
         if (self.bdir / Result.resultfile).is_file():
             result = Result.load(self.bdir)
             results_d[result.filename.stem].append(result)
-        else:
-            for d in self.bdir.iterdir():
-                for f in d.iterdir():
-                    try:
-                        results_d[d.name].append(Result.load(f))
-                    except FileNotFoundError:
-                        pass
 
-        for d in sorted(results_d):
-            stats = Stats(d, results_d[d])
+        elif any((d / Result.resultfile).is_file()
+                 for d in self.bdir.iterdir() if d.is_dir()):
+
+            load2(self.bdir)
+        else:
+            _ = [load2(d) for d in self.bdir.iterdir() if d.is_dir()]
+
+        for prog in sorted(results_d):
+            mlog.info("analyzing {}".format(prog))
+            stats = Stats(prog, results_d[prog])
             stats.analyze(median)
             # stats.analyze(mean)
