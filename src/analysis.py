@@ -1,6 +1,7 @@
 """
 Analyze and print Dig's results
 """
+import shutil
 import time
 import random
 import pdb
@@ -143,6 +144,24 @@ class Benchmark:
         self.bdir = bdir.resolve()
         self.args = args
 
+    def get_success_runs(self, rundir):
+        assert rundir.is_dir(), rundir
+
+        runs = set()
+        for rd in rundir.iterdir():
+            if not rd.is_dir():
+                mlog.warning('Unexpected file {}'.format(rd))
+
+            if (rd / Result.resultfile).is_file():
+                # Dig_2_dxmdlf4y
+                runi = int(rd.stem.split('_')[1])
+                runs.add(runi)
+            else:
+                mlog.warning('deleting incomplete run {}'.format(rd))
+                shutil.rmtree(rd)
+
+        return runs
+
     def run(self, run_f):
         ntimes = self.args.benchmark_times
         assert ntimes >= 1, ntimes
@@ -164,21 +183,37 @@ class Benchmark:
 
         fs = sorted(f for f in self.bdir.iterdir() if f.is_file())
 
+        toruns = []
+        myruns = set(range(ntimes))
         for i, f in enumerate(fs):
             bmdir = benchmark_dir / f.stem
+
             if bmdir.is_dir():
-                mlog.warning("{} 'exists', skip '{}'".format(bmdir, f))
-                continue
+                succruns = self.get_success_runs(bmdir)
+                remainruns = list(myruns - succruns)
+                if not remainruns:
+                    mlog.warning(
+                        "{} ran, results in {}".format(f, bmdir))
+                else:
+                    mlog.warning("{} in {} needs {} more runs".format(
+                        f, bmdir, len(remainruns)))
             else:
-                settings.tmpdir = bmdir
-                settings.tmpdir.mkdir()
+                remainruns = list(myruns)
 
+            if remainruns:
+                toruns.append((f, bmdir, remainruns))
+
+        for i, (f, bmdir, remainruns) in enumerate(toruns):
+            if not bmdir.is_dir():
+                bmdir.mkdir()
+            settings.tmpdir = bmdir
             dig = run_f(f, self.args)
-            for j in range(ntimes):
-                mlog.info("## file {}/{}, run {}/{}. {}: {}".format(
-                    i+1, len(fs), j+1, ntimes, time.strftime("%c"), f))
 
-                dig.start(seed=j, maxdeg=self.args.maxdeg)
+            for j, seed in enumerate(sorted(remainruns, reverse=True)):
+                mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
+                    i+1, len(toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))
+
+                dig.start(seed=seed, maxdeg=self.args.maxdeg)
 
         mlog.info("benchmark result dir: {}".format(benchmark_dir))
 
