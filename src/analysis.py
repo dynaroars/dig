@@ -209,11 +209,13 @@ class Benchmark:
             settings.tmpdir = bmdir
             dig = run_f(f, self.args)
 
-            for j, seed in enumerate(sorted(remainruns, reverse=True)):
+            for j, seed in enumerate(sorted(remainruns)):
                 mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
                     i+1, len(toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))
-
-                dig.start(seed=seed, maxdeg=self.args.maxdeg)
+                try:
+                    dig.start(seed=seed, maxdeg=self.args.maxdeg)
+                except Exception as ex:
+                    mlog.error("Something went wrong. Exiting!\n{}".format(ex))
 
         mlog.info("benchmark result dir: {}".format(benchmark_dir))
 
