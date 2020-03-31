@@ -123,7 +123,7 @@ class Stats:
             "prog {}".format(self.prog),
             "runs {}".format(len(rs)),
             "locs {}".format(f(len(r.dinvs) for r in rs)),
-            "traces {}".format(f(r.dinvs.siz for r in rs)),
+            "traces {}".format(f(r.dtraces.siz for r in rs)),
             "inps {}".format(
                 f(len(r.inps) if r.inps else 0 for r in rs)),
             "time {:.2f}s".format(f(r.t_time for r in rs)),
