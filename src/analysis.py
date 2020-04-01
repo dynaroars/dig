@@ -49,16 +49,22 @@ class Result:
             str(stat) for stat, is_succ in self.solver_calls)
 
         self.change_stats_ctr = Counter(
-            get_inv_typ(inv)
-            for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
+            get_change(stat0, stat1)
+            for inv, stat0, depth0, stat1, depth1 in self.depth_changes
+            if "False" not in inv.__class__.__name__
+        )
 
         self.change_typs_ctr = Counter(
-            get_change(stat0, stat1)
-            for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
+            get_inv_typ(inv)
+            for inv, stat0, depth0, stat1, depth1 in self.depth_changes
+            if "False" not in inv.__class__.__name__
+        )
 
         self.change_depths_ctr = Counter(
             get_change(depth0, depth1)
-            for inv, stat0, depth0, stat1, depth1 in self.depth_changes)
+            for inv, stat0, depth0, stat1, depth1 in self.depth_changes
+            if "False" not in inv.__class__.__name__
+        )
 
     def save(self, todir):
         assert todir.is_dir(), todir
@@ -106,7 +112,7 @@ class Stats:
         change_typss = [r.change_typs_ctr for r in self.results]
         change_depthss = [r.change_depths_ctr for r in self.results]
         ss = [
-            self.analyze_dicts(invtypss, f, 'invtyps'),
+            self.analyze_dicts(invtypss, f, 'invs'),
             self.analyze_dicts(solver_callss, f, 'solver calls'),
             self.analyze_dicts(change_statss, f, 'change stats'),
             self.analyze_dicts(change_typss, f, 'change typs'),
@@ -249,7 +255,6 @@ class Benchmark:
             if not results_d[prog]:
                 continue
 
-            mlog.info("analyzing {}".format(prog))
             stats = Stats(prog, results_d[prog])
             stats.analyze(median)
             # stats.analyze(mean)
