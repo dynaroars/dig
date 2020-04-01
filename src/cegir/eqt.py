@@ -53,6 +53,14 @@ class CegirEqt(Cegir):
 
     # PRIVATE
 
+    def add_exprs(cls, template, n_eqts_needed, traces, exprs):
+        assert traces
+        mlog.debug("got {} new traces".format(len(traces)))
+        new_exprs = traces.instantiate(template, n_eqts_needed - len(exprs))
+        for expr in new_exprs:
+            assert expr not in exprs
+            exprs.add(expr)
+
     def _while_rand(self, loc, template, n_eqts_needed, inps, traces):
         """
         repeatedly get more inps using random method
@@ -93,14 +101,7 @@ class CegirEqt(Cegir):
                                    len(traces[loc]) if loc in traces else 0))
                     return
 
-            assert new_traces[loc]
-            mlog.debug("obtain {} new traces".format(len(new_traces[loc])))
-            new_exprs = new_traces[loc].instantiate(
-                template, n_eqts_needed - len(exprs))
-
-            for expr in new_exprs:
-                assert expr not in exprs
-                exprs.add(expr)
+            self.add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
 
         return exprs
 
@@ -123,14 +124,8 @@ class CegirEqt(Cegir):
 
             new_inps = inps.merge(cexs, self.inp_decls.names)
             new_traces = self.get_traces(new_inps, traces)
-            assert new_traces[loc]
-            mlog.debug("obtain {} new traces".format(len(new_traces[loc])))
-            new_exprs = new_traces[loc].instantiate(
-                template, n_eqts_needed - len(exprs))
 
-            for expr in new_exprs:
-                assert expr not in exprs
-                exprs.add(expr)
+            self.add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
 
         return exprs
 
@@ -199,7 +194,7 @@ class CegirEqt(Cegir):
                        .format(loc, len(unchecks), len(new_eqts)))
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
-            cexs, dinvs = self.mycheck(dinvs, inps=None)
+            cexs, dinvs = self.check(dinvs, inps=None)
             if cexs:
                 new_cexs.append(cexs)
 
