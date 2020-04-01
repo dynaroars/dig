@@ -7,21 +7,21 @@ OCAML_OPTIONS = \
 OCAMLC =        ocamlc                          $(OCAML_OPTIONS)
 OCAMLOPT =      ocamlopt                        $(OCAML_OPTIONS)
 OCAMLDEP =      ocamldep                        $(OCAML_OPTIONS)
-OCAMLLEX =      ocamllex 
+OCAMLLEX =      ocamllex
 
-all: instr.exe
+all: instr.exe verify.exe
 
-#coverage.exe preproc.exe instr.exe spy.exe modify.exe 
+#coverage.exe preproc.exe instr.exe spy.exe modify.exe
 
-%.cmo: %.ml 
-	@if [ -f $*.mli -a ! -f $*.cmi ] ; then $(OCAMLC) -c -g $*.mli ; fi 
+%.cmo: %.ml
+	@if [ -f $*.mli -a ! -f $*.cmi ] ; then $(OCAMLC) -c -g $*.mli ; fi
 	$(OCAMLC) -c -g $*.ml
-	@$(OCAMLDEP) $*.ml > $*.d 
+	@$(OCAMLDEP) $*.ml > $*.d
 
-%.cmx: %.ml 
-	@if [ -f $*.mli -a ! -f $*.cmi ] ; then $(OCAMLC) -c -g $*.mli ; fi 
+%.cmx: %.ml
+	@if [ -f $*.mli -a ! -f $*.cmi ] ; then $(OCAMLC) -c -g $*.mli ; fi
 	$(OCAMLOPT) -c $*.ml
-	@$(OCAMLDEP) $*.ml > $*.d 
+	@$(OCAMLDEP) $*.ml > $*.d
 
 %.cmi: %.mli
 	$(OCAMLC) -c -g $*.mli
@@ -34,6 +34,13 @@ INSTR_MODULES = \
 	instr.cmo \
 
 instr.exe: $(INSTR_MODULES:.cmo=.cmx)
+		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
+
+VERIFY_MODULES = \
+	common.cmo \
+	verify.cmo \
+
+verify.exe: $(VERIFY_MODULES:.cmo=.cmx)
 		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
 
 
@@ -71,5 +78,5 @@ instr.exe: $(INSTR_MODULES:.cmo=.cmx)
 # 	$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
 
 clean:
-	rm -f *.cmo *.cmi *.d *.cmx *.dx *.o instr.exe 
+	rm -f *.cmo *.cmi *.d *.cmx *.dx *.o instr.exe
 	rm -rf *.pyc *.pyo
