@@ -64,17 +64,22 @@ class Result:
     @classmethod
     def analyze_dinvs(cls, dinvs):
         """
-        Get max vars, terms, deg
+        Get max vars, terms, deg, mainly for eqts
         """
-        print(dinvs)
+
+        invs = [inv for inv in dinvs.invs
+                if isinstance(inv, data.inv.eqt.Eqt)]
+
+        if not invs:
+            print(dinvs)
+            mlog.warn("no Eqts ??")
+            return 0, 0, 0
 
         vss = []
         maxdegs = []
         ntermss = []
 
-        for inv in dinvs.invs:
-            if not isinstance(inv, data.inv.eqt.Eqt):
-                continue
+        for inv in invs:
             nvs, maxdeg, nterms = cls.analyze_inv(inv.inv)
             vss.append(nvs)
             maxdegs.append(maxdeg)
