@@ -13,6 +13,7 @@ import sage.all
 
 import settings
 import helpers.vcommon as CM
+import data.inv
 
 DBG = pdb.set_trace
 
@@ -37,7 +38,57 @@ class Result:
         self.depth_changes = depth_changes
         self.t_time = t_time
 
+    @classmethod
+    def get_degs(cls, p):
+        if p.operands():
+            degs = []
+            for p_ in p.operands():
+                deg = sum(p_.degree(v) for v in p_.variables())
+                degs.append(deg)
+            return degs
+        else:  # x
+            assert len(p.variables()) == 1, p
+            return [1]
+
+    @classmethod
+    def analyze_inv(cls, p):
+        """
+        return the # of variables, max deg, and number of terms
+        """
+        vs = p.variables()
+        degs = cls.get_degs(p.lhs())
+        nterms = p.lhs().number_of_operands()
+
+        return vs, max(degs), nterms
+
+    @classmethod
+    def analyze_dinvs(cls, dinvs):
+        """
+        Get max vars, terms, deg
+        """
+        print(dinvs)
+
+        vss = []
+        maxdegs = []
+        ntermss = []
+
+        for inv in dinvs.invs:
+            if not isinstance(inv, data.inv.eqt.Eqt):
+                continue
+            nvs, maxdeg, nterms = cls.analyze_inv(inv.inv)
+            vss.append(nvs)
+            maxdegs.append(maxdeg)
+            ntermss.append(nterms)
+
+        nvs = len(set(v for vs in vss for v in vs))
+        maxdeg = max(maxdegs)
+        nterms = max(ntermss)
+        return nvs, maxdeg, nterms
+
     def analyze(self):
+
+        self.V, self.D, self.T = self.analyze_dinvs(self.dinvs)
+
         def get_inv_typ(inv):
             assert inv is not None, inv
             return inv.__class__.__name__
@@ -51,19 +102,19 @@ class Result:
         self.change_stats_ctr = Counter(
             get_change(stat0, stat1)
             for inv, stat0, depth0, stat1, depth1 in self.depth_changes
-            if "False" not in inv.__class__.__name__
+            if not isinstance(inv, data.inv.invs.FalseInv)
         )
 
         self.change_typs_ctr = Counter(
             get_inv_typ(inv)
             for inv, stat0, depth0, stat1, depth1 in self.depth_changes
-            if "False" not in inv.__class__.__name__
+            if not isinstance(inv, data.inv.invs.FalseInv)
         )
 
         self.change_depths_ctr = Counter(
             get_change(depth0, depth1)
             for inv, stat0, depth0, stat1, depth1 in self.depth_changes
-            if "False" not in inv.__class__.__name__
+            if not isinstance(inv, data.inv.invs.FalseInv)
         )
 
     def save(self, todir):
@@ -124,11 +175,13 @@ class Stats:
     def analyze(self, f):
         rs = self.results
         _ = [r.analyze() for r in rs]
-
+        VTD = "{},{},{}".format(f(r.V for r in rs), f(
+            r.T for r in rs), f(r.D for r in rs))
         ss = [
             "prog {}".format(self.prog),
             "runs {}".format(len(rs)),
             "locs {}".format(f(len(r.dinvs) for r in rs)),
+            "VTD {}".format(VTD),
             "traces {}".format(f(r.dtraces.siz for r in rs)),
             "inps {}".format(
                 f(len(r.inps) if r.inps else 0 for r in rs)),
@@ -254,7 +307,7 @@ class Benchmark:
         for prog in sorted(results_d):
             if not results_d[prog]:
                 continue
-
+            print('analyzing {}'.format(prog))
             stats = Stats(prog, results_d[prog])
             stats.analyze(median)
             # stats.analyze(mean)
