@@ -51,13 +51,20 @@ class Result:
             return [1]
 
     @classmethod
-    def analyze_inv(cls, p):
+    def analyze_inv(cls, inv):
         """
         return the # of variables, max deg, and number of terms
         """
-        vs = p.variables()
-        degs = cls.get_degs(p.lhs())
-        nterms = p.lhs().number_of_operands()
+
+        if isinstance(inv, data.inv.mp.MP):
+            vs = inv.term.symbols
+            degs = [1]
+            nterms = 1
+        else:
+            p = inv.inv
+            vs = p.variables()
+            degs = cls.get_degs(p.lhs())
+            nterms = p.lhs().number_of_operands()
 
         return vs, max(degs), nterms
 
@@ -67,20 +74,12 @@ class Result:
         Get max vars, terms, deg, mainly for eqts
         """
 
-        invs = [inv for inv in dinvs.invs
-                if isinstance(inv, data.inv.eqt.Eqt)]
-
-        if not invs:
-            print(dinvs)
-            mlog.warn("no Eqts ??")
-            return 0, 0, 0
-
         vss = []
         maxdegs = []
         ntermss = []
 
-        for inv in invs:
-            nvs, maxdeg, nterms = cls.analyze_inv(inv.inv)
+        for inv in dinvs.invs:
+            nvs, maxdeg, nterms = cls.analyze_inv(inv)
             vss.append(nvs)
             maxdegs.append(maxdeg)
             ntermss.append(nterms)
