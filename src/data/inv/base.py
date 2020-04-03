@@ -5,7 +5,8 @@ import operator
 from helpers.miscs import Z3
 import helpers.vcommon as CM
 import settings
-from data.traces import Trace, Traces
+import data.traces
+
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -55,7 +56,7 @@ class Inv(metaclass=ABCMeta):
         self._stat = None
 
     def test(self, traces):
-        assert isinstance(traces, Traces), traces
+        assert isinstance(traces, data.traces.Traces), traces
         return all(self.test_single_trace(trace) for trace in traces)
 
     @property
@@ -84,12 +85,13 @@ class RelInv(Inv, metaclass=ABCMeta):
         return s
 
     def test_single_trace(self, trace):
-        assert isinstance(trace, Trace), trace
+        assert isinstance(trace, data.traces.Trace), trace
 
         # temp fix: disable traces that wih extreme large values
         # (see geo1 e.g., 435848050)
-        if any(x > trace.maxVal for x in trace.vs):
-            mlog.debug("skip trace with large val: {}".format(self))
+        if any(x > trace.max_val for x in trace.vs):
+            mlog.debug(
+                "{}: skip trace with large val: {}".format(self, trace.vs))
             return True
 
         try:

@@ -55,7 +55,7 @@ class SymbsValsSet(set):
 
 
 class Trace(SymbsVals):
-    maxVal = 100000000
+    max_val = 100000000
 
     @property
     def mydict(self):
