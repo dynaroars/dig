@@ -1,6 +1,7 @@
 """
 Symbolic States
 """
+from collections import defaultdict
 from multiprocessing import Queue
 from abc import ABCMeta, abstractmethod
 import pdb
@@ -302,12 +303,14 @@ class SymStates(metaclass=ABCMeta):
         assert all(depth >= 1 and isinstance(ss, list)
                    for depth, ss in depthss), depthss
 
-        symstates = {}
+        symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
                 pc = pc_cls(loc, depth, pcs, slocals, use_reals)
-                symstates.setdefault(loc, {})
-                symstates[loc].setdefault(depth, PCs(loc, depth)).add(pc)
+                #symstates.setdefault(loc, {})
+                # symstates[loc] =
+                #symstates[loc].setdefault(depth, PCs(loc, depth)).add(pc)
+                symstates[loc][depth].add(pc)
 
         # only store incremental states at each depth
         for loc in symstates:
@@ -356,6 +359,7 @@ class SymStates(metaclass=ABCMeta):
                     loc, len(pcs), depth))
                 # print(pcs.myexpr)
 
+        # DBG()
         return symstates
 
     def check(self, dinvs, inps, path_idx=None):

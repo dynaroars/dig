@@ -1,8 +1,10 @@
 from functools import reduce
+from collections import defaultdict
 import pdb
 import itertools
 import operator
 import ast
+import multiprocessing
 from collections import Iterable
 
 import sage.all
@@ -523,13 +525,14 @@ class Miscs(object):
         assert len(tasks) >= 1, tasks
         assert n_cpus >= 1, n_cpus
 
-        wloads = {}
+        wloads = defaultdict(list)
         for i, task in enumerate(tasks):
             cpu_id = i % n_cpus
-            wloads.setdefault(cpu_id, []).append(task)
+            wloads[cpu_id].append(task)
 
-        wloads = [wl for wl in sorted(
-            wloads.values(), key=lambda wl: len(wl))]
+        wloads = [wl for wl in
+                  sorted(wloads.values(), key=lambda wl: len(wl))]
+
         return wloads
 
     @classmethod
@@ -545,14 +548,14 @@ class Miscs(object):
                 myQ.put(rs)
 
         if settings.DO_MP and len(tasks) >= 2:
-            from multiprocessing import (Process, Queue, cpu_count)
-            Q = Queue()
-            n_cpus = cpu_count()
+            Q = multiprocessing.Queue()
+            n_cpus = multiprocessing.cpu_count()
             wloads = cls.get_workload(tasks, n_cpus=n_cpus)
             mlog.debug("{}:running {} jobs using {} threads: {}".format(
                 taskname, len(tasks), len(wloads), list(map(len, wloads))))
 
-            workers = [Process(target=wprocess, args=(wl, Q)) for wl in wloads]
+            workers = [multiprocessing.Process(
+                target=wprocess, args=(wl, Q)) for wl in wloads]
 
             for w in workers:
                 w.start()

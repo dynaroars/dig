@@ -6,6 +6,7 @@ DBG = pdb.set_trace
 
 tmpdir = Path("/var/tmp/")
 logger_level = 2
+DO_MP = True
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True
 DO_IEQS = True
@@ -46,8 +47,8 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 
 class Java:
-    SE_MIN_DEPTH = 9
-    SE_DEPTH_INCR = 4  # maxdepth = mindepth + depth_incr
+    SE_MIN_DEPTH = 5
+    SE_DEPTH_INCR = 10  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
     ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"

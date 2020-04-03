@@ -143,8 +143,8 @@ class DigSymStates(Dig):
 
         if settings.DO_RMTMP:
             import shutil
-            mlog.debug("clean up: rm -rf {}".format(self.tmpdir))
             shutil.rmtree(self.tmpdir)
+            mlog.debug("clean up: rm -rf {}".format(self.tmpdir))
         else:
             tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
             dtraces.vwrite(self.inv_decls, tracefile)
