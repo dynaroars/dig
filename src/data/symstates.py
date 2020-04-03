@@ -278,7 +278,7 @@ class SymStates(metaclass=ABCMeta):
             return self.mk(
                 d, filename, mainQName, funname, tmpdir, len(self.inp_decls))
 
-        tasks = [depth for depth in range(self.mindepth, self.maxdepth)]
+        tasks = [depth for depth in range(self.mindepth, self.maxdepth+1)]
 
         def f(tasks):
             rs = [(depth, _f(depth)) for depth in tasks]

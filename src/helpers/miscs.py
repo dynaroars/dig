@@ -561,6 +561,9 @@ class Miscs(object):
                 w.start()
 
             wrs = [x for _ in workers for x in Q.get()]
+            for w in workers:
+                w.terminate()
+                w.join()
         else:
             wrs = wprocess(tasks, myQ=None)
 

@@ -311,7 +311,6 @@ class Benchmark:
         for prog in sorted(results_d):
             if not results_d[prog]:
                 continue
-            print('analyzing {}'.format(prog))
             stats = Stats(prog, results_d[prog])
             stats.analyze(median)
             # stats.analyze(mean)
