@@ -125,10 +125,10 @@ class DigSymStates(Dig):
         depth_changes = []
         try:
             while not self.symstates.solver_calls.empty():
-                solver_calls.append(self.symstates.solver_calls.get())
+                solver_calls.append(self.symstates.solver_calls.get_nowait())
 
             while not self.symstates.depth_changes.empty():
-                depth_changes.append(self.symstates.depth_changes.get())
+                depth_changes.append(self.symstates.depth_changes.get_nowait())
         except AttributeError:
             # no symbolic states
             pass
@@ -215,13 +215,14 @@ class DigSymStatesC(DigSymStates):
         from helpers.src import C as mysrc
         self.mysrc = mysrc(self.filename, self.tmpdir)
 
-    def set_symbolic_states(self):
-        self.symstates = data.symstates.SymStatesC(
+    def get_symbolic_states(self):
+        symstates = data.symstates.SymStatesC(
             self.inp_decls, self.inv_decls)
-        self.symstates.compute(
+        symstates.compute(
             self.mysrc.symexefile, self.mysrc.mainQ_name,
             self.mysrc.funname, self.mysrc.symexedir)
-
+        return symstates
+    
     @property
     def exe_cmd(self):
         return settings.C.C_RUN(exe=self.mysrc.traceexe)

@@ -48,7 +48,7 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 class Java:
     SE_MIN_DEPTH = 7
-    SE_DEPTH_INCR = 10  # maxdepth = mindepth + depth_incr
+    SE_DEPTH_INCR = 5  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
     ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
