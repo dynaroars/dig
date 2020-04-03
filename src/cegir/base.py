@@ -12,7 +12,7 @@ import data.prog
 from data.traces import Inps, DTraces
 from data.inv.base import Inv
 from data.inv.invs import DInvs
-
+import data.symstates
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -20,6 +20,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class Cegir(metaclass=ABCMeta):
     def __init__(self, symstates, prog):
+        assert isinstance(symstates, data.symstates.SymStates), symstates
         assert isinstance(prog, data.prog.Prog), prog
 
         self.symstates = symstates
@@ -42,9 +43,9 @@ class Cegir(metaclass=ABCMeta):
         new_traces = traces.merge(new_traces)
         return new_traces
 
-    def check(self, dinvs, inps):
+    def check(self, dinvs, inps, check_mode=data.symstates.SymStates.check_validity):
         if self.symstates:
-            cexs, dinvs = self.symstates.check(dinvs, inps)
+            cexs, dinvs = self.symstates.check(dinvs, inps, None, check_mode)
         else:
             # no symbolic states, not performing checking
             for loc in dinvs:

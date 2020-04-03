@@ -4,31 +4,35 @@ Find upperbound of polynomials using binary search-CEGIR approach
 import math
 import pdb
 from time import time
+
+import z3
+import sage.all
+
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 import settings
-from data.traces import Inps, Traces, DTraces
+import data.traces
 import data.poly.base
 import data.poly.mp
-from data.inv.base import Inv
-from data.inv.invs import Invs, DInvs
 import data.inv.mp
 import data.inv.oct
-from cegir.base import Cegir
+import cegir.base
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirBinSearch(Cegir):
+class CegirBinSearch(cegir.base.Cegir):
+    ub = 'ub'
+
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
     def gen(self, traces, inps):
-        assert isinstance(traces, DTraces) and traces, traces
-        assert isinstance(inps, Inps), inps
+        assert isinstance(traces, data.traces.DTraces) and traces, traces
+        assert isinstance(inps, data.traces.Inps), inps
 
         locs = traces.keys()
         termss = [self.get_terms(self.inv_decls[loc].sageExprs)
@@ -40,7 +44,8 @@ class CegirBinSearch(Cegir):
         minV = -1*maxV
         refs = {loc: {self.mk_le(t, maxV): t for t in terms}
                 for loc, terms in zip(locs, termss)}
-        ieqs = DInvs([(loc, Invs(refs[loc].keys())) for loc in refs])
+        ieqs = data.inv.invs.DInvs(
+            [(loc, data.inv.invs.Invs(refs[loc].keys())) for loc in refs])
 
         cexs, ieqs = self.check(ieqs, inps=None)
 
@@ -61,15 +66,15 @@ class CegirBinSearch(Cegir):
                     for loc, term in tasks]
         wrs = Miscs.run_mp('guesscheck', tasks, f)
         rs = [(loc, inv) for loc, inv in wrs if inv]
-        dinvs = DInvs()
+        dinvs = data.inv.invs.DInvs()
         for loc, inv in rs:
-            dinvs.setdefault(loc, Invs()).add(inv)
+            dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
         return dinvs
 
     def gc(self, loc, term, minV, maxV, traces):
         assert isinstance(term, data.poly.base.Poly)
         assert minV <= maxV, (minV, maxV)
-        statsd = {maxV: Inv.PROVED}
+        statsd = {maxV: data.inv.base.Inv.PROVED}
 
         # start with this minV
         vs = term.eval_traces(traces[loc])
@@ -108,14 +113,14 @@ class CegirBinSearch(Cegir):
                 break
 
         mmaxV = v if v < maxV else maxV
-        mlog.debug("{}: compute ub for '{}', start with minV {}, maxV {})"
-                   .format(loc, term, mminV, mmaxV))
+        mlog.debug("{}: compute ub for '{}', start with minV {}, maxV {}), {}"
+                   .format(loc, term, mminV, mmaxV, mminV <= mmaxV))
 
         assert mminV <= mmaxV, (term, mminV, mmaxV)
         boundV = self.guess_check(loc, term, mminV, mmaxV, statsd)
 
         if (boundV is not None and
-                (boundV not in statsd or statsd[boundV] != Inv.DISPROVED)):
+                (boundV not in statsd or statsd[boundV] != data.inv.base.Inv.DISPROVED)):
             stat = statsd[boundV] if boundV in statsd else None
             inv = self.mk_le(term, boundV)
             inv.stat = stat
@@ -136,7 +141,7 @@ class CegirBinSearch(Cegir):
         if minV == maxV:
             return maxV
         elif maxV - minV == 1:
-            if (minV in statsd and statsd[minV] == Inv.DISPROVED):
+            if (minV in statsd and statsd[minV] == data.inv.base.Inv.DISPROVED):
                 return maxV
 
             cexs, stat = self._mk_upp_and_check(loc, term, minV)
@@ -244,10 +249,12 @@ class CegirBinSearch(Cegir):
 
     def _mk_upp_and_check(self, loc, term, v):
         inv = self.mk_le(term, v)
-        inv_ = DInvs.mk(loc, Invs([inv]))
-        cexs, _ = self.check(inv_, inps=None)
+        inv_ = data.inv.invs.DInvs.mk(loc, data.inv.invs.Invs([inv]))
+        cexs, _ = self.check(
+            inv_, inps=None, check_mode=self.symstates.check_validity)
+
         return cexs, inv.stat
 
     def _get_max_from_cexs(self, loc, term, cexs):
-        mycexs = Traces.extract(cexs[loc], useOne=False)
+        mycexs = data.traces.Traces.extract(cexs[loc], useOne=False)
         return int(max(term.eval_traces(mycexs)))

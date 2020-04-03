@@ -257,6 +257,9 @@ class SymStates(metaclass=ABCMeta):
     depth_changes = Queue()  # number of changes when using different depths
     solver_calls = Queue()  # of solver calls
 
+    check_validity = 1  # sat(not(ss => f))
+    check_consistency = 2  # sat(ss && f)
+
     def __init__(self, inp_decls, inv_decls, seed=None):
         assert isinstance(inp_decls, data.prog.Symbs), inp_decls  # I x, I y
         # {'vtrace1': (('q', 'I'), ('r', 'I'), ('x', 'I'), ('y', 'I'))}
@@ -362,7 +365,7 @@ class SymStates(metaclass=ABCMeta):
         # DBG()
         return symstates
 
-    def check(self, dinvs, inps, path_idx=None):
+    def check(self, dinvs, inps, path_idx=None, check_mode=check_validity):
         """
         Check invs.
         Also update inps
@@ -372,9 +375,9 @@ class SymStates(metaclass=ABCMeta):
 
         mlog.debug("checking {} invs:\n{}".format(
             dinvs.siz, dinvs.__str__(print_first_n=20)))
-        return self.get_inps(dinvs, inps, path_idx)
+        return self.get_inps(dinvs, inps, path_idx, check_mode)
 
-    def get_inps(self, dinvs, inps, path_idx=None):
+    def get_inps(self, dinvs, inps, path_idx=None, check_mode=check_validity):
         """call verifier on each inv"""
 
         tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
@@ -385,7 +388,7 @@ class SymStates(metaclass=ABCMeta):
             return [(loc, str(inv),
                      self._mcheck_d(
                          loc, path_idx,
-                         inv, inps, ncexs=1))
+                         inv, inps, ncexs=1, check_mode=check_mode))
                     for loc, inv in tasks]
         wrs = Miscs.run_mp("prove", tasks, f)
 
@@ -408,12 +411,15 @@ class SymStates(metaclass=ABCMeta):
         self.__class__.depth_changes.put(
             (inv, prev_stat, prev_depth, cur_stat, cur_depth))
 
-    def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1,
-                  check_consistency_only=False):
+    def _mcheck_d(self, loc, path_idx, inv, inps, ncexs=1, check_mode=check_validity):
+
         assert isinstance(loc, str), loc
         assert path_idx is None or path_idx >= 0
         assert inv is None or isinstance(inv, data.inv.base.Inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
+        assert isinstance(check_mode, int) and \
+            check_mode in {self.check_consistency,
+                           self.check_validity}, check_mode
         assert ncexs >= 1, ncexs
 
         try:
@@ -429,7 +435,7 @@ class SymStates(metaclass=ABCMeta):
                 ss = ss[path_idx].mypc if path_idx else ss.mypc
             else:
                 ss = ss[path_idx].myexpr if path_idx else ss.myexpr
-            return self._mcheck(ss, inv_expr, inps, ncexs, check_consistency_only)
+            return self._mcheck(ss, inv_expr, inps, ncexs, check_mode)
 
         depths = sorted(self.ss[loc].keys())
         depth_idx = 0
@@ -454,30 +460,29 @@ class SymStates(metaclass=ABCMeta):
 
         return cexs, is_succ
 
-    def _mcheck(self, symstatesExpr, inv, inps, ncexs=1,
-                check_consistency_only=False):
+    def _mcheck(self, symstatesExpr, inv, inps, ncexs=1, check_mode=check_validity):
         """
         check if pathcond => inv
         if not, return cex
-
-        if check_consistency_only is set, then check if 
-        pathcond & inv is satisfiable
-
         return cexs, is_succ (if the solver does not timeout)
         """
         assert z3.is_expr(symstatesExpr), symstatesExpr
         assert inv is None or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
+        assert isinstance(check_mode, int) and check_mode in {
+            self.check_consistency, self.check_validity}, check_mode
         assert ncexs >= 0, ncexs
 
         f = symstatesExpr
         iconstr = self._get_inp_constrs(inps)
         if iconstr is not None:
             f = z3.simplify(z3.And(iconstr, f))
+
         if inv is not None:
-            if check_consistency_only:
+            if check_mode == self.check_consistency:
                 f = z3.And(f, inv)
             else:
+                assert check_mode == self.check_validity, check_mode
                 f = z3.Not(z3.Implies(f, inv))
 
         models, stat = Z3.get_models(f, ncexs)

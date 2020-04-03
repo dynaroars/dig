@@ -14,6 +14,7 @@ from data.inv.invs import Invs, DInvs
 from data.inv.eqt import Eqt
 from data.inv.oct import Oct
 from data.inv.prepost import PrePost
+import data.symstates
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -59,7 +60,7 @@ class CegirPrePost(Cegir):
 
         preconds = [pc for pc in self.preconds
                     if self._check(pc.expr(self.use_reals), loc,
-                                   check_consistency_only=True)]
+                                   checkmode=data.symstates.SymStates.check_consistency)]
         #print("preconds", preconds)
         postconds = sorted(postconds, key=lambda d: len(str(d)))
         postconds = [Eqt(p) for p in postconds]
@@ -116,18 +117,18 @@ class CegirPrePost(Cegir):
     def check(self, pcs, postcond_expr, loc):
         precond_expr = z3.And(pcs) if isinstance(pcs, list) else pcs
         inv = z3.Implies(precond_expr, postcond_expr)
-        return self._check(inv, loc, check_consistency_only=False)
+        return self._check(inv, loc, checkmode=self.symstates.check_validity)
 
-    def _check(self, inv, loc, check_consistency_only=False):
+    def _check(self, inv, loc, check_mode=data.symstates.SymStates.check_validity):
         cexs, isSucc = self.symstates._mcheck_d(
-            loc, path_idx=None, inv=inv, inps=None,
-            check_consistency_only=check_consistency_only)
+            loc, path_idx=None, inv=inv, inps=None, check_mode=check_mode)
 
-        if check_consistency_only:
+        if checkmode == Symstates.check_consistency:
             if cexs:
                 return True
             return False
         else:
+            assert check_mode == Symstates.check_validity, check_mode
             if cexs or not isSucc:
                 # mlog.debug("{}: discard {}".format(loc, inv))
                 return False
