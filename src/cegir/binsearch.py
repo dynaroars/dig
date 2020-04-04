@@ -10,6 +10,7 @@ import sage.all
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
+import helpers.miscs
 
 import settings
 import data.traces
@@ -76,6 +77,8 @@ class CegirBinSearch(cegir.base.Cegir):
         assert minV <= maxV, (minV, maxV)
         statsd = {maxV: data.inv.base.Inv.PROVED}
 
+        #print(self.find_max(loc, term))
+
         # start with this minV
         vs = term.eval_traces(traces[loc])
         try:
@@ -113,8 +116,8 @@ class CegirBinSearch(cegir.base.Cegir):
                 break
 
         mmaxV = v if v < maxV else maxV
-        mlog.debug("{}: compute ub for '{}', start with minV {}, maxV {}), {}"
-                   .format(loc, term, mminV, mmaxV, mminV <= mmaxV))
+        mlog.debug("{}: compute ub for '{}', start with minV {}, maxV {})"
+                   .format(loc, term, mminV, mmaxV))
 
         assert mminV <= mmaxV, (term, mminV, mmaxV)
         boundV = self.guess_check(loc, term, mminV, mmaxV, statsd)
@@ -248,6 +251,7 @@ class CegirBinSearch(cegir.base.Cegir):
         return inv
 
     def _mk_upp_and_check(self, loc, term, v):
+        assert isinstance(v, int), v
         inv = self.mk_le(term, v)
         inv_ = data.inv.invs.DInvs.mk(loc, data.inv.invs.Invs([inv]))
         cexs, _ = self.check(
@@ -258,3 +262,34 @@ class CegirBinSearch(cegir.base.Cegir):
     def _get_max_from_cexs(self, loc, term, cexs):
         mycexs = data.traces.Traces.extract(cexs[loc], useOne=False)
         return int(max(term.eval_traces(mycexs)))
+
+    def find_max(self, loc, term):
+        ss = self.symstates.ss[loc]
+        ss = z3.And([ss[depth].myexpr for depth in ss])
+        term = helpers.miscs.Z3.parse(str(term.poly), use_reals=False)
+        opt = z3.Optimize()
+        opt.add(ss)
+        opt.maximize(term)
+        stat = opt.check()
+
+        v = None
+        if stat == z3.sat:
+            model = opt.model()
+            #term = -(x+y)
+            # create a dict from model, e.g., d = {x: 5, y = 10}
+            # v will then be term.subs(d)
+            for s in model:
+                if str(s) == str(term):
+                    v = model[s]
+                    break
+
+            if v is not None:
+                v = int(str(v))
+                print(term, v)
+            else:
+                print('???', term, model)
+                assert False
+        else:
+            raise NotImplementedError("deal with this: {}".format(stat))
+
+        return v
