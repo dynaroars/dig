@@ -625,8 +625,11 @@ class Z3(object):
         return frozenset(rs)
 
     @classmethod
-    def create_solver(cls):
-        solver = z3.Solver()
+    def create_solver(cls, maximize=None):
+        if maximize is None:
+            solver = z3.Solver()
+        else:
+            solver = z3.Optimize()
         solver.set(timeout=settings.SOLVER_TIMEOUT)
         return solver
 
@@ -645,7 +648,7 @@ class Z3(object):
         return cexs, isSucc
 
     @classmethod
-    def get_models(cls, f, k):
+    def get_models(cls, f, k, maximize=None):
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -655,8 +658,12 @@ class Z3(object):
         """
         assert z3.is_expr(f), f
         assert k >= 1, k
-        solver = cls.create_solver()
+        solver = cls.create_solver(maximize)
         solver.add(f)
+
+        if maximize is not None:
+            assert z3.is_expr(maximize), maximize
+            solver.maximize(maximize)
 
         models = []
         i = 0

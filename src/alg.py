@@ -222,7 +222,7 @@ class DigSymStatesC(DigSymStates):
             self.mysrc.symexefile, self.mysrc.mainQ_name,
             self.mysrc.funname, self.mysrc.symexedir)
         return symstates
-    
+
     @property
     def exe_cmd(self):
         return settings.C.C_RUN(exe=self.mysrc.traceexe)

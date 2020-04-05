@@ -410,9 +410,8 @@ class SymStates(metaclass=ABCMeta):
 
     # PRIVATE
     def _update_depth_stats(self, inv, prev_stat, prev_depth, cur_stat, cur_depth):
-        pass
-        # self.__class__.depth_changes.put(
-        #     (inv, prev_stat, prev_depth, cur_stat, cur_depth))
+        self.__class__.depth_changes.put(
+            (inv, prev_stat, prev_depth, cur_stat, cur_depth))
 
     def mcheck_d(self, loc, path_idx, inv, inps, ncexs, check_mode):
 
@@ -458,7 +457,7 @@ class SymStates(metaclass=ABCMeta):
 
             cexs, is_succ, stat = self.mcheck(
                 ss, inv_expr, inps, ncexs, check_mode)
-            # self.__class__.solver_calls.put((stat, is_succ))
+            self.__class__.solver_calls.put((stat, is_succ))
             return cexs, is_succ, stat
 
         depths = sorted(self.ss[loc].keys())
