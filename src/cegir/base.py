@@ -45,11 +45,12 @@ class Cegir(metaclass=ABCMeta):
 
     def check(self, dinvs, inps, check_mode=data.symstates.SymStates.check_validity):
         if self.symstates:
-            cexs, dinvs = self.symstates.check(dinvs, inps, None, check_mode)
+            cexs, dinvs, stats = self.symstates.check(dinvs, inps, check_mode)
         else:
             # no symbolic states, not performing checking
             for loc in dinvs:
                 for inv in dinvs[loc]:
                     inv.stat = Inv.UNKNOWN
             cexs = {}
-        return cexs, dinvs
+            stats = []
+        return cexs, dinvs, stats

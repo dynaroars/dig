@@ -41,15 +41,17 @@ class CegirEqt(Cegir):
 
         # put results together
         dinvs = DInvs()
-        for loc, (eqts, cexs) in wrs:
+        statss = []
+        for loc, (eqts, cexs, stats) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug("{}: got {} eqts, {} new inps"
                        .format(loc, len(eqts), len(new_inps)))
             if eqts:
                 mlog.debug('\n'.join(map(str, eqts)))
             dinvs[loc] = Invs(eqts)
+            statss.extend(stats)
 
-        return dinvs
+        return dinvs, statss
 
     # PRIVATE
 
@@ -83,7 +85,8 @@ class CegirEqt(Cegir):
                 doRand = False
 
                 dinvsFalse = DInvs.mk_false_invs([loc])
-                cexs, _ = self.symstates.check(dinvsFalse, inps)
+                cexs, _, _ = self.symstates.check(
+                    dinvsFalse, inps, self.symstates.check_validity)
                 # cannot find new inputs
                 if loc not in cexs:
                     mlog.debug("{}: cannot find new inps ({} curr inps)"
@@ -117,7 +120,8 @@ class CegirEqt(Cegir):
             mlog.debug("{}: need more traces ({} eqts, need >= {})"
                        .format(loc, len(exprs), n_eqts_needed))
             dinvsFalse = DInvs.mk_false_invs([loc])
-            cexs, _ = self.symstates.check(dinvsFalse, inps)
+            cexs, _, _ = self.symstates.check(
+                dinvsFalse, inps, self.symstates.check_validity)
             if loc not in cexs:
                 mlog.error("{}: cannot generate enough traces".format(loc))
                 return
@@ -175,6 +179,7 @@ class CegirEqt(Cegir):
         new_cexs = []
         curIter = 0
 
+        statss = []
         while True:
             curIter += 1
             mlog.debug("{}, iter {} infer using {} exprs"
@@ -194,7 +199,9 @@ class CegirEqt(Cegir):
                        .format(loc, len(unchecks), len(new_eqts)))
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
-            cexs, dinvs = self.check(dinvs, inps=None)
+            cexs, dinvs, stats = self.check(
+                dinvs, None, self.symstates.check_validity)
+            statss.extend(stats)
             if cexs:
                 new_cexs.append(cexs)
 
@@ -211,4 +218,4 @@ class CegirEqt(Cegir):
             mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
             exprs.extend(exprs_)
 
-        return eqts, new_cexs
+        return eqts, new_cexs, statss

@@ -2,7 +2,6 @@
 Symbolic States
 """
 from collections import defaultdict
-from multiprocessing import Queue
 from abc import ABCMeta, abstractmethod
 import pdb
 from pathlib import Path
@@ -257,8 +256,6 @@ class PCs(set):
 
 
 class SymStates(metaclass=ABCMeta):
-    depth_changes = Queue()  # number of changes when using different depths
-    solver_calls = Queue()  # of solver calls
 
     check_validity = 1  # sat(not(ss => f))
     check_consistency = 2  # sat(ss && f)
@@ -368,34 +365,32 @@ class SymStates(metaclass=ABCMeta):
         # DBG()
         return symstates
 
-    def check(self, dinvs, inps, path_idx, check_mode):
+    def check(self, dinvs, inps, check_mode):
         """
-        Check invs.
+        Check invs, return cexs
         Also update inps
         """
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
+        assert self.check_check_mode(check_mode), check_mode
 
         mlog.debug("checking {} invs:\n{}".format(
             dinvs.siz, dinvs.__str__(print_first_n=20)))
-        return self.get_inps(dinvs, inps, path_idx, check_mode)
-
-    def get_inps(self, dinvs, inps, path_idx, check_mode):
-        """call verifier on each inv"""
-
         tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
                  if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
 
         def f(tasks):
             return [(loc, str(inv),
-                     self.mcheck_d(loc, path_idx, inv, inps,
+                     self.mcheck_d(loc, inv, inps,
                                    ncexs=1, check_mode=check_mode))
                     for loc, inv in tasks]
         wrs = Miscs.run_mp("prove", tasks, f)
 
-        mCexs, mdinvs = [], data.inv.invs.DInvs()
-        for loc, str_inv, (cexs, is_succ) in wrs:
+        mCexs = []
+        mdinvs = data.inv.invs.DInvs()
+        mstats = []
+        for loc, str_inv, (cexs, is_succ, solver_stats) in wrs:
             inv = refsD[(loc, str_inv)]
 
             if cexs:
@@ -406,22 +401,21 @@ class SymStates(metaclass=ABCMeta):
             inv.stat = stat
             mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
-        return merge(mCexs), mdinvs
+            mstats.extend(solver_stats)
+
+        return merge(mCexs), mdinvs, mstats
 
     # PRIVATE
-    def _update_depth_stats(self, inv, prev_stat, prev_depth, cur_stat, cur_depth):
-        self.__class__.depth_changes.put(
-            (inv, prev_stat, prev_depth, cur_stat, cur_depth))
 
-    def mcheck_d(self, loc, path_idx, inv, inps, ncexs, check_mode):
+    def mcheck_d(self, loc, inv, inps, ncexs, check_mode):
 
         assert isinstance(loc, str), loc
-        assert path_idx is None or path_idx >= 0
-        assert inv is None or isinstance(inv, data.inv.base.Inv), inv
+        assert inv is None or \
+            isinstance(inv, data.inv.base.Inv) or \
+            z3.is_expr(inv), (inv, type(inv))
+
         assert inps is None or isinstance(inps, data.traces.Inps), inps
-        assert isinstance(check_mode, int) and \
-            check_mode in {self.check_consistency,
-                           self.check_validity}, check_mode
+        assert self.check_check_mode(check_mode), check_mode
         assert ncexs >= 1, ncexs
 
         try:
@@ -429,10 +423,14 @@ class SymStates(metaclass=ABCMeta):
             if inv_expr is zFalse:
                 inv_expr = None
         except AttributeError:
-            inv_expr = None
+            if z3.is_expr(inv):
+                inv_expr = inv
+                assert inv_expr is not None, inv_expr
+            else:
+                inv_expr = None
 
         if check_mode == self.check_validity:
-            return self.mcheck_depth(loc, path_idx, inv, inv_expr, inps, ncexs, check_mode)
+            return self.mcheck_depth(loc, inv, inv_expr, inps, ncexs, check_mode)
         else:
             return self.mcheck_all(loc, inv_expr)
 
@@ -443,21 +441,19 @@ class SymStates(metaclass=ABCMeta):
         cexs, is_succ, stat = self.mcheck(
             ss, inv_expr, inps=None, ncexs=1, check_mode=self.check_consistency)
 
-        return cexs, is_succ
+        return cexs, is_succ, []
 
-    def mcheck_depth(self, loc, path_idx, inv, inv_expr, inps, ncexs, check_mode):
+    def mcheck_depth(self, loc, inv, inv_expr, inps, ncexs, check_mode):
         assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
+
+        solver_stats = []
 
         def f(depth):
             ss = self.ss[loc][depth]
-            if inv_expr is None:
-                ss = ss[path_idx].mypc if path_idx else ss.mypc
-            else:
-                ss = ss[path_idx].myexpr if path_idx else ss.myexpr
-
+            ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(
                 ss, inv_expr, inps, ncexs, check_mode)
-            self.__class__.solver_calls.put((stat, is_succ))
+            solver_stats.append((stat, is_succ))
             return cexs, is_succ, stat
 
         depths = sorted(self.ss[loc].keys())
@@ -465,23 +461,22 @@ class SymStates(metaclass=ABCMeta):
 
         cexs, is_succ, stat = f(depths[depth_idx])
         if stat != z3.unsat:  # if disprove or unknown first time
-            self._update_depth_stats(inv, None, None, stat, depths[depth_idx])
+            solver_stats.append((inv, None, None, stat, depths[depth_idx]))
 
         while(stat != z3.sat and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
             cexs_, is_succ_, stat_ = f(depths[depth_idx_])
             if stat_ != stat:
+                mydepth_ = depths[depth_idx_]
+                mydepth = depths[depth_idx]
                 mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
-                           .format(inv_expr,
-                                   stat_, depths[depth_idx_],
-                                   stat, depths[depth_idx]))
-                self._update_depth_stats(
-                    inv, stat, depths[depth_idx], stat_, depths[depth_idx_])
+                           .format(inv_expr, stat, mydepth, stat_, mydepth_))
+                solver_stats.append((inv, stat, mydepth, stat_, mydepth_))
 
             depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
 
-        return cexs, is_succ
+        return cexs, is_succ, solver_stats
 
     def mcheck(self, symstates_expr, inv, inps, ncexs, check_mode):
         """
@@ -493,8 +488,7 @@ class SymStates(metaclass=ABCMeta):
         assert inv is None or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
-        assert isinstance(check_mode, int) and check_mode in {
-            self.check_consistency, self.check_validity}, check_mode
+        assert self.check_check_mode(check_mode), check_mode
 
         f = symstates_expr
         iconstr = self._get_inp_constrs(inps)
@@ -525,6 +519,10 @@ class SymStates(metaclass=ABCMeta):
             return cstrs[0]
         else:
             return z3.And(cstrs)
+
+    def check_check_mode(self, check_mode):
+        return (isinstance(check_mode, int) and
+                check_mode in {self.check_consistency, self.check_validity})
 
 
 def merge(ds):

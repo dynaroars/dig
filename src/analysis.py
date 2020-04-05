@@ -25,8 +25,7 @@ class Result:
 
     def __init__(self, filename, seed,
                  dinvs, dtraces, inps,
-                 solver_calls,
-                 depth_changes,
+                 stats,
                  t_time):
 
         self.filename = filename
@@ -34,8 +33,8 @@ class Result:
         self.dinvs = dinvs
         self.dtraces = dtraces
         self.inps = inps
-        self.solver_calls = solver_calls
-        self.depth_changes = depth_changes
+        self.solver_calls = [stat for stat in stats if len(stat) == 2]
+        self.depth_changes = [stat for stat in stats if len(stat) != 2]
         self.t_time = t_time
 
     @classmethod
@@ -55,8 +54,12 @@ class Result:
         """
         return the # of variables, max deg, and number of terms
         """
-
-        if isinstance(inv, data.inv.mp.MP):
+        if isinstance(inv, data.inv.prepost.PrePost):
+            mlog.warning("Not very accurate for PREPOST")
+            vs = []
+            degs = [1]
+            nterms = 1
+        elif isinstance(inv, data.inv.mp.MP):
             vs = inv.term.symbols
             degs = [1]
             nterms = 1
@@ -270,7 +273,7 @@ class Benchmark:
             if not bmdir.is_dir():
                 bmdir.mkdir()
             settings.tmpdir = bmdir
-            
+
             for j, seed in enumerate(sorted(remainruns)):
                 mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
                     i+1, len(toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))

@@ -100,43 +100,33 @@ class DigSymStates(Dig):
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
         inps = Inps()
+        statss = []
 
         if settings.DO_EQTS:
-            self.infer('eqts', dinvs, lambda: self.infer_eqts(
+            self.infer('eqts', dinvs, statss, lambda: self.infer_eqts(
                 maxdeg, dtraces, inps))
 
         if settings.DO_IEQS or settings.DO_MINMAXPLUS:
-            self.infer('ieqs', dinvs, lambda: self.infer_ieqs(dtraces, inps))
+            self.infer('ieqs', dinvs, statss,
+                       lambda: self.infer_ieqs(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
         if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer('preposts', dinvs,
+            self.infer('preposts', dinvs, statss,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        self.postprocess(dinvs, dtraces, inps, time.time() - st)
+        self.postprocess(dinvs, dtraces, inps, statss, time.time() - st)
 
-    def postprocess(self, dinvs, dtraces, inps, t_time):
+    def postprocess(self, dinvs, dtraces, inps, statss, t_time):
         """
         Save and analyze result
         Clean up tmpdir
         """
-        solver_calls = []
-        depth_changes = []
-        try:
-            while not self.symstates.solver_calls.empty():
-                solver_calls.append(self.symstates.solver_calls.get_nowait())
-
-            while not self.symstates.depth_changes.empty():
-                depth_changes.append(self.symstates.depth_changes.get_nowait())
-        except AttributeError:
-            # no symbolic states
-            pass
 
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
-                        solver_calls,
-                        depth_changes, t_time)
+                        statss, t_time)
 
         result.save(self.tmpdir)
         Benchmark(self.tmpdir, args=None).analyze()
@@ -150,11 +140,13 @@ class DigSymStates(Dig):
             dtraces.vwrite(self.inv_decls, tracefile)
             mlog.info("tmpdir: {}".format(self.tmpdir))
 
-    def infer(self, typ, dinvs, f):
+    def infer(self, typ, dinvs, statss, f):
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
 
         st = time.time()
-        new_invs = f()
+        new_invs, stats = f()
+        statss.extend(stats)
+
         if new_invs.siz:
             mlog.info("found {} {} ({:.2f}s)".format(
                 new_invs.siz, typ, time.time() - st))
@@ -266,8 +258,10 @@ class DigTraces(Dig):
             return rs
         wrs = Miscs.run_mp("dynamic inference", tasks, f)
 
+        statss = []
         dinvs = DInvs()
-        for loc, invs in wrs:
+        for loc, invs, stats in wrs:
+            statss.extend(stats)
             for inv in invs:
                 dinvs.add(loc, inv)
 
@@ -277,7 +271,6 @@ class DigTraces(Dig):
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         # Analysis(self, dinvs, self.dtraces, None, time.time() - st).doit()
-        return dinvs, None
 
     def infer_eqts(self, maxdeg, symbols, traces):
         import data.inv.eqt

@@ -26,8 +26,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class CegirBinSearch(cegir.base.Cegir):
-    ub = 'ub'
-
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
@@ -35,6 +33,7 @@ class CegirBinSearch(cegir.base.Cegir):
         assert isinstance(traces, data.traces.DTraces) and traces, traces
         assert isinstance(inps, data.traces.Inps), inps
 
+        statss = []
         locs = traces.keys()
         termss = [self.get_terms(self.inv_decls[loc].sageExprs)
                   for loc in locs]
@@ -48,7 +47,8 @@ class CegirBinSearch(cegir.base.Cegir):
         ieqs = data.inv.invs.DInvs(
             [(loc, data.inv.invs.Invs(refs[loc].keys())) for loc in refs])
 
-        cexs, ieqs = self.check(ieqs, inps=None)
+        cexs, ieqs, stats = self.check(ieqs, inps=None)
+        statss.extend(stats)
 
         if cexs:
             cexs_inps = inps.merge(cexs, self.inp_decls.names)
@@ -62,15 +62,17 @@ class CegirBinSearch(cegir.base.Cegir):
             len(locs), len(tasks)))
 
         def f(tasks):
-            return [(loc,
-                     self.gc(loc, term, minV, maxV, traces))
+            return [(loc, self.gc(loc, term, minV, maxV, traces))
                     for loc, term in tasks]
         wrs = Miscs.run_mp('guesscheck', tasks, f)
-        rs = [(loc, inv) for loc, inv in wrs if inv]
+
         dinvs = data.inv.invs.DInvs()
-        for loc, inv in rs:
-            dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
-        return dinvs
+        for loc, (inv, stats) in wrs:
+            statss.extend(stats)
+            if inv:
+                dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+
+        return dinvs, statss
 
     def gc(self, loc, term, minV, maxV, traces):
         assert isinstance(term, data.poly.base.Poly)
@@ -78,6 +80,7 @@ class CegirBinSearch(cegir.base.Cegir):
         statsd = {maxV: data.inv.base.Inv.PROVED}
 
         #print(self.find_max(loc, term))
+        statss = []
 
         # start with this minV
         vs = term.eval_traces(traces[loc])
@@ -86,7 +89,7 @@ class CegirBinSearch(cegir.base.Cegir):
             if mymaxV > maxV:
                 # occurs when checking above fails
                 # (e.g., cannot show term <= maxV even though it is true)
-                return None
+                return None, statss
 
             mminV = int(max(minV, mymaxV))
         except ValueError:
@@ -103,14 +106,15 @@ class CegirBinSearch(cegir.base.Cegir):
                 break
 
             i = i + 1
-            cexs, stat = self._mk_upp_and_check(loc, term, v)
+            cexs, stat, stats = self._mk_upp_and_check(loc, term, v)
+            statss.extend(stats)
             assert v not in statsd, v
             statsd[v] = stat
 
             if loc in cexs:  # disproved
                 mminV = self._get_max_from_cexs(loc, term, cexs)
                 if mminV >= maxV:
-                    return None
+                    return None, statss
 
             else:  # proved , term <= v
                 break
@@ -120,7 +124,8 @@ class CegirBinSearch(cegir.base.Cegir):
                    .format(loc, term, mminV, mmaxV))
 
         assert mminV <= mmaxV, (term, mminV, mmaxV)
-        boundV = self.guess_check(loc, term, mminV, mmaxV, statsd)
+        boundV = self.guess_check(
+            loc, term, mminV, mmaxV, statsd, statss)
 
         if (boundV is not None and
                 (boundV not in statsd or statsd[boundV] != data.inv.base.Inv.DISPROVED)):
@@ -128,13 +133,14 @@ class CegirBinSearch(cegir.base.Cegir):
             inv = self.mk_le(term, boundV)
             inv.stat = stat
             mlog.debug("got {}".format(inv))
-            return inv
+            return inv, statss
         else:
-            return None
+            return None, statss
 
-    def guess_check(self, loc, term, minV, maxV, statsd):
+    def guess_check(self, loc, term, minV, maxV, statsd, statss):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(statsd, dict), statsd  # {v : proved}
+        assert isinstance(statss, list), statss
 
         if minV > maxV:
             mlog.warning("{}: (guess_check) term {} has minV {} > maxV {}".format(
@@ -147,7 +153,9 @@ class CegirBinSearch(cegir.base.Cegir):
             if (minV in statsd and statsd[minV] == data.inv.base.Inv.DISPROVED):
                 return maxV
 
-            cexs, stat = self._mk_upp_and_check(loc, term, minV)
+            cexs, stat, stats = self._mk_upp_and_check(loc, term, minV)
+            statss.extend(stats)
+
             assert minV not in statsd
             statsd[minV] = stat
             ret = maxV if loc in cexs else minV
@@ -156,7 +164,8 @@ class CegirBinSearch(cegir.base.Cegir):
         v = (maxV + minV)/2.0
         v = int(math.ceil(v))
 
-        cexs, stat = self._mk_upp_and_check(loc, term, v)
+        cexs, stat, stats = self._mk_upp_and_check(loc, term, v)
+        statss.extend(stats)
         assert v not in statsd, (term.term, minV, maxV, v, stat, statsd[v])
         statsd[v] = stat
 
@@ -165,7 +174,7 @@ class CegirBinSearch(cegir.base.Cegir):
         else:
             maxV = v
 
-        return self.guess_check(loc, term, minV, maxV, statsd)
+        return self.guess_check(loc, term, minV, maxV, statsd, statss)
 
     def get_terms(self, symbols):
 
@@ -254,10 +263,10 @@ class CegirBinSearch(cegir.base.Cegir):
         assert isinstance(v, int), v
         inv = self.mk_le(term, v)
         inv_ = data.inv.invs.DInvs.mk(loc, data.inv.invs.Invs([inv]))
-        cexs, _ = self.check(
+        cexs, _, stats = self.check(
             inv_, inps=None, check_mode=self.symstates.check_validity)
 
-        return cexs, inv.stat
+        return cexs, inv.stat, stats
 
     def _get_max_from_cexs(self, loc, term, cexs):
         mycexs = data.traces.Traces.extract(cexs[loc], useOne=False)
