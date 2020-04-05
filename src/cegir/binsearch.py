@@ -183,10 +183,10 @@ class CegirBinSearch(cegir.base.Cegir):
             oct_siz = 2
             terms_ieqs = Miscs.get_terms_fixed_coefs(symbols, oct_siz)
             terms_ieqs = [data.poly.base.GeneralPoly(t) for t in terms_ieqs]
+            mlog.debug("{} terms for Ieqs".format(len(terms_ieqs)))
             terms.extend(terms_ieqs)
 
         if settings.DO_MINMAXPLUS:
-
             terms_u = data.poly.mp.MP.get_terms(symbols)
             terms_u_no_octs = [(a, b) for a, b in terms_u
                                if len(b) >= 2]
@@ -203,7 +203,10 @@ class CegirBinSearch(cegir.base.Cegir):
             terms_max = _get_terms(terms_u, is_max=True)
 
             terms_min = _get_terms(terms_u_no_octs, is_max=False)
-            terms.extend(terms_min + terms_max)
+            terms_mp = terms_min + terms_max
+            terms.extend(terms_mp)
+            mlog.debug("{} terms for MP".format(len(terms_mp)))
+            print(terms_mp)
 
         if settings.DO_TERM_FILTER:
             st = time()
@@ -240,10 +243,10 @@ class CegirBinSearch(cegir.base.Cegir):
 
             else:
                 t_symbs = set(map(str, term.symbols))
-                if len(t_symbs) <= 1:
-                    continue
 
-            assert len(t_symbs) > 1
+            if len(t_symbs) <= 1:  # ok for finding bound of single input val
+                continue
+
             if (inps.issuperset(t_symbs) or
                     all(s not in inps for s in t_symbs)):
                 excludes.add(term)

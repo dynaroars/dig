@@ -344,7 +344,7 @@ class Miscs(object):
     def refine(cls, sols, ignoreLargeCoefs=True):
         if not sols:
             return sols
-        sols = cls.reduce_eqts(sols)
+        # sols = cls.reduce_eqts(sols)
         sols = [cls.elim_denom(s) for s in sols]
 
         def okCoefs(s): return all(
