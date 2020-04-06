@@ -1,6 +1,4 @@
 public class Dijkstra {
-
-    public static void vtrace1(int r, int p, int n, int q, int h){}
     public static void vtrace2(int r, int p, int n, int q, int h){}
     public static void vtrace3(int r, int p, int n, int h){}
     public static void main (String[] args) {

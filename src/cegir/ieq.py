@@ -23,7 +23,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirIeqs(cegir.base.Cegir):
+class CegirIeq(cegir.base.Cegir):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 

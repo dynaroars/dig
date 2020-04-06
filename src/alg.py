@@ -90,7 +90,7 @@ class DigSymStates(Dig):
             self.symstates = self.get_symbolic_states()
 
             # remove locations with no symbolic states
-            for loc in self.inv_decls:
+            for loc in list(self.inv_decls.keys()):
                 if loc not in self.symstates.ss:
                     mlog.warning('{}: no symbolic states. Skip'.format(loc))
                     self.inv_decls.pop(loc)
@@ -166,8 +166,8 @@ class DigSymStates(Dig):
                 print_stat=True, print_first_n=20)))
 
     def infer_eqts(self, maxdeg, dtraces, inps):
-        from cegir.eqt import CegirEqts
-        solver = CegirEqts(self.symstates, self.prog)
+        from cegir.eqt import CegirEqt
+        solver = CegirEqt(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
         # determine degree
@@ -175,13 +175,13 @@ class DigSymStates(Dig):
         return solver.gen(auto_deg, dtraces, inps)
 
     def infer_ieqs(self, dtraces, inps):
-        from cegir.ieqs import CegirIeqs
-        solver = CegirIeqs(self.symstates, self.prog)
+        from cegir.ieq import CegirIeq
+        solver = CegirIeq(self.symstates, self.prog)
         return solver.gen(dtraces, inps)
 
     def infer_minmax(self, dtraces, inps):
-        from cegir.binsearch import CegirBinSearch
-        solver = CegirBinSearch(self.symstates, self.prog)
+        from cegir.mp import CegirMP
+        solver = CegirMP(self.symstates, self.prog)
         return solver.gen(dtraces, inps)
 
     def infer_preposts(self, dinvs, dtraces):

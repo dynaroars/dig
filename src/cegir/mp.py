@@ -17,7 +17,6 @@ import data.traces
 import data.poly.base
 import data.poly.mp
 import data.inv.mp
-import data.inv.oct
 import cegir.base
 
 DBG = pdb.set_trace
@@ -25,7 +24,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirBinSearch(cegir.base.Cegir):
+class CegirMP(cegir.base.Cegir):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
@@ -79,7 +78,6 @@ class CegirBinSearch(cegir.base.Cegir):
         assert minV <= maxV, (minV, maxV)
         statsd = {maxV: data.inv.base.Inv.PROVED}
 
-        #print(self.find_max(loc, term))
         statss = []
 
         # start with this minV
@@ -179,34 +177,26 @@ class CegirBinSearch(cegir.base.Cegir):
     def get_terms(self, symbols):
 
         terms = []
-        if settings.DO_IEQS:
-            oct_siz = 2
-            terms_ieqs = Miscs.get_terms_fixed_coefs(symbols, oct_siz)
-            terms_ieqs = [data.poly.base.GeneralPoly(t) for t in terms_ieqs]
-            mlog.debug("{} terms for Ieqs".format(len(terms_ieqs)))
-            terms.extend(terms_ieqs)
 
-        if settings.DO_MINMAXPLUS:
-            terms_u = data.poly.mp.MP.get_terms(symbols)
-            terms_u_no_octs = [(a, b) for a, b in terms_u
-                               if len(b) >= 2]
+        terms_u = data.poly.mp.MP.get_terms(symbols)
+        terms_u_no_octs = [(a, b) for a, b in terms_u
+                           if len(b) >= 2]
 
-            if settings.DO_IEQS:  # ignore oct invs
-                terms_u = terms_u_no_octs
+        if settings.DO_IEQS:  # ignore oct invs
+            terms_u = terms_u_no_octs
 
-            def _get_terms(terms_u, is_max):
-                terms_l = [(b, a) for a, b in terms_u]
-                terms = terms_u + terms_l
-                terms = [data.poly.mp.MP(a, b, is_max) for a, b in terms]
-                return terms
+        def _get_terms(terms_u, is_max):
+            terms_l = [(b, a) for a, b in terms_u]
+            terms = terms_u + terms_l
+            terms = [data.poly.mp.MP(a, b, is_max) for a, b in terms]
+            return terms
 
-            terms_max = _get_terms(terms_u, is_max=True)
+        terms_max = _get_terms(terms_u, is_max=True)
 
-            terms_min = _get_terms(terms_u_no_octs, is_max=False)
-            terms_mp = terms_min + terms_max
-            terms.extend(terms_mp)
-            mlog.debug("{} terms for MP".format(len(terms_mp)))
-            print(terms_mp)
+        terms_min = _get_terms(terms_u_no_octs, is_max=False)
+        terms_mp = terms_min + terms_max
+        terms.extend(terms_mp)
+        mlog.debug("{} terms for MP".format(len(terms_mp)))
 
         if settings.DO_TERM_FILTER:
             st = time()
@@ -228,21 +218,17 @@ class CegirBinSearch(cegir.base.Cegir):
 
         excludes = set()
         for term in terms:
-            if isinstance(term, data.poly.mp.MP):
-                a_symbs = list(map(str, Miscs.get_vars(term.a)))
-                b_symbs = list(map(str, Miscs.get_vars(term.b)))
-                inp_in_a = any(s in inps for s in a_symbs)
-                inp_in_b = any(s in inps for s in b_symbs)
+            a_symbs = list(map(str, Miscs.get_vars(term.a)))
+            b_symbs = list(map(str, Miscs.get_vars(term.b)))
+            inp_in_a = any(s in inps for s in a_symbs)
+            inp_in_b = any(s in inps for s in b_symbs)
 
-                if ((inp_in_a and inp_in_b) or
-                        (not inp_in_a and not inp_in_b)):
-                    excludes.add(term)
-                    continue
+            if ((inp_in_a and inp_in_b) or
+                    (not inp_in_a and not inp_in_b)):
+                excludes.add(term)
+                continue
 
-                t_symbs = set(a_symbs + b_symbs)
-
-            else:
-                t_symbs = set(map(str, term.symbols))
+            t_symbs = set(a_symbs + b_symbs)
 
             if len(t_symbs) <= 1:  # ok for finding bound of single input val
                 continue
@@ -255,12 +241,7 @@ class CegirBinSearch(cegir.base.Cegir):
         return new_terms
 
     def mk_le(self, term, v):
-        inv = term.mk_le(v)
-        if isinstance(term, data.poly.base.GeneralPoly):
-            inv = data.inv.oct.Oct(inv)
-        else:
-            inv = data.inv.mp.MP(inv)
-        return inv
+        return data.inv.mp.MP(term.mk_le(v))
 
     def _mk_upp_and_check(self, loc, term, v):
         assert isinstance(v, int), v
