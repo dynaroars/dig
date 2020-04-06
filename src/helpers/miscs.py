@@ -344,7 +344,7 @@ class Miscs(object):
     def refine(cls, sols, ignoreLargeCoefs=True):
         if not sols:
             return sols
-        # sols = cls.reduce_eqts(sols)
+        sols = cls.reduce_eqts(sols)
         sols = [cls.elim_denom(s) for s in sols]
 
         def okCoefs(s): return all(
@@ -377,7 +377,6 @@ class Miscs(object):
         def mysolve(eqts, uks, solution_dict):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 
-        # rs = sage.all.solve(eqts, *uks, solution_dict=True)
         rs = mysolve(eqts, uks, solution_dict=True)
         assert isinstance(rs, list), rs
         assert all(isinstance(s, dict) for s in rs), rs
