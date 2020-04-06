@@ -280,7 +280,11 @@ class Miscs(object):
             myIdeal = Q*ps
             ps = myIdeal.radical().interreduced_basis()
             ps = [(sage.all.SR(p) == 0) for p in ps]
-        except AttributeError:
+        except AttributeError as ex:
+            mlog.error(ex)
+            pass
+        except ValueError as ex:
+            mlog.error(ex)
             pass
 
         return ps
@@ -361,7 +365,7 @@ class Miscs(object):
                 if okCoefs(s):
                     sols_.append(s)
                 else:
-                    mlog.debug("large coefs: ignore {} ..".format(
+                    mlog.debug("ignore large coefs {} ..".format(
                         str(s)[:settings.MAX_LARGE_COEF]))
             sols = sols_
         return sols
@@ -548,9 +552,9 @@ class Miscs(object):
             else:
                 myQ.put(rs)
 
-        if settings.DO_MP and len(tasks) >= 2:
+        n_cpus = multiprocessing.cpu_count() - 1
+        if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
-            n_cpus = multiprocessing.cpu_count()
             wloads = cls.get_workload(tasks, n_cpus=n_cpus)
             mlog.debug("{}:running {} jobs using {} threads: {}".format(
                 taskname, len(tasks), len(wloads), list(map(len, wloads))))
@@ -562,9 +566,7 @@ class Miscs(object):
                 w.start()
 
             wrs = [x for _ in workers for x in Q.get()]
-            # for w in workers:
-            #     w.terminate()
-            # w.join()
+
         else:
             wrs = wprocess(tasks, myQ=None)
 
@@ -649,7 +651,7 @@ class Z3(object):
         return cexs, isSucc
 
     @classmethod
-    def get_models(cls, f, k, maximize=None):
+    def get_models(cls, f, k):
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -659,13 +661,8 @@ class Z3(object):
         """
         assert z3.is_expr(f), f
         assert k >= 1, k
-        solver = cls.create_solver(maximize)
+        solver = cls.create_solver(maximize=None)
         solver.add(f)
-
-        if maximize is not None:
-            assert z3.is_expr(maximize), maximize
-            solver.maximize(maximize)
-
         models = []
         i = 0
         while solver.check() == z3.sat and i < k:

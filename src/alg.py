@@ -177,7 +177,7 @@ class DigSymStates(Dig):
     def infer_ieqs(self, dtraces, inps):
         from cegir.ieq import CegirIeq
         solver = CegirIeq(self.symstates, self.prog)
-        return solver.gen(dtraces, inps)
+        return solver.gen()
 
     def infer_minmax(self, dtraces, inps):
         from cegir.mp import CegirMP

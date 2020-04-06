@@ -25,7 +25,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class CegirMP(cegir.base.Cegir):
-    def __init__(self, symstates, prog):
+    def __init__(self, symstates, prog):  # TODO: don't need prog
         super().__init__(symstates, prog)
 
     def gen(self, traces, inps):
@@ -201,7 +201,7 @@ class CegirMP(cegir.base.Cegir):
         if settings.DO_TERM_FILTER:
             st = time()
             new_terms = self.filter_terms(
-                terms, set(self.prog.inp_decls.names))
+                terms, set(self.symstates.inp_decls.names))
             Miscs.show_removed('term filter',
                                len(terms), len(new_terms), time() - st)
             return new_terms
@@ -255,34 +255,3 @@ class CegirMP(cegir.base.Cegir):
     def _get_max_from_cexs(self, loc, term, cexs):
         mycexs = data.traces.Traces.extract(cexs[loc], useOne=False)
         return int(max(term.eval_traces(mycexs)))
-
-    def find_max(self, loc, term):
-        ss = self.symstates.ss[loc]
-        ss = z3.And([ss[depth].myexpr for depth in ss])
-        term = helpers.miscs.Z3.parse(str(term.poly), use_reals=False)
-        opt = z3.Optimize()
-        opt.add(ss)
-        opt.maximize(term)
-        stat = opt.check()
-
-        v = None
-        if stat == z3.sat:
-            model = opt.model()
-            #term = -(x+y)
-            # create a dict from model, e.g., d = {x: 5, y = 10}
-            # v will then be term.subs(d)
-            for s in model:
-                if str(s) == str(term):
-                    v = model[s]
-                    break
-
-            if v is not None:
-                v = int(str(v))
-                print(term, v)
-            else:
-                print('???', term, model)
-                assert False
-        else:
-            raise NotImplementedError("deal with this: {}".format(stat))
-
-        return v

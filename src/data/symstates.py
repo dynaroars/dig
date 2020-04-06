@@ -12,7 +12,7 @@ from sage.all import cached_function
 
 import settings
 import helpers.vcommon as CM
-from helpers.miscs import Miscs, Z3
+import helpers.miscs
 import data.prog
 import data.traces
 import data.inv.base
@@ -33,8 +33,9 @@ class PC(metaclass=ABCMeta):
         assert isinstance(slocal, str) and slocal, slocal
         assert isinstance(use_reals, bool), bool
 
-        self.pc = zTrue if pc is None else Z3.parse(pc, use_reals)
-        self.slocal = Z3.parse(slocal, use_reals)
+        self.pc = zTrue if pc is None else helpers.miscs.Z3.parse(
+            pc, use_reals)
+        self.slocal = helpers.miscs.Z3.parse(slocal, use_reals)
         self.loc = loc
         self.depth = depth
         self.use_reals = use_reals
@@ -194,7 +195,7 @@ class PC_JPF(PC):
             ps = p.split('=')
             assert len(ps) == 2
             v = sage.all.sage_eval(ps[1])
-            if Miscs.is_num(v) and v >= settings.LARGE_N:
+            if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
                 mlog.warning("ignore {} (larger than {})".format(
                     p, settings.LARGE_N))
                 exit(-1)
@@ -242,7 +243,7 @@ class PCs(set):
             return self._expr
         except AttributeError:
             _expr = z3.Or([p.expr for p in self])
-            self._expr = Z3.simplify(_expr)
+            self._expr = helpers.miscs.Z3.simplify(_expr)
             return self._expr
 
     @property
@@ -251,7 +252,7 @@ class PCs(set):
             return self._pc
         except AttributeError:
             _pc = z3.Or([p.pc for p in self])
-            self._pc = Z3.simplify(_pc)
+            self._pc = helpers.miscs.Z3.simplify(_pc)
             return self._pc
 
 
@@ -288,7 +289,7 @@ class SymStates(metaclass=ABCMeta):
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
-        wrs = Miscs.run_mp("get symstates", tasks, f)
+        wrs = helpers.miscs.Miscs.run_mp("get symstates", tasks, f)
 
         if not wrs:
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
@@ -358,12 +359,37 @@ class SymStates(metaclass=ABCMeta):
                 pcs = symstates[loc][depth]
                 pcs.myexpr
                 pcs.mypc
-                mlog.debug("{} has {} uniq symstates at depth {}".format(
-                    loc, len(pcs), depth))
+                mlog.debug("{} uniq symstates at loc {} depth {}".format(
+                    len(pcs), loc, depth))
                 # print(pcs.myexpr)
 
-        # DBG()
         return symstates
+
+    def maximize(self, loc, term):
+        """
+        maximize value of term
+        """
+        term_expr = helpers.miscs.Z3.parse(
+            str(term.poly), use_reals=self.use_reals)
+        opt = helpers.miscs.Z3.create_solver(maximize=True)
+        opt.add(self.ss_at_loc(loc))
+        h = opt.maximize(term_expr)
+        stat = opt.check()
+
+        if stat == z3.sat:
+            v = str(opt.upper(h))
+            if v != 'oo':  # no bound
+                v = int(v)
+                if v <= settings.OCT_MAX_V:
+                    inv = data.inv.oct.Oct(term.mk_le(v))
+                    inv.set_stat(data.inv.base.Inv.PROVED)
+                    mlog.debug("got {}".format(inv))
+                    return inv
+        else:
+            mlog.warning(
+                "cannot find upperbound for {} at {} (stat {})".format(term, loc, stat))
+
+        return None
 
     def check(self, dinvs, inps, check_mode):
         """
@@ -385,7 +411,7 @@ class SymStates(metaclass=ABCMeta):
                      self.mcheck_d(loc, inv, inps,
                                    ncexs=1, check_mode=check_mode))
                     for loc, inv in tasks]
-        wrs = Miscs.run_mp("prove", tasks, f)
+        wrs = helpers.miscs.Miscs.run_mp("prove", tasks, f)
 
         mCexs = []
         mdinvs = data.inv.invs.DInvs()
@@ -404,6 +430,9 @@ class SymStates(metaclass=ABCMeta):
             mstats.extend(solver_stats)
 
         return merge(mCexs), mdinvs, mstats
+
+    def ss_at_loc(self, loc):
+        return z3.Or([self.ss[loc][depth].myexpr for depth in self.ss[loc]])
 
     # PRIVATE
 
@@ -437,9 +466,9 @@ class SymStates(metaclass=ABCMeta):
     def mcheck_all(self, loc, inv_expr):
         assert z3.is_expr(inv_expr) and inv_expr is not zFalse, inv_expr
 
-        ss = z3.And([self.ss[loc][d].myexpr for d in self.ss[loc]])
         cexs, is_succ, stat = self.mcheck(
-            ss, inv_expr, inps=None, ncexs=1, check_mode=self.check_consistency)
+            self.ss_at_loc(loc), inv_expr,
+            inps=None, ncexs=1, check_mode=self.check_consistency)
 
         return cexs, is_succ, []
 
@@ -502,8 +531,8 @@ class SymStates(metaclass=ABCMeta):
                 assert check_mode == self.check_validity, check_mode
                 f = z3.Not(z3.Implies(f, inv))
 
-        models, stat = Z3.get_models(f, ncexs)
-        cexs, is_succ = Z3.extract(models)
+        models, stat = helpers.miscs.Z3.get_models(f, ncexs)
+        cexs, is_succ = helpers.miscs.Z3.extract(models)
         return cexs, is_succ, stat
 
     def _get_inp_constrs(self, inps):

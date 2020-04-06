@@ -24,13 +24,10 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class CegirIeq(cegir.base.Cegir):
-    def __init__(self, symstates, prog):
+    def __init__(self, symstates, prog):  # TODO: don't need prog
         super().__init__(symstates, prog)
 
-    def gen(self, traces, inps):
-        assert isinstance(traces, data.traces.DTraces) and traces, traces
-        assert isinstance(inps, data.traces.Inps), inps
-
+    def gen(self):
         locs = self.inv_decls.keys()
         tasks = [(loc, term)
                  for loc in locs
@@ -39,15 +36,13 @@ class CegirIeq(cegir.base.Cegir):
             len(tasks), len(locs)))
 
         def f(tasks):
-            return [(loc, term, self.find_max(loc, term)) for loc, term in tasks]
-        wrs = Miscs.run_mp('optimizer: find upperbound', tasks, f)
+            return [(loc, self.symstates.maximize(loc, term)) for loc, term in tasks]
+        wrs = Miscs.run_mp('optimize upperbound', tasks, f)
 
         dinvs = data.inv.invs.DInvs()
-        for loc, term, v in wrs:
-            if v is None:
+        for loc, inv in wrs:
+            if inv is None:
                 continue
-            inv = self.mk_le(term, v)
-            inv.set_stat(data.inv.base.Inv.PROVED)
             dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
         return dinvs, []  # no statss
@@ -61,7 +56,7 @@ class CegirIeq(cegir.base.Cegir):
         if settings.DO_TERM_FILTER:
             st = time()
             new_terms = self.filter_terms(
-                terms, set(self.prog.inp_decls.names))
+                terms, set(self.symstates.inp_decls.names))
             Miscs.show_removed('term filter',
                                len(terms), len(new_terms), time() - st)
             return new_terms
@@ -88,28 +83,3 @@ class CegirIeq(cegir.base.Cegir):
 
         new_terms = [term for term in terms if term not in excludes]
         return new_terms
-
-    def mk_le(self, term, v):
-        assert isinstance(term, data.poly.base.GeneralPoly), term
-        return data.inv.oct.Oct(term.mk_le(v))
-
-    def find_max(self, loc, term):
-        ss = self.symstates.ss[loc]
-        ss = z3.Or([ss[depth].myexpr for depth in ss])
-        term = helpers.miscs.Z3.parse(
-            str(term.poly), use_reals=self.symstates.use_reals)
-        opt = z3.Optimize()
-        opt.add(ss)
-        h = opt.maximize(term)
-        stat = opt.check()
-
-        v = None
-        if stat == z3.sat:
-            uv = str(opt.upper(h))
-            if uv != 'oo':  # no bound
-                v = int(uv)
-                if v > settings.OCT_MAX_V:
-                    v = None
-        else:
-            mlog.warning("cannot find upperbound for {} {}".format(loc, term))
-        return v
