@@ -64,6 +64,11 @@ class Dig(metaclass=ABCMeta):
 
 
 class DigSymStates(Dig):
+    EQTS = "eqts"
+    IEQS = "ieqs"
+    MINMAX = "minmax"
+    PREPOSTS = "preposts"
+
     def __init__(self, filename):
         super().__init__(filename)
 
@@ -103,12 +108,16 @@ class DigSymStates(Dig):
         statss = []
 
         if settings.DO_EQTS:
-            self.infer('eqts', dinvs, statss, lambda: self.infer_eqts(
-                maxdeg, dtraces, inps))
+            self.infer(self.EQTS, dinvs, statss,
+                       lambda: self.infer_eqts(maxdeg, dtraces, inps))
 
-        if settings.DO_IEQS or settings.DO_MINMAXPLUS:
-            self.infer('ieqs', dinvs, statss,
+        if settings.DO_IEQS:
+            self.infer(self.IEQS, dinvs, statss,
                        lambda: self.infer_ieqs(dtraces, inps))
+
+        if settings.DO_MINMAXPLUS:
+            self.infer(self.MINMAX, dinvs, statss,
+                       lambda: self.infer_minmax(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
@@ -141,6 +150,7 @@ class DigSymStates(Dig):
             mlog.info("tmpdir: {}".format(self.tmpdir))
 
     def infer(self, typ, dinvs, statss, f):
+        assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
 
         st = time.time()
@@ -156,8 +166,8 @@ class DigSymStates(Dig):
                 print_stat=True, print_first_n=20)))
 
     def infer_eqts(self, maxdeg, dtraces, inps):
-        from cegir.eqt import CegirEqt
-        solver = CegirEqt(self.symstates, self.prog)
+        from cegir.eqt import CegirEqts
+        solver = CegirEqts(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
         # determine degree
@@ -165,6 +175,11 @@ class DigSymStates(Dig):
         return solver.gen(auto_deg, dtraces, inps)
 
     def infer_ieqs(self, dtraces, inps):
+        from cegir.ieqs import CegirIeqs
+        solver = CegirIeqs(self.symstates, self.prog)
+        return solver.gen(dtraces, inps)
+
+    def infer_minmax(self, dtraces, inps):
         from cegir.binsearch import CegirBinSearch
         solver = CegirBinSearch(self.symstates, self.prog)
         return solver.gen(dtraces, inps)

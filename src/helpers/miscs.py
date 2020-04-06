@@ -239,9 +239,11 @@ class Miscs(object):
         """
         if len(ss) < subset_siz:
             subset_siz = len(ss)
+
+        coefs = [0, -1, 1]
         rs = []
         for ssSubset in itertools.combinations(ss, subset_siz):
-            css = itertools.product(*([[0, -1, 1]] * len(ssSubset)))
+            css = itertools.product(*([coefs] * len(ssSubset)))
             r = (sum(c*t for c, t in zip(ssSubset, cs))
                  for cs in css if not all(c == 0 for c in cs))
             rs.extend(r)

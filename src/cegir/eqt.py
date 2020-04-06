@@ -16,7 +16,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirEqt(Cegir):
+class CegirEqts(Cegir):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps
