@@ -10,13 +10,13 @@ from helpers.miscs import Miscs
 from data.traces import Inps, Traces, DTraces
 from data.inv.invs import Invs, DInvs
 import data.inv.eqt
-from cegir.base import Cegir
+import infer.base
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirEqt(Cegir):
+class Infer(infer.base.Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps

@@ -166,8 +166,8 @@ class DigSymStates(Dig):
                 print_stat=True, print_first_n=20)))
 
     def infer_eqts(self, maxdeg, dtraces, inps):
-        from cegir.eqt import CegirEqt
-        solver = CegirEqt(self.symstates, self.prog)
+        import infer.eqt
+        solver = infer.eqt.Infer(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
         # determine degree
@@ -175,18 +175,18 @@ class DigSymStates(Dig):
         return solver.gen(auto_deg, dtraces, inps)
 
     def infer_ieqs(self, dtraces, inps):
-        from cegir.ieq import CegirIeq
-        solver = CegirIeq(self.symstates, self.prog)
+        import infer.opt
+        solver = infer.opt.Ieq(self.symstates, self.prog)
         return solver.gen()
 
     def infer_minmax(self, dtraces, inps):
-        from cegir.mp import CegirMP
-        solver = CegirMP(self.symstates, self.prog)
-        return solver.gen(dtraces, inps)
+        import infer.opt
+        solver = infer.opt.MP(self.symstates, self.prog)
+        return solver.gen()
 
     def infer_preposts(self, dinvs, dtraces):
-        from cegir.prepost import CegirPrePost
-        solver = CegirPrePost(self.symstates, self.prog)
+        import infer.prepost
+        solver = infer.prepost.Infer(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
 
     def get_tmpdir(self):

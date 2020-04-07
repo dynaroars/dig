@@ -18,7 +18,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Cegir(metaclass=ABCMeta):
+class Infer(metaclass=ABCMeta):
     def __init__(self, symstates, prog):
         assert symstates is None or \
             isinstance(symstates, data.symstates.SymStates), symstates

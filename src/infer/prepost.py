@@ -7,7 +7,7 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
 import settings
-from cegir.base import Cegir
+import infer.base
 from data.traces import Traces, DTraces
 from data.inv.base import Inv
 from data.inv.invs import Invs, DInvs
@@ -19,7 +19,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CegirPrePost(Cegir):
+class Infer(infer.base.Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_reals = prog.inv_decls.use_reals
