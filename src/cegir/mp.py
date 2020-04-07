@@ -25,154 +25,38 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class CegirMP(cegir.base.Cegir):
-    def __init__(self, symstates, prog):  # TODO: don't need prog
+    def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
     def gen(self, traces, inps):
         assert isinstance(traces, data.traces.DTraces) and traces, traces
         assert isinstance(inps, data.traces.Inps), inps
 
-        statss = []
-        locs = traces.keys()
-        termss = [self.get_terms(self.inv_decls[loc].sageExprs)
-                  for loc in locs]
+        locs = self.inv_decls.keys()
+        tasks = [(loc, term)
+                 for loc in locs
+                 for term in self.get_terms(self.inv_decls[loc].sageExprs)]
+        mlog.debug("infer upperbounds for {} MP terms at {} locs".format(
+            len(tasks), len(locs)))
 
-        mlog.debug("check upperbounds for {} terms at {} locs".format(
-            sum(map(len, termss)), len(locs)))
-        maxV = settings.OCT_MAX_V
-        minV = -1*maxV
-        refs = {loc: {self.mk_le(t, maxV): t for t in terms}
-                for loc, terms in zip(locs, termss)}
-        ieqs = data.inv.invs.DInvs(
-            [(loc, data.inv.invs.Invs(refs[loc].keys())) for loc in refs])
-
-        cexs, ieqs, stats = self.check(ieqs, inps=None)
-        statss.extend(stats)
-
-        if cexs:
-            cexs_inps = inps.merge(cexs, self.inp_decls.names)
-            if cexs_inps:
-                self.get_traces(cexs_inps, traces)
-
-        ieqs = ieqs.remove_disproved()
-
-        tasks = [(loc, refs[loc][mp]) for loc in ieqs for mp in ieqs[loc]]
-        mlog.debug("{} locs: infer upperbounds for {} terms".format(
-            len(locs), len(tasks)))
+        def to_expr(t):
+            return data.inv.mp.MP(t, is_ieq=None).expr(self.symstates.use_reals)
 
         def f(tasks):
-            return [(loc, self.gc(loc, term, minV, maxV, traces))
+            return [(loc, term,
+                     self.symstates.maximize(loc, to_expr(term)))
                     for loc, term in tasks]
-        wrs = Miscs.run_mp('guesscheck', tasks, f)
+        wrs = Miscs.run_mp('optimize upperbound', tasks, f)
 
         dinvs = data.inv.invs.DInvs()
-        for loc, (inv, stats) in wrs:
-            statss.extend(stats)
-            if inv:
-                dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+        for loc, term, v in wrs:
+            if v is None:
+                continue
+            inv = data.inv.mp.MP(term.mk_le(v))
+            inv.set_stat(data.inv.base.Inv.PROVED)
+            dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
-        return dinvs, statss
-
-    def gc(self, loc, term, minV, maxV, traces):
-        assert isinstance(term, data.poly.base.Poly)
-        assert minV <= maxV, (minV, maxV)
-        statsd = {maxV: data.inv.base.Inv.PROVED}
-
-        statss = []
-
-        # start with this minV
-        vs = term.eval_traces(traces[loc])
-        try:
-            mymaxV = int(max(v for v in vs))
-            if mymaxV > maxV:
-                # occurs when checking above fails
-                # (e.g., cannot show term <= maxV even though it is true)
-                return None, statss
-
-            mminV = int(max(minV, mymaxV))
-        except ValueError:
-            mminV = minV
-
-        # start with this maxV
-        i = -1
-        v = mminV
-        while True:
-            if i != -1:  # not first time
-                v = mminV + 2**i
-
-            if v >= maxV:
-                break
-
-            i = i + 1
-            cexs, stat, stats = self._mk_upp_and_check(loc, term, v)
-            statss.extend(stats)
-            assert v not in statsd, v
-            statsd[v] = stat
-
-            if loc in cexs:  # disproved
-                mminV = self._get_max_from_cexs(loc, term, cexs)
-                if mminV >= maxV:
-                    return None, statss
-
-            else:  # proved , term <= v
-                break
-
-        mmaxV = v if v < maxV else maxV
-        mlog.debug("{}: compute ub for '{}', start with minV {}, maxV {})"
-                   .format(loc, term, mminV, mmaxV))
-
-        assert mminV <= mmaxV, (term, mminV, mmaxV)
-        boundV = self.guess_check(
-            loc, term, mminV, mmaxV, statsd, statss)
-
-        if (boundV is not None and
-                (boundV not in statsd or statsd[boundV] != data.inv.base.Inv.DISPROVED)):
-            stat = statsd[boundV] if boundV in statsd else None
-            inv = self.mk_le(term, boundV)
-            inv.stat = stat
-            mlog.debug("got {}".format(inv))
-            return inv, statss
-        else:
-            return None, statss
-
-    def guess_check(self, loc, term, minV, maxV, statsd, statss):
-        assert isinstance(loc, str) and loc, loc
-        assert isinstance(statsd, dict), statsd  # {v : proved}
-        assert isinstance(statss, list), statss
-
-        if minV > maxV:
-            mlog.warning("{}: (guess_check) term {} has minV {} > maxV {}".format(
-                loc, term, minV, maxV))
-            return None  # temp fix
-
-        if minV == maxV:
-            return maxV
-        elif maxV - minV == 1:
-            if (minV in statsd and statsd[minV] == data.inv.base.Inv.DISPROVED):
-                return maxV
-
-            cexs, stat, stats = self._mk_upp_and_check(loc, term, minV)
-            statss.extend(stats)
-
-            assert minV not in statsd
-            statsd[minV] = stat
-            ret = maxV if loc in cexs else minV
-            return ret
-
-        v = (maxV + minV)/2.0
-        v = int(math.ceil(v))
-
-        cexs, stat, stats = self._mk_upp_and_check(loc, term, v)
-        statss.extend(stats)
-        assert v not in statsd, (term.term, minV, maxV, v, stat, statsd[v])
-        statsd[v] = stat
-
-        if loc in cexs:  # disproved
-            minV = self._get_max_from_cexs(loc, term, cexs)
-        else:
-            maxV = v
-
-        return self.guess_check(loc, term, minV, maxV, statsd, statss)
+        return dinvs, []
 
     def get_terms(self, symbols):
 
@@ -239,19 +123,3 @@ class CegirMP(cegir.base.Cegir):
 
         new_terms = [term for term in terms if term not in excludes]
         return new_terms
-
-    def mk_le(self, term, v):
-        return data.inv.mp.MP(term.mk_le(v))
-
-    def _mk_upp_and_check(self, loc, term, v):
-        assert isinstance(v, int), v
-        inv = self.mk_le(term, v)
-        inv_ = data.inv.invs.DInvs.mk(loc, data.inv.invs.Invs([inv]))
-        cexs, _, stats = self.check(
-            inv_, inps=None, check_mode=self.symstates.check_validity)
-
-        return cexs, inv.stat, stats
-
-    def _get_max_from_cexs(self, loc, term, cexs):
-        mycexs = data.traces.Traces.extract(cexs[loc], useOne=False)
-        return int(max(term.eval_traces(mycexs)))

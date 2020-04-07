@@ -15,14 +15,25 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class MP(data.inv.base.Inv):
     def __init__(self, term, is_ieq=True, stat=None):
+        """
+        term = max(x, y) - z
+
+        is_ieq is None -> treat like a term, e.g.,  If(x>=y,x-z,y-z)
+        is_ieq is True -> treat like  <= expr, e.g., If(x>=y,x<=z,y<=z)
+        if_ieq is False -> treat like == expr, e.g., If(x>=y,x>=z,y>=z)
+        """
         assert isinstance(term, data.poly.mp.MP)
+        assert is_ieq is None or isinstance(is_ieq, bool), is_ieq
+
         hash_contents = (term.a, term.b, term.is_max, is_ieq)
         super().__init__(hash_contents, stat)
         self.term = term
         self.is_ieq = is_ieq
 
-    def __str__(self, print_stat=False):
-        s = "{} {} 0".format(self.term, '<=' if self.is_ieq else '==')
+    def __str__(self, print_stat=False, use_lambda=False):
+        s = self.term.__str__(use_lambda)
+        if self.is_ieq is not None:
+            s += " {} 0".format('<=' if self.is_ieq is True else '==')
         if print_stat:
             s = "{} {}".format(s, self.stat)
         return s
@@ -44,15 +55,13 @@ class MP(data.inv.base.Inv):
 
         expr = self.mp2df_expr(a, b, 0, self.term.is_max, self.is_ieq)
 
-        if len(b) >= 3:  # more simplification
-            expr = Z3.simplify(expr)
-
         return expr
 
     def test_single_trace(self, trace):
         assert isinstance(trace, Trace), trace
+
         trace = trace.mydict_str
-        bval = data.poly.mp._eval(str(self), trace)
+        bval = data.poly.mp._eval(self.__str__(use_lambda=True), trace)
         assert isinstance(bval, bool), bval
         return bval
 
@@ -70,10 +79,12 @@ class MP(data.inv.base.Inv):
         if isinstance(b, tuple):
             ite = cls.mp2df_expr(b, elem, 0, is_max, is_ieq)
         else:
-            if is_ieq:
+            if is_ieq is None:
+                ite = b - elem
+            elif is_ieq is True:
                 ite = b <= elem
             else:
-                ite = b >= elem
+                ite = b == elem
 
             # ite = "{} {} {}".format(b, '<=' if is_ieq else '==', elem)
         rest = a[idx + 1:]
@@ -82,12 +93,7 @@ class MP(data.inv.base.Inv):
             return ite
         else:
             rest_ite = cls.mp2df_expr(a, b, idx + 1, is_max, is_ieq)
-
             others = a[:idx] + rest
-
-            # conds = ["{} {} {}".format(
-            #     elem, '>=' if is_max else '<=', t) for t in others]
-
             conds = [elem >= t if is_max else elem <= t for t in others]
             if len(conds) >= 2:
                 cond = z3.And(*conds)

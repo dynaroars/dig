@@ -20,7 +20,8 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class Cegir(metaclass=ABCMeta):
     def __init__(self, symstates, prog):
-        assert isinstance(symstates, data.symstates.SymStates), symstates
+        assert symstates is None or \
+            isinstance(symstates, data.symstates.SymStates), symstates
         assert isinstance(prog, data.prog.Prog), prog
 
         self.symstates = symstates
@@ -43,7 +44,8 @@ class Cegir(metaclass=ABCMeta):
         new_traces = traces.merge(new_traces)
         return new_traces
 
-    def check(self, dinvs, inps, check_mode=data.symstates.SymStates.check_validity):
+    def check(self, dinvs, inps,
+              check_mode=data.symstates.SymStates.check_validity):
         if self.symstates:
             cexs, dinvs, stats = self.symstates.check(dinvs, inps, check_mode)
         else:

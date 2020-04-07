@@ -34,19 +34,20 @@ class MP(Poly):
             self._symbols = set(map(str, Miscs.get_vars(self.a + self.b)))
             return self._symbols
 
-    def __str__(self):
+    def __str__(self, use_lambda=False):
         """
         Return string representing a lambda function
         lambda x, y, ... = max(x, y...) - max(x, y...)
         """
 
         try:
-            return self._str
+            s = self._s
+            if use_lambda:
+                s = "lambda {}: {}".format(','.join(self.symbols), s)
+            return s
         except AttributeError:
-            s1 = ','.join(self.symbols)
-            s2 = self._to_str(self.a, self.b, self.is_max)
-            self._str = "lambda {}: {}".format(s1, s2)
-            return self._str
+            self._s = self._to_str(self.a, self.b, self.is_max)
+            return self.__str__(use_lambda)
 
     def mk_le(self, uv):
         """
@@ -67,7 +68,7 @@ class MP(Poly):
         return self.__class__(a, b, is_max=self.is_max)
 
     def eval_traces(self, traces):
-        return [_eval(str(self), t.mydict_str) for t in traces]
+        return [_eval(self.__str__(use_lambda=True), t.mydict_str) for t in traces]
 
     @classmethod
     def get_terms(cls, terms, ignore_oct=False):

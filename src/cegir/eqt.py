@@ -200,7 +200,7 @@ class CegirEqt(Cegir):
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
             cexs, dinvs, stats = self.check(
-                dinvs, None, self.symstates.check_validity)
+                dinvs, None, data.symstates.SymStates.check_validity)
             statss.extend(stats)
             if cexs:
                 new_cexs.append(cexs)

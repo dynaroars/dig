@@ -552,7 +552,7 @@ class Miscs(object):
             else:
                 myQ.put(rs)
 
-        n_cpus = multiprocessing.cpu_count() - 1
+        n_cpus = multiprocessing.cpu_count()
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
             wloads = cls.get_workload(tasks, n_cpus=n_cpus)

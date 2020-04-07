@@ -24,7 +24,8 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class CegirIeq(cegir.base.Cegir):
-    def __init__(self, symstates, prog):  # TODO: don't need prog
+    def __init__(self, symstates, prog):
+        # need prog because symstates could be None
         super().__init__(symstates, prog)
 
     def gen(self):
@@ -32,17 +33,25 @@ class CegirIeq(cegir.base.Cegir):
         tasks = [(loc, term)
                  for loc in locs
                  for term in self.get_terms(self.inv_decls[loc].sageExprs)]
-        mlog.debug("infer upperbounds for {} terms at {} locs".format(
+        mlog.debug("infer upperbounds for {} IEQ terms at {} locs".format(
             len(tasks), len(locs)))
 
+        def to_expr(t):
+            return helpers.miscs.Z3.parse(str(t.poly),
+                                          use_reals=self.symstates.use_reals)
+
         def f(tasks):
-            return [(loc, self.symstates.maximize(loc, term)) for loc, term in tasks]
+            return [(loc, term,
+                     self.symstates.maximize(loc, to_expr(term)))
+                    for loc, term in tasks]
         wrs = Miscs.run_mp('optimize upperbound', tasks, f)
 
         dinvs = data.inv.invs.DInvs()
-        for loc, inv in wrs:
-            if inv is None:
+        for loc, term, v in wrs:
+            if v is None:
                 continue
+            inv = data.inv.oct.Oct(term.mk_le(v))
+            inv.set_stat(data.inv.base.Inv.PROVED)
             dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
         return dinvs, []  # no statss
@@ -56,7 +65,7 @@ class CegirIeq(cegir.base.Cegir):
         if settings.DO_TERM_FILTER:
             st = time()
             new_terms = self.filter_terms(
-                terms, set(self.symstates.inp_decls.names))
+                terms, set(self.inp_decls.names))
             Miscs.show_removed('term filter',
                                len(terms), len(new_terms), time() - st)
             return new_terms

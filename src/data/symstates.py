@@ -365,12 +365,12 @@ class SymStates(metaclass=ABCMeta):
 
         return symstates
 
-    def maximize(self, loc, term):
+    def maximize(self, loc, term_expr):
         """
         maximize value of term
         """
-        term_expr = helpers.miscs.Z3.parse(
-            str(term.poly), use_reals=self.use_reals)
+        assert z3.is_expr(term_expr)
+
         opt = helpers.miscs.Z3.create_solver(maximize=True)
         opt.add(self.ss_at_loc(loc))
         h = opt.maximize(term_expr)
@@ -381,13 +381,10 @@ class SymStates(metaclass=ABCMeta):
             if v != 'oo':  # no bound
                 v = int(v)
                 if v <= settings.OCT_MAX_V:
-                    inv = data.inv.oct.Oct(term.mk_le(v))
-                    inv.set_stat(data.inv.base.Inv.PROVED)
-                    mlog.debug("got {}".format(inv))
-                    return inv
+                    return v
         else:
             mlog.warning(
-                "cannot find upperbound for {} at {} (stat {})".format(term, loc, stat))
+                "cannot find upperbound for {} at {} (stat {})".format(term_expr, loc, stat))
 
         return None
 
