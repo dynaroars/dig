@@ -8,11 +8,10 @@ import settings
 from helpers.miscs import Miscs, Z3
 import helpers.vcommon as CM
 
-# from data.traces import Traces, DTraces
-from data.inv.base import Inv
-from data.inv.eqt import Eqt
-from data.inv.oct import Oct
-from data.inv.mp import MP
+import data.inv.base
+import data.inv.eqt
+import data.inv.oct
+import data.inv.mp
 import data.inv.prepost
 
 DBG = pdb.set_trace
@@ -21,16 +20,16 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class Invs(set):
     def __init__(self, invs=set()):
-        assert all(isinstance(inv, Inv) for inv in invs), invs
+        assert all(isinstance(inv, data.inv.base.Inv) for inv in invs), invs
         super().__init__(invs)
 
     def __str__(self, print_stat=False, delim='\n'):
         invs = sorted(self, reverse=True,
-                      key=lambda inv: isinstance(inv, Eqt))
+                      key=lambda inv: isinstance(inv, data.inv.eqt.Eqt))
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
     def __contains__(self, inv):
-        assert isinstance(inv, Inv), inv
+        assert isinstance(inv, data.inv.base.Inv), inv
         return super().__contains__(inv)
 
     @property
@@ -39,7 +38,7 @@ class Invs(set):
 
     # PUBLIC
     def add(self, inv):
-        assert isinstance(inv, Inv), inv
+        assert isinstance(inv, data.inv.base.Inv), inv
 
         not_in = inv not in self
         if not_in:
@@ -68,7 +67,7 @@ class Invs(set):
         assert isinstance(use_reals, bool), use_reals
 
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
-            self._classify(self)
+            self.classify(self)
 
         assert not falseinvs, falseinvs
         non_mps = eqts + preposts + octs
@@ -88,21 +87,21 @@ class Invs(set):
             is_conj = True
             rs = self._simplify(rs, is_conj, use_reals)
 
-        return Invs(rs + eqts_largecoefs)
+        return self.__class__(rs + eqts_largecoefs)
 
     @classmethod
-    def _classify(cls, invs):
+    def classify(cls, invs):
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
 
         for inv in invs:
-            if isinstance(inv, Eqt):
+            if isinstance(inv, data.inv.eqt.Eqt):
                 if len(Miscs.get_coefs(inv.inv)) > 10:
                     eqts_largecoefs.append(inv)
                 else:
                     eqts.append(inv)
-            elif isinstance(inv, Oct):
+            elif isinstance(inv, data.inv.oct.Oct):
                 octs.append(inv)
-            elif isinstance(inv, MP):
+            elif isinstance(inv, data.inv.mp.MP):
                 mps.append(inv)
             elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
@@ -118,7 +117,7 @@ class Invs(set):
 
         st = time()
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
-            cls._classify(invs)
+            cls.classify(invs)
 
         def mysorted(ps):
             return sorted(ps, key=lambda p: len(Miscs.get_vars(p.inv)))
@@ -150,7 +149,7 @@ class Invs(set):
 
 class DInvs(dict):
     """
-    {loc -> Invs}  , Invs is a set
+    {loc -> Invs}, Invs is a set
     """
 
     def __setitem__(self, loc, invs):
@@ -172,15 +171,14 @@ class DInvs(dict):
 
     @property
     def n_eqs(self):
-        from data.inv.eqt import Eqt
-        return self.typ_ctr[Eqt.__name__]
+        return self.typ_ctr[data.inv.eqt.Eqt.__name__]
 
     def __str__(self, print_stat=False, print_first_n=None):
         ss = []
 
         for loc in sorted(self):
             eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
-                self[loc]._classify(self[loc])
+                self[loc].classify(self[loc])
             ss.append("{} ({} invs):".format(loc, len(self[loc])))
 
             invs = sorted(eqts + eqts_largecoefs, reverse=True, key=str) + \
@@ -201,7 +199,7 @@ class DInvs(dict):
 
     def add(self, loc, inv):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(inv, Inv), inv
+        assert isinstance(inv, data.inv.base.Inv), inv
 
         return self.setdefault(loc, Invs()).add(inv)
 
@@ -286,7 +284,7 @@ class DInvs(dict):
         return newInvs
 
 
-class FalseInv(Inv):
+class FalseInv(data.inv.base.Inv):
     """
     Use
     """

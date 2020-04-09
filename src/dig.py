@@ -108,6 +108,11 @@ if __name__ == "__main__":
        default=None,
        help="tracefile to test")
 
+    ag("-uterms", "--uterms",
+       type=str,
+       default=None,
+       help="user-supplied terms (separated by space), e.g., \"-uterms y^2 xy\"")
+
     ag("--benchmark_times", "-benchmark_times",
        type=int,
        default=None,
@@ -150,6 +155,9 @@ if __name__ == "__main__":
     if (args.maxterm and args.maxterm >= 1 and
             args.maxterm != settings.MAX_TERM):
         settings.MAX_TERM = args.maxterm
+
+    if args.uterms:
+        settings.UTERMS = set(args.uterms.split())
 
     mlog.info("{}: {}".format(datetime.datetime.now(), ' '.join(sys.argv)))
 

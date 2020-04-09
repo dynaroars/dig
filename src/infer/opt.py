@@ -11,7 +11,6 @@ import z3
 import sage.all
 
 import helpers.vcommon as CM
-from helpers.miscs import Miscs
 import helpers.miscs
 
 import settings
@@ -44,7 +43,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             return [(loc, term,
                      self.symstates.maximize(loc, self.to_expr(term)))
                     for loc, term in tasks]
-        wrs = Miscs.run_mp('optimize upperbound', tasks, f)
+        wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
@@ -65,8 +64,8 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             st = time()
             new_terms = self.filter_terms(
                 terms, set(self.inp_decls.names))
-            Miscs.show_removed('term filter',
-                               len(terms), len(new_terms), time() - st)
+            helpers.miscs.Miscs.show_removed(
+                'term filter', len(terms), len(new_terms), time() - st)
             return new_terms
         else:
             return terms
@@ -95,9 +94,41 @@ class Ieq(Infer):
         return data.inv.oct.Oct(term_ub)
 
     def my_get_terms(self, symbols):
-        oct_siz = 2
-        terms = Miscs.get_terms_fixed_coefs(symbols, oct_siz)
+        terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
+            symbols, subset_siz=2)
+
+        if settings.UTERMS:
+            uterms = self.my_get_terms_user(symbols, settings.UTERMS)
+            old_siz = len(terms)
+            terms.update(uterms)
+            mlog.debug("adding {} new terms from user".format(
+                len(terms) - old_siz))
+
         terms = [data.poly.base.GeneralPoly(t) for t in terms]
+        return terms
+
+    def my_get_terms_user(self, symbols, uterms):
+        assert isinstance(symbols, set), symbols
+        assert isinstance(uterms, set) and uterms, uterms
+        assert all(isinstance(t, str) for t in uterms), uterms
+
+        mylocals = {str(s): s for s in symbols}
+
+        import sage.all
+        uterms = set(sage.all.sage_eval(term, locals=mylocals)
+                     for term in uterms)
+
+        terms = set()
+        for t in uterms:
+            terms.add(t)
+            terms.add(-t)
+            for v in symbols:
+                # v+t, v-t, -v+t, -v-t
+                terms.add(v + t)
+                terms.add(v - t)
+                terms.add(-v + t)
+                terms.add(-v - t)
+
         return terms
 
     def get_excludes(self, terms, inps):
@@ -147,8 +178,8 @@ class MP(Infer):
     def get_excludes(self, terms, inps):
         excludes = set()
         for term in terms:
-            a_symbs = list(map(str, Miscs.get_vars(term.a)))
-            b_symbs = list(map(str, Miscs.get_vars(term.b)))
+            a_symbs = list(map(str, helpers.miscs.Miscs.get_vars(term.a)))
+            b_symbs = list(map(str, helpers.miscs.Miscs.get_vars(term.b)))
             inp_in_a = any(s in inps for s in a_symbs)
             inp_in_b = any(s in inps for s in b_symbs)
 

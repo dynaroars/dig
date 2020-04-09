@@ -14,7 +14,6 @@ DO_MINMAXPLUS = True
 DO_PREPOSTS = True
 DO_RMTMP = True  # remove temporary dir
 DO_TERM_FILTER = True  # remove terms to optimize
-doMP = True
 INP_MAX_V = 300
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 EQT_SOLVER_TIMEOUT = 120  # secs
@@ -25,6 +24,7 @@ OCT_MAX_V = 10  # t <= 10
 LARGE_N = 200000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
+UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # options for full specs analysis
 CTR_VAR = 'Ct'  # counter variable contains this string
