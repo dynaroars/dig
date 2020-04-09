@@ -108,15 +108,18 @@ class Ieq(Infer):
         return terms
 
     def my_get_terms_user(self, symbols, uterms):
-        assert isinstance(symbols, set), symbols
         assert isinstance(uterms, set) and uterms, uterms
         assert all(isinstance(t, str) for t in uterms), uterms
 
         mylocals = {str(s): s for s in symbols}
 
         import sage.all
-        uterms = set(sage.all.sage_eval(term, locals=mylocals)
-                     for term in uterms)
+        try:
+            uterms = set(sage.all.sage_eval(term, locals=mylocals)
+                         for term in uterms)
+        except NameError as ex:
+            raise NameError(
+                "{} (defined vars: {})".format(ex, ','.join(map(str, symbols))))
 
         terms = set()
         for t in uterms:
