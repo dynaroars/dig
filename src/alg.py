@@ -21,7 +21,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class Dig(metaclass=ABCMeta):
-
     def __init__(self, filename):
         mlog.info("analyze '{}'".format(filename))
         self.filename = filename
@@ -76,9 +75,15 @@ class DigSymStates(Dig):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed)
-        self.tmpdir = self.get_tmpdir()
 
-        self.set_mysrc()
+        import tempfile
+        self.tmpdir = Path(tempfile.mkdtemp(
+            dir=settings.tmpdir, prefix="dig_{}_".format(hash(self.seed))))
+
+        self.tmpdir_del = self.tmpdir / "delete_me"
+        self.tmpdir_del.mkdir()
+
+        self.mysrc = self.mysrc_cls(self.filename, self.tmpdir_del)
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
@@ -133,21 +138,17 @@ class DigSymStates(Dig):
         Clean up tmpdir
         """
 
+        # clean up
+        import shutil
+        shutil.rmtree(self.tmpdir_del)
+
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
                         statss, t_time)
-
         result.save(self.tmpdir)
         Benchmark(self.tmpdir, args=None).analyze()
 
-        if settings.DO_RMTMP:
-            import shutil
-            shutil.rmtree(self.tmpdir)
-            mlog.debug("clean up: rm -rf {}".format(self.tmpdir))
-        else:
-            tracefile = self.tmpdir / settings.TRACE_DIR / 'all.tcs'
-            dtraces.vwrite(self.inv_decls, tracefile)
-            mlog.info("tmpdir: {}".format(self.tmpdir))
+        mlog.info("tmpdir: {}".format(self.tmpdir))
 
     def infer(self, typ, dinvs, statss, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
@@ -189,18 +190,13 @@ class DigSymStates(Dig):
         solver = infer.prepost.Infer(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
 
-    def get_tmpdir(self):
-        import tempfile
-        tmpdir = Path(tempfile.mkdtemp(
-            dir=settings.tmpdir, prefix="dig_{}_".format(hash(self.seed))))
-        return tmpdir
-
 
 class DigSymStatesJava(DigSymStates):
 
-    def set_mysrc(self):
-        from helpers.src import Java as mysrc
-        self.mysrc = mysrc(self.filename, self.tmpdir)
+    @property
+    def mysrc_cls(self):
+        import helpers.src
+        return helpers.src.Java
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStatesJava(
@@ -218,9 +214,10 @@ class DigSymStatesJava(DigSymStates):
 
 class DigSymStatesC(DigSymStates):
 
-    def set_mysrc(self):
-        from helpers.src import C as mysrc
-        self.mysrc = mysrc(self.filename, self.tmpdir)
+    @property
+    def mysrc_cls(self):
+        import helpers.src
+        return helpsrs.src.C
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStatesC(
@@ -250,7 +247,6 @@ class DigTraces(Dig):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed)
-        self.tmpdir = self.get_tmpdir()
 
         st = time.time()
 
@@ -273,19 +269,20 @@ class DigTraces(Dig):
             return rs
         wrs = Miscs.run_mp("dynamic inference", tasks, f)
 
-        statss = []
         dinvs = DInvs()
-        for loc, invs, stats in wrs:
-            statss.extend(stats)
+        for loc, invs in wrs:
             for inv in invs:
                 dinvs.add(loc, inv)
 
-        if self.test_dtraces:
+        try:
             new_traces = self.dtraces.merge(self.test_dtraces)
             mlog.debug('added {} test traces'.format(new_traces.siz))
+        except AttributeError:
+            # no test traces
+            pass
 
         dinvs = self.sanitize(dinvs, self.dtraces)
-        # Analysis(self, dinvs, self.dtraces, None, time.time() - st).doit()
+        print(dinvs)
 
     def infer_eqts(self, maxdeg, symbols, traces):
         import data.inv.eqt
