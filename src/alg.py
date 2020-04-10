@@ -267,7 +267,7 @@ class DigTraces(Dig):
         def f(tasks):
             rs = [(loc, _f()) for loc, _f in tasks]
             return rs
-        wrs = Miscs.run_mp("dynamic inference", tasks, f)
+        wrs = Miscs.run_mp("(pure) dynamic inference", tasks, f)
 
         dinvs = DInvs()
         for loc, invs in wrs:
@@ -285,17 +285,15 @@ class DigTraces(Dig):
         print(dinvs)
 
     def infer_eqts(self, maxdeg, symbols, traces):
-        import data.inv.eqt
-
         auto_deg = self.get_auto_deg(maxdeg)
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
             symbols.names, auto_deg, settings.EQT_RATE)
         exprs = list(traces.instantiate(template, n_eqts_needed))
         eqts = Miscs.solve_eqts(exprs, uks, template)
+        import data.inv.eqt
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 
     def infer_ieqs(self, symbols, traces):
-        import data.inv.oct
         maxV = settings.OCT_MAX_V
         minV = -1*maxV
 
@@ -307,5 +305,7 @@ class DigTraces(Dig):
             if upperbound > maxV or upperbound < minV:
                 continue
             octs.append(t <= upperbound)
+
+        import data.inv.oct
         octs = [data.inv.oct.Oct(oct) for oct in octs]
         return octs
