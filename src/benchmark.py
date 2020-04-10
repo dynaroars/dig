@@ -18,7 +18,7 @@ DBG = pdb.set_trace
 
 TIMEOUT = 900  # seconds
 CMD = "timeout {} ".format(TIMEOUT) +\
-    "$SAGE/sage -python -O " +\
+    "sage -python -O " +\
     "dig.py {filename} -log 4 -seed {seed}"
 
 
@@ -41,7 +41,7 @@ def run(benchdir, ntimes):
 ntimes = 2
 
 # NLA
-dir_ = Path("../tests/nla/")
+dir_ = Path("../tests/benchmark/nla/")
 # dir_mp = "../tests/mp/"
 # dir_complexity = "../tests/complexity/"
 run(dir_.resolve(), ntimes)

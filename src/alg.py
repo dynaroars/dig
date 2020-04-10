@@ -13,7 +13,7 @@ import helpers.vcommon as CM
 from data.prog import Prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
-from analysis import Result, Benchmark
+from analysis import Result, Analysis
 import data.symstates
 DBG = pdb.set_trace
 
@@ -76,10 +76,11 @@ class DigSymStates(Dig):
 
         super().start(seed)
 
+        assert settings.tmpdir.is_dir()
         import tempfile
+        prefix = hash(self.seed)
         self.tmpdir = Path(tempfile.mkdtemp(
-            dir=settings.tmpdir, prefix="dig_{}_".format(hash(self.seed))))
-
+            dir=settings.tmpdir, prefix="dig_{}_".format(prefix)))
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
 
@@ -146,7 +147,7 @@ class DigSymStates(Dig):
                         dinvs, dtraces, inps,
                         statss, t_time)
         result.save(self.tmpdir)
-        Benchmark(self.tmpdir, args=None).analyze()
+        Analysis(self.tmpdir, args=None).doit()
 
         mlog.info("tmpdir: {}".format(self.tmpdir))
 

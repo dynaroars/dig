@@ -204,10 +204,11 @@ class Stats:
 
 
 class Benchmark:
-    def __init__(self, bdir, args=None):
-        assert bdir.is_dir(), bdir
+    def __init__(self, inp, args):
+        assert isinstance(inp, Path), inp
+        assert isinstance(args, dict)
 
-        self.bdir = bdir.resolve()
+        self.inp = inp
         self.args = args
 
     def get_success_runs(self, rundir):
@@ -228,31 +229,38 @@ class Benchmark:
 
         return runs
 
-    def run(self, run_f):
-        ntimes = self.args.benchmark_times
-        assert ntimes >= 1, ntimes
+    def doit(self):
+        inp = self.inp
+        args = self.args
 
-        if self.args.benchmark_dir:
-            benchmark_dir = Path(self.args.benchmark_dir).resolve()
+        if inp.is_file():
+            # benchmark single file
+            bfiles = [inp]
+            bstr = inp.stem  # CohenDiv
+        else:
+            assert inp.is_dir(), inp
+            # benchmark all files in dir
+            bfiles = sorted(f for f in inp.iterdir() if f.is_file())
+            bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
+
+        ntimes = args.benchmark_times
+
+        toruns = []
+        if args.benchmark_dir:
+            benchmark_dir = Path(args.benchmark_dir).resolve()
             assert benchmark_dir.is_dir(), benchmark_dir
         else:
             import tempfile
-            prefix = str(self.bdir).replace('/', '_')
-            prefix = "dig_bm{}{}_".format(ntimes, prefix)
+            prefix = "dig_bm{}{}_".format(ntimes, bstr)
             benchmark_dir = Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
 
-        mlog.info("Running each file in {} {} times and storing results in {}".format(
-            self.bdir, ntimes, benchmark_dir))
-
-        fs = sorted(f for f in self.bdir.iterdir() if f.is_file())
+        self.benchmark_dir = benchmark_dir
 
         # compute which runs we have to do (in case there are some existing runs)
-        toruns = []
         myruns = set(range(ntimes))
-        for i, f in enumerate(fs):
+        for i, f in enumerate(bfiles):
             bmdir = benchmark_dir / f.stem
-
             if bmdir.is_dir():  # if there's some previous runs
                 succruns = self.get_success_runs(bmdir)
                 remainruns = list(myruns - succruns)
@@ -268,23 +276,39 @@ class Benchmark:
             if remainruns:
                 toruns.append((f, bmdir, remainruns))
 
-        # run
-        for i, (f, bmdir, remainruns) in enumerate(toruns):
-            if not bmdir.is_dir():
-                bmdir.mkdir()
-            settings.tmpdir = bmdir
+            self.toruns = toruns
+
+        from functools import partial
+        opts = settings.setup(None, args)
+        TIMEOUT = 900  # seconds
+        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(timeout=TIMEOUT, opts=opts) \
+            + "{filename} -seed {seed} -tmpdir {tmpdir}"
+
+        import os
+        for i, (f, bdir, remainruns) in enumerate(self.toruns):
+            if not bdir.is_dir():
+                bdir.mkdir()
 
             for j, seed in enumerate(sorted(remainruns)):
                 mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
-                    i+1, len(toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))
+                    i+1, len(self.toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))
                 try:
-                    run_f(f, seed)
+                    CMD = self.CMD.format(filename=f, seed=seed, tmpdir=bdir)
+                    os.system(CMD)
                 except Exception as ex:
                     mlog.error("Something wrong. Exiting!\n{}".format(ex))
 
-        mlog.info("benchmark result dir: {}".format(benchmark_dir))
+        mlog.info("benchmark result dir: {}".format(self.benchmark_dir))
 
-    def analyze(self):
+
+class Analysis:
+    def __init__(self, bdir, args=None):
+        assert bdir.is_dir(), bdir
+
+        self.bdir = bdir.resolve()
+        self.args = args
+
+    def doit(self):
 
         results_d = defaultdict(list)
 

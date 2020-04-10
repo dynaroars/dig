@@ -95,6 +95,95 @@ class C:
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME"))
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
-    # -seed={seed}
     CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file} > {tracefile}"
     CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
+
+
+def setup(settings, args):
+    import helpers.vcommon
+
+    opts = []
+    if args.noss:
+        if settings:
+            settings.DO_SS = not args.noss
+        else:
+            opts.append("-noss")
+
+    if args.nomp:
+        if settings:
+            settings.DO_MP = not args.nomp
+        else:
+            opts.append("-nomp")
+
+    if args.noeqts:
+        if settings:
+            settings.DO_EQTS = not args.noeqts
+        else:
+            opts.append("-noeqts")
+
+    if args.noieqs:
+        if settings:
+            settings.DO_IEQS = not args.noieqs
+        else:
+            opts.append("-noieqs")
+
+    if args.nominmaxplus:
+        if settings:
+            settings.DO_MINMAXPLUS = not args.nominmaxplus
+        else:
+            opts.append("-nominmaxplus")
+
+    if args.nopreposts:
+        if settings:
+            settings.DO_PREPOSTS = not args.nopreposts
+        else:
+            opts.append("-nopreposts")
+
+    if 0 <= args.log_level <= 4:
+        if settings:
+            settings.logger_level = args.log_level
+            settings.logger_level = helpers.vcommon.getLogLevel(
+                settings.logger_level)
+            mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
+        else:
+            opts.append("-log_level {}".format(args.log_level))
+
+    if args.inpMaxV and args.inpMaxV >= 1:
+        if settings:
+            settings.INP_MAX_V = args.inpMaxV
+        else:
+            opts.append("-inpMaxV {}".format(args.inpMaxV))
+
+    if args.octmaxv and args.octmaxv >= 1:
+        if settings:
+            settings.OCT_MAX_V = args.octmaxv
+        else:
+            opts.append("-octmaxv {}".format(args.octmaxv))
+
+    if args.maxterm and args.maxterm >= 1:
+        if settings:
+            settings.MAX_TERM = args.maxterm
+        else:
+            opts.append("-maxterm {}".format(args.maxterm))
+
+    if args.uterms:
+        if settings:
+            settings.UTERMS = set(args.uterms.split())
+        else:
+            opts.append("-uterms \"{}\"".format(args.uterms))  # not tested
+
+    se_mindepth = None
+    if args.se_mindepth and args.se_mindepth >= 1:
+        if settings:
+            se_mindepth = args.se_mindepth
+        else:
+            opts.append("-se_mindepth {}".format(args.se_mindepth))
+
+    if args.tmpdir:
+        if settings:
+            settings.tmpdir = Path(args.tmpdir)
+            assert settings.tmpdir.is_dir()
+        else:
+            opts.append("-tmpdir {}".format(args.tmpdir))
+
+    return (mlog, se_mindepth) if settings else ' '.join(opts)
