@@ -67,8 +67,6 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         helpers.miscs.Miscs.show_removed(
             'term filter', len(terms), len(new_terms), time() - st)
         return new_terms
-    else:
-        return terms
 
     def filter_terms(self, terms, inps):
         assert isinstance(inps, set) and \
