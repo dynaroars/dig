@@ -8,7 +8,7 @@ from pathlib import Path
 DBG = pdb.set_trace
 
 
-def run(ifile, args):
+def run(ifile, seed, args):
     import alg
     if ifile.suffix == ".java" or ifile.suffix == ".class":
         if (args.se_mindepth and args.se_mindepth >= 1 and
@@ -26,7 +26,7 @@ def run(ifile, args):
             args.test_tracefile) if args.test_tracefile else None
         dig = alg.DigTraces(ifile, test_tracefile)
 
-    return dig
+    return dig.start(seed=seed, maxdeg=args.maxdeg)
 
 
 if __name__ == "__main__":
@@ -163,11 +163,15 @@ if __name__ == "__main__":
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
     inp = Path(args.inp)
+
+    def run_f(ifile, seed):
+        return run(ifile, seed, args)
+
     if inp.is_dir():
         from analysis import Benchmark
         benchmark = Benchmark(inp, args)
         if args.benchmark_times:
-            benchmark.run(run)
+            benchmark.run(run_f)
         else:
             benchmark.analyze()
         exit(0)
@@ -175,5 +179,4 @@ if __name__ == "__main__":
         if not inp.is_file():
             mlog.error("'{}' is not a valid file!".format(inp))
             exit(1)
-        dig = run(inp, args)
-        _ = dig.start(seed, args.maxdeg)
+        run_f(inp, seed)

@@ -223,7 +223,7 @@ class Benchmark:
                 runi = int(rd.stem.split('_')[1])
                 runs.add(runi)
             else:
-                mlog.warning('deleting incomplete run {}'.format(rd))
+                mlog.debug('deleting incomplete run {}'.format(rd))
                 shutil.rmtree(rd)
 
         return runs
@@ -232,36 +232,35 @@ class Benchmark:
         ntimes = self.args.benchmark_times
         assert ntimes >= 1, ntimes
 
-        if not self.args.benchmark_dir:
+        if self.args.benchmark_dir:
+            benchmark_dir = Path(self.args.benchmark_dir).resolve()
+            assert benchmark_dir.is_dir(), benchmark_dir
+        else:
             import tempfile
             prefix = str(self.bdir).replace('/', '_')
             prefix = "dig_bm{}{}_".format(ntimes, prefix)
             benchmark_dir = Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
-        else:
-            benchmark_dir = Path(self.args.benchmark_dir).resolve()
-            assert benchmark_dir.is_dir(), benchmark_dir
 
-        settings.DO_RMTMP = False  # don't remove result dir
-
-        mlog.info("Running each file in {} {} times. Result stored in {}".format(
+        mlog.info("Running each file in {} {} times and storing results in {}".format(
             self.bdir, ntimes, benchmark_dir))
 
         fs = sorted(f for f in self.bdir.iterdir() if f.is_file())
 
+        # compute which runs we have to do (in case there are some existing runs)
         toruns = []
         myruns = set(range(ntimes))
         for i, f in enumerate(fs):
             bmdir = benchmark_dir / f.stem
 
-            if bmdir.is_dir():
+            if bmdir.is_dir():  # if there's some previous runs
                 succruns = self.get_success_runs(bmdir)
                 remainruns = list(myruns - succruns)
                 if not remainruns:
-                    mlog.warning(
+                    mlog.info(
                         "{} ran, results in {}".format(f, bmdir))
                 else:
-                    mlog.warning("{} in {} needs {} more runs".format(
+                    mlog.info("{} in {} needs {} more runs".format(
                         f, bmdir, len(remainruns)))
             else:
                 remainruns = list(myruns)
@@ -269,6 +268,7 @@ class Benchmark:
             if remainruns:
                 toruns.append((f, bmdir, remainruns))
 
+        # run
         for i, (f, bmdir, remainruns) in enumerate(toruns):
             if not bmdir.is_dir():
                 bmdir.mkdir()
@@ -278,10 +278,9 @@ class Benchmark:
                 mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
                     i+1, len(toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))
                 try:
-                    dig = run_f(f, self.args)
-                    dig.start(seed=seed, maxdeg=self.args.maxdeg)
+                    run_f(f, seed)
                 except Exception as ex:
-                    mlog.error("Something went wrong. Exiting!\n{}".format(ex))
+                    mlog.error("Something wrong. Exiting!\n{}".format(ex))
 
         mlog.info("benchmark result dir: {}".format(benchmark_dir))
 
