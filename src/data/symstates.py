@@ -379,9 +379,7 @@ class SymStates(metaclass=ABCMeta):
         if stat == z3.sat:
             v = str(opt.upper(h))
             if v != 'oo':  # no bound
-                v = int(v)
-                if v <= settings.OCT_MAX_V:
-                    return v
+                return int(v)
         else:
             mlog.warning(
                 "cannot find upperbound for {} at {} (stat {})".format(term_expr, loc, stat))
@@ -432,6 +430,50 @@ class SymStates(metaclass=ABCMeta):
         return z3.Or([self.ss[loc][depth].myexpr for depth in self.ss[loc]])
 
     # PRIVATE
+
+    def mmaximize_depth(self, loc, term_expr):
+        solver_stats = []
+
+        def f(depth):
+            ss = self.ss[loc][depth].myexpr
+            maxv, stat = self.mmaximize(ss, term_expr)
+            solver_stats.append(("max", stat))
+            return maxv, stat
+
+        depths = sorted(self.ss[loc].keys())
+        depth_idx = 0
+
+        maxv, stat = f(depths[depth_idx])
+        # if stat != z3.unsat:  # if disprove or unknown first time
+        #     solver_stats.append((inv, None, None, stat, depths[depth_idx]))
+
+        while(stat != z3.sat and depth_idx < len(depths) - 1):
+            depth_idx_ = depth_idx + 1
+            cexs_, is_succ_, stat_ = f(depths[depth_idx_])
+            if stat_ != stat:
+                mydepth_ = depths[depth_idx_]
+                mydepth = depths[depth_idx]
+                mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
+                           .format(inv_expr, stat, mydepth, stat_, mydepth_))
+                solver_stats.append((inv, stat, mydepth, stat_, mydepth_))
+
+            depth_idx = depth_idx_
+            cexs, is_succ, stat = cexs_, is_succ_, stat_
+
+        return cexs, is_succ, solver_stats
+
+    def mmaximize(self, ss, term_expr):
+        opt = helpers.miscs.Z3.create_solver(maximize=True)
+        opt.add(ss)
+        h = opt.maximize(term_expr)
+        stat = opt.check()
+        v = None
+        if stat == z3.sat:
+            v = str(opt.upper(h))
+            if v != 'oo':  # no bound
+                v = int(v)
+
+        return v, stat
 
     def mcheck_d(self, loc, inv, inps, ncexs, check_mode):
 
@@ -517,7 +559,7 @@ class SymStates(metaclass=ABCMeta):
         assert self.check_check_mode(check_mode), check_mode
 
         f = symstates_expr
-        iconstr = self._get_inp_constrs(inps)
+        iconstr = self.get_inp_constrs(inps)
         if iconstr is not None:
             f = z3.simplify(z3.And(iconstr, f))
 
@@ -532,7 +574,7 @@ class SymStates(metaclass=ABCMeta):
         cexs, is_succ = helpers.miscs.Z3.extract(models)
         return cexs, is_succ, stat
 
-    def _get_inp_constrs(self, inps):
+    def get_inp_constrs(self, inps):
         cstrs = []
         if isinstance(inps, data.traces.Inps) and inps:
             inpCstrs = [inp.mkExpr(self.inp_exprs) for inp in inps]

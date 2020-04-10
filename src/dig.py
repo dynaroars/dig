@@ -93,9 +93,6 @@ if __name__ == "__main__":
        action="store_true",
        help="don't compute prepost specs")
 
-    ag("--notermfilter", "-notermfilter",
-       action="store_true")
-
     ag("--nomp", "-nomp",
        action="store_true",
        help="don't use multiprocessing")
@@ -132,7 +129,6 @@ if __name__ == "__main__":
     settings.DO_IEQS = not args.noieqs
     settings.DO_MINMAXPLUS = not args.nominmaxplus
     settings.DO_PREPOSTS = not args.nopreposts
-    settings.DO_TERM_FILTER = not args.notermfilter
     settings.DO_RMTMP = not args.normtmp
 
     if 0 <= args.log_level <= 4 and args.log_level != settings.logger_level:
@@ -167,7 +163,6 @@ if __name__ == "__main__":
     seed = round(time.time(), 2) if args.seed is None else float(args.seed)
 
     inp = Path(args.inp)
-
     if inp.is_dir():
         from analysis import Benchmark
         benchmark = Benchmark(inp, args)

@@ -47,7 +47,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
-            if v is None:
+            if v is None or v > settings.OCT_MAX_V:
                 continue
             inv = self.inv_cls(term.mk_le(v))
             inv.set_stat(data.inv.base.Inv.PROVED)
@@ -60,15 +60,15 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         mlog.debug("{} terms for {}".format(
             len(terms), self.__class__.__name__))
 
-        if settings.DO_TERM_FILTER:
-            st = time()
-            new_terms = self.filter_terms(
-                terms, set(self.inp_decls.names))
-            helpers.miscs.Miscs.show_removed(
-                'term filter', len(terms), len(new_terms), time() - st)
-            return new_terms
-        else:
-            return terms
+        # filter terms
+        st = time()
+        new_terms = self.filter_terms(
+            terms, set(self.inp_decls.names))
+        helpers.miscs.Miscs.show_removed(
+            'term filter', len(terms), len(new_terms), time() - st)
+        return new_terms
+    else:
+        return terms
 
     def filter_terms(self, terms, inps):
         assert isinstance(inps, set) and \
