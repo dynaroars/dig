@@ -109,11 +109,11 @@ if __name__ == "__main__":
     inp = Path(args.inp)
     if args.benchmark_times:
         from analysis import Benchmark
-        Benchmark(inp, args).doit()
+        Benchmark(inp, args).start()
 
     elif inp.is_dir():
         from analysis import Analysis
-        Analysis(inp, args).doit()
+        Analysis(inp, args).start()
 
     else:  # benchmark_times is None, input is a file: normal, single run
         assert benchmark_times is None and inp.is_file(), inp

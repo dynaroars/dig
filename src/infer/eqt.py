@@ -52,7 +52,6 @@ class Infer(infer.base.Infer):
         return dinvs
 
     # PRIVATE
-
     def add_exprs(cls, template, n_eqts_needed, traces, exprs):
         assert traces
         mlog.debug("got {} new traces".format(len(traces)))
@@ -83,7 +82,7 @@ class Infer(infer.base.Infer):
                 doRand = False
 
                 dinvsFalse = DInvs.mk_false_invs([loc])
-                cexs, _, _ = self.symstates.check(
+                cexs, _ = self.symstates.check(
                     dinvsFalse, inps, self.symstates.check_validity)
                 # cannot find new inputs
                 if loc not in cexs:

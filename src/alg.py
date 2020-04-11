@@ -149,7 +149,7 @@ class DigSymStates(Dig):
                         dinvs, dtraces, inps,
                         stats, t_time)
         result.save(self.tmpdir)
-        Analysis(self.tmpdir, args=None).doit()
+        Analysis(self.tmpdir, args=None).start()
 
         mlog.info("tmpdir: {}".format(self.tmpdir))
 

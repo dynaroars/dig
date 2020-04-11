@@ -155,13 +155,19 @@ class Stats:
                 except KeyError:
                     dd[k].append(0)
 
-            dd['siz'].append(sum(v for v in d.values()))
-
         assert all(len(dd[k]) == len(ds) for k in dd), dd
 
+        s = []
+        sizs = []
+        for k in sorted(dd):
+            t = f(dd[k])
+            s.append((k, t))
+            sizs.append(t)
+
         s = ', '.join('{} {}'.format(k, f(dd[k]))
-                      for k in sorted(dd) if k != 'siz')
-        return '{} {} ({})'.format(label, f(dd['siz']), s)
+                      for k, t in s)
+
+        return '{} {} ({})'.format(label, sum(sizs), s)
 
     def analyze2(self, f):
         invtypss = [r.dinvs.typ_ctr for r in self.results]
@@ -179,7 +185,7 @@ class Stats:
 
         return ', '.join(ss)
 
-    def analyze(self, f):
+    def start(self, f):
         rs = self.results
         _ = [r.analyze() for r in rs]
         VTD = "{},{},{}".format(f(r.V for r in rs), f(
@@ -204,6 +210,8 @@ class Stats:
 
 
 class Benchmark:
+    TIMEOUT = 900  # seconds
+
     def __init__(self, inp, args):
         assert isinstance(inp, Path), inp
         assert isinstance(args, dict)
@@ -211,25 +219,7 @@ class Benchmark:
         self.inp = inp
         self.args = args
 
-    def get_success_runs(self, rundir):
-        assert rundir.is_dir(), rundir
-
-        runs = set()
-        for rd in rundir.iterdir():
-            if not rd.is_dir():
-                mlog.warning('Unexpected file {}'.format(rd))
-
-            if (rd / Result.resultfile).is_file():
-                # Dig_2_dxmdlf4y
-                runi = int(rd.stem.split('_')[1])
-                runs.add(runi)
-            else:
-                mlog.debug('deleting incomplete run {}'.format(rd))
-                shutil.rmtree(rd)
-
-        return runs
-
-    def doit(self):
+    def start(self):
         inp = self.inp
         args = self.args
 
@@ -278,10 +268,9 @@ class Benchmark:
 
             self.toruns = toruns
 
-        from functools import partial
         opts = settings.setup(None, args)
-        TIMEOUT = 900  # seconds
-        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(timeout=TIMEOUT, opts=opts) \
+        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(
+            timeout=self.TIMEOUT, opts=opts) \
             + "{filename} -seed {seed} -tmpdir {tmpdir}"
 
         import os
@@ -300,6 +289,24 @@ class Benchmark:
 
         mlog.info("benchmark result dir: {}".format(self.benchmark_dir))
 
+    def get_success_runs(self, rundir):
+        assert rundir.is_dir(), rundir
+
+        runs = set()
+        for rd in rundir.iterdir():
+            if not rd.is_dir():
+                mlog.warning('Unexpected file {}'.format(rd))
+
+            if (rd / Result.resultfile).is_file():
+                # Dig_2_dxmdlf4y
+                runi = int(rd.stem.split('_')[1])
+                runs.add(runi)
+            else:
+                mlog.debug('deleting incomplete run {}'.format(rd))
+                shutil.rmtree(rd)
+
+        return runs
+
 
 class Analysis:
     def __init__(self, bdir, args=None):
@@ -308,7 +315,7 @@ class Analysis:
         self.bdir = bdir.resolve()
         self.args = args
 
-    def doit(self):
+    def start(self):
 
         results_d = defaultdict(list)
 
@@ -320,7 +327,9 @@ class Analysis:
                 pass
 
         def load2(dir_):
-            _ = [load1(dir_.stem, d) for d in dir_.iterdir() if d.is_dir()]
+            for d in dir_.iterdir():
+                if d.is_dir():
+                    load1(dir_.stem, d)
 
         # single result
         if (self.bdir / Result.resultfile).is_file():
@@ -332,11 +341,13 @@ class Analysis:
 
             load2(self.bdir)
         else:
-            _ = [load2(d) for d in self.bdir.iterdir() if d.is_dir()]
+            for d in self.bdir.iterdir():
+                if d.is_dir():
+                    load2(d)
 
         for prog in sorted(results_d):
             if not results_d[prog]:
                 continue
             stats = Stats(prog, results_d[prog])
-            stats.analyze(median)
+            stats.start(median)
             # stats.analyze(mean)
