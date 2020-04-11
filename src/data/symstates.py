@@ -5,6 +5,7 @@ from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 import pdb
 from pathlib import Path
+from multiprocessing import Queue
 
 import z3
 import sage.all
@@ -257,6 +258,7 @@ class PCs(set):
 
 
 class SymStates(metaclass=ABCMeta):
+    solver_stats = Queue()
 
     check_validity = 1  # sat(not(ss => f))
     check_consistency = 2  # sat(ss && f)
@@ -311,9 +313,6 @@ class SymStates(metaclass=ABCMeta):
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
                 pc = pc_cls(loc, depth, pcs, slocals, use_reals)
-                # symstates.setdefault(loc, {})
-                # symstates[loc] =
-                # symstates[loc].setdefault(depth, PCs(loc, depth)).add(pc)
                 symstates[loc][depth].add(pc)
 
         # only store incremental states at each depth
@@ -410,8 +409,7 @@ class SymStates(metaclass=ABCMeta):
 
         mCexs = []
         mdinvs = data.inv.invs.DInvs()
-        mstats = []
-        for loc, str_inv, (cexs, is_succ, solver_stats) in wrs:
+        for loc, str_inv, (cexs, is_succ) in wrs:
             inv = refsD[(loc, str_inv)]
 
             if cexs:
@@ -422,58 +420,55 @@ class SymStates(metaclass=ABCMeta):
             inv.stat = stat
             mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
-            mstats.extend(solver_stats)
-
-        return merge(mCexs), mdinvs, mstats
+        return merge(mCexs), mdinvs
 
     def ss_at_loc(self, loc):
         return z3.Or([self.ss[loc][depth].myexpr for depth in self.ss[loc]])
 
     # PRIVATE
 
-    def mmaximize_depth(self, loc, term_expr):
-        solver_stats = []
+    # def mmaximize_depth(self, loc, term_expr):
 
-        def f(depth):
-            ss = self.ss[loc][depth].myexpr
-            maxv, stat = self.mmaximize(ss, term_expr)
-            solver_stats.append(("max", stat))
-            return maxv, stat
+    #     def f(depth):
+    #         ss = self.ss[loc][depth].myexpr
+    #         maxv, stat = self.mmaximize(ss, term_expr)
+    #         self.solver_stats.put(("max", stat))
+    #         return maxv, stat
 
-        depths = sorted(self.ss[loc].keys())
-        depth_idx = 0
+    #     depths = sorted(self.ss[loc].keys())
+    #     depth_idx = 0
 
-        maxv, stat = f(depths[depth_idx])
-        # if stat != z3.unsat:  # if disprove or unknown first time
-        #     solver_stats.append((inv, None, None, stat, depths[depth_idx]))
+    #     maxv, stat = f(depths[depth_idx])
+    #     if stat != z3.unsat:  # if disprove or unknown first time
+    #         self.solver_stats.put((inv, None, None, stat, depths[depth_idx]))
 
-        while(stat != z3.sat and depth_idx < len(depths) - 1):
-            depth_idx_ = depth_idx + 1
-            cexs_, is_succ_, stat_ = f(depths[depth_idx_])
-            if stat_ != stat:
-                mydepth_ = depths[depth_idx_]
-                mydepth = depths[depth_idx]
-                mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
-                           .format(inv_expr, stat, mydepth, stat_, mydepth_))
-                solver_stats.append((inv, stat, mydepth, stat_, mydepth_))
+    #     while(stat != z3.sat and depth_idx < len(depths) - 1):
+    #         depth_idx_ = depth_idx + 1
+    #         cexs_, is_succ_, stat_ = f(depths[depth_idx_])
+    #         if stat_ != stat:
+    #             mydepth_ = depths[depth_idx_]
+    #             mydepth = depths[depth_idx]
+    #             mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
+    #                        .format(inv_expr, stat, mydepth, stat_, mydepth_))
+    #             self.solver_stats.put((inv, stat, mydepth, stat_, mydepth_))
 
-            depth_idx = depth_idx_
-            cexs, is_succ, stat = cexs_, is_succ_, stat_
+    #         depth_idx = depth_idx_
+    #         cexs, is_succ, stat = cexs_, is_succ_, stat_
 
-        return cexs, is_succ, solver_stats
+    #     return cexs, is_succ, solver_stats
 
-    def mmaximize(self, ss, term_expr):
-        opt = helpers.miscs.Z3.create_solver(maximize=True)
-        opt.add(ss)
-        h = opt.maximize(term_expr)
-        stat = opt.check()
-        v = None
-        if stat == z3.sat:
-            v = str(opt.upper(h))
-            if v != 'oo':  # no bound
-                v = int(v)
+    # def mmaximize(self, ss, term_expr):
+    #     opt = helpers.miscs.Z3.create_solver(maximize=True)
+    #     opt.add(ss)
+    #     h = opt.maximize(term_expr)
+    #     stat = opt.check()
+    #     v = None
+    #     if stat == z3.sat:
+    #         v = str(opt.upper(h))
+    #         if v != 'oo':  # no bound
+    #             v = int(v)
 
-        return v, stat
+    #     return v, stat
 
     def mcheck_d(self, loc, inv, inps, ncexs, check_mode):
 
@@ -509,19 +504,17 @@ class SymStates(metaclass=ABCMeta):
             self.ss_at_loc(loc), inv_expr,
             inps=None, ncexs=1, check_mode=self.check_consistency)
 
-        return cexs, is_succ, []
+        return cexs, is_succ
 
     def mcheck_depth(self, loc, inv, inv_expr, inps, ncexs, check_mode):
         assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
-
-        solver_stats = []
 
         def f(depth):
             ss = self.ss[loc][depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(
                 ss, inv_expr, inps, ncexs, check_mode)
-            solver_stats.append((stat, is_succ))
+            self.solver_stats.put((stat, is_succ))
             return cexs, is_succ, stat
 
         depths = sorted(self.ss[loc].keys())
@@ -529,7 +522,7 @@ class SymStates(metaclass=ABCMeta):
 
         cexs, is_succ, stat = f(depths[depth_idx])
         if stat != z3.unsat:  # if disprove or unknown first time
-            solver_stats.append((inv, None, None, stat, depths[depth_idx]))
+            self.solver_stats.put((inv, None, None, stat, depths[depth_idx]))
 
         while(stat != z3.sat and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
@@ -539,12 +532,12 @@ class SymStates(metaclass=ABCMeta):
                 mydepth = depths[depth_idx]
                 mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
-                solver_stats.append((inv, stat, mydepth, stat_, mydepth_))
+                self.solver_stats.put((inv, stat, mydepth, stat_, mydepth_))
 
             depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
 
-        return cexs, is_succ, solver_stats
+        return cexs, is_succ
 
     def mcheck(self, symstates_expr, inv, inps, ncexs, check_mode):
         """

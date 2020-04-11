@@ -40,7 +40,7 @@ class Infer(infer.base.Infer):
             if preposts:
                 dinvs_[loc] = Invs(preposts)
 
-        return dinvs_, []
+        return dinvs_
 
     @property
     def preconds(self):

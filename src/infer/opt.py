@@ -53,7 +53,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             inv.set_stat(data.inv.base.Inv.PROVED)
             dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
-        return dinvs, []  # no statss
+        return dinvs
 
     def get_terms(self, symbols):
         terms = self.my_get_terms(symbols)

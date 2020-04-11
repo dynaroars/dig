@@ -41,17 +41,15 @@ class Infer(infer.base.Infer):
 
         # put results together
         dinvs = DInvs()
-        statss = []
-        for loc, (eqts, cexs, stats) in wrs:
+        for loc, (eqts, cexs) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug("{}: got {} eqts, {} new inps"
                        .format(loc, len(eqts), len(new_inps)))
             if eqts:
                 mlog.debug('\n'.join(map(str, eqts)))
             dinvs[loc] = Invs(eqts)
-            statss.extend(stats)
 
-        return dinvs, statss
+        return dinvs
 
     # PRIVATE
 
@@ -179,7 +177,6 @@ class Infer(infer.base.Infer):
         new_cexs = []
         curIter = 0
 
-        statss = []
         while True:
             curIter += 1
             mlog.debug("{}, iter {} infer using {} exprs"
@@ -199,9 +196,8 @@ class Infer(infer.base.Infer):
                        .format(loc, len(unchecks), len(new_eqts)))
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
-            cexs, dinvs, stats = self.check(
+            cexs, dinvs = self.check(
                 dinvs, None, data.symstates.SymStates.check_validity)
-            statss.extend(stats)
             if cexs:
                 new_cexs.append(cexs)
 
@@ -218,4 +214,4 @@ class Infer(infer.base.Infer):
             mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
             exprs.extend(exprs_)
 
-        return eqts, new_cexs, statss
+        return eqts, new_cexs

@@ -111,29 +111,28 @@ class DigSymStates(Dig):
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
         inps = Inps()
-        statss = []
 
         if settings.DO_EQTS:
-            self.infer(self.EQTS, dinvs, statss,
+            self.infer(self.EQTS, dinvs,
                        lambda: self.infer_eqts(maxdeg, dtraces, inps))
 
         if settings.DO_IEQS:
-            self.infer(self.IEQS, dinvs, statss,
+            self.infer(self.IEQS, dinvs,
                        lambda: self.infer_ieqs(dtraces, inps))
 
         if settings.DO_MINMAXPLUS:
-            self.infer(self.MINMAX, dinvs, statss,
+            self.infer(self.MINMAX, dinvs,
                        lambda: self.infer_minmax(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
         if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer('preposts', dinvs, statss,
+            self.infer('preposts', dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        self.postprocess(dinvs, dtraces, inps, statss, time.time() - st)
+        self.postprocess(dinvs, dtraces, inps, time.time() - st)
 
-    def postprocess(self, dinvs, dtraces, inps, statss, t_time):
+    def postprocess(self, dinvs, dtraces, inps, t_time):
         """
         Save and analyze result
         Clean up tmpdir
@@ -142,22 +141,24 @@ class DigSymStates(Dig):
         # clean up
         import shutil
         shutil.rmtree(self.tmpdir_del)
+        stats = []
+        while not self.symstates.solver_stats.empty():
+            stats.append(self.symstates.solver_stats.get())
 
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
-                        statss, t_time)
+                        stats, t_time)
         result.save(self.tmpdir)
         Analysis(self.tmpdir, args=None).doit()
 
         mlog.info("tmpdir: {}".format(self.tmpdir))
 
-    def infer(self, typ, dinvs, statss, f):
+    def infer(self, typ, dinvs, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
 
         st = time.time()
-        new_invs, stats = f()
-        statss.extend(stats)
+        new_invs = f()
 
         if new_invs.siz:
             mlog.info("found {} {} ({:.2f}s)".format(
