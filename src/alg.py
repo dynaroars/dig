@@ -130,7 +130,10 @@ class DigSymStates(Dig):
             self.infer('preposts', dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        self.postprocess(dinvs, dtraces, inps, time.time() - st)
+        etime = time.time() - st
+        print(dinvs)
+        print(etime)
+        self.postprocess(dinvs, dtraces, inps, etime)
 
     def postprocess(self, dinvs, dtraces, inps, t_time):
         """
@@ -141,6 +144,8 @@ class DigSymStates(Dig):
         # clean up
         import shutil
         shutil.rmtree(self.tmpdir_del)
+
+        # save results
         stats = []
         while not self.symstates.solver_stats.empty():
             stats.append(self.symstates.solver_stats.get())
@@ -149,7 +154,7 @@ class DigSymStates(Dig):
                         dinvs, dtraces, inps,
                         stats, t_time)
         result.save(self.tmpdir)
-        Analysis(self.tmpdir, args=None).start()
+        #Analysis(self.tmpdir, args=None).start()
 
         mlog.info("tmpdir: {}".format(self.tmpdir))
 

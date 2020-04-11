@@ -5,7 +5,7 @@ import shutil
 import time
 import random
 import pdb
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, namedtuple
 from statistics import mean, median
 from pathlib import Path
 
@@ -18,6 +18,22 @@ import data.inv
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
+
+class CheckSolverCalls(namedtuple("CheckSolverCalls", ("stat",))):
+    pass
+
+
+class CheckDepthChanges(namedtuple("CheckDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
+    pass
+
+
+class MaxSolverCalls(namedtuple("MaxSolverCalls", ("stat",))):
+    pass
+
+
+class MaxDepthChanges(namedtuple("MaxDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
+    pass
 
 
 class Result:
@@ -33,8 +49,12 @@ class Result:
         self.dinvs = dinvs
         self.dtraces = dtraces
         self.inps = inps
-        self.solver_calls = [stat for stat in stats if len(stat) == 2]
-        self.depth_changes = [stat for stat in stats if len(stat) != 2]
+
+        self.solver_calls = [
+            stat for stat in stats if isinstance(stat, CheckSolverCalls)]
+        self.depth_changes = [
+            stat for stat in stats if isinstance(stat, CheckDepthChanges)]
+
         self.t_time = t_time
 
     @classmethod

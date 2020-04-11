@@ -41,7 +41,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         def f(tasks):
             return [(loc, term,
-                     self.symstates.maximize(loc, self.to_expr(term)))
+                     self.symstates.maximize(loc, self.to_expr(term), do_all=False))
                     for loc, term in tasks]
         wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
 

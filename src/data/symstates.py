@@ -18,6 +18,7 @@ import data.prog
 import data.traces
 import data.inv.base
 import data.inv.invs
+import analysis
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -274,6 +275,7 @@ class SymStates(metaclass=ABCMeta):
         self.inp_exprs = inp_decls.exprs(self.use_reals)
         self.seed = seed if seed else 0
 
+    # Compute symbolic states using symbolic execution
     def compute(self, filename, mainQName, funname, tmpdir):
         """
         Run symbolic execution to obtain symbolic states
@@ -364,27 +366,7 @@ class SymStates(metaclass=ABCMeta):
 
         return symstates
 
-    def maximize(self, loc, term_expr):
-        """
-        maximize value of term
-        """
-        assert z3.is_expr(term_expr)
-
-        opt = helpers.miscs.Z3.create_solver(maximize=True)
-        opt.add(self.ss_at_loc(loc))
-        h = opt.maximize(term_expr)
-        stat = opt.check()
-
-        if stat == z3.sat:
-            v = str(opt.upper(h))
-            if v != 'oo':  # no bound
-                return int(v)
-        else:
-            mlog.warning(
-                "cannot find upperbound for {} at {} (stat {})".format(term_expr, loc, stat))
-
-        return None
-
+    # Checking invariants using symbolic states
     def check(self, dinvs, inps, check_mode):
         """
         Check invs, return cexs
@@ -422,54 +404,6 @@ class SymStates(metaclass=ABCMeta):
 
         return merge(mCexs), mdinvs
 
-    def ss_at_loc(self, loc):
-        return z3.Or([self.ss[loc][depth].myexpr for depth in self.ss[loc]])
-
-    # PRIVATE
-
-    # def mmaximize_depth(self, loc, term_expr):
-
-    #     def f(depth):
-    #         ss = self.ss[loc][depth].myexpr
-    #         maxv, stat = self.mmaximize(ss, term_expr)
-    #         self.solver_stats.put(("max", stat))
-    #         return maxv, stat
-
-    #     depths = sorted(self.ss[loc].keys())
-    #     depth_idx = 0
-
-    #     maxv, stat = f(depths[depth_idx])
-    #     if stat != z3.unsat:  # if disprove or unknown first time
-    #         self.solver_stats.put((inv, None, None, stat, depths[depth_idx]))
-
-    #     while(stat != z3.sat and depth_idx < len(depths) - 1):
-    #         depth_idx_ = depth_idx + 1
-    #         cexs_, is_succ_, stat_ = f(depths[depth_idx_])
-    #         if stat_ != stat:
-    #             mydepth_ = depths[depth_idx_]
-    #             mydepth = depths[depth_idx]
-    #             mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
-    #                        .format(inv_expr, stat, mydepth, stat_, mydepth_))
-    #             self.solver_stats.put((inv, stat, mydepth, stat_, mydepth_))
-
-    #         depth_idx = depth_idx_
-    #         cexs, is_succ, stat = cexs_, is_succ_, stat_
-
-    #     return cexs, is_succ, solver_stats
-
-    # def mmaximize(self, ss, term_expr):
-    #     opt = helpers.miscs.Z3.create_solver(maximize=True)
-    #     opt.add(ss)
-    #     h = opt.maximize(term_expr)
-    #     stat = opt.check()
-    #     v = None
-    #     if stat == z3.sat:
-    #         v = str(opt.upper(h))
-    #         if v != 'oo':  # no bound
-    #             v = int(v)
-
-    #     return v, stat
-
     def mcheck_d(self, loc, inv, inps, ncexs, check_mode):
 
         assert isinstance(loc, str), loc
@@ -488,41 +422,38 @@ class SymStates(metaclass=ABCMeta):
         except AttributeError:
             if z3.is_expr(inv):
                 inv_expr = inv
-                assert inv_expr is not None, inv_expr
             else:
                 inv_expr = None
 
         if check_mode == self.check_validity:
-            return self.mcheck_depth(loc, inv, inv_expr, inps, ncexs, check_mode)
+            return self.mcheck_depth(self.ss[loc], inv, inv_expr, inps, ncexs, check_mode)
         else:
-            return self.mcheck_all(loc, inv_expr)
-
-    def mcheck_all(self, loc, inv_expr):
-        assert z3.is_expr(inv_expr) and inv_expr is not zFalse, inv_expr
-
-        cexs, is_succ, stat = self.mcheck(
-            self.ss_at_loc(loc), inv_expr,
-            inps=None, ncexs=1, check_mode=self.check_consistency)
+            cexs, is_succ, stat = self.mcheck(
+                self.get_ss_at_depth(self.ss[loc]), inv_expr,
+                inps=None, ncexs=1, check_mode=self.check_consistency)
+            return cexs, is_succ
 
         return cexs, is_succ
 
-    def mcheck_depth(self, loc, inv, inv_expr, inps, ncexs, check_mode):
+    def mcheck_depth(self, ssl, inv, inv_expr, inps, ncexs, check_mode):
         assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
+        assert isinstance(ssl, defaultdict), ssl  # self.ss[loc]
 
         def f(depth):
-            ss = self.ss[loc][depth]
+            ss = ssl[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(
                 ss, inv_expr, inps, ncexs, check_mode)
-            self.solver_stats.put((stat, is_succ))
+            self.solver_stats.put(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
-        depths = sorted(self.ss[loc].keys())
+        depths = sorted(ssl.keys())
         depth_idx = 0
 
         cexs, is_succ, stat = f(depths[depth_idx])
-        if stat != z3.unsat:  # if disprove or unknown first time
-            self.solver_stats.put((inv, None, None, stat, depths[depth_idx]))
+        if stat != z3.unsat:  # if disprove (sat) or unknown first time
+            self.solver_stats.put(analysis.CheckDepthChanges(
+                inv, None, None, stat, depths[depth_idx]))
 
         while(stat != z3.sat and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
@@ -530,9 +461,10 @@ class SymStates(metaclass=ABCMeta):
             if stat_ != stat:
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("depth diff {}: {} @ depth {}, {} @ depth {}"
+                mlog.debug("check depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
-                self.solver_stats.put((inv, stat, mydepth, stat_, mydepth_))
+                self.solver_stats.put(
+                    analysis.CheckDepthChanges(inv, stat, mydepth, stat_, mydepth_))
 
             depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
@@ -566,6 +498,93 @@ class SymStates(metaclass=ABCMeta):
         models, stat = helpers.miscs.Z3.get_models(f, ncexs)
         cexs, is_succ = helpers.miscs.Z3.extract(models)
         return cexs, is_succ, stat
+
+    # Find maximal values for term using symbolic states
+    def maximize(self, loc, term_expr, do_all=True):
+        """
+        maximize value of term
+        """
+        assert z3.is_expr(term_expr), term_expr
+
+        if do_all:
+            ss = self.get_ss_at_depth(self.ss[loc], depth=None)
+            v, stat = self.mmaximize(ss, term_expr)
+        else:
+            v, stat = self.mmaximize_depth(self.ss[loc], term_expr)
+
+        if stat != z3.sat:
+            mlog.warning(
+                "cannot find upperbound for {} at {} (stat {})".format(term_expr, loc, stat))
+
+        return v
+
+    def mmaximize_depth(self, ssl, term_expr):
+        assert z3.is_expr(term_expr), term_expr
+        assert isinstance(ssl, defaultdict)
+
+        def f(depth):
+            ss = self.get_ss_at_depth(ssl, depth=depth)
+            maxv, stat = self.mmaximize(ss, term_expr)
+            self.solver_stats.put(analysis.MaxSolverCalls(stat))
+            return maxv, stat
+
+        depths = sorted(ssl.keys())
+        depth_idx = 0
+
+        maxv, stat = f(depths[depth_idx])
+        if maxv is None:  # if no solution (unsat) or unknown first time
+            self.solver_stats.put(
+                analysis.MaxDepthChanges(
+                    str(term_expr), None, None, maxv, depths[depth_idx]))
+
+        while(maxv is not None and depth_idx < len(depths) - 1):
+            depth_idx_ = depth_idx + 1
+            maxv_, stat_ = f(depths[depth_idx_])
+            if maxv_ != maxv:
+                assert maxv_ > maxv, (maxv_, maxv)
+
+                mydepth_ = depths[depth_idx_]
+                mydepth = depths[depth_idx]
+                mlog.debug("maximize depth diff {}: {} {} @ depth {}, {} {} @ depth {}"
+                           .format(term_expr, maxv, stat, mydepth,
+                                   maxv_, stat_, mydepth_))
+                self.solver_stats.put(
+                    analysis.MaxDepthChanges(str(term_expr), maxv, mydepth, maxv_, mydepth_))
+
+            depth_idx = depth_idx_
+            maxv, stat = maxv_, stat_
+
+        return maxv, stat
+
+    def mmaximize(self, ss, term_expr):
+        opt = helpers.miscs.Z3.create_solver(maximize=True)
+        opt.add(ss)
+        h = opt.maximize(term_expr)
+        stat = opt.check()
+        v = None
+        if stat == z3.sat:
+            v = str(opt.upper(h))
+            if v != 'oo':  # no bound
+                v = int(v)
+                return v, stat
+
+        return None, stat
+
+    # helpers
+
+    def get_ss_at_depth(self, ssl, depth=None):
+        assert depth is None or depth >= 0, depth
+
+        if depth is None:
+            return z3.Or([ssl[depth].myexpr for depth in ssl])
+        else:
+            ss = []
+            for d in sorted(ssl):
+                if d > depth:
+                    break
+                ss.append(ssl[d].myexpr)
+
+            return z3.Or(ss)
 
     def get_inp_constrs(self, inps):
         cstrs = []
