@@ -109,7 +109,7 @@ if __name__ == "__main__":
     inp = Path(args.inp)
     if args.benchmark_times:
         from analysis import Benchmark
-        Benchmark1(inp, args).doit()
+        Benchmark(inp, args).doit()
 
     elif inp.is_dir():
         from analysis import Analysis
