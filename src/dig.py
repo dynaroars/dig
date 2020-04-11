@@ -76,6 +76,10 @@ if __name__ == "__main__":
        action="store_true",
        help="don't compute prepost specs")
 
+    ag("--noincrdepth", "-noincrdepth",
+       action="store_true",
+       help="don't use incremental depth")
+
     ag("--nomp", "-nomp",
        action="store_true",
        help="don't use multiprocessing")

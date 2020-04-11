@@ -12,7 +12,7 @@ DO_EQTS = True
 DO_IEQS = True
 DO_MINMAXPLUS = True
 DO_PREPOSTS = True
-DO_RMTMP = True  # remove temporary dir
+DO_INCR_DEPTH = True
 INP_MAX_V = 300
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 EQT_SOLVER_TIMEOUT = 120  # secs
@@ -138,6 +138,12 @@ def setup(settings, args):
             settings.DO_PREPOSTS = not args.nopreposts
         else:
             opts.append("-nopreposts")
+
+    if args.noincrdepth:
+        if settings:
+            settings.DO_INCR_DEPTH = not args.noincrdepth
+        else:
+            opts.append("-noincredepth")
 
     if 0 <= args.log_level <= 4:
         if settings:

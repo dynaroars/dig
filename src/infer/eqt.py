@@ -82,8 +82,8 @@ class Infer(infer.base.Infer):
                 doRand = False
 
                 dinvsFalse = DInvs.mk_false_invs([loc])
-                cexs, _ = self.symstates.check(
-                    dinvsFalse, inps, self.symstates.check_validity)
+                cexs, _ = self.symstates.check(dinvsFalse, inps)
+
                 # cannot find new inputs
                 if loc not in cexs:
                     mlog.debug("{}: cannot find new inps ({} curr inps)"
@@ -117,8 +117,8 @@ class Infer(infer.base.Infer):
             mlog.debug("{}: need more traces ({} eqts, need >= {})"
                        .format(loc, len(exprs), n_eqts_needed))
             dinvsFalse = DInvs.mk_false_invs([loc])
-            cexs, _, _ = self.symstates.check(
-                dinvsFalse, inps, self.symstates.check_validity)
+            cexs, _, _ = self.symstates.check(dinvsFalse, inps)
+
             if loc not in cexs:
                 mlog.error("{}: cannot generate enough traces".format(loc))
                 return
@@ -195,8 +195,7 @@ class Infer(infer.base.Infer):
                        .format(loc, len(unchecks), len(new_eqts)))
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
-            cexs, dinvs = self.check(
-                dinvs, None, data.symstates.SymStates.check_validity)
+            cexs, dinvs = self.check(dinvs, None)
             if cexs:
                 new_cexs.append(cexs)
 

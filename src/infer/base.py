@@ -44,10 +44,9 @@ class Infer(metaclass=ABCMeta):
         new_traces = traces.merge(new_traces)
         return new_traces
 
-    def check(self, dinvs, inps,
-              check_mode=data.symstates.SymStates.check_validity):
+    def check(self, dinvs, inps):
         if self.symstates:
-            cexs, dinvs = self.symstates.check(dinvs, inps, check_mode)
+            cexs, dinvs = self.symstates.check(dinvs, inps)
         else:
             # no symbolic states, not performing checking
             for loc in dinvs:
