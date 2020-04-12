@@ -131,8 +131,10 @@ class DigSymStates(Dig):
                        lambda: self.infer_preposts(dinvs, dtraces))
 
         etime = time.time() - st
-        print(dinvs)
-        print(self.tmpdir, etime)
+
+        # print out some quick results
+        print("{}\nrun time {:.2f}s, result dir: {}".format(
+            dinvs, etime, self.tmpdir))
 
         self.postprocess(dinvs, dtraces, inps, etime)
 
