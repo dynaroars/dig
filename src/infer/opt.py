@@ -47,7 +47,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
-            if v is None or v > settings.OCT_MAX_V:
+            if v is None:
                 continue
             inv = self.inv_cls(term.mk_le(v))
             inv.set_stat(data.inv.base.Inv.PROVED)

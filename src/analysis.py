@@ -20,19 +20,23 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CheckSolverCalls(namedtuple("CheckSolverCalls", ("stat",))):
+class CheckSolverCalls(
+        namedtuple("CheckSolverCalls", ("stat",))):
     pass
 
 
-class CheckDepthChanges(namedtuple("CheckDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
+class CheckDepthChanges(
+        namedtuple("CheckDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
     pass
 
 
-class MaxSolverCalls(namedtuple("MaxSolverCalls", ("stat",))):
+class MaxSolverCalls(
+        namedtuple("MaxSolverCalls", ("stat",))):
     pass
 
 
-class MaxDepthChanges(namedtuple("MaxDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
+class MaxDepthChanges(
+        namedtuple("MaxDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
     pass
 
 
@@ -49,13 +53,96 @@ class Result:
         self.dinvs = dinvs
         self.dtraces = dtraces
         self.inps = inps
-
-        self.solver_calls = [
-            stat for stat in stats if isinstance(stat, CheckSolverCalls)]
-        self.depth_changes = [
-            stat for stat in stats if isinstance(stat, CheckDepthChanges)]
+        self.stats = stats
 
         self.t_time = t_time
+
+    def save(self, todir):
+        assert todir.is_dir(), todir
+        CM.vsave(todir / self.resultfile, self)
+
+    @classmethod
+    def load(cls, fromdir):
+        assert isinstance(fromdir, Path) and fromdir.is_dir(), fromdir
+
+        return CM.vload(fromdir / cls.resultfile)
+
+
+class AResult(Result):
+    def __init__(self, result):
+        super().__init__(result.filename, result.seed, result.dinvs,
+                         result.dtraces, result.inps, result.stats, result.t_time)
+
+        self.check_solvercalls = [s for s in self.stats
+                                  if isinstance(s, CheckSolverCalls)]
+        self.check_depthchanges = [s for s in self.stats
+                                   if isinstance(s, CheckDepthChanges)]
+
+        self.max_solvercalls = [s for s in self.stats
+                                if isinstance(s, MaxSolverCalls)]
+        self.max_depthchanges = [s for s in self.stats
+                                 if isinstance(s, MaxDepthChanges)]
+
+    def analyze(self):
+        self.V, self.D, self.T = self.analyze_dinvs(self.dinvs)
+
+        def get_inv_typ(inv):
+            assert inv is not None, inv
+            return inv.__class__.__name__
+
+        def get_change(x, y, as_str=True):
+            if as_str:
+                x = str(x)
+                y = str(y)
+            else:
+                x = -1 if x is None else x
+                y = -1 if y is None else y
+            return (x, y)
+
+        self.check_solvercalls_ctr = Counter(
+            str(x.stat) for x in self.check_solvercalls)
+
+        self.check_changevals_ctr = Counter(
+            get_change(x.v1, x.v2, as_str=True) for x in self.check_depthchanges
+            if not isinstance(x.prop, data.inv.invs.FalseInv))
+
+        self.check_changedepths_ctr = Counter(
+            get_change(x.d1, x.d2, as_str=False)
+            for x in self.check_depthchanges
+            if not isinstance(x.prop, data.inv.invs.FalseInv))
+
+        self.max_solvercalls_ctr = Counter(
+            str(x.stat) for x in self.max_solvercalls)
+
+        self.max_changevals_ctr = Counter(
+            get_change(x.v1, x.v2, as_str=True) for x in self.max_depthchanges
+            if not isinstance(x.prop, data.inv.invs.FalseInv))
+
+        self.max_changedepths_ctr = Counter(
+            get_change(x.d1, x.d2, as_str=False)
+            for x in self.max_depthchanges
+            if not isinstance(x.prop, data.inv.invs.FalseInv))
+
+    @classmethod
+    def analyze_dinvs(cls, dinvs):
+        """
+        Get max vars, terms, deg, mainly for eqts
+        """
+
+        vss = []
+        maxdegs = []
+        ntermss = []
+
+        for inv in dinvs.invs:
+            nvs, maxdeg, nterms = cls.analyze_inv(inv)
+            vss.append(nvs)
+            maxdegs.append(maxdeg)
+            ntermss.append(nterms)
+
+        nvs = len(set(v for vs in vss for v in vs))
+        maxdeg = max(maxdegs)
+        nterms = max(ntermss)
+        return nvs, maxdeg, nterms
 
     @classmethod
     def get_degs(cls, p):
@@ -91,78 +178,62 @@ class Result:
 
         return vs, max(degs), nterms
 
-    @classmethod
-    def analyze_dinvs(cls, dinvs):
-        """
-        Get max vars, terms, deg, mainly for eqts
-        """
 
-        vss = []
-        maxdegs = []
-        ntermss = []
-
-        for inv in dinvs.invs:
-            nvs, maxdeg, nterms = cls.analyze_inv(inv)
-            vss.append(nvs)
-            maxdegs.append(maxdeg)
-            ntermss.append(nterms)
-
-        nvs = len(set(v for vs in vss for v in vs))
-        maxdeg = max(maxdegs)
-        nterms = max(ntermss)
-        return nvs, maxdeg, nterms
-
-    def analyze(self):
-
-        self.V, self.D, self.T = self.analyze_dinvs(self.dinvs)
-
-        def get_inv_typ(inv):
-            assert inv is not None, inv
-            return inv.__class__.__name__
-
-        def get_change(x, y):
-            return "{}->{}".format(x, y)
-
-        self.solver_calls_ctr = Counter(
-            str(stat) for stat, is_succ in self.solver_calls)
-
-        self.change_stats_ctr = Counter(
-            get_change(stat0, stat1)
-            for inv, stat0, depth0, stat1, depth1 in self.depth_changes
-            if not isinstance(inv, data.inv.invs.FalseInv)
-        )
-
-        self.change_typs_ctr = Counter(
-            get_inv_typ(inv)
-            for inv, stat0, depth0, stat1, depth1 in self.depth_changes
-            if not isinstance(inv, data.inv.invs.FalseInv)
-        )
-
-        self.change_depths_ctr = Counter(
-            get_change(depth0, depth1)
-            for inv, stat0, depth0, stat1, depth1 in self.depth_changes
-            if not isinstance(inv, data.inv.invs.FalseInv)
-        )
-
-    def save(self, todir):
-        assert todir.is_dir(), todir
-        CM.vsave(todir / self.resultfile, self)
-
-    @classmethod
-    def load(cls, fromdir):
-        assert isinstance(fromdir, Path) and fromdir.is_dir(), fromdir
-
-        return CM.vload(fromdir / cls.resultfile)
-
-
-class Stats:
+class Results:
     def __init__(self, prog, results):
         assert isinstance(prog, str), prog
         assert isinstance(results, list) and results, results
-        assert all(isinstance(r, Result) for r in results), results
+        assert all(isinstance(r, AResult) for r in results), results
 
         self.prog = prog
         self.results = results
+
+    def start(self, f):
+        rs = self.results
+        _ = [r.analyze() for r in rs]
+        VTD = "{},{},{}".format(f(r.V for r in rs),
+                                f(r.T for r in rs),
+                                f(r.D for r in rs))
+
+        ss = [
+            "prog {}".format(self.prog),
+            "runs {}".format(len(rs)),
+            "locs {}".format(f(len(r.dinvs) for r in rs)),
+            "VTD {}".format(VTD),
+            "traces {}".format(f(r.dtraces.siz for r in rs)),
+            "inps {}".format(
+                f(len(r.inps) if r.inps else 0 for r in rs)),
+            "time {:.2f}s".format(f(r.t_time for r in rs))
+        ]
+
+        print('**', ', '.join(s for s in ss if s))
+        print(self.analyze2(f))
+        if len(rs) == 1:
+            print("rand seed {}, test ({}, {})".format(
+                rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
+            print(rs[0].dinvs.__str__(print_stat=False))
+
+    def analyze2(self, f):
+        invtypss = [r.dinvs.typ_ctr for r in self.results]
+        check_solvercallss = [r.check_solvercalls_ctr for r in self.results]
+        check_changevalss = [r.check_changevals_ctr for r in self.results]
+        check_changedepthss = [r.check_changedepths_ctr for r in self.results]
+
+        max_solvercallss = [r.max_solvercalls_ctr for r in self.results]
+        max_changevalss = [r.max_changevals_ctr for r in self.results]
+        max_changedepthss = [r.max_changedepths_ctr for r in self.results]
+
+        ss = [
+            self.analyze_dicts(invtypss, f, 'invs'),
+            self.analyze_dicts(check_solvercallss, f, 'check solver calls'),
+            self.analyze_dicts(check_changedepthss, f, 'check change depths'),
+            self.analyze_dicts(check_changevalss, f, 'check change vals'),
+            self.analyze_dicts(max_solvercallss, f, 'max solver calls'),
+            self.analyze_dicts(max_changedepthss, f, 'max change depths'),
+            self.analyze_dicts(max_changevalss, f, 'max change vals')
+        ]
+
+        return '\n'.join(ss)
 
     @classmethod
     def analyze_dicts(cls, ds, f, label):
@@ -179,54 +250,22 @@ class Stats:
 
         s = []
         sizs = []
+
         for k in sorted(dd):
             t = f(dd[k])
-            s.append((k, t))
+            if isinstance(k, tuple):
+                assert len(k) == 2
+                from_, to_ = k
+                k_str = "{}->{}".format(from_, to_)
+            else:
+                k_str = str(k)
+            s.append((k, k_str, t))
             sizs.append(t)
 
-        s = ', '.join('{} {}'.format(k, f(dd[k]))
-                      for k, t in s)
+        s = ', '.join('{}: {}'.format(k_str, f(dd[k]))
+                      for k, k_str, t in s)
 
         return '{} {} ({})'.format(label, sum(sizs), s)
-
-    def analyze2(self, f):
-        invtypss = [r.dinvs.typ_ctr for r in self.results]
-        solver_callss = [r.solver_calls_ctr for r in self.results]
-        change_statss = [r.change_stats_ctr for r in self.results]
-        change_typss = [r.change_typs_ctr for r in self.results]
-        change_depthss = [r.change_depths_ctr for r in self.results]
-        ss = [
-            self.analyze_dicts(invtypss, f, 'invs'),
-            self.analyze_dicts(solver_callss, f, 'solver calls'),
-            self.analyze_dicts(change_statss, f, 'change stats'),
-            self.analyze_dicts(change_typss, f, 'change typs'),
-            self.analyze_dicts(change_depthss, f, 'change depths'),
-        ]
-
-        return ', '.join(ss)
-
-    def start(self, f):
-        rs = self.results
-        _ = [r.analyze() for r in rs]
-        VTD = "{},{},{}".format(f(r.V for r in rs), f(
-            r.T for r in rs), f(r.D for r in rs))
-        ss = [
-            "prog {}".format(self.prog),
-            "runs {}".format(len(rs)),
-            "locs {}".format(f(len(r.dinvs) for r in rs)),
-            "VTD {}".format(VTD),
-            "traces {}".format(f(r.dtraces.siz for r in rs)),
-            "inps {}".format(
-                f(len(r.inps) if r.inps else 0 for r in rs)),
-            "time {:.2f}s".format(f(r.t_time for r in rs)),
-            self.analyze2(f)
-        ]
-
-        print('**', ', '.join(s for s in ss if s))
-        if len(rs) == 1:
-            print("rand seed {}, test ({}, {})".format(
-                rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
-            print(rs[0].dinvs.__str__(print_stat=False))
 
 
 class Benchmark:
@@ -368,6 +407,6 @@ class Analysis:
         for prog in sorted(results_d):
             if not results_d[prog]:
                 continue
-            stats = Stats(prog, results_d[prog])
+            stats = Results(prog, [AResult(r) for r in results_d[prog]])
             stats.start(median)
             # stats.analyze(mean)

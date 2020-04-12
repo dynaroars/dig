@@ -437,8 +437,7 @@ class SymStates(metaclass=ABCMeta):
         def f(depth):
             ss = ssl[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
-            cexs, is_succ, stat = self.mcheck(
-                ss, inv_expr, inps, ncexs)
+            cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
             self.solver_stats.put(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
@@ -553,7 +552,8 @@ class SymStates(metaclass=ABCMeta):
             v = str(opt.upper(h))
             if v != 'oo':  # no bound
                 v = int(v)
-                return v, stat
+                if v <= settings.OCT_MAX_V:
+                    return v, stat
 
         return None, stat
 
