@@ -224,7 +224,7 @@ class DigSymStatesC(DigSymStates):
     @property
     def mysrc_cls(self):
         import helpers.src
-        return helpsrs.src.C
+        return helpers.src.C
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStatesC(

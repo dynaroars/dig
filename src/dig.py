@@ -120,7 +120,7 @@ if __name__ == "__main__":
         Analysis(inp, args).start()
 
     else:  # benchmark_times is None, input is a file: normal, single run
-        assert benchmark_times is None and inp.is_file(), inp
+        assert args.benchmark_times is None and inp.is_file(), inp
         seed = round(time.time(), 2) if args.seed is None else float(args.seed)
         import settings
         mlog, se_mindepth = settings.setup(settings, args)
