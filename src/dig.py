@@ -80,6 +80,10 @@ if __name__ == "__main__":
        action="store_true",
        help="don't use incremental depth")
 
+    ag("--nosimplify", "-nosimplify",
+       action="store_true",
+       help="don't simplify invariant results, e.g., don't remove weaker invariants")
+
     ag("--nomp", "-nomp",
        action="store_true",
        help="don't use multiprocessing")

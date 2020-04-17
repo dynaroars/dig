@@ -1,5 +1,5 @@
 """
-Analyze and print Dig's results
+Analyze Dig's results
 """
 import shutil
 import time

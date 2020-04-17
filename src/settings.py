@@ -6,12 +6,13 @@ DBG = pdb.set_trace
 
 tmpdir = Path("/var/tmp/")
 logger_level = 2
-DO_MP = True
+DO_MP = True  # use multiprocessing
+DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 DO_SS = True  # use symbolic states to check results
-DO_EQTS = True
-DO_IEQS = True
-DO_MINMAXPLUS = True
-DO_PREPOSTS = True
+DO_EQTS = True  # support equalities
+DO_IEQS = True  # support (octagonal) inequalities
+DO_MINMAXPLUS = True  # support minmax-plus inequalities
+DO_PREPOSTS = True  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 INP_MAX_V = 300
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
@@ -103,6 +104,12 @@ def setup(settings, args):
     import helpers.vcommon
 
     opts = []
+    if args.nosimplify:
+        if settings:
+            settings.DO_SIMPLIFY = not args.nosimplify
+        else:
+            opts.append("-nosimplify")
+
     if args.noss:
         if settings:
             settings.DO_SS = not args.noss

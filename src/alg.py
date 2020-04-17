@@ -52,13 +52,15 @@ class Dig(metaclass=ABCMeta):
         if not dinvs.siz:
             return dinvs
 
-        msg = "simplify {} invs".format(dinvs.siz)
-        mlog.debug(msg)
-        mlog.debug("{}".format(dinvs.__str__(
-            print_stat=True, print_first_n=20)))
-        st = time.time()
-        dinvs = dinvs.simplify(self.inv_decls.use_reals)
-        mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
+        if settings.DO_SIMPLIFY:
+            msg = "simplify {} invs".format(dinvs.siz)
+            mlog.debug(msg)
+            mlog.debug("{}".format(dinvs.__str__(
+                print_stat=True, print_first_n=20)))
+            st = time.time()
+            dinvs = dinvs.simplify(self.inv_decls.use_reals)
+            mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
+
         return dinvs
 
 
