@@ -258,35 +258,26 @@ class PCs(set):
             return self._pc
 
 
-class SymStates(metaclass=ABCMeta):
-    solver_stats = Queue()
+class SymStatesMaker(metaclass=ABCMeta):
+    def __init__(self, filename, mainQName, funname, ninps, use_reals, tmpdir, symstates_dir=None):
+        assert tmpdir.is_dir(), tmpdir
 
-    def __init__(self, inp_decls, inv_decls, seed=None):
-        assert isinstance(inp_decls, data.prog.Symbs), inp_decls  # I x, I y
-        # {'vtrace1': (('q', 'I'), ('r', 'I'), ('x', 'I'), ('y', 'I'))}
-        assert isinstance(inv_decls, data.prog.DSymbs), inv_decls
+        self.filename = filename
+        self.mainQName = mainQName
+        self.funname = funname
+        self.tmpdir = tmpdir
+        self.symstates_dir = symstates_dir
+        self.ninps = ninps
+        self.use_reals = use_reals
 
-        self.inp_decls = inp_decls
-        self.inv_decls = inv_decls
-        self.use_reals = inv_decls.use_reals
-        self.inp_exprs = inp_decls.exprs(self.use_reals)
-        self.seed = seed if seed else 0
-
-    # Compute symbolic states using symbolic execution
-    def compute(self, filename, mainQName, funname, tmpdir):
+    def compute(self):
         """
         Run symbolic execution to obtain symbolic states
         """
-        assert tmpdir.is_dir(), tmpdir
-
-        def _f(d):
-            return self.mk(
-                d, filename, mainQName, funname, tmpdir, len(self.inp_decls))
-
         tasks = [depth for depth in range(self.mindepth, self.maxdepth+1)]
 
         def f(tasks):
-            rs = [(depth, _f(depth)) for depth in tasks]
+            rs = [(depth, self.get_ss_at_depth(depth)) for depth in tasks]
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
@@ -297,7 +288,16 @@ class SymStates(metaclass=ABCMeta):
             import sys
             sys.exit(0)
 
-        self.ss = self.merge(wrs, self.pc_cls, self.use_reals)
+        return self.merge(wrs, self.pc_cls, self.use_reals)
+
+    def get_ss_at_depth(self, depth):
+        tracefile, cmd = self.mk(depth)
+        mlog.debug("Obtain symbolic states (tree depth {})".format(depth))
+        mlog.debug("tracefile {}".format(tracefile))
+        mlog.debug(cmd)
+        CM.vcmd(cmd)
+        pcs = self.pc_cls.parse(tracefile)
+        return pcs
 
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):
@@ -362,6 +362,114 @@ class SymStates(metaclass=ABCMeta):
                 # print(pcs.myexpr)
 
         return symstates
+
+
+def merge(ds):
+    newD = {}
+    for d in ds:
+        for loc in d:
+            assert d[loc]
+            newD.setdefault(loc, {})
+            for inv in d[loc]:
+                assert d[loc][inv]
+                newD[loc].setdefault(inv, [])
+                for e in d[loc][inv]:
+                    newD[loc][inv].append(e)
+    return newD
+
+
+class SymStatesMakerC(SymStatesMaker):
+    pc_cls = PC_CIVL
+
+    @property
+    def mindepth(self):
+        return settings.C.SE_MIN_DEPTH
+
+    @property
+    def maxdepth(self):
+        return self.mindepth + settings.C.SE_DEPTH_INCR
+
+    def mk(self, depth):
+        """
+        civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
+        """
+
+        tracefile = Path("{}.{}_{}.straces".format(
+            self.filename, self.mainQName, depth))
+        cmd = settings.C.CIVL_RUN(
+            maxdepth=depth, file=self.filename, tracefile=tracefile)
+        return tracefile, cmd
+
+
+class SymStatesMakerJava(SymStatesMaker):
+    pc_cls = PC_JPF
+
+    @property
+    def mindepth(self):
+        return settings.Java.SE_MIN_DEPTH
+
+    @property
+    def maxdepth(self):
+        return self.mindepth + settings.Java.SE_DEPTH_INCR
+
+    def mk(self, depth):
+        max_val = settings.INP_MAX_V
+
+        tracefile = "{}_{}_{}_{}.straces".format(
+            self.funname, self.mainQName, max_val, depth)
+        tracefile = self.tmpdir / tracefile
+        jpffile = self.mk_JPF_runfile(max_val, depth)
+        cmd = settings.Java.JPF_RUN(jpffile=jpffile, tracefile=tracefile)
+        return tracefile, cmd
+
+    def mk_JPF_runfile(self, max_int, depth):
+        assert max_int >= 0, max_int
+
+        symargs = ['sym'] * self.ninps
+        symargs = '#'.join(symargs)
+        stmts = [
+            "target={}".format(self.funname),
+            "classpath={}".format(self.tmpdir),
+            "symbolic.method={}.{}({})".format(
+                self.funname, self.mainQName, symargs),
+            "listener=gov.nasa.jpf.symbc.InvariantListenerVu",
+            "vm.storage.class=nil",
+            "search.multiple_errors=true",
+            "symbolic.min_int={}".format(-max_int),
+            "symbolic.max_int={}".format(max_int),
+            "symbolic.min_long={}".format(-max_int),
+            "symbolic.max_long={}".format(max_int),
+            "symbolic.min_short={}".format(-max_int),
+            "symbolic.max_short={}".format(max_int),
+            "symbolic.min_float={}.0f".format(-max_int),
+            "symbolic.max_float={}.0f".format(max_int),
+            "symbolic.min_double={}.0".format(-max_int),
+            "symbolic.max_double={}.0".format(max_int),
+            "symbolic.dp=z3bitvector",
+            "search.depth_limit={}".format(depth)]
+        contents = '\n'.join(stmts)
+
+        filename = self.tmpdir / \
+            "{}_{}_{}.jpf".format(self.funname, max_int, depth)
+
+        assert not filename.is_file(), filename
+        CM.vwrite(filename, contents)
+        return filename
+
+
+class SymStates:
+    solver_stats = Queue()
+
+    def __init__(self, inp_decls, inv_decls):
+        self.inp_decls = inp_decls
+        self.inv_decls = inv_decls
+        self.use_reals = inv_decls.use_reals
+        self.inp_exprs = inp_decls.exprs(self.use_reals)
+
+    def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
+        symstatesmaker = symstatesmaker_cls(
+            filename, mainQName, funname, len(self.inp_decls), self.use_reals, tmpdir)
+        self.ss = symstatesmaker.compute()
 
     # Checking invariants using symbolic states
     def check(self, dinvs, inps):
@@ -475,7 +583,7 @@ class SymStates(metaclass=ABCMeta):
         assert inv is None or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
-        #assert self.check_check_mode(check_mode), check_mode
+        # assert self.check_check_mode(check_mode), check_mode
 
         f = symstates_expr
         iconstr = self.get_inp_constrs(inps)
@@ -587,120 +695,3 @@ class SymStates(metaclass=ABCMeta):
             return cstrs[0]
         else:
             return z3.And(cstrs)
-
-
-def merge(ds):
-    newD = {}
-    for d in ds:
-        for loc in d:
-            assert d[loc]
-            newD.setdefault(loc, {})
-            for inv in d[loc]:
-                assert d[loc][inv]
-                newD[loc].setdefault(inv, [])
-                for e in d[loc][inv]:
-                    newD[loc][inv].append(e)
-    return newD
-
-
-class SymStatesC(SymStates):
-    pc_cls = PC_CIVL
-
-    @property
-    def mindepth(self):
-        return settings.C.SE_MIN_DEPTH
-
-    @property
-    def maxdepth(self):
-        return self.mindepth + settings.C.SE_DEPTH_INCR
-
-    @classmethod
-    def mk(cls, depth, filename, mainQName, funname, tmpdir, ninps):
-        """
-        civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
-        """
-
-        tracefile = Path("{}.{}_{}.straces".format(filename, mainQName, depth))
-        assert not tracefile.exists(), tracefile
-        mlog.debug("Obtain symbolic states (tree depth {}){}"
-                   .format(depth, ' ({})'.format(tracefile)))
-        cmd = settings.C.CIVL_RUN(
-            maxdepth=depth, file=filename, tracefile=tracefile)
-        mlog.debug(cmd)
-        CM.vcmd(cmd)
-        pcs = PC_CIVL.parse(tracefile)
-        return pcs
-
-
-class SymStatesJava(SymStates):
-    pc_cls = PC_JPF
-
-    @property
-    def mindepth(self):
-        return settings.Java.SE_MIN_DEPTH
-
-    @property
-    def maxdepth(self):
-        return self.mindepth + settings.Java.SE_DEPTH_INCR
-
-    @classmethod
-    def mk(cls, depth, filename, mainQName, funname, tmpdir, ninps):
-        max_val = settings.INP_MAX_V
-
-        tracefile = "{}_{}_{}_{}.straces".format(
-            funname, mainQName, max_val, depth)
-        tracefile = tmpdir / tracefile
-
-        mlog.debug("Obtain symbolic states (max val {}, tree depth {}){}"
-                   .format(max_val, depth,
-                           ' ({})'.format(tracefile)
-                           if tracefile.is_file() else ''))
-        mlog.debug("tracefile {}".format(tracefile))
-
-        if not tracefile.is_file():
-            jpffile = cls.mk_JPF_runfile(
-                funname, mainQName, tmpdir, ninps, max_val, depth)
-            cmd = settings.Java.JPF_RUN(jpffile=jpffile, tracefile=tracefile)
-            mlog.debug(cmd)
-            CM.vcmd(cmd)
-
-        pcs = PC_JPF.parse(tracefile)
-        return pcs
-
-    @classmethod
-    def mk_JPF_runfile(cls, funname, symfun, dirname, nInps, maxInt, depthLimit):
-        assert isinstance(funname, str) and funname, funname
-        assert isinstance(symfun, str) and symfun, symfun
-        assert dirname.is_dir(), dirname
-        assert nInps >= 0, nInps
-        assert maxInt >= 0, depthLimit
-        assert depthLimit >= 0, depthLimit
-
-        symargs = ['sym'] * nInps
-        symargs = '#'.join(symargs)
-        stmts = [
-            "target={}".format(funname),
-            "classpath={}".format(dirname),
-            "symbolic.method={}.{}({})".format(funname, symfun, symargs),
-            "listener=gov.nasa.jpf.symbc.InvariantListenerVu",
-            "vm.storage.class=nil",
-            "search.multiple_errors=true",
-            "symbolic.min_int={}".format(-maxInt),
-            "symbolic.max_int={}".format(maxInt),
-            "symbolic.min_long={}".format(-maxInt),
-            "symbolic.max_long={}".format(maxInt),
-            "symbolic.min_short={}".format(-maxInt),
-            "symbolic.max_short={}".format(maxInt),
-            "symbolic.min_float={}.0f".format(-maxInt),
-            "symbolic.max_float={}.0f".format(maxInt),
-            "symbolic.min_double={}.0".format(-maxInt),
-            "symbolic.max_double={}.0".format(maxInt),
-            "symbolic.dp=z3bitvector",
-            "search.depth_limit={}".format(depthLimit)]
-        contents = '\n'.join(stmts)
-
-        filename = dirname / "{}_{}_{}.jpf".format(funname, maxInt, depthLimit)
-
-        assert not filename.is_file(), filename
-        CM.vwrite(filename, contents)
-        return filename

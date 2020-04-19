@@ -202,6 +202,13 @@ class DigSymStates(Dig):
         solver = infer.prepost.Infer(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
 
+    def get_symbolic_states(self):
+        symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
+        symstates.compute(self.symstatesmaker_cls,
+                          self.symexefile, self.mysrc.mainQ_name,
+                          self.mysrc.funname, self.mysrc.symexedir)
+        return symstates
+
 
 class DigSymStatesJava(DigSymStates):
 
@@ -209,13 +216,13 @@ class DigSymStatesJava(DigSymStates):
     def mysrc_cls(self):
         return data.prog.Java
 
-    def get_symbolic_states(self):
-        symstates = data.symstates.SymStatesJava(
-            self.inp_decls, self.inv_decls)
-        symstates.compute(
-            self.filename, self.mysrc.mainQ_name,
-            self.mysrc.funname, self.mysrc.symexedir)
-        return symstates
+    @property
+    def symstatesmaker_cls(self):
+        return data.symstates.SymStatesMakerJava
+
+    @property
+    def symexefile(self):
+        return self.filename
 
     @property
     def exe_cmd(self):
@@ -229,13 +236,13 @@ class DigSymStatesC(DigSymStates):
     def mysrc_cls(self):
         return data.prog.C
 
-    def get_symbolic_states(self):
-        symstates = data.symstates.SymStatesC(
-            self.inp_decls, self.inv_decls)
-        symstates.compute(
-            self.mysrc.symexefile, self.mysrc.mainQ_name,
-            self.mysrc.funname, self.mysrc.symexedir)
-        return symstates
+    @property
+    def symstatesmaker_cls(self):
+        return data.symstates.SymStatesMakerC
+
+    @property
+    def symexefile(self):
+        return self.mysrc.symexefile
 
     @property
     def exe_cmd(self):
