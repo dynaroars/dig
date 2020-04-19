@@ -10,7 +10,7 @@ import settings
 from helpers.miscs import Miscs
 import helpers.vcommon as CM
 
-from data.prog import Prog
+import data.prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
 from analysis import Result, Analysis
@@ -90,7 +90,8 @@ class DigSymStates(Dig):
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
-        self.prog = Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
+        self.prog = data.prog.Prog(
+            self.exe_cmd, self.inp_decls, self.inv_decls)
         self.use_rand_init = True
 
         self.symstates = None
@@ -206,8 +207,7 @@ class DigSymStatesJava(DigSymStates):
 
     @property
     def mysrc_cls(self):
-        import helpers.src
-        return helpers.src.Java
+        return data.prog.Java
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStatesJava(
@@ -227,8 +227,7 @@ class DigSymStatesC(DigSymStates):
 
     @property
     def mysrc_cls(self):
-        import helpers.src
-        return helpers.src.C
+        return data.prog.C
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStatesC(
