@@ -605,8 +605,14 @@ def merge(ds):
 
 class SymStatesC(SymStates):
     pc_cls = PC_CIVL
-    mindepth = settings.C.SE_MIN_DEPTH
-    maxdepth = mindepth + settings.C.SE_DEPTH_INCR
+
+    @property
+    def mindepth(self):
+        return settings.C.SE_MIN_DEPTH
+
+    @property
+    def maxdepth(self):
+        return self.mindepth + settings.C.SE_DEPTH_INCR
 
     @classmethod
     def mk(cls, depth, filename, mainQName, funname, tmpdir, ninps):
@@ -628,8 +634,14 @@ class SymStatesC(SymStates):
 
 class SymStatesJava(SymStates):
     pc_cls = PC_JPF
-    mindepth = settings.Java.SE_MIN_DEPTH
-    maxdepth = mindepth + settings.Java.SE_DEPTH_INCR
+
+    @property
+    def mindepth(self):
+        return settings.Java.SE_MIN_DEPTH
+
+    @property
+    def maxdepth(self):
+        return self.mindepth + settings.Java.SE_DEPTH_INCR
 
     @classmethod
     def mk(cls, depth, filename, mainQName, funname, tmpdir, ninps):
