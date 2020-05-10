@@ -96,6 +96,10 @@ if __name__ == "__main__":
        action="store_true",
        help="don't use multiprocessing")
 
+    ag("--nosolverstats", "-nosolverstats",
+       action="store_true",
+       help="don't collect solver stats")
+
     ag("--test_tracefile", "-test_tracefile",
        type=str,
        default=None,

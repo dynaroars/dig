@@ -14,6 +14,8 @@ DO_IEQS = True  # support (octagonal) inequalities
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = True  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
+DO_SOLVER_STATS = True
+
 INP_MAX_V = 300
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 EQT_SOLVER_TIMEOUT = 120  # secs
@@ -156,6 +158,12 @@ def setup(settings, args):
             settings.DO_INCR_DEPTH = not args.noincrdepth
         else:
             opts.append("-noincredepth")
+
+    if args.nosolverstats:
+        if settings:
+            settings.DO_SOLVER_STATS = not args.nosolverstats
+        else:
+            opts.append("-nosolverstats")
 
     if 0 <= args.log_level <= 4:
         if settings:

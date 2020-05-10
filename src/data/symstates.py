@@ -458,7 +458,8 @@ class SymStatesMakerJava(SymStatesMaker):
 
 
 class SymStates:
-    solver_stats = Queue()
+    solver_stats = Queue() if settings.DO_SOLVER_STATS else None
+    solver_stats_ = []  # periodically save solver_stats results here
 
     def __init__(self, inp_decls, inv_decls):
         self.inp_decls = inp_decls
@@ -546,7 +547,7 @@ class SymStates:
             ss = ssl[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
-            self.solver_stats.put(analysis.CheckSolverCalls(stat))
+            self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
         depths = sorted(ssl.keys())
@@ -554,7 +555,7 @@ class SymStates:
 
         cexs, is_succ, stat = f(depths[depth_idx])
         if stat != z3.unsat:  # if disprove (sat) or unknown first time
-            self.solver_stats.put(analysis.CheckDepthChanges(
+            self.put_solver_stats(analysis.CheckDepthChanges(
                 inv, None, None, stat, depths[depth_idx]))
 
         while(stat != z3.sat and depth_idx < len(depths) - 1):
@@ -565,7 +566,7 @@ class SymStates:
                 mydepth = depths[depth_idx]
                 mlog.debug("check depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
-                self.solver_stats.put(
+                self.put_solver_stats(
                     analysis.CheckDepthChanges(inv, stat, mydepth, stat_, mydepth_))
 
             depth_idx = depth_idx_
@@ -619,7 +620,7 @@ class SymStates:
         def f(depth):
             ss = self.get_ss_at_depth(ssl, depth=depth)
             maxv, stat = self.mmaximize(ss, term_expr)
-            self.solver_stats.put(analysis.MaxSolverCalls(stat))
+            self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
 
         depths = sorted(ssl.keys())
@@ -627,7 +628,7 @@ class SymStates:
 
         maxv, stat = f(depths[depth_idx])
         if maxv is None:  # if no solution (unsat) or unknown first time
-            self.solver_stats.put(
+            self.put_solver_stats(
                 analysis.MaxDepthChanges(
                     str(term_expr), None, None, maxv, depths[depth_idx]))
 
@@ -643,7 +644,7 @@ class SymStates:
                 mlog.debug("maximize depth diff {}: {} {} @ depth {}, {} {} @ depth {}"
                            .format(term_expr, maxv, stat, mydepth,
                                    maxv_, stat_, mydepth_))
-                self.solver_stats.put(
+                self.put_solver_stats(
                     analysis.MaxDepthChanges(str(term_expr), maxv, mydepth, maxv_, mydepth_))
 
             depth_idx = depth_idx_
@@ -695,3 +696,13 @@ class SymStates:
             return cstrs[0]
         else:
             return z3.And(cstrs)
+
+    def put_solver_stats(self, e):
+        if self.solver_stats is not None:
+            self.solver_stats.put(e, block=True)
+
+    def get_solver_stats(self):
+        if self.solver_stats is not None:
+            while not self.solver_stats.empty():
+                self.solver_stats_.append(
+                    self.solver_stats.get(block=True))

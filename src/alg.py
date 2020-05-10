@@ -53,6 +53,8 @@ class Dig(metaclass=ABCMeta):
             return dinvs
 
         if settings.DO_SIMPLIFY:
+            self.symstates.get_solver_stats()
+
             msg = "simplify {} invs".format(dinvs.siz)
             mlog.debug(msg)
             mlog.debug("{}".format(dinvs.__str__(
@@ -146,19 +148,15 @@ class DigSymStates(Dig):
         Save and analyze result
         Clean up tmpdir
         """
-
         # clean up
         import shutil
         shutil.rmtree(self.tmpdir_del)
 
         # save results
-        stats = []
-        while not self.symstates.solver_stats.empty():
-            stats.append(self.symstates.solver_stats.get())
-
+        self.symstates.get_solver_stats()
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
-                        stats, t_time)
+                        self.symstates.solver_stats_, t_time)
         result.save(self.tmpdir)
 
         mlog.info("tmpdir: {}".format(self.tmpdir))
