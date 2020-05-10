@@ -661,7 +661,7 @@ class SymStates:
             v = str(opt.upper(h))
             if v != 'oo':  # no bound
                 v = int(v)
-                if v <= settings.OCT_MAX_V:
+                if v <= settings.IUPPER:
                     return v, stat
 
         return None, stat

@@ -93,7 +93,7 @@ class Ieq(Infer):
 
     def my_get_terms(self, symbols):
         terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
-            symbols, subset_siz=2)
+            symbols, settings.ITERMS, settings.ICOEFS)
 
         if settings.UTERMS:
             uterms = self.my_get_terms_user(symbols, settings.UTERMS)

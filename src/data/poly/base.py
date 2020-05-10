@@ -72,6 +72,6 @@ class GeneralPoly(Poly):
 
         return myop(self.poly, val)
 
-    @classmethod
-    def get_terms(cls, terms):
-        return Miscs.get_terms_fixed_coefs(terms, 2)
+    # @classmethod
+    # def get_terms(cls, terms):
+    #     return Miscs.get_terms_fixed_coefs(terms, 2)

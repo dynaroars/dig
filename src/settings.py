@@ -20,11 +20,16 @@ EQT_SOLVER_TIMEOUT = 120  # secs
 EQT_RATE = 1.5
 MAX_LARGE_COEF = 50
 MAX_TERM = 200
-OCT_MAX_V = 10  # t <= 10
+
 LARGE_N = 200000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
+
+# Iequalities
+IUPPER = 10  # t <= 10
+ITERMS = 2  # octagonal
+ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
 
 # options for full specs analysis
 CTR_VAR = 'Ct'  # counter variable contains this string
@@ -167,11 +172,23 @@ def setup(settings, args):
         else:
             opts.append("-inpMaxV {}".format(args.inpMaxV))
 
-    if args.octmaxv and args.octmaxv >= 1:
+    if args.iupper and args.iupper >= 1:
         if settings:
-            settings.OCT_MAX_V = args.octmaxv
+            settings.IUPPER = args.iupper
         else:
-            opts.append("-octmaxv {}".format(args.octmaxv))
+            opts.append("-iupper {}".format(args.iupper))
+
+    if args.iterms and args.iterms >= 1:
+        if settings:
+            settings.ITERMS = args.iterms
+        else:
+            opts.append("-iterms {}".format(args.iterms))
+
+    if args.icoefs and args.icoefs >= 1:
+        if settings:
+            settings.ICOEFS = args.icoefs
+        else:
+            opts.append("-icoefs {}".format(args.icoefs))
 
     if args.maxterm and args.maxterm >= 1:
         if settings:

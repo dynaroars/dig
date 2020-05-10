@@ -311,18 +311,19 @@ class DigTraces(Dig):
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 
     def infer_ieqs(self, symbols, traces):
-        maxV = settings.OCT_MAX_V
+        maxV = settings.IUPPER
         minV = -1*maxV
 
-        oct_siz = 2
-        terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, oct_siz)
-        octs = []
+        terms = Miscs.get_terms_fixed_coefs(
+            symbols.sageExprs, settings.ITERMS, settings.ICOEFS,
+        )
+        ieqs = []
         for t in terms:
             upperbound = max(traces.myeval(t))
             if upperbound > maxV or upperbound < minV:
                 continue
-            octs.append(t <= upperbound)
+            ieqs.append(t <= upperbound)
 
         import data.inv.oct
-        octs = [data.inv.oct.Oct(oct) for oct in octs]
-        return octs
+        ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
+        return ieqs

@@ -52,9 +52,17 @@ if __name__ == "__main__":
        type=int,
        help="depthlimit of symbolic execution")
 
-    ag("--octmaxv", "-octmaxv",
+    ag("--iupper", "-iupper",
        type=int,
-       help="max val for oct ieqs")
+       help="max upperbound val for ieqs")
+
+    ag("--iterms", "-iterms",
+       type=int,
+       help="number of terms for ieqs, 2 is octagonal invs")
+
+    ag("--icoefs", "-icoefs",
+       type=int,
+       help="coefs for ieqs, e.g., 1 means [-1,0,1], i.e., oct")
 
     ag("--noss", "-noss",
        action="store_true",

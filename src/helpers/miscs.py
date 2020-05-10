@@ -221,26 +221,27 @@ class Miscs(object):
         return deg
 
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz):
+    def get_terms_fixed_coefs(ss, subset_siz, icoef):
         """
         sage: from helpers.miscs import Miscs
 
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
 
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2), key=lambda x: str(x))
+        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
         [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
 
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2), key=lambda x: str(x))
+        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2, 1), key=lambda x: str(x))
         [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
 
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2)) == 18
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3)) == 26
+        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
+        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
         """
+        assert icoef >= 1, icoef
         if len(ss) < subset_siz:
             subset_siz = len(ss)
 
-        coefs = [0, -1, 1]
+        coefs = list(range(-icoef, icoef + 1))
         rs = []
         for ssSubset in itertools.combinations(ss, subset_siz):
             css = itertools.product(*([coefs] * len(ssSubset)))
