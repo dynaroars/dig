@@ -90,15 +90,15 @@ if __name__ == "__main__":
 
     ag("--nosimplify", "-nosimplify",
        action="store_true",
-       help="don't simplify invariant results, e.g., don't remove weaker invariants")
+       help="don't simplify invariants, e.g., don't remove weaker invariants")
 
     ag("--nomp", "-nomp",
        action="store_true",
        help="don't use multiprocessing")
 
-    ag("--nosolverstats", "-nosolverstats",
+    ag("--dosolverstats", "-dosolverstats",
        action="store_true",
-       help="don't collect solver stats")
+       help="collect solver stats (e.g., how many sat/unsat, etc)")
 
     ag("--test_tracefile", "-test_tracefile",
        type=str,

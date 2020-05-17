@@ -159,11 +159,11 @@ def setup(settings, args):
         else:
             opts.append("-noincredepth")
 
-    if args.nosolverstats:
+    if args.dosolverstats:
         if settings:
-            settings.DO_SOLVER_STATS = not args.nosolverstats
+            settings.DO_SOLVER_STATS = args.dosolverstats
         else:
-            opts.append("-nosolverstats")
+            opts.append("-dosolverstats")
 
     if 0 <= args.log_level <= 4:
         if settings:
