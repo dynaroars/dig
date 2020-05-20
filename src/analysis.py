@@ -57,7 +57,7 @@ class Result:
 
         self.t_time = t_time
 
-    def save(self, todir):
+    def save(self, todir: object) -> object:
         assert todir.is_dir(), todir
         CM.vsave(todir / self.resultfile, self)
 

@@ -753,11 +753,17 @@ class Z3(object):
 
     @classmethod
     def _imply(cls, fs, g, is_conj=True):
-        assert fs
+        assert z3.is_expr(g), g
         if is_conj:  # And(fs) => g
-            claim = z3.Implies(z3.And(fs), g)
+            if z3.is_expr(fs):
+                claim = z3.Implies(fs, g)
+            else:
+                claim = z3.Implies(z3.And(fs), g)
         else:  # g => Or(fs)
-            claim = z3.Implies(g, z3.Or(fs))
+            if z3.is_expr(fs):
+                claim = z3.Implies(g, fs)
+            else:
+                claim = z3.Implies(g, z3.Or(fs))
 
         models, _ = cls.get_models(z3.Not(claim), k=1)
         return models is False

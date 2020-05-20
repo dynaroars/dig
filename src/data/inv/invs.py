@@ -53,10 +53,10 @@ class Invs(set):
             return [(inv, inv.test(traces)) for inv in tasks]
         wrs = Miscs.run_mp("test", list(self), f)
 
-        myinvs = []
+        myinvs = set()
         for inv, passed in wrs:
             if passed:
-                myinvs.append(inv)
+                myinvs.add(inv)
             else:
                 mlog.debug("remove {}".format(inv))
 
@@ -74,10 +74,11 @@ class Invs(set):
 
         if non_mps and len(mps) >= 2:  # parallelizing simplifying mps
             non_mps_exprs = [e.expr(use_reals) for e in non_mps]
+            conj = z3.And(non_mps_exprs)
 
             def f(mps):
                 return [mp for mp in mps
-                        if not Z3._imply(non_mps_exprs, mp.expr(use_reals))]
+                        if not Z3._imply(conj, mp.expr(use_reals))]
             wrs = Miscs.run_mp("simplifying {} mps".format(len(mps)), mps, f)
 
             mps = [mp for mp in wrs]
@@ -279,9 +280,9 @@ class DInvs(dict):
     @classmethod
     def mk(cls, loc, invs):
         assert isinstance(invs, Invs), invs
-        newInvs = cls()
-        newInvs[loc] = invs
-        return newInvs
+        new_invs = cls()
+        new_invs[loc] = invs
+        return new_invs
 
 
 class FalseInv(data.inv.base.Inv):

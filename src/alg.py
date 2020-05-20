@@ -26,7 +26,7 @@ class Dig(metaclass=ABCMeta):
         self.filename = filename
 
     @abstractmethod
-    def start(self, seed):
+    def start(self, seed, maxdeg):
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
@@ -78,7 +78,7 @@ class DigSymStates(Dig):
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
-        super().start(seed)
+        super().start(seed, maxdeg)
 
         assert settings.tmpdir.is_dir()
         import tempfile
@@ -261,7 +261,7 @@ class DigTraces(Dig):
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
-        super().start(seed)
+        super().start(seed, maxdeg)
 
         st = time.time()
 
