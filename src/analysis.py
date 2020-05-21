@@ -46,7 +46,9 @@ class Result:
     def __init__(self, filename, seed,
                  dinvs, dtraces, inps,
                  stats,
-                 t_time):
+                 time_d):
+
+        assert isinstance(time_d, dict) and time_d, time_d
 
         self.filename = filename
         self.seed = seed
@@ -54,10 +56,9 @@ class Result:
         self.dtraces = dtraces
         self.inps = inps
         self.stats = stats
+        self.time_d = time_d
 
-        self.t_time = t_time
-
-    def save(self, todir: object) -> object:
+    def save(self, todir):
         assert todir.is_dir(), todir
         CM.vsave(todir / self.resultfile, self)
 
@@ -70,18 +71,22 @@ class Result:
 
 class AResult(Result):
     def __init__(self, result):
+
         super().__init__(result.filename, result.seed, result.dinvs,
-                         result.dtraces, result.inps, result.stats, result.t_time)
+                         result.dtraces, result.inps, result.stats,
+                         result.time_d)
 
-        self.check_solvercalls = [s for s in self.stats
-                                  if isinstance(s, CheckSolverCalls)]
-        self.check_depthchanges = [s for s in self.stats
-                                   if isinstance(s, CheckDepthChanges)]
+        self.check_solvercalls = [
+            s for s in self.stats if isinstance(s, CheckSolverCalls)]
 
-        self.max_solvercalls = [s for s in self.stats
-                                if isinstance(s, MaxSolverCalls)]
-        self.max_depthchanges = [s for s in self.stats
-                                 if isinstance(s, MaxDepthChanges)]
+        self.check_depthchanges = [
+            s for s in self.stats if isinstance(s, CheckDepthChanges)]
+
+        self.max_solvercalls = [
+            s for s in self.stats if isinstance(s, MaxSolverCalls)]
+
+        self.max_depthchanges = [
+            s for s in self.stats if isinstance(s, MaxDepthChanges)]
 
     def analyze(self):
         self.V, self.D, self.T = self.analyze_dinvs(self.dinvs)
@@ -103,7 +108,8 @@ class AResult(Result):
             str(x.stat) for x in self.check_solvercalls)
 
         self.check_changevals_ctr = Counter(
-            get_change(x.v1, x.v2, as_str=True) for x in self.check_depthchanges
+            get_change(x.v1, x.v2, as_str=True)
+            for x in self.check_depthchanges
             if not isinstance(x.prop, data.inv.invs.FalseInv))
 
         self.check_changedepths_ctr = Counter(
@@ -194,6 +200,13 @@ class Results:
         VTD = "{},{},{}".format(f(r.V for r in rs),
                                 f(r.T for r in rs),
                                 f(r.D for r in rs))
+        time_d = defaultdict(list)
+        for r in rs:
+            for t in r.time_d:
+                time_d[t].append(r.time_d[t])
+
+        time_s = ', '.join("{} {:.2f}s".format(t, f(time_d[t]))
+                           for t in sorted(time_d))
 
         ss = [
             "prog {}".format(self.prog),
@@ -203,7 +216,7 @@ class Results:
             "traces {}".format(f(r.dtraces.siz for r in rs)),
             "inps {}".format(
                 f(len(r.inps) if r.inps else 0 for r in rs)),
-            "time {:.2f}s".format(f(r.t_time for r in rs))
+            "time {}".format(time_s)
         ]
 
         print('**', ', '.join(s for s in ss if s))
@@ -380,7 +393,12 @@ class Analysis:
 
         def load1(prog, resultdir):
             try:
-                results_d[prog].append(Result.load(resultdir))
+                result = Result.load(resultdir)
+                if prog:
+                    results_d[prog].append(result)
+                else:
+                    results_d[result.filename.stem].append(result)
+
             except FileNotFoundError as ex:
                 mlog.error(ex)
                 pass
@@ -392,14 +410,14 @@ class Analysis:
 
         # single result
         if (self.bdir / Result.resultfile).is_file():
-            result = Result.load(self.bdir)
-            results_d[result.filename.stem].append(result)
+            load1(None, self.bdir)
 
+        # results for 1 prog
         elif any((d / Result.resultfile).is_file()
                  for d in self.bdir.iterdir() if d.is_dir()):
-
             load2(self.bdir)
-        else:
+
+        else:  # results for multiple progs
             for d in self.bdir.iterdir():
                 if d.is_dir():
                     load2(d)

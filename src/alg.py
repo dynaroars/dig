@@ -13,7 +13,6 @@ import helpers.vcommon as CM
 import data.prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
-from analysis import Result, Analysis
 import data.symstates
 DBG = pdb.set_trace
 
@@ -24,6 +23,7 @@ class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
         mlog.info("analyze '{}'".format(filename))
         self.filename = filename
+        self.time_d = {}  # time results
 
     @abstractmethod
     def start(self, seed, maxdeg):
@@ -59,9 +59,11 @@ class Dig(metaclass=ABCMeta):
             mlog.debug(msg)
             mlog.debug("{}".format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
-            st = time.time()
+            st1 = time.time()
             dinvs = dinvs.simplify(self.inv_decls.use_reals)
-            mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
+            mlog.info("{} ({:.2f}s)".format(msg, time.time() - st1))
+
+        self.time_d['simplify'] = time.time() - st
 
         return dinvs
 
@@ -77,6 +79,7 @@ class DigSymStates(Dig):
 
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
+        st = time.time()
 
         super().start(seed, maxdeg)
 
@@ -100,8 +103,9 @@ class DigSymStates(Dig):
         if settings.DO_SS:
             st = time.time()
             self.symstates = self.get_symbolic_states()
-            mlog.info("compute symbolic states ({:.2f}s)".format(
-                time.time() - st))
+            et = time.time() - st
+            mlog.info("compute symbolic states ({:.2f}s)".format(et))
+            self.time_d['symbolic_states'] = et
 
             # remove locations with no symbolic states
             for loc in list(self.inv_decls.keys()):
@@ -113,8 +117,6 @@ class DigSymStates(Dig):
 
         mlog.info('infer invs at {} locs: {}'.format(
             len(self.locs), ', '.join(self.locs)))
-
-        st = time.time()
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
@@ -138,15 +140,15 @@ class DigSymStates(Dig):
             self.infer('preposts', dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
-        etime = time.time() - st
+        et = time.time() - st
+        self.time_d['total'] = et
 
-        # print out some quick results
         print("{}\nrun time {:.2f}s, result dir: {}".format(
-            dinvs, etime, self.tmpdir))
+            dinvs, et, self.tmpdir))
 
-        self.postprocess(dinvs, dtraces, inps, etime)
+        self.postprocess(dinvs, dtraces, inps)
 
-    def postprocess(self, dinvs, dtraces, inps, t_time):
+    def postprocess(self, dinvs, dtraces, inps):
         """
         Save and analyze result
         Clean up tmpdir
@@ -155,11 +157,16 @@ class DigSymStates(Dig):
         import shutil
         shutil.rmtree(self.tmpdir_del)
 
-        # save results
+        # analyze and save results
+        from analysis import Result, AResult
+
         self.symstates.get_solver_stats()
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
-                        self.symstates.solver_stats_, t_time)
+                        self.symstates.solver_stats_,
+                        self.time_d)
+        # AResult(result).analyze()
+
         result.save(self.tmpdir)
 
         mlog.info("tmpdir: {}".format(self.tmpdir))
@@ -169,11 +176,13 @@ class DigSymStates(Dig):
         mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
 
         st = time.time()
-        new_invs = f()
+        new_invs = f()  # get invs
 
         if new_invs.siz:
+            et = time.time() - st
+            self.time_d[typ] = et
             mlog.info("found {} {} ({:.2f}s)".format(
-                new_invs.siz, typ, time.time() - st))
+                new_invs.siz, typ, et))
 
             dinvs.merge(new_invs)
             mlog.debug('{}'.format(dinvs.__str__(
