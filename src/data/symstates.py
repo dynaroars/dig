@@ -301,12 +301,10 @@ class SymStatesMaker(metaclass=ABCMeta):
         mlog.debug(cmd)
         print(cmd)
         try:
-            cp = subprocess.run(shlex.split(cmd),
-                                timeout=settings.SYMEXE_TIMEOUT,
-                                capture_output=True,
-                                check=True)
-            ss = cp.stdout.decode('utf-8')
-            pcs = self.pc_cls.parse(ss)
+            cp = subprocess.run(
+                shlex.split(cmd), timeout=settings.SYMEXE_TIMEOUT,
+                capture_output=True, check=True, text=True)
+            pcs = self.pc_cls.parse(cp.stdout)
             return pcs
 
         except subprocess.TimeoutExpired as to:
@@ -488,7 +486,6 @@ class SymStates:
         """
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
-        # assert self.check_check_mode(check_mode), check_mode
 
         mlog.debug("checking {} invs:\n{}".format(
             dinvs.siz, dinvs.__str__(print_first_n=20)))
