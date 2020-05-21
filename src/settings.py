@@ -17,6 +17,7 @@ DO_INCR_DEPTH = True
 DO_SOLVER_STATS = True
 
 INP_MAX_V = 300
+SYMEXE_TIMEOUT = 20  # secs
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 EQT_SOLVER_TIMEOUT = 120  # secs
 EQT_RATE = 1.5
@@ -68,7 +69,7 @@ class Java:
     assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
-    JPF_RUN = "{java} {flags} -jar {jar} {jpffile} > {tracefile}"
+    JPF_RUN = "{java} {flags} -jar {jar} {jpffile}"
     JPF_RUN = partial(JPF_RUN.format, java=JAVA_CMD,
                       flags=JVM_FLAGS, jar=JPF_JAR)
 
@@ -99,11 +100,11 @@ class C:
     C_RUN = partial(C_RUN.format)
 
     SE_MIN_DEPTH = 20
-    SE_DEPTH_INCR = 4
+    SE_DEPTH_INCR = 5
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME"))
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
-    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file} > {tracefile}"
+    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file}"
     CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
 
 

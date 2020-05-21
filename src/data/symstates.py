@@ -1,11 +1,14 @@
 """
 Symbolic States
 """
+import sys
+import shlex
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 import pdb
 from pathlib import Path
 from multiprocessing import Queue
+import subprocess
 
 import z3
 import sage.all
@@ -57,8 +60,10 @@ class PC(metaclass=ABCMeta):
         return z3.simplify(z3.And(self.pc, self.slocal))
 
     @classmethod
-    def parse(cls, filename):
-        parts = cls.parse_parts(filename.read_text().splitlines())
+    def parse(cls, s):
+        assert isinstance(s, str), s
+
+        parts = cls.parse_parts(s.splitlines())
         if not parts:
             mlog.error("Cannot obtain symstates from '{}'".format(filename))
             return None
@@ -259,14 +264,13 @@ class PCs(set):
 
 
 class SymStatesMaker(metaclass=ABCMeta):
-    def __init__(self, filename, mainQName, funname, ninps, use_reals, tmpdir, symstates_dir=None):
+    def __init__(self, filename, mainQName, funname, ninps, use_reals, tmpdir):
         assert tmpdir.is_dir(), tmpdir
 
         self.filename = filename
         self.mainQName = mainQName
         self.funname = funname
         self.tmpdir = tmpdir
-        self.symstates_dir = symstates_dir
         self.ninps = ninps
         self.use_reals = use_reals
 
@@ -277,7 +281,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         tasks = [depth for depth in range(self.mindepth, self.maxdepth+1)]
 
         def f(tasks):
-            rs = [(depth, self.get_ss_at_depth(depth)) for depth in tasks]
+            rs = [(depth, self.get_ss(depth)) for depth in tasks]
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
@@ -285,19 +289,34 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         if not wrs:
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
-            import sys
             sys.exit(0)
 
         return self.merge(wrs, self.pc_cls, self.use_reals)
 
-    def get_ss_at_depth(self, depth):
-        tracefile, cmd = self.mk(depth)
+    def get_ss(self, depth):
+        assert depth >= 1, depth
+
+        cmd = self.mk(depth)
         mlog.debug("Obtain symbolic states (tree depth {})".format(depth))
-        mlog.debug("tracefile {}".format(tracefile))
         mlog.debug(cmd)
-        CM.vcmd(cmd)
-        pcs = self.pc_cls.parse(tracefile)
-        return pcs
+        print(cmd)
+        try:
+            cp = subprocess.run(shlex.split(cmd),
+                                timeout=settings.SYMEXE_TIMEOUT,
+                                capture_output=True,
+                                check=True)
+            ss = cp.stdout.decode('utf-8')
+            pcs = self.pc_cls.parse(ss)
+            return pcs
+
+        except subprocess.TimeoutExpired as to:
+            mlog.warning("{}: {} time out after {}s".format(
+                to.__class__.__name__, ' '.join(to.cmd), to.timeout))
+            return []
+
+        except subprocess.CalledProcessError as cperr:
+            mlog.warning(cperr)
+            return []
 
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):
@@ -393,12 +412,7 @@ class SymStatesMakerC(SymStatesMaker):
         """
         civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
         """
-
-        tracefile = Path("{}.{}_{}.straces".format(
-            self.filename, self.mainQName, depth))
-        cmd = settings.C.CIVL_RUN(
-            maxdepth=depth, file=self.filename, tracefile=tracefile)
-        return tracefile, cmd
+        return settings.C.CIVL_RUN(maxdepth=depth, file=self.filename)
 
 
 class SymStatesMakerJava(SymStatesMaker):
@@ -414,13 +428,7 @@ class SymStatesMakerJava(SymStatesMaker):
 
     def mk(self, depth):
         max_val = settings.INP_MAX_V
-
-        tracefile = "{}_{}_{}_{}.straces".format(
-            self.funname, self.mainQName, max_val, depth)
-        tracefile = self.tmpdir / tracefile
-        jpffile = self.mk_JPF_runfile(max_val, depth)
-        cmd = settings.Java.JPF_RUN(jpffile=jpffile, tracefile=tracefile)
-        return tracefile, cmd
+        return settings.Java.JPF_RUN(jpffile=self.mk_JPF_runfile(max_val, depth))
 
     def mk_JPF_runfile(self, max_int, depth):
         assert max_int >= 0, max_int
