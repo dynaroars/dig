@@ -297,9 +297,8 @@ class SymStatesMaker(metaclass=ABCMeta):
         assert depth >= 1, depth
 
         cmd = self.mk(depth)
-        mlog.debug("Obtain symbolic states (tree depth {})".format(depth))
+        mlog.debug("Obtain symbolic states (depth {})".format(depth))
         mlog.debug(cmd)
-        print(cmd)
         try:
             cp = subprocess.run(
                 shlex.split(cmd), timeout=settings.SYMEXE_TIMEOUT,
@@ -356,7 +355,7 @@ class SymStatesMaker(metaclass=ABCMeta):
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
             mlog.warning(
-                "{}: no symbolic states at depth {}".format(loc, depth))
+                "{}: no new symbolic states at depth {}".format(loc, depth))
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]

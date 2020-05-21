@@ -98,7 +98,10 @@ class DigSymStates(Dig):
 
         self.symstates = None
         if settings.DO_SS:
+            st = time.time()
             self.symstates = self.get_symbolic_states()
+            mlog.info("compute symbolic states ({:.2f}s)".format(
+                time.time() - st))
 
             # remove locations with no symbolic states
             for loc in list(self.inv_decls.keys()):
