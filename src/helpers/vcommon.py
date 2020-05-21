@@ -42,16 +42,6 @@ def vwrite(filename, contents, mode='w'):
         fh.write(contents)
 
 
-def vcmd(cmd, inp=None, shell=True):
-    proc = sp.Popen(cmd, shell=shell, stdin=sp.PIPE,
-                    stdout=sp.PIPE, stderr=sp.PIPE)
-    out, err = proc.communicate(input=inp)
-    if is_python3():
-        return out.decode('utf-8'), err.decode('utf-8')
-    else:
-        return out, err
-
-
 def getLogger(name, level):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

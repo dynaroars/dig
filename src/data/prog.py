@@ -1,8 +1,11 @@
+import shlex
 import itertools
 import random
 from pathlib import Path
 import pdb
 from collections import namedtuple
+import subprocess
+
 import sage.all
 
 import settings
@@ -73,8 +76,11 @@ class Prog:
         inp_ = ' '.join(map(str, inp_))
         cmd = "{} {}".format(self.exe_cmd, inp_)
         mlog.debug(cmd)
-        traces, _ = CM.vcmd(cmd)
-        traces = traces.splitlines()
+
+        # do not check cmd status, could get error status due to incorrect input
+        cp = subprocess.run(shlex.split(cmd),
+                            capture_output=True, text=True)
+        traces = cp.stdout.splitlines()
         return traces
 
     def _get_traces_mp(self, inps):
@@ -238,10 +244,10 @@ class Src:
         cmd = self.instrument_cmd(filename=filename,
                                   tracefile=tracefile,
                                   symexefile=symexefile)
-        rmsg, errmsg = CM.vcmd(cmd)
-        assert not errmsg, "'{}': {}".format(cmd, errmsg)
+        cp = subprocess.run(shlex.split(cmd),
+                            capture_output=True, check=True, text=True)
 
-        inp_decls, inv_decls, mainQ_name = self.parse_type_info(rmsg)
+        inp_decls, inv_decls, mainQ_name = self.parse_type_info(cp.stdout)
 
         self.filename, self.basename, self.funname = filename, basename, funname
         self.tracedir, self.tracefile = tracedir, tracefile
@@ -285,8 +291,8 @@ class Java(Src):
 
         if basename.suffix == ".java":
             cmd = settings.Java.COMPILE(filename=filename, tmpdir=tmpdir)
-            rmsg, errmsg = CM.vcmd(cmd)
-            assert not errmsg, "cmd: {} gives err:\n{}".format(cmd, errmsg)
+            cp = subprocess.run(shlex.split(cmd),
+                                capture_output=True, check=True, text=True)
             filename = (tmpdir / funname).with_suffix('.class')
             basename = Path(filename.name)
 
@@ -314,10 +320,9 @@ class C(Src):
     @classmethod
     def compile_test(cls, filename, out):
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
-        rmsg, errmsg = CM.vcmd(cmd)
-        assert not errmsg, "cmd: {} gives err:\n{}".format(cmd, errmsg)
+        subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out
 
-    @property
+    @ property
     def instrument_cmd(self):
         return settings.C.INSTRUMENT
