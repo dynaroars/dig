@@ -374,13 +374,14 @@ class Miscs(object):
     @classmethod
     def solve_eqts(cls, eqts, uks, template):
         assert isinstance(eqts, list) and eqts, eqts
-        assert isinstance(uks, list)and uks, uks
+        assert isinstance(uks, list) and uks, uks
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
         # print(eqts)
 
-        @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
+        # I don't think this helps
+        # @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
         def mysolve(eqts, uks, solution_dict):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 

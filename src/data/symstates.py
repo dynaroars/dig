@@ -65,7 +65,7 @@ class PC(metaclass=ABCMeta):
 
         parts = cls.parse_parts(s.splitlines())
         if not parts:
-            mlog.error("Cannot obtain symstates from '{}'".format(filename))
+            mlog.error("Cannot obtain symstates")
             return None
 
         pcs = [cls.parse_part(p) for p in parts]
@@ -306,14 +306,12 @@ class SymStatesMaker(metaclass=ABCMeta):
             pcs = self.pc_cls.parse(cp.stdout)
             return pcs
 
-        except subprocess.TimeoutExpired as to:
+        except subprocess.TimeoutExpired as ex:
             mlog.warning("{}: {} time out after {}s".format(
-                to.__class__.__name__, ' '.join(to.cmd), to.timeout))
-            return []
+                ex.__class__.__name__, ' '.join(ex.cmd), ex.timeout))
 
-        except subprocess.CalledProcessError as cperr:
-            mlog.warning(cperr)
-            return []
+        except subprocess.CalledProcessError as ex:
+            mlog.warning(ex)
 
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):

@@ -131,27 +131,28 @@ class Traces(SymbsValsSet):
     def mydicts(self):
         return (trace.mydict for trace in self)
 
-    def instantiate(self, term, nTraces):
+    def instantiate(self, term, ntraces):
         assert Miscs.is_expr(term), term
-        assert nTraces is None or nTraces >= 1, nTraces
+        assert ntraces is None or ntraces >= 1, ntraces
 
-        if nTraces is None:
+        if ntraces is None:
             for t in self.mydicts:
                 exprs = set(term.subs(t) for t in self.mydicts)
         else:
-            nTracesExtra = nTraces * settings.TRACE_MULTIPLIER
+            ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
             exprs = set()
             for t in self.mydicts:
+                print(t)
                 expr = term.subs(t)
                 if expr not in exprs:
                     exprs.add(expr)
-                    if len(exprs) >= nTracesExtra:
+                    if len(exprs) >= ntracesExtra:
                         break
 
             # instead of doing this, can find out the # 0's in traces
             # the more 0's , the better
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
-            exprs = set(exprs[:nTraces])
+            exprs = set(exprs[:ntraces])
         return exprs
 
     def padzeros(self, ss):
