@@ -142,7 +142,6 @@ class Traces(SymbsValsSet):
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
             exprs = set()
             for t in self.mydicts:
-                print(t)
                 expr = term.subs(t)
                 if expr not in exprs:
                     exprs.add(expr)
