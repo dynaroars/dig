@@ -215,11 +215,11 @@ class Results:
             "VTD {}".format(VTD),
             "traces {}".format(f(r.dtraces.siz for r in rs)),
             "inps {}".format(
-                f(len(r.inps) if r.inps else 0 for r in rs)),
-            "time {}".format(time_s)
+                f(len(r.inps) if r.inps else 0 for r in rs))
         ]
 
         print('**', ', '.join(s for s in ss if s))
+        print("time {}".format(time_s))
         print(self.analyze2(f))
         if len(rs) == 1:
             print("rand seed {}, test ({}, {})".format(

@@ -158,17 +158,15 @@ class DigSymStates(Dig):
         shutil.rmtree(self.tmpdir_del)
 
         # analyze and save results
-        from analysis import Result, AResult
+        from analysis import Result, Analysis
 
         self.symstates.get_solver_stats()
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
                         self.symstates.solver_stats_,
                         self.time_d)
-        # AResult(result).analyze()
-
         result.save(self.tmpdir)
-
+        Analysis(self.tmpdir).start()
         mlog.info("tmpdir: {}".format(self.tmpdir))
 
     def infer(self, typ, dinvs, f):
