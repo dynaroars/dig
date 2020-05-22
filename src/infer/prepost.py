@@ -22,7 +22,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Infer(infer.base.Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
-        self.use_reals = prog.inv_decls.use_reals
+        self.use_reals = self.symstates.use_reals
 
     def gen(self, dinvs, traces):
         assert isinstance(dinvs, DInvs), dinvs
@@ -36,6 +36,8 @@ class Infer(infer.base.Infer):
                          if isinstance(inv, Eqt)]
             postconds = [pcs for pcs in postconds if pcs]
             postconds = set(p for pcs in postconds for p in pcs)
+            print(postconds)
+            preposts = self.get_preposts1(loc, postconds)
             preposts = self.get_preposts(loc, postconds, traces[loc])
             if preposts:
                 dinvs_[loc] = Invs(preposts)
@@ -50,6 +52,9 @@ class Infer(infer.base.Infer):
             symbols = self.prog.inp_decls.sageExprs
             self._preconds = self.get_preconds(symbols, term_siz=2)
             return self._preconds
+
+    def get_preposts1(self, loc, postconds):
+        pass
 
     def get_preposts(self, loc, postconds, traces):
         assert isinstance(loc, str), loc
@@ -179,8 +184,8 @@ class Infer(infer.base.Infer):
         assert eqt.operator() == operator.eq, eqt
 
         # tCtr
-        symbols = [s for s in Miscs.get_vars(
-            eqt) if settings.CTR_VAR in str(s)]
+        symbols = [s for s in Miscs.get_vars(eqt)
+                   if settings.CTR_VAR in str(s)]
 
         if not symbols:
             return
@@ -221,8 +226,7 @@ class Infer(infer.base.Infer):
 
         """
         t1 = [Eqt(t == 0) for t in symbols]  # M=0, N=0
-        t2 = [Oct(t < 0)  # +/M+/-N >0
-              for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
-        t3 = [Oct(t <= 0)  # +/M+/-N >=0
-              for t in Miscs.get_terms_fixed_coefs(symbols, term_siz)]
+        ts = Miscs.get_terms_fixed_coefs(symbols, term_siz, settings.ICOEFS)
+        t2 = [Oct(t < 0) for t in ts]  # +/M+/-N >0
+        t3 = [Oct(t <= 0) for t in ts]  # +/M+/-N >=0
         return t1 + t2 + t3

@@ -109,7 +109,7 @@ class DigSymStates(Dig):
 
             # remove locations with no symbolic states
             for loc in list(self.inv_decls.keys()):
-                if loc not in self.symstates.ss:
+                if loc not in self.symstates:
                     mlog.warning('{}: no symbolic states. Skip'.format(loc))
                     self.inv_decls.pop(loc)
 

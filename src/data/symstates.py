@@ -460,7 +460,13 @@ class SymStatesMakerJava(SymStatesMaker):
         return filename
 
 
-class SymStates:
+class SymStatesDepth(dict):  # depth -> PCs
+    pass
+
+
+class SymStates(dict):
+    # loc -> SymStatesDepth
+
     solver_stats = Queue() if settings.DO_SOLVER_STATS else None
     solver_stats_ = []  # periodically save solver_stats results here
 
@@ -470,12 +476,17 @@ class SymStates:
         self.use_reals = inv_decls.use_reals
         self.inp_exprs = inp_decls.exprs(self.use_reals)
 
+        super().__init__(dict())
+
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
             filename, mainQName, funname, len(self.inp_decls), self.use_reals, tmpdir)
-        self.ss = symstatesmaker.compute()
+        ss = symstatesmaker.compute()
+        for loc in ss:
+            self[loc] = SymStatesDepth(ss[loc])
 
     # Checking invariants using symbolic states
+
     def check(self, dinvs, inps):
         """
         Check invs, return cexs
@@ -514,10 +525,8 @@ class SymStates:
     def mcheck_d(self, loc, inv, inps, ncexs):
 
         assert isinstance(loc, str), loc
-        assert inv is None or \
-            isinstance(inv, data.inv.base.Inv) or \
-            z3.is_expr(inv), (inv, type(inv))
-
+        assert inv is None or isinstance(
+            inv, data.inv.base.Inv) or z3.is_expr(inv), (inv, type(inv))
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
@@ -533,26 +542,26 @@ class SymStates:
 
         if settings.DO_INCR_DEPTH:
             cexs, is_succ = self.mcheck_depth(
-                self.ss[loc], inv, inv_expr, inps, ncexs)
+                self[loc], inv, inv_expr, inps, ncexs)
         else:
             cexs, is_succ, stat = self.mcheck(
-                self.get_ss_at_depth(self.ss[loc], depth=None),
+                self.get_ss_at_depth(self[loc], depth=None),
                 inv_expr, inps, ncexs)
 
         return cexs, is_succ
 
-    def mcheck_depth(self, ssl, inv, inv_expr, inps, ncexs):
+    def mcheck_depth(self, ssd, inv, inv_expr, inps, ncexs):
         assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
-        assert isinstance(ssl, defaultdict), ssl  # self.ss[loc]
+        assert isinstance(ssd, SymStatesDepth), ssd  # self.ss[loc]
 
         def f(depth):
-            ss = ssl[depth]
+            ss = ssd[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
             self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
-        depths = sorted(ssl.keys())
+        depths = sorted(ssd.keys())
         depth_idx = 0
 
         cexs, is_succ, stat = f(depths[depth_idx])
@@ -601,31 +610,38 @@ class SymStates:
         return cexs, is_succ, stat
 
     # Find maximal values for term using symbolic states
-    def maximize(self, loc, term_expr, do_all=True):
+    def maximize(self, loc, term_expr, extra_constr=None):
         """
         maximize value of term
         """
         assert z3.is_expr(term_expr), term_expr
+        assert extra_constr is None or \
+            z3.is_expr(extra_constr), extra_constr
 
         if settings.DO_INCR_DEPTH:
-            v, stat = self.mmaximize_depth(self.ss[loc], term_expr)
+            v, stat = self.mmaximize_depth(
+                self[loc], term_expr, extra_constr)
         else:
             v, stat = self.mmaximize(
-                self.get_ss_at_depth(self.ss[loc], depth=None),
+                self.get_ss_at_depth(self[loc], depth=None),
                 term_expr)
         return v
 
-    def mmaximize_depth(self, ssl, term_expr):
+    def mmaximize_depth(self, ssd, term_expr, extra_constr):
+        assert isinstance(ssd, SymStatesDepth), ssd
         assert z3.is_expr(term_expr), term_expr
-        assert isinstance(ssl, defaultdict)
+        assert extra_constr is None or \
+            z3.is_expr(extra_constr), extra_constr
 
         def f(depth):
-            ss = self.get_ss_at_depth(ssl, depth=depth)
+            ss = self.get_ss_at_depth(ssd, depth=depth)
+            if extra_constr is not None:
+                ss = z3.And(ss, extra_constr)
             maxv, stat = self.mmaximize(ss, term_expr)
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
 
-        depths = sorted(ssl.keys())
+        depths = sorted(ssd.keys())
         depth_idx = 0
 
         maxv, stat = f(depths[depth_idx])
@@ -655,6 +671,9 @@ class SymStates:
         return maxv, stat
 
     def mmaximize(self, ss, term_expr):
+        assert z3.is_expr(ss), ss
+        assert z3.is_expr(term_expr), term_expr
+
         opt = helpers.miscs.Z3.create_solver(maximize=True)
         opt.add(ss)
         h = opt.maximize(term_expr)
@@ -671,17 +690,19 @@ class SymStates:
 
     # helpers
 
-    def get_ss_at_depth(self, ssl, depth=None):
+    def get_ss_at_depth(self, ssd, depth=None):
+        assert isinstance(ssd, SymStatesDepth), ssd
+
         assert depth is None or depth >= 0, depth
 
-        if depth is None:
-            return z3.Or([ssl[depth].myexpr for depth in ssl])
-        else:
+        if depth is None:  # use all
+            return z3.Or([ssd[depth].myexpr for depth in ssd])
+        else:  # use up to depth
             ss = []
-            for d in sorted(ssl):
+            for d in sorted(ssd):
                 if d > depth:
                     break
-                ss.append(ssl[d].myexpr)
+                ss.append(ssd[d].myexpr)
 
             return z3.Or(ss)
 

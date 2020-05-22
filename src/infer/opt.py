@@ -41,7 +41,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         def f(tasks):
             return [(loc, term,
-                     self.symstates.maximize(loc, self.to_expr(term), do_all=False))
+                     self.symstates.maximize(loc, self.to_expr(term)))
                     for loc, term in tasks]
         wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
 
@@ -85,8 +85,8 @@ class Ieq(Infer):
         super().__init__(symstates, prog)
 
     def to_expr(self, term):
-        return helpers.miscs.Z3.parse(str(term.poly),
-                                      use_reals=self.symstates.use_reals)
+        return helpers.miscs.Z3.parse(
+            str(term.poly), use_reals=self.symstates.use_reals)
 
     def inv_cls(self, term_ub):
         return data.inv.oct.Oct(term_ub)
