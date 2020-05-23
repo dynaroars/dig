@@ -31,17 +31,28 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         # need prog because symstates could be None
         super().__init__(symstates, prog)
 
-    def gen(self):
-        locs = self.inv_decls.keys()
+    def gen(self, locs=None, extra_constr=None):
+        if locs:
+            # gen preconds
+            assert z3.is_expr(extra_constr)
+
+            def _terms(_):
+                return self.inp_decls.sageExprs
+        else:
+            locs = self.inv_decls.keys()
+
+            def _terms(loc):
+                return self.inv_decls[loc].sageExprs
+
         tasks = [(loc, term)
                  for loc in locs
-                 for term in self.get_terms(self.inv_decls[loc].sageExprs)]
+                 for term in self.get_terms(_terms(loc))]
         mlog.debug("infer upperbounds for {} terms at {} locs".format(
             len(tasks), len(locs)))
 
         def f(tasks):
             return [(loc, term,
-                     self.symstates.maximize(loc, self.to_expr(term)))
+                     self.symstates.maximize(loc, self.to_expr(term), extra_constr))
                     for loc, term in tasks]
         wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
 

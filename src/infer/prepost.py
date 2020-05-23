@@ -1,3 +1,5 @@
+# QUITE BROKEN, DO NOT USE
+
 import operator
 import pdb
 
@@ -36,11 +38,18 @@ class Infer(infer.base.Infer):
                          if isinstance(inv, Eqt)]
             postconds = [pcs for pcs in postconds if pcs]
             postconds = set(p for pcs in postconds for p in pcs)
-            print(postconds)
-            preposts = self.get_preposts1(loc, postconds)
-            preposts = self.get_preposts(loc, postconds, traces[loc])
+
+            preposts = []
+            for postcond in postconds:
+                prepost = self.get_preposts1(loc, postcond)
+                if prepost:
+                    preposts.append(prepost)
+
             if preposts:
                 dinvs_[loc] = Invs(preposts)
+            # preposts = self.get_preposts(loc, postconds, traces[loc])
+            # if preposts:
+            #     dinvs_[loc] = Invs(preposts)
 
         return dinvs_
 
@@ -53,8 +62,27 @@ class Infer(infer.base.Infer):
             self._preconds = self.get_preconds(symbols, term_siz=2)
             return self._preconds
 
-    def get_preposts1(self, loc, postconds):
-        pass
+    def get_preposts1(self, loc, postcond):
+        assert isinstance(loc, str), loc
+        assert postcond.operator() == operator.eq, postcond
+
+        import infer.opt
+        solver = infer.opt.Ieq(self.symstates, self.prog)
+        postcond_expr = Eqt(postcond).expr(self.use_reals)
+        preconds = solver.gen([loc], postcond_expr)
+        preconds = list(preconds[loc]) if loc in preconds else []
+        #conj_preconds = self.get_conj_preconds(loc, preconds, postcond)
+        if preconds:
+            precond_expr = z3.And([pc.expr(self.use_reals) for pc in preconds])
+            inv = z3.Implies(precond_expr, postcond_expr)
+            cexs, isSucc = self.symstates.mcheck_d(loc, inv, None, 1)
+            if not cexs and isSucc:
+                prepost = PrePost(Invs(preconds), postcond, stat=Inv.PROVED)
+                prepost.is_conj = True
+                return prepost
+            else:
+                return None
+        return None
 
     def get_preposts(self, loc, postconds, traces):
         assert isinstance(loc, str), loc
@@ -62,9 +90,9 @@ class Infer(infer.base.Infer):
         assert all(p.operator() == operator.eq for p in postconds), postconds
         assert isinstance(traces, Traces), traces
 
-        preconds = [pc for pc in self.preconds
-                    if self._check(pc.expr(self.use_reals), loc,
-                                   self.symstates.check_consistency)]
+        preconds = [pc for pc in self.preconds]
+        # preconds = [pc for pc in self.preconds
+        #             if self._check(pc.expr(self.use_reals), loc, check_consistency=True)]
         #print("preconds", preconds)
         postconds = sorted(postconds, key=lambda d: len(str(d)))
         postconds = [Eqt(p) for p in postconds]
@@ -85,6 +113,7 @@ class Infer(infer.base.Infer):
             postconds, key=lambda d: len(ptraces[d]), reverse=True)
         idxs = list(range(len(postconds)))
         for idx in idxs:
+            print('gh1')
             postcond = postconds[idx]
             try:
                 postcond_expr = postcond.expr(self.use_reals)
@@ -93,7 +122,7 @@ class Infer(infer.base.Infer):
                 continue
 
             #print("postcond", postcond)
-
+            print('gh1a')
             others = [postconds[i] for i in idxs[:idx] + idxs[idx+1:]]
             traces_ = [t for t in ptraces[postcond]
                        if all(t not in ptraces[other] for other in others)]
@@ -107,32 +136,35 @@ class Infer(infer.base.Infer):
             #print('cpreconds', conj_preconds)
             if conj_preconds:
                 myappend(conj_preconds, is_conj=True)
-
+            print('gh1b')
             disj_preconds = self.get_disj_preconds(
                 loc, preconds, postcond_expr, traces)
+            print('gh1b@@@')
             #print('dpreconds', disj_preconds)
             if disj_preconds:
                 myappend(disj_preconds, is_conj=False)
+            print('gh1c')
 
+        print('gh2')
         preposts = Invs(preposts)
-        preposts = preposts.simplify(self.use_reals)
+        print('gh3')
+        print(preposts)
+        #preposts = preposts.simplify(self.use_reals)
         return preposts
 
     def check(self, pcs, postcond_expr, loc):
         precond_expr = z3.And(pcs) if isinstance(pcs, list) else pcs
         inv = z3.Implies(precond_expr, postcond_expr)
-        return self._check(inv, loc, self.symstates.check_validity)
+        return self._check(inv, loc, check_consistency=False)
 
-    def _check(self, inv, loc, check_mode):
-        cexs, isSucc, _ = self.symstates.mcheck_d(
-            loc, inv, None, 1, check_mode)
+    def _check(self, inv, loc, check_consistency):
+        cexs, isSucc = self.symstates.mcheck_d(loc, inv, None, 1)
 
-        if check_mode == self.symstates.check_consistency:
-            if cexs:
+        if check_consistency:
+            if cexs:  # satisfies
                 return True
             return False
         else:
-            assert check_mode == self.symstates.check_validity, check_mode
             if cexs or not isSucc:
                 # mlog.debug("{}: discard {}".format(loc, inv))
                 return False

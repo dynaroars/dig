@@ -567,7 +567,7 @@ class SymStates(dict):
         cexs, is_succ, stat = f(depths[depth_idx])
         if stat != z3.unsat:  # if disprove (sat) or unknown first time
             self.put_solver_stats(analysis.CheckDepthChanges(
-                inv, None, None, stat, depths[depth_idx]))
+                str(inv), None, None, stat, depths[depth_idx]))
 
         while(stat != z3.sat and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
@@ -578,7 +578,7 @@ class SymStates(dict):
                 mlog.debug("check depth diff {}: {} @ depth {}, {} @ depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
                 self.put_solver_stats(
-                    analysis.CheckDepthChanges(inv, stat, mydepth, stat_, mydepth_))
+                    analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_))
 
             depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
