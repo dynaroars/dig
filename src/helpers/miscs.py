@@ -200,7 +200,7 @@ class Miscs(object):
         assert nts >= nvs, (nts, nvs)
         assert max_deg >= 1, max_deg
 
-        for d in range(1, max_deg+1):
+        for d in range(1, max_deg + 1):
             if d == max_deg:
                 return d
 
@@ -221,9 +221,11 @@ class Miscs(object):
         return deg
 
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz, icoef):
+    def get_terms_fixed_coefs(ss, subset_siz, icoef, do_create_terms=True):
         """
         sage: from helpers.miscs import Miscs
+
+        if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
@@ -236,6 +238,7 @@ class Miscs(object):
 
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
+        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
         """
         assert icoef >= 1, icoef
         if len(ss) < subset_siz:
@@ -245,9 +248,11 @@ class Miscs(object):
         rs = []
         for ssSubset in itertools.combinations(ss, subset_siz):
             css = itertools.product(*([coefs] * len(ssSubset)))
-            r = (sum(c*t for c, t in zip(ssSubset, cs))
-                 for cs in css if not all(c == 0 for c in cs))
-            rs.extend(r)
+            rs_ = [tuple((t, c) for t, c in zip(ssSubset, cs) if c != 0)
+                   for cs in css if not all(c_ == 0 for c_ in cs)]
+            if do_create_terms:
+                rs_ = [sum(t*c for t, c in tc) for tc in rs_]
+            rs.extend(rs_)
 
         return set(rs)
 
@@ -336,6 +341,43 @@ class Miscs(object):
         Q = sage.all.PolynomialRing(sage.all.QQ, cls.get_vars(p))
         rs = Q(p.lhs()).coefficients()
         return rs
+
+    @classmethod
+    def get_vars_deg(cls, p):
+        """
+        Returns a list of variables, (highest) deg  for each operand
+        sage: from helpers.miscs import Miscs
+        sage: var('x y z')
+        (x, y, z)
+        sage: Miscs.get_vars_deg(x*y*z + z**2) == [((x, y, z), 3), ((z,), 2)]
+        sage: Miscs.get_vars_deg(z) == [((z,), 1)]
+        """
+        results = []
+        if p.operands():
+            for p_ in p.operands():
+                results.append((p_.variables(),
+                                sum(p_.degree(v) for v in p_.variables())))
+        else:
+            assert len(p.variables()) == 1, p
+            results.append((p.variables(), 1))
+        return results
+
+    @classmethod
+    def get_degs(cls, p):
+        if p.operands():
+            degs = []
+            for p_ in p.operands():
+                deg = sum(p_.degree(v) for v in p_.variables())
+                degs.append(deg)
+            return degs
+        else:  # x
+            assert len(p.variables()) == 1, p
+            return [1]
+
+    @classmethod
+    def get_degs1(cls, p):
+        vd = cls.get_vars_deg(p)
+        return [d for _, d in vd]
 
     @staticmethod
     def is_repeating_rational(x):

@@ -13,6 +13,8 @@ import sage.all
 
 import settings
 import helpers.vcommon as CM
+import helpers.miscs
+
 import data.inv
 
 DBG = pdb.set_trace
@@ -151,18 +153,6 @@ class AResult(Result):
         return nvs, maxdeg, nterms
 
     @classmethod
-    def get_degs(cls, p):
-        if p.operands():
-            degs = []
-            for p_ in p.operands():
-                deg = sum(p_.degree(v) for v in p_.variables())
-                degs.append(deg)
-            return degs
-        else:  # x
-            assert len(p.variables()) == 1, p
-            return [1]
-
-    @classmethod
     def analyze_inv(cls, inv):
         """
         return the # of variables, max deg, and number of terms
@@ -179,7 +169,7 @@ class AResult(Result):
         else:
             p = inv.inv
             vs = p.variables()
-            degs = cls.get_degs(p.lhs())
+            degs = helpers.miscs.Miscs.get_degs(p.lhs())
             nterms = p.lhs().number_of_operands()
 
         return vs, max(degs), nterms
