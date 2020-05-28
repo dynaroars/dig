@@ -136,7 +136,6 @@ class AResult(Result):
         """
         Get max vars, terms, deg, mainly for eqts
         """
-
         vss = []
         maxdegs = []
         ntermss = []
@@ -151,6 +150,18 @@ class AResult(Result):
         maxdeg = max(maxdegs)
         nterms = max(ntermss)
         return nvs, maxdeg, nterms
+
+    @classmethod
+    def get_degs(cls, p):
+        if p.operands():
+            degs = []
+            for p_ in p.operands():
+                deg = sum(p_.degree(v) for v in p_.variables())
+                degs.append(deg)
+            return degs
+        else:  # x
+            assert len(p.variables()) == 1, p
+            return [1]
 
     @classmethod
     def analyze_inv(cls, inv):
@@ -169,7 +180,7 @@ class AResult(Result):
         else:
             p = inv.inv
             vs = p.variables()
-            degs = helpers.miscs.Miscs.get_degs(p.lhs())
+            degs = cls.get_degs(p.lhs())
             nterms = p.lhs().number_of_operands()
 
         return vs, max(degs), nterms
@@ -413,8 +424,11 @@ class Analysis:
                     load2(d)
 
         for prog in sorted(results_d):
-            if not results_d[prog]:
+            results = [AResult(r) for r in results_d[prog]
+                       if r.dinvs.siz]
+            if not results:
+                mlog.warning("no results for {}".format(prog))
                 continue
-            stats = Results(prog, [AResult(r) for r in results_d[prog]])
+            stats = Results(prog, results)
             stats.start(median)
             # stats.analyze(mean)

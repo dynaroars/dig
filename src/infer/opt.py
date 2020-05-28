@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 import math
 import pdb
 from time import time
+import operator
 
 import z3
 import sage.all
@@ -47,12 +48,14 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         tasks = [(loc, term)
                  for loc in locs
                  for term in self.get_terms(_terms(loc))]
+
         mlog.debug("infer upperbounds for {} terms at {} locs".format(
             len(tasks), len(locs)))
 
         def f(tasks):
             return [(loc, term,
-                     self.symstates.maximize(loc, self.to_expr(term), extra_constr))
+                     self.symstates.maximize(
+                         loc, self.to_expr(term), extra_constr))
                     for loc, term in tasks]
         wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
 
@@ -88,6 +91,8 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         excludes = self.get_excludes(terms, inps)
         new_terms = [term for term in terms if term not in excludes]
+
+        print(new_terms)
         return new_terms
 
 
@@ -103,8 +108,23 @@ class Ieq(Infer):
         return data.inv.oct.Oct(term_ub)
 
     def my_get_terms(self, symbols):
+        terms = helpers.miscs.Miscs.get_terms(list(symbols), 2)
+        terms = [t for t in terms if t != 1]
         terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
+            terms, 2, 1, do_create_terms=False)
+        myresults = set()
+        for rs_ in terms:
+            assert rs_
+            rs__ = [set(t.variables()) for t, _ in rs_]
+            if len(rs_) <= 1 or not set.intersection(*rs__):
+                myresults.add(sum(operator.mul(*tc) for tc in rs_))
+        terms = myresults
+
+        terms1 = helpers.miscs.Miscs.get_terms_fixed_coefs(
             symbols, settings.ITERMS, settings.ICOEFS)
+
+        print(len(terms))
+        print(len(terms1))
 
         if settings.UTERMS:
             uterms = self.my_get_terms_user(symbols, settings.UTERMS)

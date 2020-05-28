@@ -1,0 +1,1 @@
+infer prepost : make sure to turn off ieq filtering, otherwise it will removes term involving only inputs (which we actually want)
