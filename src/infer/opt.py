@@ -32,7 +32,9 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         # need prog because symstates could be None
         super().__init__(symstates, prog)
 
-    def gen(self, locs=None, extra_constr=None):
+    def gen(self, dtraces, locs=None, extra_constr=None):
+        assert isinstance(dtraces, data.traces.DTraces) and dtraces, traces
+
         if locs:
             # gen preconds
             assert z3.is_expr(extra_constr)
@@ -47,15 +49,14 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         tasks = [(loc, term)
                  for loc in locs
-                 for term in self.get_terms(_terms(loc))]
+                 for term in self.get_terms(_terms(loc), dtraces[loc])]
 
         mlog.debug("infer upperbounds for {} terms at {} locs".format(
             len(tasks), len(locs)))
 
         def f(tasks):
             return [(loc, term,
-                     self.symstates.maximize(
-                         loc, self.to_expr(term), extra_constr))
+                     self.maximize(loc, term, extra_constr, dtraces))
                     for loc, term in tasks]
         wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
 
@@ -69,7 +70,24 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         return dinvs
 
-    def get_terms(self, symbols):
+    def maximize(self, loc, term, extra_constr, dtraces):
+        assert isinstance(loc, str) and loc, loc
+        assert isinstance(term,
+                          (data.poly.base.GeneralPoly, data.poly.mp.MP)), \
+            (term, type(term))
+        assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
+        assert isinstance(
+            dtraces, data.traces.DTraces) and dtraces and dtraces[loc], traces
+
+        # check if concrete states(traces) exceed upperbound
+        if term.eval_traces(dtraces[loc], lambda v: int(v) > settings.IUPPER):
+            return None
+
+        return self.symstates.maximize(
+            loc, self.to_expr(term), extra_constr)
+
+    def get_terms(self, symbols, traces):
+
         terms = self.my_get_terms(symbols)
         mlog.debug("{} terms for {}".format(
             len(terms), self.__class__.__name__))
@@ -79,7 +97,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         new_terms = self.filter_terms(
             terms, set(self.inp_decls.names))
         helpers.miscs.Miscs.show_removed(
-            'term filter', len(terms), len(new_terms), time() - st)
+            'filter terms', len(terms), len(new_terms), time() - st)
         return new_terms
 
     def filter_terms(self, terms, inps):
@@ -91,8 +109,6 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         excludes = self.get_excludes(terms, inps)
         new_terms = [term for term in terms if term not in excludes]
-
-        print(new_terms)
         return new_terms
 
 
@@ -108,23 +124,27 @@ class Ieq(Infer):
         return data.inv.oct.Oct(term_ub)
 
     def my_get_terms(self, symbols):
-        terms = helpers.miscs.Miscs.get_terms(list(symbols), 2)
-        terms = [t for t in terms if t != 1]
-        terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
-            terms, 2, 1, do_create_terms=False)
-        myresults = set()
-        for rs_ in terms:
-            assert rs_
-            rs__ = [set(t.variables()) for t, _ in rs_]
-            if len(rs_) <= 1 or not set.intersection(*rs__):
-                myresults.add(sum(operator.mul(*tc) for tc in rs_))
-        terms = myresults
+        assert symbols, symbols
+        assert settings.IDEG >= 1, settings.IDEG
 
-        terms1 = helpers.miscs.Miscs.get_terms_fixed_coefs(
-            symbols, settings.ITERMS, settings.ICOEFS)
+        if settings.IDEG == 1:
+            terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
+                symbols, settings.ITERMS, settings.ICOEFS)
+        else:
+            terms = helpers.miscs.Miscs.get_terms(
+                list(symbols), settings.IDEG)
+            terms = [t for t in terms if t != 1]
+            terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
+                terms, settings.ITERMS, settings.ICOEFS,
+                do_create_terms=False)
 
-        print(len(terms))
-        print(len(terms1))
+            terms_ = set()
+            for ts in terms:
+                assert ts
+                ts_ = [set(t.variables()) for t, _ in ts]
+                if len(ts) <= 1 or not set.intersection(*ts_):
+                    terms_.add(sum(operator.mul(*tc) for tc in ts))
+            terms = terms_
 
         if settings.UTERMS:
             uterms = self.my_get_terms_user(symbols, settings.UTERMS)

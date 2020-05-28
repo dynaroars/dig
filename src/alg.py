@@ -198,12 +198,12 @@ class DigSymStates(Dig):
     def infer_ieqs(self, dtraces, inps):
         import infer.opt
         solver = infer.opt.Ieq(self.symstates, self.prog)
-        return solver.gen()
+        return solver.gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
         import infer.opt
         solver = infer.opt.MP(self.symstates, self.prog)
-        return solver.gen()
+        return solver.gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):
         import infer.prepost

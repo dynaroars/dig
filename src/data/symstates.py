@@ -516,7 +516,8 @@ class SymStates(dict):
                 stat = data.inv.base.Inv.DISPROVED
                 mCexs.append({loc: {str(inv): cexs}})
             else:
-                stat = data.inv.base.Inv.PROVED if is_succ else data.inv.base.Inv.UNKNOWN
+                stat = (data.inv.base.Inv.PROVED
+                        if is_succ else data.inv.base.Inv.UNKNOWN)
             inv.stat = stat
             mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
@@ -526,7 +527,7 @@ class SymStates(dict):
 
         assert isinstance(loc, str), loc
         assert inv is None or isinstance(
-            inv, data.inv.base.Inv) or z3.is_expr(inv), (inv, type(inv))
+            inv, data.inv.base.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
@@ -585,14 +586,14 @@ class SymStates(dict):
 
         return cexs, is_succ
 
-    def mcheck(self, symstates_expr, inv, inps, ncexs):
+    def mcheck(self, symstates_expr, expr, inps, ncexs):
         """
-        check if pathcond => inv
+        check if pathcond => expr
         if not, return cex
         return cexs, is_succ (if the solver does not timeout)
         """
         assert z3.is_expr(symstates_expr), symstates_expr
-        assert inv is None or z3.is_expr(inv), inv
+        assert expr is None or z3.is_expr(expr), expr
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
         # assert self.check_check_mode(check_mode), check_mode
@@ -602,8 +603,8 @@ class SymStates(dict):
         if iconstr is not None:
             f = z3.simplify(z3.And(iconstr, f))
 
-        if inv is not None:
-            f = z3.Not(z3.Implies(f, inv))
+        if expr is not None:
+            f = z3.Not(z3.Implies(f, expr))
 
         models, stat = helpers.miscs.Z3.get_models(f, ncexs)
         cexs, is_succ = helpers.miscs.Z3.extract(models)

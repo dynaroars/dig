@@ -24,7 +24,7 @@ class Poly(metaclass=ABCMeta):
     def __eq__(self, o): return self.poly.__eq__(o.poly)
 
     @abstractmethod
-    def eval_traces(self, traces):
+    def eval_traces(self, traces, pred):
         pass
 
     @abstractmethod
@@ -50,8 +50,8 @@ class GeneralPoly(Poly):
             self._symbols = Miscs.get_vars(self.poly)
             return self._symbols
 
-    def eval_traces(self, traces):
-        return traces.myeval(self.poly)
+    def eval_traces(self, traces, pred):
+        return traces.myeval(self.poly, pred)
 
     def mk_lt(self, val):
         return self._mk_rel(operator.lt, val)
