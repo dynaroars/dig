@@ -85,7 +85,8 @@ let () = begin
     let file = CM.read_file_ascii trace_src in
     let oc = open_out trace_src in
     ignore(L.map(fun s ->
-        P.fprintf oc "%s\n" (Str.global_replace (Str.regexp_string "\"") "" s)) file);
+        let newstring = Str.replace_first (Str.regexp_string "\"") "(" s in
+        P.fprintf oc "%s\n" (Str.replace_first (Str.regexp_string "\"") ")" newstring)) file);
     close_out oc
 
 
