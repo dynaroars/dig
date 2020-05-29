@@ -4,7 +4,6 @@
 void vassume(int b){}
 void vtrace1(int A, int B, int q, int b, int r){}
 void vtrace2(int A, int B, int q, int b, int r){}
-//void vtrace3(int A, int B, int q, int b, int r){}
 
 int mainQ(int A, int B){
     vassume(B >= 1);

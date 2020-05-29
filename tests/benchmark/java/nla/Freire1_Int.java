@@ -1,5 +1,5 @@
 public class Freire1_Int {
-    public static void vtrace1(float a, float x, float r){}
+    public static void vtrace1(int a, int x, int r){}
     
     public static void main (String[] args) {
     }

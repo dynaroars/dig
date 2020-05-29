@@ -4,8 +4,6 @@
 void vassume(int b){}
 void vtraces1(int A, int R, int u, int v, int r){}
 
-
-
 int mainQ(int A, int R){
     //vassume(A >= 1);
     vassume((R-1)*(R-1) < A);

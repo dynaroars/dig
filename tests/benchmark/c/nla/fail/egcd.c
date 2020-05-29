@@ -3,7 +3,6 @@
 
 void vassume(int b){}
 void vtrace1(int x, int y, int a, int b, int p, int r, int q, int s){}
-void vtrace2(int x, int y, int a, int b, int p, int r, int q, int s){}
 
 int mainQ(int x, int y){
     vassume(x >= 1);
@@ -37,7 +36,6 @@ int mainQ(int x, int y){
 	    q = q - p; 
 	    s = s - r;}
     }
-    vtrace2(x, y, a, b, p, r, q, s);
     return a;
 }
 

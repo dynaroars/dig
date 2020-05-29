@@ -283,7 +283,7 @@ class Results:
 
 
 class Benchmark:
-    TIMEOUT = 900  # seconds
+    TIMEOUT = 1200  # seconds
 
     def __init__(self, inp, args):
         assert isinstance(inp, Path), inp
@@ -292,19 +292,24 @@ class Benchmark:
         self.inp = inp
         self.args = args
 
+    def valid_file(cls, f):
+        return f.is_file() and f.suffix in {'.c', '.java'}
+
     def start(self):
         inp = self.inp
         args = self.args
 
-        if inp.is_file():
+        bfiles = []
+        if self.valid_file(inp):
             # benchmark single file
             bfiles = [inp]
             bstr = inp.stem  # CohenDiv
-        else:
-            assert inp.is_dir(), inp
+        elif inp.is_dir():
             # benchmark all files in dir
-            bfiles = sorted(f for f in inp.iterdir() if f.is_file())
+            bfiles = sorted(f for f in inp.iterdir() if self.valid_file(f))
             bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
+        else:
+            mlog.error('something wrong with {}'.format(inp))
 
         ntimes = args.benchmark_times
 
