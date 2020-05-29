@@ -38,7 +38,7 @@ int mainQ(int n){
 	    r=r-h;
 	} 
     }
-    vtrace3(r, p, n, h);	
+    //vtrace3(r, p, n, h);	
     return p;
 }
 

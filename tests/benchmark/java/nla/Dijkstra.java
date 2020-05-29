@@ -12,7 +12,7 @@ public class Dijkstra {
 	r = n;
 	h = 0;
 	while (true){
-	    //vtrace1(r,p,n,q,h);
+	    vtrace1(r,p,n,q,h);
 	    if(!(q <= n)) break;
 	    q = 4 * q;
 	}

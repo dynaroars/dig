@@ -30,7 +30,7 @@ public class DivBin {
 		r = r - b;
 	    }
 	}
-	return 0;	  
+	return q;	  
 
     }
 }

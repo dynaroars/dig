@@ -299,19 +299,23 @@ class SymStatesMaker(metaclass=ABCMeta):
         cmd = self.mk(depth)
         mlog.debug("Obtain symbolic states (depth {})".format(depth))
         mlog.debug(cmd)
+
+        s = None
         try:
             cp = subprocess.run(
                 shlex.split(cmd), timeout=settings.SYMEXE_TIMEOUT,
                 capture_output=True, check=True, text=True)
-            pcs = self.pc_cls.parse(cp.stdout)
-            return pcs
-
+            s = cp.stdout
         except subprocess.TimeoutExpired as ex:
             mlog.warning("{}: {} time out after {}s".format(
                 ex.__class__.__name__, ' '.join(ex.cmd), ex.timeout))
+            s = ex.stdout
 
         except subprocess.CalledProcessError as ex:
             mlog.warning(ex)
+            return None
+        pcs = self.pc_cls.parse(s)
+        return pcs
 
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):
@@ -333,20 +337,13 @@ class SymStatesMaker(metaclass=ABCMeta):
             depths = sorted(symstates[loc])
             assert len(depths) >= 2, depths
             for i in range(len(depths)):
-                if i == 0:
-                    pass
                 iss = symstates[loc][depths[i]]
-                for j in range(i):
-                    jss = symstates[loc][depths[j]]
-                    assert jss.issubset(iss)
-                    assert len(jss) <= len(iss), (len(jss), len(iss))
-
                 # only keep diffs
                 for j in range(i):
                     jss = symstates[loc][depths[j]]
                     for s in jss:
-                        assert s in iss, s
-                        iss.remove(s)
+                        if s in iss:
+                            iss.remove(s)
 
         # clean up
         empties = [(loc, depth) for loc in symstates

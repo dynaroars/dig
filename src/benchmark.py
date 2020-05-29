@@ -19,7 +19,7 @@ DBG = pdb.set_trace
 TIMEOUT = 900  # seconds
 CMD = "timeout {} ".format(TIMEOUT) +\
     "sage -python -O " +\
-    "dig.py {filename} -log 4 -seed {seed}"
+    "dig.py {filename} -log 4 -nominmax -seed {seed}"
 
 
 def run(benchdir, ntimes):
@@ -27,7 +27,8 @@ def run(benchdir, ntimes):
 
     print("# Benchmark dir '{}' {} times ({})".format(
         benchdir, ntimes, datetime.now()), flush=True)
-    fs = sorted(f for f in benchdir.iterdir() if f.suffix == ".java")
+    fs = sorted(f for f in benchdir.iterdir()
+                if f.suffix in {".java", ".c"})
 
     for i, f in enumerate(fs):
         for j in range(ntimes):
@@ -41,7 +42,7 @@ def run(benchdir, ntimes):
 ntimes = 2
 
 # NLA
-dir_ = Path("../tests/benchmark/nla/")
+dir_ = Path("../tests/benchmark/c/nla/")
 # dir_mp = "../tests/mp/"
 # dir_complexity = "../tests/complexity/"
 run(dir_.resolve(), ntimes)
