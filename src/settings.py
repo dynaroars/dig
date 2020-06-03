@@ -30,7 +30,7 @@ INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
-IUPPER = 10  # t <= 10
+IUPPER = 100  # t <= iupper
 IDEG = 2  # deg 2 (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1

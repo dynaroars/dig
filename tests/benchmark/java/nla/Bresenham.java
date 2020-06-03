@@ -4,7 +4,6 @@ public class Bresenham {
     }
 
     public static int mainQ(int X, int Y){
-
 	int v, x, y;
 	v = 2 * Y - X;
 	y = 0;
