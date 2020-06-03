@@ -23,7 +23,7 @@ You can install DIG yourself.  The tool has been tested using the following setu
 
 * Debian Linux 9 or 10 (64 bit)
 * SageMath `9.1` (64 bit)
-* Microsoft Z3 SMT solver `4.8.3`
+* Microsoft Z3 SMT solver `4.8.7` (do not use `4.8.8` as it has some strange hanging bugs)
 * Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
 * Java PathFinder and Symbolic Finder: 
   * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
