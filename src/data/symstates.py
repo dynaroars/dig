@@ -299,19 +299,23 @@ class SymStatesMaker(metaclass=ABCMeta):
         cmd = self.mk(depth)
         mlog.debug("Obtain symbolic states (depth {})".format(depth))
         mlog.debug(cmd)
+
+        s = None
         try:
             cp = subprocess.run(
                 shlex.split(cmd), timeout=settings.SYMEXE_TIMEOUT,
                 capture_output=True, check=True, text=True)
-            pcs = self.pc_cls.parse(cp.stdout)
-            return pcs
-
+            s = cp.stdout
         except subprocess.TimeoutExpired as ex:
             mlog.warning("{}: {} time out after {}s".format(
                 ex.__class__.__name__, ' '.join(ex.cmd), ex.timeout))
+            s = ex.stdout
 
         except subprocess.CalledProcessError as ex:
             mlog.warning(ex)
+            return None
+        pcs = self.pc_cls.parse(s)
+        return pcs
 
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):
@@ -333,20 +337,13 @@ class SymStatesMaker(metaclass=ABCMeta):
             depths = sorted(symstates[loc])
             assert len(depths) >= 2, depths
             for i in range(len(depths)):
-                if i == 0:
-                    pass
                 iss = symstates[loc][depths[i]]
-                for j in range(i):
-                    jss = symstates[loc][depths[j]]
-                    assert jss.issubset(iss)
-                    assert len(jss) <= len(iss), (len(jss), len(iss))
-
                 # only keep diffs
                 for j in range(i):
                     jss = symstates[loc][depths[j]]
                     for s in jss:
-                        assert s in iss, s
-                        iss.remove(s)
+                        if s in iss:
+                            iss.remove(s)
 
         # clean up
         empties = [(loc, depth) for loc in symstates
@@ -516,7 +513,8 @@ class SymStates(dict):
                 stat = data.inv.base.Inv.DISPROVED
                 mCexs.append({loc: {str(inv): cexs}})
             else:
-                stat = data.inv.base.Inv.PROVED if is_succ else data.inv.base.Inv.UNKNOWN
+                stat = (data.inv.base.Inv.PROVED
+                        if is_succ else data.inv.base.Inv.UNKNOWN)
             inv.stat = stat
             mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
@@ -526,7 +524,7 @@ class SymStates(dict):
 
         assert isinstance(loc, str), loc
         assert inv is None or isinstance(
-            inv, data.inv.base.Inv) or z3.is_expr(inv), (inv, type(inv))
+            inv, data.inv.base.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
@@ -585,14 +583,14 @@ class SymStates(dict):
 
         return cexs, is_succ
 
-    def mcheck(self, symstates_expr, inv, inps, ncexs):
+    def mcheck(self, symstates_expr, expr, inps, ncexs):
         """
-        check if pathcond => inv
+        check if pathcond => expr
         if not, return cex
         return cexs, is_succ (if the solver does not timeout)
         """
         assert z3.is_expr(symstates_expr), symstates_expr
-        assert inv is None or z3.is_expr(inv), inv
+        assert expr is None or z3.is_expr(expr), expr
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
         # assert self.check_check_mode(check_mode), check_mode
@@ -602,8 +600,8 @@ class SymStates(dict):
         if iconstr is not None:
             f = z3.simplify(z3.And(iconstr, f))
 
-        if inv is not None:
-            f = z3.Not(z3.Implies(f, inv))
+        if expr is not None:
+            f = z3.Not(z3.Implies(f, expr))
 
         models, stat = helpers.miscs.Z3.get_models(f, ncexs)
         cexs, is_succ = helpers.miscs.Z3.extract(models)

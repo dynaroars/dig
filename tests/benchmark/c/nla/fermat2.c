@@ -3,8 +3,6 @@
 
 void vassume(int b){}
 void vtraces1(int A, int R, int u, int v, int r){}
-void vtraces2(int A, int R, int u, int v){}
-
 
 int mainQ(int A, int R){
     //vassume(A >= 1);
@@ -34,7 +32,6 @@ int mainQ(int A, int R){
 	    u=u+2;
 	}
     }
-    vtraces2(A, R, u, v);
     //assert(u!=v);
     return (u-v)/2;
 }

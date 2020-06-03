@@ -342,43 +342,6 @@ class Miscs(object):
         rs = Q(p.lhs()).coefficients()
         return rs
 
-    @classmethod
-    def get_vars_deg(cls, p):
-        """
-        Returns a list of variables, (highest) deg  for each operand
-        sage: from helpers.miscs import Miscs
-        sage: var('x y z')
-        (x, y, z)
-        sage: Miscs.get_vars_deg(x*y*z + z**2) == [((x, y, z), 3), ((z,), 2)]
-        sage: Miscs.get_vars_deg(z) == [((z,), 1)]
-        """
-        results = []
-        if p.operands():
-            for p_ in p.operands():
-                results.append((p_.variables(),
-                                sum(p_.degree(v) for v in p_.variables())))
-        else:
-            assert len(p.variables()) == 1, p
-            results.append((p.variables(), 1))
-        return results
-
-    @classmethod
-    def get_degs(cls, p):
-        if p.operands():
-            degs = []
-            for p_ in p.operands():
-                deg = sum(p_.degree(v) for v in p_.variables())
-                degs.append(deg)
-            return degs
-        else:  # x
-            assert len(p.variables()) == 1, p
-            return [1]
-
-    @classmethod
-    def get_degs1(cls, p):
-        vd = cls.get_vars_deg(p)
-        return [d for _, d in vd]
-
     @staticmethod
     def is_repeating_rational(x):
         "check if x is a repating rational"

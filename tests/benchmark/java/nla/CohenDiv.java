@@ -1,5 +1,5 @@
 public class CohenDiv {
-    //public static void vtrace1(int q, int r, int a, int b, int x, int y){}
+    public static void vtrace1(int q, int r, int a, int b, int x, int y){}
     public static void vtrace2(int q, int r, int a, int b, int x, int y){}
     public static void main (String[] args) {}
      
@@ -18,7 +18,7 @@ public class CohenDiv {
 	    //assert(q*y + r == x);
 	    //assert(a*y == b);
 	    
-	    //vtrace1(q,r,a,b,x,y);
+	    vtrace1(q, r, a, b, x, y);
 	    
 	    if(!(r>=y)) break;
 	    a=1;
@@ -28,7 +28,7 @@ public class CohenDiv {
 		//assert(q*y + r == x);
 		//assert(a*y == b);
 
-		vtrace2(q,r,a,b,x,y);
+		vtrace2(q, r, a, b, x, y);
 		if(!(r >= 2*b)) break;
 
 		a = 2*a;

@@ -3,7 +3,7 @@
 
 void vassume(int b){}
 void vtrace1(int x, int y, int z, int k){}
-void vtrace2(int x, int y, int z, int k){}
+
 
 int mainQ(int z, int k){
     vassume(z >= 0);
@@ -26,7 +26,6 @@ int mainQ(int z, int k){
     }//geo1
 
     x = x *(z - 1);
-    vtrace2(x, y, z, k);
     return x;
 }
 

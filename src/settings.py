@@ -14,7 +14,7 @@ DO_IEQS = True  # support (octagonal) inequalities
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = True  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
-DO_SOLVER_STATS = True
+DO_SOLVER_STATS = False
 
 INP_MAX_V = 300
 SYMEXE_TIMEOUT = 20  # secs
@@ -30,7 +30,8 @@ INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
-IUPPER = 10  # t <= 10
+IUPPER = 100  # t <= iupper
+IDEG = 2  # deg 2 (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
 

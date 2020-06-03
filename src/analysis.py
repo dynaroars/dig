@@ -136,7 +136,6 @@ class AResult(Result):
         """
         Get max vars, terms, deg, mainly for eqts
         """
-
         vss = []
         maxdegs = []
         ntermss = []
@@ -151,6 +150,18 @@ class AResult(Result):
         maxdeg = max(maxdegs)
         nterms = max(ntermss)
         return nvs, maxdeg, nterms
+
+    @classmethod
+    def get_degs(cls, p):
+        if p.operands():
+            degs = []
+            for p_ in p.operands():
+                deg = sum(p_.degree(v) for v in p_.variables())
+                degs.append(deg)
+            return degs
+        else:  # x
+            assert len(p.variables()) == 1, p
+            return [1]
 
     @classmethod
     def analyze_inv(cls, inv):
@@ -169,7 +180,7 @@ class AResult(Result):
         else:
             p = inv.inv
             vs = p.variables()
-            degs = helpers.miscs.Miscs.get_degs(p.lhs())
+            degs = cls.get_degs(p.lhs())
             nterms = p.lhs().number_of_operands()
 
         return vs, max(degs), nterms
@@ -272,7 +283,7 @@ class Results:
 
 
 class Benchmark:
-    TIMEOUT = 900  # seconds
+    TIMEOUT = 1200  # seconds
 
     def __init__(self, inp, args):
         assert isinstance(inp, Path), inp
@@ -281,19 +292,24 @@ class Benchmark:
         self.inp = inp
         self.args = args
 
+    def valid_file(cls, f):
+        return f.is_file() and f.suffix in {'.c', '.java'}
+
     def start(self):
         inp = self.inp
         args = self.args
 
-        if inp.is_file():
+        bfiles = []
+        if self.valid_file(inp):
             # benchmark single file
             bfiles = [inp]
             bstr = inp.stem  # CohenDiv
-        else:
-            assert inp.is_dir(), inp
+        elif inp.is_dir():
             # benchmark all files in dir
-            bfiles = sorted(f for f in inp.iterdir() if f.is_file())
+            bfiles = sorted(f for f in inp.iterdir() if self.valid_file(f))
             bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
+        else:
+            mlog.error('something wrong with {}'.format(inp))
 
         ntimes = args.benchmark_times
 
@@ -413,8 +429,11 @@ class Analysis:
                     load2(d)
 
         for prog in sorted(results_d):
-            if not results_d[prog]:
+            results = [AResult(r) for r in results_d[prog]
+                       if r.dinvs.siz]
+            if not results:
+                mlog.warning("no results for {}".format(prog))
                 continue
-            stats = Results(prog, [AResult(r) for r in results_d[prog]])
+            stats = Results(prog, results)
             stats.start(median)
             # stats.analyze(mean)

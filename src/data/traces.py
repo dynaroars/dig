@@ -107,9 +107,13 @@ class Traces(SymbsValsSet):
         else:
             return str(len(self))
 
-    def myeval(self, expr):
+    def myeval(self, expr, pred=None):
         assert Miscs.is_expr(expr), expr
-        return [trace.myeval(expr) for trace in self]
+
+        if pred is None:
+            return [trace.myeval(expr) for trace in self]
+        else:
+            return any(pred(trace.myeval(expr)) for trace in self)
 
     @classmethod
     def extract(cls, cexs, useOne=True):

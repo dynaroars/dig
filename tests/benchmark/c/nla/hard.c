@@ -38,7 +38,6 @@ int mainQ(int A, int B){
 	}
     }
 
-    vtrace3(A, B, q, r, d);
     return q;
 }
 

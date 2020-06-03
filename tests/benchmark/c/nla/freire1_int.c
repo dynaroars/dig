@@ -46,7 +46,6 @@ cpa.sh -kInduction -setprop solver.solver=z3 freire1.c
 
 void vassume(int b){}
 void vtrace1(int a, int x, int r){}
-void vtrace2(int a, int x, int r){}
 
 int mainQ(int x){
     int a = x * 2;
@@ -62,7 +61,6 @@ int mainQ(int x){
 	r = r + 1;
     }
 
-    vtrace2(a, x, r);
     //assert(r==(int)round(sqrt(a)));
     return r;
 }

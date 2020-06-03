@@ -5,7 +5,6 @@ void vassume(int b){}
 void vtrace1(int a, int b, int x, int y, int u, int v){}
 void vtrace2(int a, int b, int x, int y, int u, int v){}
 void vtrace3(int a, int b, int x, int y, int u, int v){}
-void vtrace4(int a, int b, int x, int y, int u, int v){}
 
 
 int mainQ(int a, int b){
@@ -43,7 +42,6 @@ int mainQ(int a, int b){
 	}
 
     }
-    vtrace4(a, b, x, y, u, v);
     //x==gcd(a,b)
     return u+v; ; //lcm     
 }

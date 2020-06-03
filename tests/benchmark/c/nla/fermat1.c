@@ -45,7 +45,7 @@ int mainQ(int A, int R){
   
     //assert(u!=v); 
     //do not consider r as it is guaranteed to be 0
-    vtraces4(A, R, u, v);
+    //vtraces4(A, R, u, v);
     return (u-v)/2;
 }
 

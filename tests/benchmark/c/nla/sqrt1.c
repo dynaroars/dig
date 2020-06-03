@@ -3,7 +3,6 @@
 
 void vassume(int b){}
 void vtrace1(int a, int n, int t, int s){}    
-void vtrace2(int a, int n, int t, int s){}
 
 int mainQ(int n){
     vassume(n >= 0);
@@ -13,7 +12,6 @@ int mainQ(int n){
     s=1;
     t=1;
 
-    int ctr = 0;
     while(1){
 	//assert(a*a <= n);
 	//assert(t == 2*a + 1);
@@ -25,7 +23,6 @@ int mainQ(int n){
 	t=t+2;
 	s=s+t;
     }
-    vtrace2(a, n, t, s);
     return a;
      
 }

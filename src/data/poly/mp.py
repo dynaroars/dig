@@ -67,8 +67,11 @@ class MP(Poly):
 
         return self.__class__(a, b, is_max=self.is_max)
 
-    def eval_traces(self, traces):
-        return [_eval(self.__str__(use_lambda=True), t.mydict_str) for t in traces]
+    def eval_traces(self, traces, pred=None):
+        if pred is None:
+            return [_eval(self.__str__(use_lambda=True), t.mydict_str) for t in traces]
+        else:
+            return any(pred(_eval(self.__str__(use_lambda=True), t.mydict_str)) for t in traces)
 
     @classmethod
     def get_terms(cls, terms, ignore_oct=False):

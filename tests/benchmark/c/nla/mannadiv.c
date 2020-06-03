@@ -3,7 +3,7 @@
 
 void vassume(int b){}
 void vtrace1(int q, int a, int b, int x, int y){}  
-void vtrace2(int q, int a, int x, int y){}
+//void vtrace2(int q, int a, int x, int y){}
 
 int mainQ(int x, int y){
      
@@ -30,7 +30,7 @@ int mainQ(int x, int y){
 	    b = b - 1;
 	}
     }
-    vtrace2(q, a, x, y); 
+    //vtrace2(q, a, x, y); 
     //assert(q == x / y);
     return q;
 }
