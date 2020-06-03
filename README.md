@@ -15,34 +15,14 @@ First, clone DIG
 git clone https://github.com/unsat/dig.git
 ```
 Then go to DIG's directory (`cd dig`).  Also make sure that you're in the right branch (e.g., `master` or `dev`).
-To run DIG, you can either use the [provided  *docker* script](#using-docker) (easiest way) or [install DIG yourself](#installing-dig).
 
-### Using DOCKER
-
-```
-# in DIG's directory
-
-# build the docker image, 
-$ docker build . -t='dig'
-... 
-... 
-# this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
-
-# then run dig
-$ docker run -it dig
-
-# docker will drop you into a Linux prompt like below.
-$ root@b53e0bd86c11:/dig/src# 
-```
-
-You are now ready to use DIG, see instructions in [USAGE](#usage) below
 
 ### Installing DIG
 
 You can install DIG yourself.  The tool has been tested using the following setup:
 
 * Debian Linux 9 or 10 (64 bit)
-* SageMath `9.0` (64 bit)
+* SageMath `9.1` (64 bit)
 * Microsoft Z3 SMT solver `4.8.3`
 * Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
 * Java PathFinder and Symbolic Finder: 
