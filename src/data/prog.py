@@ -291,8 +291,13 @@ class Java(Src):
 
         if basename.suffix == ".java":
             cmd = settings.Java.COMPILE(filename=filename, tmpdir=tmpdir)
-            cp = subprocess.run(shlex.split(cmd),
-                                capture_output=True, check=True, text=True)
+            try:
+                cp = subprocess.run(shlex.split(cmd),
+                                    capture_output=True, check=True, text=True)
+            except subprocess.CalledProcessError as ex:
+                mlog.error("cmd '{}' gives error\n{}".format(
+                    ' '.join(ex.cmd), ex.stderr))
+                raise
             filename = (tmpdir / funname).with_suffix('.class')
             basename = Path(filename.name)
 

@@ -76,12 +76,13 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
                           (data.poly.base.GeneralPoly, data.poly.mp.MP)), \
             (term, type(term))
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
-        assert isinstance(
-            dtraces, data.traces.DTraces) and dtraces and dtraces[loc], traces
+        assert isinstance(dtraces, data.traces.DTraces), dtraces
 
         # check if concrete states(traces) exceed upperbound
-        if term.eval_traces(dtraces[loc], lambda v: int(v) > settings.IUPPER):
-            return None
+        if extra_constr is None:
+            # skip if do prepost
+            if term.eval_traces(dtraces[loc], lambda v: int(v) > settings.IUPPER):
+                return None
 
         return self.symstates.maximize(
             loc, self.to_expr(term), extra_constr)
@@ -225,9 +226,13 @@ class MP(Infer):
         terms_min = _get_terms(terms_u_no_octs, is_max=False)
         terms_mp = terms_min + terms_max
         terms.extend(terms_mp)
+
         return terms
 
     def get_excludes(self, terms, inps):
+        assert isinstance(terms, list)
+        assert all(isinstance(t, data.poly.mp.MP) for t in terms), terms
+        assert isinstance(inps, set), inps
         excludes = set()
         for term in terms:
             a_symbs = list(map(str, helpers.miscs.Miscs.get_vars(term.a)))
@@ -242,11 +247,19 @@ class MP(Infer):
 
             t_symbs = set(a_symbs + b_symbs)
 
-            if len(t_symbs) <= 1:  # ok for finding bound of single input val
+            if len(t_symbs) <= 1:  # finding bound of single input val,
                 continue
 
             if (inps.issuperset(t_symbs) or
                     all(s not in inps for s in t_symbs)):
                 excludes.add(term)
 
+        ins = [t for t in terms if t not in excludes]
+        outs = [t for t in terms if t in excludes]
+        print('ins')
+        for t in ins:
+            print(t)
+        print('outs')
+        for t in outs:
+            print(t)
         return excludes

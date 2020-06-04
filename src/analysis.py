@@ -179,7 +179,7 @@ class AResult(Result):
             nterms = 1
         else:
             p = inv.inv
-            vs = p.variables()
+            vs = set(p.variables())
             degs = cls.get_degs(p.lhs())
             nterms = p.lhs().number_of_operands()
 
@@ -247,7 +247,7 @@ class Results:
             self.analyze_dicts(max_changevalss, f, 'max change vals')
         ]
 
-        return '\n'.join(ss)
+        return ', '.join(ss)
 
     @classmethod
     def analyze_dicts(cls, ds, f, label):
