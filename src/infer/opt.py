@@ -254,12 +254,12 @@ class MP(Infer):
                     all(s not in inps for s in t_symbs)):
                 excludes.add(term)
 
-        ins = [t for t in terms if t not in excludes]
-        outs = [t for t in terms if t in excludes]
-        print('ins')
-        for t in ins:
-            print(t)
-        print('outs')
-        for t in outs:
-            print(t)
+        # ins = [t for t in terms if t not in excludes]
+        # outs = [t for t in terms if t in excludes]
+        # print('ins')
+        # for t in ins:
+        #     print(t)
+        # print('outs')
+        # for t in outs:
+        #     print(t)
         return excludes

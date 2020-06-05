@@ -8,7 +8,7 @@ import multiprocessing
 from collections import Iterable
 
 import sage.all
-from sage.all import cached_function, fork
+from sage.all import cached_function
 
 import z3
 import helpers.vcommon as CM
@@ -230,10 +230,12 @@ class Miscs(object):
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
 
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
+        sage: sorted(Miscs.get_terms_fixed_coefs(
+            [x,y], 2, 1), key=lambda x: str(x))
         [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
 
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2, 1), key=lambda x: str(x))
+        sage: sorted(Miscs.get_terms_fixed_coefs(
+            [x,y^2], 2, 1), key=lambda x: str(x))
         [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
 
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
@@ -465,12 +467,15 @@ class Miscs(object):
         sage: var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
         (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
 
-        sage: sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: -1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
-        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
+        sage: sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: - \
+            1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
+        sage: Miscs.instantiate_template(
+            uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
 
-        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
+        sage: Miscs.instantiate_template(
+            uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
         assert cls.is_expr(template), template
@@ -506,8 +511,6 @@ class Miscs(object):
     def show_removed(s, orig_siz, new_siz, elapsed_time):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
-        if not n_removed:
-            return
         mlog.debug("{}: removed {} invs in {:.2f}s (orig {}, new {})"
                    .format(s, n_removed, elapsed_time, orig_siz, new_siz))
 
@@ -583,7 +586,7 @@ class Miscs(object):
     def simplify_idxs(ordered_idxs, imply_f):
         """
         attempt to remove i in idxs if imply_f returns true
-        Note: the order of idxs determine what to get checked (and removed) 
+        Note: the order of idxs determine what to get checked (and removed)
         """
         assert isinstance(ordered_idxs, list), ordered_idxs
         assert ordered_idxs == list(range(len(ordered_idxs))), ordered_idxs
@@ -635,12 +638,13 @@ class Z3(object):
         return frozenset(rs)
 
     @classmethod
-    def create_solver(cls, maximize=None):
+    def create_solver(cls, maximize=None, timeout=None):
         if maximize is None:
             solver = z3.Solver()
         else:
             solver = z3.Optimize()
-        solver.set(timeout=settings.SOLVER_TIMEOUT)
+        solver.set(
+            timeout=settings.SOLVER_TIMEOUT if timeout is None else timeout)
         return solver
 
     @classmethod
@@ -658,7 +662,7 @@ class Z3(object):
         return cexs, isSucc
 
     @classmethod
-    def get_models(cls, f, k):
+    def get_models(cls, f, k, timeout=None):
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -668,7 +672,7 @@ class Z3(object):
         """
         assert z3.is_expr(f), f
         assert k >= 1, k
-        solver = cls.create_solver(maximize=None)
+        solver = cls.create_solver(maximize=None, timeout=timeout)
         solver.add(f)
         models = []
         i = 0
@@ -760,6 +764,7 @@ class Z3(object):
     @classmethod
     def _imply(cls, fs, g, is_conj=True):
         assert z3.is_expr(g), g
+
         if is_conj:  # And(fs) => g
             if z3.is_expr(fs):
                 claim = z3.Implies(fs, g)
@@ -773,6 +778,17 @@ class Z3(object):
 
         models, _ = cls.get_models(z3.Not(claim), k=1)
         return models is False
+
+    @classmethod
+    def _imply2(cls, fs, g, timeout):
+        assert z3.is_expr(g), g
+
+        if z3.is_expr(fs):
+            claim = z3.Implies(fs, g)
+        else:
+            claim = z3.Implies(z3.And(fs), g)
+        models, _ = cls.get_models(z3.Not(claim), k=1, timeout=timeout)
+        return models is False or models is None
 
     @classmethod
     def _mycmp_(cls, f, g):
