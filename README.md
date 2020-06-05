@@ -155,6 +155,18 @@ CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
 vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
 path condition: (0<=(X_x-1))&&(0<=(X_y-1))
 ...
+
+# Tell CIVL to use Z3  by editing the ~/.sarl file
+prover {
+ aliases = z3;
+ kind = Z3;
+ version = "4.8.7 - 64 bit";    
+ path = "/home/SHARED/Devel/Z3/z3/build/z3";
+ timeout = 10.0;
+ showQueries = false;
+ showInconclusives = false;
+ showErrors = true;
+}
 ```
 
 #### Setup Paths
