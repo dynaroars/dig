@@ -149,12 +149,6 @@ $ tar xf CIVL-1.20_5259.tgz
 $ ln -sf CIVL-1.20_5259 civl
 $ ln -sf civl/lib/ lib
 
-# test CIVL
-/home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
-CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
-vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
-path condition: (0<=(X_x-1))&&(0<=(X_y-1))
-...
 
 # Tell CIVL to use Z3  by editing the ~/.sarl file
 prover {
@@ -167,6 +161,14 @@ prover {
  showInconclusives = false;
  showErrors = true;
 }
+
+# test CIVL
+/home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
+CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
+vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
+path condition: (0<=(X_x-1))&&(0<=(X_y-1))
+...
+
 ```
 
 #### Setup Paths
