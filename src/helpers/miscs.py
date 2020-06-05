@@ -638,13 +638,11 @@ class Z3(object):
         return frozenset(rs)
 
     @classmethod
-    def create_solver(cls, maximize=None, timeout=None):
-        if maximize is None:
-            solver = z3.Solver()
-        else:
-            solver = z3.Optimize()
-        solver.set(
-            timeout=settings.SOLVER_TIMEOUT if timeout is None else timeout)
+    def create_solver(cls, maximize=False):
+        assert isinstance(maximize, bool), maximize
+
+        solver = z3.Optimize() if maximize else z3.Solver()
+        solver.set(timeout=settings.SOLVER_TIMEOUT)
         return solver
 
     @classmethod
@@ -662,7 +660,7 @@ class Z3(object):
         return cexs, isSucc
 
     @classmethod
-    def get_models(cls, f, k, timeout=None):
+    def get_models(cls, f, k):
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -672,7 +670,7 @@ class Z3(object):
         """
         assert z3.is_expr(f), f
         assert k >= 1, k
-        solver = cls.create_solver(maximize=None, timeout=timeout)
+        solver = cls.create_solver(maximize=False)
         solver.add(f)
         models = []
         i = 0
@@ -778,17 +776,6 @@ class Z3(object):
 
         models, _ = cls.get_models(z3.Not(claim), k=1)
         return models is False
-
-    @classmethod
-    def _imply2(cls, fs, g, timeout):
-        assert z3.is_expr(g), g
-
-        if z3.is_expr(fs):
-            claim = z3.Implies(fs, g)
-        else:
-            claim = z3.Implies(z3.And(fs), g)
-        models, _ = cls.get_models(z3.Not(claim), k=1, timeout=timeout)
-        return models is False or models is None
 
     @classmethod
     def _mycmp_(cls, f, g):

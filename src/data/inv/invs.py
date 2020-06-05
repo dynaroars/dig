@@ -36,7 +36,6 @@ class Invs(set):
     def typ_ctr(self):
         return Counter(inv.__class__.__name__ for inv in self)
 
-    # PUBLIC
     def add(self, inv):
         assert isinstance(inv, data.inv.base.Inv), inv
 
@@ -85,47 +84,44 @@ class Invs(set):
         mps = self.simplify1(mps, eqts + octs, "mps", my_get_expr)
         octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
 
-        # mps = self.simplify2(mps, eqts + octs, "mps", my_get_expr)
-        # octs = self.simplify2(octs, eqts + mps, "octs", my_get_expr)
-
-        # simplify the rest, will not simplify eqts as those are most likely useful
+        # simplify both mps and octs (slow)
         if octs or mps:
             st = time()
 
             def mysorted(ps):
                 return sorted(ps, key=lambda p: len(Miscs.get_vars(p.inv)))
-            eqts = mysorted(eqts + eqts_largecoefs)
+
             octs = mysorted(octs)
             mps = mysorted(mps)
 
-            invs = eqts + octs + mps
-            invs_exprs = [my_get_expr(inv) for inv in invs]
+            ps = octs + mps
+            ps_exprs = [my_get_expr(p) for p in ps]
+            eqt_exprs = [my_get_expr(p) for p in eqts + eqts_largecoefs]
 
             def _imply(js, i):
-                iexpr = invs_exprs[i]
+                iexpr = ps_exprs[i]
 
-                # don't consider/remove equality
-                if iexpr.decl().kind() == z3.Z3_OP_EQ:
-                    ret = False
-                else:
-                    jexprs = [invs_exprs[j] for j in js]
-                    ret = Z3._imply2(jexprs, iexpr, 5*1000)
-                    #print('{} => {}'.format(jexprs, iexpr))
+                assert iexpr.decl().kind() != z3.Z3_OP_EQ
+                jexprs = [ps_exprs[j] for j in js]
+                ret = Z3._imply(eqt_exprs + jexprs, iexpr, is_conj=True)
+                #print('{} => {}'.format(jexprs, iexpr))
                 return ret
 
-            results = Miscs.simplify_idxs(list(range(len(invs))), _imply)
-            results = [invs[i] for i in results]
-
-            Miscs.show_removed('simplify_all', len(invs),
-                               len(results), time() - st)
-
+            results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
+            results = [ps[i] for i in results]
+            Miscs.show_removed('simplify2', len(ps), len(results), time() - st)
+            results = eqts + eqts_largecoefs + results
         else:
-            results = eqts + eqts_largecoefs + mps
+            results = eqts + eqts_largecoefs + mps + octs
 
         return self.__class__(results)
 
     @classmethod
     def simplify1(cls, ps, others, msg, get_expr):
+        """
+        Simplify a class of invariants (e.g., oct or mps)
+        Relatively fast, using multiprocessing
+        """
         if len(ps) >= 2 and others:
             st = time()
             conj = [get_expr(p) for p in others]
@@ -140,31 +136,6 @@ class Invs(set):
             Miscs.show_removed('simplify1 {}'.format(msg),
                                len(ps), len(wrs), time() - st)
             ps = [p for p in wrs]
-        return ps
-
-    @classmethod
-    def simplify2(cls, ps, others, msg, get_expr):
-        assert isinstance(ps, list), ps
-
-        if len(ps) >= 2:
-            st = time()
-            conj = [get_expr(p) for p in others]
-
-            def check(i):
-                ps_ = [get_expr(p) for p in ps[:i] + ps[i+1:]]
-                return Z3._imply(conj + ps_, get_expr(ps[i]))
-
-            def f(tasks):
-                return [check(idx) for idx in tasks]
-
-            tasks = list(range(len(ps)))
-            wrs = Miscs.run_mp(
-                "simplify2 {} {}".format(len(ps), msg), tasks, f)
-            ps_ = [p for p, is_weak in zip(ps, wrs) if not is_weak]
-            Miscs.show_removed('simplify2 {}'.format(msg),
-                               len(ps), len(ps_), time() - st)
-            ps = ps_
-
         return ps
 
     @ classmethod
