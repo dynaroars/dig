@@ -56,6 +56,10 @@ if __name__ == "__main__":
        type=int,
        help="max upperbound val for ieqs")
 
+    ag("--ideg", "-ideg",
+       type=int,
+       help="degree for ieqs (e.g., 1 = linear, 2 = quadratic, etc)")
+
     ag("--iterms", "-iterms",
        type=int,
        help="number of terms for ieqs, 2 is octagonal invs")

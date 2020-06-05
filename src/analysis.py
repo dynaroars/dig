@@ -8,6 +8,7 @@ import pdb
 from collections import Counter, defaultdict, namedtuple
 from statistics import mean, median
 from pathlib import Path
+import argparse
 
 import sage.all
 
@@ -287,7 +288,7 @@ class Benchmark:
 
     def __init__(self, inp, args):
         assert isinstance(inp, Path), inp
-        assert isinstance(args, dict)
+        assert isinstance(args, argparse.Namespace), args
 
         self.inp = inp
         self.args = args

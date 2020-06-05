@@ -188,6 +188,12 @@ def setup(settings, args):
         else:
             opts.append("-iupper {}".format(args.iupper))
 
+    if args.ideg and args.ideg >= 1:
+        if settings:
+            settings.IDEG = args.ideg
+        else:
+            opts.append("-ideg {}".format(args.ideg))
+
     if args.iterms and args.iterms >= 1:
         if settings:
             settings.ITERMS = args.iterms
