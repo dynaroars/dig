@@ -244,9 +244,13 @@ class Src:
         cmd = self.instrument_cmd(filename=filename,
                                   tracefile=tracefile,
                                   symexefile=symexefile)
-        cp = subprocess.run(shlex.split(cmd),
-                            capture_output=True, check=True, text=True)
-
+        try:
+            cp = subprocess.run(shlex.split(cmd),
+                                capture_output=True, check=True, text=True)
+        except subprocess.CalledProcessError as ex:
+            mlog.error("cmd '{}' gives error\n{}".format(
+                ' '.join(ex.cmd), ex.stderr))
+            raise
         inp_decls, inv_decls, mainQ_name = self.parse_type_info(cp.stdout)
 
         self.filename, self.basename, self.funname = filename, basename, funname
