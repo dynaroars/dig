@@ -311,7 +311,7 @@ class Benchmark:
             bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
         else:
             mlog.error('something wrong with {}'.format(inp))
-
+            exit(-1)
         ntimes = args.benchmark_times
 
         toruns = []
@@ -327,6 +327,7 @@ class Benchmark:
         self.benchmark_dir = benchmark_dir
 
         # compute which runs we have to do (in case there are some existing runs)
+        self.toruns = []
         myruns = set(range(ntimes))
         for i, f in enumerate(bfiles):
             bmdir = benchmark_dir / f.stem
