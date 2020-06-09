@@ -157,15 +157,11 @@ class AResult(Result):
     @classmethod
     def get_degs(cls, p):
         if (p.operator() == sage.symbolic.operators.mul_vararg or
-                len(p.variables()) == 1):
-            # single term, like x*y or x
+                len(p.variables()) == 1):  # single term, like x*y or x
             return [sum(p.degree(v) for v in p.variables())]
         else:
             # x*y  + 3*z^2,  x*y - w
-            degs = []
-            for p_ in p.operands():
-                degs.extend(cls.get_degs(p_))
-            return degs
+            return [d for p_ in p.operands() for d in cls.get_degs(p_)]
 
     @classmethod
     def analyze_inv(cls, inv):
