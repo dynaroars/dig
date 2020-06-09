@@ -92,7 +92,7 @@ class AResult(Result):
             s for s in self.stats if isinstance(s, MaxDepthChanges)]
 
     def analyze(self):
-        self.V, self.D, self.T = self.analyze_dinvs(self.dinvs)
+        self.V, self.D, self.T, self.NL = self.analyze_dinvs(self.dinvs)
 
         def get_inv_typ(inv):
             assert inv is not None, inv
@@ -135,31 +135,39 @@ class AResult(Result):
     @classmethod
     def analyze_dinvs(cls, dinvs):
         """
-        Get max vars, terms, deg, mainly for eqts
+        Get max vars, terms, deg from invs
         """
         vss = []
         maxdegs = []
         ntermss = []
 
         for inv in dinvs.invs:
-            nvs, maxdeg, nterms = cls.analyze_inv(inv)
-            vss.append(nvs)
+            vs, maxdeg, nterms = cls.analyze_inv(inv)
+            vss.append(vs)
             maxdegs.append(maxdeg)
             ntermss.append(nterms)
 
         nvs = len(set(v for vs in vss for v in vs))
         maxdeg = max(maxdegs)
         nterms = max(ntermss)
-        return nvs, maxdeg, nterms
+
+        nnonlinears = len([d for d in maxdegs if d >= 2])
+        return nvs, maxdeg, nterms, nnonlinears
 
     @classmethod
     def get_degs(cls, p):
+        def get_deg(t):
+            # single term, like x*y
+            return sum(t.degree(v) for v in t.variables())
+
         if p.operands():
             degs = []
-            for p_ in p.operands():
-                deg = sum(p_.degree(v) for v in p_.variables())
-                degs.append(deg)
-            return degs
+            if p.operator() == sage.symbolic.operators.mul_vararg:
+                return [get_deg(p)]
+            else:
+                assert p.operator() == sage.symbolic.operators.add_varg,\
+                    p.operator()
+                return [get_deg(p_) for p_ in p.operands()]
         else:  # x
             assert len(p.variables()) == 1, p
             return [1]
@@ -199,9 +207,12 @@ class Results:
     def start(self, f):
         rs = self.results
         _ = [r.analyze() for r in rs]
-        VTD = "{},{},{}".format(f(r.V for r in rs),
-                                f(r.T for r in rs),
-                                f(r.D for r in rs))
+        VTDL = "V {}, T {}, D {}, NL {}".format(
+            f(r.V for r in rs),
+            f(r.T for r in rs),
+            f(r.D for r in rs),
+            f(r.NL for r in rs)
+        )
         time_d = defaultdict(list)
         for r in rs:
             for t in r.time_d:
@@ -214,13 +225,13 @@ class Results:
             "prog {}".format(self.prog),
             "runs {}".format(len(rs)),
             "locs {}".format(f(len(r.dinvs) for r in rs)),
-            "VTD {}".format(VTD),
+            "{}".format(VTDL),
             "traces {}".format(f(r.dtraces.siz for r in rs)),
             "inps {}".format(
                 f(len(r.inps) if r.inps else 0 for r in rs))
         ]
 
-        print('**', ', '.join(s for s in ss if s))
+        print('***', ', '.join(s for s in ss if s))
         print("time {}".format(time_s))
         print(self.analyze2(f))
         if len(rs) == 1:
@@ -360,7 +371,8 @@ class Benchmark:
 
             for j, seed in enumerate(sorted(remainruns)):
                 mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
-                    i+1, len(self.toruns), j+1, len(remainruns), seed, time.strftime("%c"), f))
+                    i+1, len(self.toruns), j+1, len(remainruns),
+                    seed, time.strftime("%c"), f))
                 try:
                     CMD = self.CMD.format(filename=f, seed=seed, tmpdir=bdir)
                     os.system(CMD)
