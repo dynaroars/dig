@@ -91,6 +91,8 @@ class AResult(Result):
         self.max_depthchanges = [
             s for s in self.stats if isinstance(s, MaxDepthChanges)]
 
+        #print(len(self.check_solvercalls), self.check_solvercalls)
+
     def analyze(self):
         self.V, self.D, self.T, self.NL = self.analyze_dinvs(self.dinvs)
 
@@ -379,6 +381,7 @@ class Benchmark:
         for rd in rundir.iterdir():
             if not rd.is_dir():
                 mlog.warning('Unexpected file {}'.format(rd))
+                continue
 
             if (rd / Result.resultfile).is_file():
                 # Dig_2_dxmdlf4y
