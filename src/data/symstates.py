@@ -643,7 +643,7 @@ class SymStates(dict):
         depth_idx = 0
 
         maxv, stat = f(depths[depth_idx])
-        if maxv != z3.unsat:  # if unknown first time
+        if maxv is not None:  # if changed
             self.put_solver_stats(
                 analysis.MaxDepthChanges(
                     str(term_expr), None, None, maxv, depths[depth_idx]))
