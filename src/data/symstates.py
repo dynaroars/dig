@@ -671,11 +671,15 @@ class SymStates(dict):
     def mmaximize(self, ss, term_expr):
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
-
         opt = helpers.miscs.Z3.create_solver(maximize=True)
         opt.add(ss)
-        h = opt.maximize(term_expr)
-        stat = opt.check()
+        try:
+            h = opt.maximize(term_expr)
+            stat = opt.check()
+        except Exception as ex:
+            mlog.error("maximize error: {}".format(ex))
+            stat = z3.unknown
+
         assert stat == z3.sat or stat == z3.unknown, stat
         v = None
         if stat == z3.sat:
