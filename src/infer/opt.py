@@ -198,6 +198,10 @@ class Ieq(Infer):
 
 
 class MP(Infer):
+    """
+    Min-max plus invariants
+    """
+
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 

@@ -23,24 +23,10 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class CheckSolverCalls(
-        namedtuple("CheckSolverCalls", ("stat",))):
-    pass
-
-
-class CheckDepthChanges(
-        namedtuple("CheckDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
-    pass
-
-
-class MaxSolverCalls(
-        namedtuple("MaxSolverCalls", ("stat",))):
-    pass
-
-
-class MaxDepthChanges(
-        namedtuple("MaxDepthChanges", ("prop", "v1", "d1", "v2", "d2"))):
-    pass
+CheckSolverCalls = namedtuple("CheckSolverCalls", ("stat"))
+CheckDepthChanges = namedtuple("CheckDepthChanges", ("prop v1 d1 v2 d2"))
+MaxSolverCalls = namedtuple("MaxSolverCalls", ("stat"))
+MaxDepthChanges = namedtuple("MaxDepthChanges", "prop v1 d1 v2 d2")
 
 
 class Result:
