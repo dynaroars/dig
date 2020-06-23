@@ -11,7 +11,7 @@ DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
-DO_MINMAXPLUS = True  # support minmax-plus inequalities
+DO_MINMAXPLUS = False  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
@@ -31,7 +31,7 @@ UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
 IUPPER = 20  # t <= iupper
-IDEG = 2  # deg 2 (if 1 then linear)
+IDEG = 1  # deg 2 (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
 
@@ -143,11 +143,11 @@ def setup(settings, args):
         else:
             opts.append("-noieqs")
 
-    if args.nominmaxplus:
+    if args.dominmaxplus:
         if settings:
-            settings.DO_MINMAXPLUS = not args.nominmaxplus
+            settings.DO_MINMAXPLUS = args.dominmaxplus
         else:
-            opts.append("-nominmaxplus")
+            opts.append("-dominmaxplus")
 
     if args.nopreposts:
         if settings:
