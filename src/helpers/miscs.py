@@ -655,8 +655,16 @@ class Z3(object):
         cexs = set()
         isSucc = models is not None
         if isSucc and models:  # disproved
-            cexs = [{str(s): sage.all.sage_eval(str(model[s])) for s in model}
-                    for model in models]
+            cexs = []
+            for model in models:
+                cex = {}
+                for v in model:
+                    mv = str(model[v])
+                    try:
+                        cex[str(v)] = sage.all.sage_eval(mv)
+                    except SyntaxError as ex:
+                        mlog.warning('cannot analyze {}'.format(model))
+                cexs.append(cex)
         return cexs, isSucc
 
     @classmethod
@@ -682,7 +690,19 @@ class Z3(object):
                 break
             models.append(m)
             # create new constraint to block the current model
-            block = z3.Not(z3.And([v() == m[v] for v in m]))
+            ands = []
+            for v in m:
+                try:
+                    e = v() == m[v]
+                except z3.Z3Exception as ex:
+                    """
+                    when the model contains functions, e.g., 
+                    [..., div0 = [(3, 2) -> 1, else -> 0]]
+                    """
+                    mlog.warning('cannot analyze {}'.format(m))
+
+                ands.append(e)
+            block = z3.Not(z3.And(ands))
             solver.add(block)
 
         stat = solver.check()
