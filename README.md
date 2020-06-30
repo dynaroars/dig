@@ -1,10 +1,137 @@
 # DIG
-DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool.
+DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG can infer equalities such as `x+y=5` and `x*y=2z`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
 
-The current version of DIG works with Java programs, C programs, and concrete program execution traces.
+The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also can infer  invariants direclty from given concrete program execution traces.
+
+## Usage
+
+You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java` or a bytecode file `.class`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
+
+### Generating Invariants From a Program
+
+Consider the following `CohenDiv.java` program
+
+```java
+// in DIG's src directory
+// $ less ../test/nla/CohenDiv.java
+
+public class CohenDiv {
+     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
+     public static void vtrace2(int x, int y, int q, int r){}
+
+     public static void main (String[] args) {}
+
+
+     public static int mainQ_cohendiv(int x, int y) {
+          assert(x>0 && y>0);
+
+          int q=0;
+          int r=x;
+          int a=0;
+          int b=0;
+
+          while(true) {
+               if(!(r>=y)) break;
+               a=1;
+               b=y;
+
+               while (true) {
+                    vtrace1(q,r,a,b,x,y);
+                    if(!(r >= 2*b)) break;
+
+                    a = 2*a;
+                    b = 2*b;
+               }
+               r=r-b;
+               q=q+a;
+          }
+          vtrace2(x,y,q,r);
+          return q;
+     }
+}
+```
+
+* To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
+  * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
+  * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these specific variables.
+
+* Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following equality and inequality invariants at `vtracesX` locations:
+
+```
+#in DIG's src directory
+$ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
+alg:INFO:analyze '../tests/nla/CohenDiv.java'
+alg:INFO:gen eqts at 2 locs
+alg:INFO:infer 3 eqts in 13.8612298965s
+alg:INFO:gen ieqs at 2 locs
+cegirIeqs:INFO:check upperbounds for 104 terms at 2 locs
+alg:INFO:infer 52 ieqs in 9.20348906517s
+alg:INFO:test 55 invs on 291 traces
+alg:INFO:uniqify 47 invs
+*** '../tests/nla/CohenDiv.java', 2 locs, invs 10 (3 eqts), inps 83 time 26.650242 s, rand 63:
+vtrace1: q*y + r - x == 0 p, a*y - b == 0 p, r - x <= 0 p, -a - q <= -1 p, -b <= -1 p, b - r <= 0 p
+vtrace2: q*y + r - x == 0 p, -q - x <= -1 p, -r <= 0 p, r - y <= -1 p
+```
+
+
+
+#### Other programs
+The directory `tests/nla/` contains many programs having nonlinear invariants.
+
+
+### Generating Invariants From Traces
+
+DIG can infer invariants directly from a file concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+
+```
+# in DIG's src directory
+$ less ../test/traces/CohenDiv.tcs
+vtrace1: I q, I r, I a, I b, I x, I y
+vtrace1: 4, 8, 1, 4, 24, 4
+vtrace1: 16, 89, 1, 13, 297, 13
+vtrace1: 8, 138, 4, 76, 290, 19
+vtrace1: 0, 294, 8, 192, 294, 24
+vtrace1: 64, 36, 4, 16, 292, 4
+...
+vtrace2: I x, I y, I q, I r
+vtrace2: 280, 24, 11, 16
+vtrace2: 352, 11, 32, 0
+vtrace2: 22, 298, 0, 22
+vtrace2: 274, 275, 0, 274
+vtrace2: 2, 287, 0, 2
+...
+```
+
+```
+# in DIG's src directory
+$ sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
+alg:INFO:analyze '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs'
+alg:INFO:test 48 invs using 397 traces in 0.12s
+alg:INFO:simplify 45 invs in 0.72s
+*** '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs', 2 locs, invs 16 (Oct: 14, Eqt: 2), traces 397, inps 0, time 10.11s, rand seed 1564806847.44, test 99 40:
+vtrace1 (11 invs):
+1. a*y - b == 0 None
+2. b - r <= 0 None
+3. q - x <= -1 None
+4. r - x <= 0 None
+5. -q <= 0 None
+6. -b <= -1 None
+7. -y <= -1 None
+8. -q - r <= -7 None
+9. -x + y <= -2 None
+10. -x - y <= -10 None
+11. -x <= -7 None
+vtrace2 (5 invs):
+1. q*y + r - x == 0 None
+2. r - y <= -1 None
+3. -r <= 0 None
+4. -x - y <= -10 None
+5. -x <= -1 None
+```
+Note that most of the inequality results here are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), then DIG can check and remove spurious results.
 
 
 ## Setup
@@ -190,133 +317,6 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
   *  Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
   *  Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
   *  Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
-
-## Usage
-
-You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java` or a bytecode file `.class`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
-
-### Generating Invariants From a Program
-
-Consider the following `CohenDiv.java` program
-
-```java
-// in DIG's src directory
-// $ less ../test/nla/CohenDiv.java
-
-public class CohenDiv {
-     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
-     public static void vtrace2(int x, int y, int q, int r){}
-
-     public static void main (String[] args) {}
-
-
-     public static int mainQ_cohendiv(int x, int y) {
-          assert(x>0 && y>0);
-
-          int q=0;
-          int r=x;
-          int a=0;
-          int b=0;
-
-          while(true) {
-               if(!(r>=y)) break;
-               a=1;
-               b=y;
-
-               while (true) {
-                    vtrace1(q,r,a,b,x,y);
-                    if(!(r >= 2*b)) break;
-
-                    a = 2*a;
-                    b = 2*b;
-               }
-               r=r-b;
-               q=q+a;
-          }
-          vtrace2(x,y,q,r);
-          return q;
-     }
-}
-```
-
-* To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
-  * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
-  * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these specific variables.
-
-* Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following equality and inequality invariants at `vtracesX` locations:
-
-```
-#in DIG's src directory
-$ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
-alg:INFO:analyze '../tests/nla/CohenDiv.java'
-alg:INFO:gen eqts at 2 locs
-alg:INFO:infer 3 eqts in 13.8612298965s
-alg:INFO:gen ieqs at 2 locs
-cegirIeqs:INFO:check upperbounds for 104 terms at 2 locs
-alg:INFO:infer 52 ieqs in 9.20348906517s
-alg:INFO:test 55 invs on 291 traces
-alg:INFO:uniqify 47 invs
-*** '../tests/nla/CohenDiv.java', 2 locs, invs 10 (3 eqts), inps 83 time 26.650242 s, rand 63:
-vtrace1: q*y + r - x == 0 p, a*y - b == 0 p, r - x <= 0 p, -a - q <= -1 p, -b <= -1 p, b - r <= 0 p
-vtrace2: q*y + r - x == 0 p, -q - x <= -1 p, -r <= 0 p, r - y <= -1 p
-```
-
-
-
-#### Other programs
-The directory `tests/nla/` contains many programs having nonlinear invariants.
-
-
-### Generating Invariants From Traces
-
-DIG can infer invariants directly from a file concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
-
-```
-# in DIG's src directory
-$ less ../test/traces/CohenDiv.tcs
-vtrace1: I q, I r, I a, I b, I x, I y
-vtrace1: 4, 8, 1, 4, 24, 4
-vtrace1: 16, 89, 1, 13, 297, 13
-vtrace1: 8, 138, 4, 76, 290, 19
-vtrace1: 0, 294, 8, 192, 294, 24
-vtrace1: 64, 36, 4, 16, 292, 4
-...
-vtrace2: I x, I y, I q, I r
-vtrace2: 280, 24, 11, 16
-vtrace2: 352, 11, 32, 0
-vtrace2: 22, 298, 0, 22
-vtrace2: 274, 275, 0, 274
-vtrace2: 2, 287, 0, 2
-...
-```
-
-```
-# in DIG's src directory
-$ sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
-alg:INFO:analyze '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs'
-alg:INFO:test 48 invs using 397 traces in 0.12s
-alg:INFO:simplify 45 invs in 0.72s
-*** '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs', 2 locs, invs 16 (Oct: 14, Eqt: 2), traces 397, inps 0, time 10.11s, rand seed 1564806847.44, test 99 40:
-vtrace1 (11 invs):
-1. a*y - b == 0 None
-2. b - r <= 0 None
-3. q - x <= -1 None
-4. r - x <= 0 None
-5. -q <= 0 None
-6. -b <= -1 None
-7. -y <= -1 None
-8. -q - r <= -7 None
-9. -x + y <= -2 None
-10. -x - y <= -10 None
-11. -x <= -7 None
-vtrace2 (5 invs):
-1. q*y + r - x == 0 None
-2. r - y <= -1 None
-3. -r <= 0 None
-4. -x - y <= -10 None
-5. -x <= -1 None
-```
-Note that most of the inequality results here are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), then DIG can check and remove spurious results.
 
 
 ### Additional Info
