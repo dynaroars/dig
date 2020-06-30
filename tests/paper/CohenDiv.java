@@ -13,19 +13,11 @@ public class CohenDiv {
 	int b=0;
 	  
 	while(true) {
-	    //assert(q*y + r == x);
-	    //assert(a*y == b);
-	    
-	    
-	    
 	    if(!(r>=y)) break;
 	    a=1;
 	    b=y;
 
 	    while (true) {
-		//assert(q*y + r == x);
-		//assert(a*y == b);
-
 		vtrace1(q,r,a,b,x,y);
 		if(!(r >= 2*b)) break;
 
@@ -35,9 +27,8 @@ public class CohenDiv {
 	    r=r-b;
 	    q=q+a;
 	}
-	//assert(q*y + r == x);
+
 	vtrace2(x,y,q,r);
-	//vtrace3(x,y,q,r);
 	return q;
     }
 }

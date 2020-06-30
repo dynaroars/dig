@@ -1,5 +1,5 @@
 # DIG
-DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG can infer equalities such as `x+y=5` and `x*y=2z`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.
+DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG can infer equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use terms to represent desired information, e.g., $t = 2^x$, and have DIG infer invariants over terms.
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
@@ -8,7 +8,7 @@ The current version of DIG works with programs written in Java, Java bytecode, a
 
 ## Usage
 
-You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java` or a bytecode file `.class`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
+You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java`, a bytecode file `.class`, or a C file `.c`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
 
 ### Generating Invariants From a Program
 
@@ -26,7 +26,7 @@ public class CohenDiv {
 
 
      public static int mainQ_cohendiv(int x, int y) {
-          assert(x>0 && y>0);
+          assert(x>=0 && y>=1);
 
           int q=0;
           int r=x;
@@ -56,26 +56,54 @@ public class CohenDiv {
 
 * To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
   * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
-  * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these specific variables.
+  * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
 * Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following equality and inequality invariants at `vtracesX` locations:
 
 ```
 #in DIG's src directory
-$ sage -python -O dig.py ../tests/nla/CohenDiv.java -log 3
-alg:INFO:analyze '../tests/nla/CohenDiv.java'
-alg:INFO:gen eqts at 2 locs
-alg:INFO:infer 3 eqts in 13.8612298965s
-alg:INFO:gen ieqs at 2 locs
-cegirIeqs:INFO:check upperbounds for 104 terms at 2 locs
-alg:INFO:infer 52 ieqs in 9.20348906517s
-alg:INFO:test 55 invs on 291 traces
-alg:INFO:uniqify 47 invs
-*** '../tests/nla/CohenDiv.java', 2 locs, invs 10 (3 eqts), inps 83 time 26.650242 s, rand 63:
-vtrace1: q*y + r - x == 0 p, a*y - b == 0 p, r - x <= 0 p, -a - q <= -1 p, -b <= -1 p, b - r <= 0 p
-vtrace2: q*y + r - x == 0 p, -q - x <= -1 p, -r <= 0 p, r - y <= -1 p
+tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3
+settings:INFO:2020-06-30 13:13:43.240386: dig.py ../tests/paper/CohenDiv.java -log 3
+alg:INFO:analyze '../tests/paper/CohenDiv.java'
+alg:INFO:compute symbolic states (6.03s)
+alg:INFO:infer invs at 2 locs: vtrace2, vtrace1
+alg:INFO:found 3 eqts (10.00s)
+alg:INFO:found 31 ieqs (0.41s)
+alg:INFO:test 34 invs using 223 traces (0.08s)
+alg:INFO:simplify 34 invs (0.58s)
+vtrace1 (7 invs):
+1. q*y + r - x == 0
+2. a*y - b == 0
+3. b - x <= 0
+4. -y <= -1
+5. -r + y <= 0
+6. -q <= 0
+7. -b <= -1
+vtrace2 (4 invs):
+1. q*y + r - x == 0
+2. r - y <= -1
+3. -r <= 0
+4. -q <= 0
+run time 17.44s, result dir: /var/tmp/dig_553402345795059927_3r_6gwkz
+*** prog CohenDiv, runs 1, locs 2, V 6, T 3, D 2, NL 3, traces 223, inps 72
+time eqts 10.00s, ieqs 0.41s, simplify 0.66s, symbolic_states 6.03s, total 17.44s
+invs 11 (Eqt: 3, Oct: 8), check solver calls 0 (), check change depths 0 (), check change vals 0 (), max solver calls 0 (), max change depths 0 (), max change vals 0 ()
+rand seed 1593540823.24, test (50, 75)
+vtrace1 (7 invs):
+1. q*y + r - x == 0
+2. a*y - b == 0
+3. b - x <= 0
+4. -y <= -1
+5. -r + y <= 0
+6. -q <= 0
+7. -b <= -1
+vtrace2 (4 invs):
+1. q*y + r - x == 0
+2. r - y <= -1
+3. -r <= 0
+4. -q <= 0
+alg:INFO:tmpdir: /var/tmp/dig_553402345795059927_3r_6gwkz
 ```
-
 
 
 #### Other programs
