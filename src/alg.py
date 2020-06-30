@@ -53,7 +53,11 @@ class Dig(metaclass=ABCMeta):
             return dinvs
 
         if settings.DO_SIMPLIFY:
-            self.symstates.get_solver_stats()
+            try:
+                self.symstates.get_solver_stats()
+            except AttributeError:
+                # DigTraces does not have symbolic states
+                pass
 
             msg = "simplify {} invs".format(dinvs.siz)
             mlog.debug(msg)

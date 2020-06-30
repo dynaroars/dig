@@ -135,31 +135,99 @@ vtrace2: 2, 287, 0, 2
 
 ```
 # in DIG's src directory
-$ sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
-alg:INFO:analyze '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs'
-alg:INFO:test 48 invs using 397 traces in 0.12s
-alg:INFO:simplify 45 invs in 0.72s
-*** '/home/tnguyen/Dropbox/code/dig/tests/traces/cohendiv.tcs', 2 locs, invs 16 (Oct: 14, Eqt: 2), traces 397, inps 0, time 10.11s, rand seed 1564806847.44, test 99 40:
-vtrace1 (11 invs):
-1. a*y - b == 0 None
-2. b - r <= 0 None
-3. q - x <= -1 None
-4. r - x <= 0 None
-5. -q <= 0 None
-6. -b <= -1 None
-7. -y <= -1 None
-8. -q - r <= -7 None
-9. -x + y <= -2 None
-10. -x - y <= -10 None
-11. -x <= -7 None
+tnguyen@debian ~/d/src> sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
+settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
+alg:INFO:analyze '../tests/traces/CohenDiv.tcs'
+alg:INFO:test 30 invs using 181 traces (0.96s)
+alg:INFO:simplify 26 invs (0.42s)
+vtrace1 (6 invs):
+1. q*y + r - x == 0
+2. -y <= -1
+3. -x <= -1
+4. -x - y <= -10
+5. -r <= 0
+6. -q <= 0
 vtrace2 (5 invs):
-1. q*y + r - x == 0 None
-2. r - y <= -1 None
-3. -r <= 0 None
-4. -x - y <= -10 None
-5. -x <= -1 None
+1. q*y + r - x == 0
+2. r - y <= -1
+3. -x <= -1
+4. -x - y <= -10
+5. -r <= 0
 ```
 Note that most of the inequality results here are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), then DIG can check and remove spurious results.
+
+### Additional Options
+Most of DIG's behaviors can be controlled by the users.  Use `-h` or `--help` option to see options that can be passed into DIG. Below we show several ones
+
+#### Specify max degree for equalities
+By default, DIG automatically to find equalities up to certain degree.  We can specify this degree directly with `-maxdeg X`
+```
+tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
+...
+```
+
+#### Infer Min/Max 
+We can find *min/max* inqualities with the option `-dominmax`.  This typically will take some time depends on the program.  Also, DIG might not return any min/max results if they are not available or can be implied by other invariants in the program.
+```
+tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -maxdeg 2 -noieqs -dominmax  #find equalities up to degree 2, donot infer inequalities, infer min/max inequalities
+...
+vtrace1 (7 invs):
+1. q*y + r - x == 0
+2. a*y - b == 0
+3. min(r, x, 0) - (a - 1) <= 0
+4. min(q, r, y, 0) - (b - 1) <= 0
+5. min(b, y, 0) - q <= 0
+6. max(r, 0) - x <= 0
+7. max(a, b, y, 0) - r <= 0
+vtrace2 (5 invs):
+1. q*y + r - x == 0
+2. min(y, 0) - r <= 0
+3. min(r, y, 0) - q <= 0
+4. min(q, 0) - (y - 1) <= 0
+5. (r + 1) - max(y, 0) <= 0
+```
+
+#### Customizing Inequalities
+By default, DIG infers octagonal inequalities (i.e., linear inequalities among 2 variables with coefs in in the set {-1,0,1}).  But we can customize DIG to find more expression inequalities (of course, with the trade-off that it takes more time to generate more expressive invs).
+
+Below we use a different example `Sqrt1.java` to demonstrate
+
+```
+tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
+...
+1. a <= 10
+2. a - n <= 0
+3. -t <= -1
+4. -s <= -1
+5. -n + t <= 2
+6. -a <= 0
+
+
+tnguyen@debian ~/d/src> sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -ideg 2  # find nonlinear octagonal inequalities
+...
+1. a*s - n*t <= 1
+2. a <= 10
+3. -t <= -1
+4. -s <= -1
+5. -n*t + s <= 1
+6. -n*s + t <= 1
+7. -n*s + a*t <= 0
+8. -n + t <= 2
+9. -a*n + t <= 2
+10. -a*n + s <= 3
+11. -a <= 0
+
+tnguyen@debian ~/d/src> timeout 900 sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -icoefs 2  # find linear inequalities with coefs in {2,-1,0,1,2}
+...
+1. a <= 10
+2. 2*a - n <= 1
+3. -t <= -1
+4. -s <= -1
+5. -n + 2*t <= 6
+6. -a <= 0
+7. -2*n + t <= 1
+8. -2*n + s <= 2
+```
 
 
 ## Setup
