@@ -1,0 +1,211 @@
+Here I am introducing new variables which are scalar multiples of the variables that are already in place to check difference between runtimes due to introduction of new variables vs increasing the interval of octagonal coefficients from default to [-2,2]
+
+The programs updated with introduction of new variable are:
+
+Sqrt1OctaTest.java
+CohenDivOctaTest.java
+CohenDiv1LocOctaTest.java
+TrippleOctaTest.java
+
+[Note: for all the tests Dig was run with -noeqts flag i.e. dig was asked not to find the equality invariables]
+==================================================================================================
+==================================================================================================
+
+For the program Sqrt1.java, following inequalities are found using the interval [-1,1] for octagonal inequalities. 
+Total time taken: 2.22 s
+
+1. a <= 10
+2. a - n <= 0
+3. -t <= -1
+4. -s <= -1
+5. -n + t <= 2
+6. -a <= 0
+---------------------------------------------------------------------------------------------------
+If we set the interval to [-2,2], we get the following inequalities:
+Total time taken: 3.18 s
+
+1. a <= 10
+2. 2*a - n <= 1
+3. -s <= -1
+4. -n + 2*t <= 6
+5. -a <= 0
+6. -2*t <= -2
+7. -2*n + t <= 1
+8. -2*n + s <= 2
+---------------------------------------------------------------------------------------------------
+We introduce new varibales,
+m = 2*a, k = 2*t, p = 2*n
+
+and run the program for interval [-1,1]
+
+Expected invariables:
+
+m - n <= 1, found
+-n + k <= 6, found
+-k <= -2, found
+-p + t <= 1, not found, closest found -n+t <= 2
+-p + s <= 2, not found
+
+All the inequalities found (Total time taken 2.85 s):
+
+1. n - p <= 0
+2. m <= 20
+3. m - n <= 1
+4. k - n <= 6
+5. a <= 10
+6. a - n <= 0
+7. -t <= -1
+8. -s <= -1
+9. -n + t <= 2
+10. -m <= 0
+11. -k <= -2
+12. -a <= 0
+--------------------------------------------------------------------------------------------------
+
+Remark: Introducing new variable seems to be more time efficient than increasing the interval for coefficient. 
+However, some of the inequalities that are generated when the interval is [-2,2] are not generated when new variables are introduced. 
+===================================================================================================
+===================================================================================================
+
+For the program CohenDiv.java, following inequalities are found using the interval [-1,1] for octagonal inequalities.
+Total time taken: 6.86 s
+
+vtrace1 (9 invs):
+1. r - x <= 0
+2. q - x <= -1
+3. b - x <= 0
+4. a - x <= 0
+5. -y <= -1
+6. -r + y <= 0
+7. -q <= 0
+8. -b + y <= 0
+9. -a <= -1
+vtrace2 (5 invs):
+1. r - y <= -1
+2. r - x <= 0
+3. q - x <= 0
+4. -r <= 0
+5. -q <= 0
+
+
+---------------------------------------------------------------------------------------------------
+If we set the interval to [-2,2], we get the following inequalities:
+Total time taken: 8.72 s
+
+vtrace1 (9 invs):
+1. 2*r - 2*x <= 0
+2. 2*q - 2*x <= -2
+3. 2*b - 2*x <= 0
+4. 2*a - 2*x <= 0
+5. -r + y <= 0
+6. -2*y <= -2
+7. -2*q <= 0
+8. -2*b + 2*y <= 0
+9. -2*a <= -2
+vtrace2 (5 invs):
+1. q - x <= 0
+2. 2*r - 2*y <= -2
+3. 2*r - 2*x <= 0
+4. -r <= 0
+5. -q <= 0
+
+---------------------------------------------------------------------------------------------------
+We introduce new varibales,
+m = 2*r, k = 2*x, p = 2*b, t = 2*q, s = 2*a, l = 2*y
+
+and run the program for interval [-1,1]
+
+Expected invariables:
+
+vtrace1
+m - k <= 0, not found
+t - k <= -2, not found
+p - k <= 0, not found
+s - k <= 0, not found
+-l <= -2, not found
+-t <= 0, found
+-p + l <= 0, not found
+-s <= -2, found
+
+vtrace2
+m - l <= -2, not found
+m - k <= 0, not found
+
+All the inequalities found (Total time taken 10.13 s):
+
+vtrace1 (15 invs):
+1. r - x <= 0
+2. q - x <= -1
+3. b - x <= 0
+4. a - x <= 0
+5. -y <= -1
+6. -t <= 0
+7. -s <= -2
+8. -r + y <= 0
+9. -q <= 0
+10. -p + y <= -1
+11. -m + y <= -1
+12. -l + y <= -1
+13. -k + x <= -1
+14. -b + y <= 0
+15. -a <= -1
+vtrace2 (9 invs):
+1. r - y <= -1
+2. r - x <= 0
+3. q - x <= 0
+4. -t <= 0
+5. -r <= 0
+6. -q <= 0
+7. -m <= 0
+8. -l + y <= -1
+9. -k + x <= 0
+-----------------------------------------------------------------------------------------------------
+Although we didn't find most of the expected invariables after introducing new varibales, if we run the program for [-2,2] keeping the new variables:
+
+vtrace1 (21 invs):
+1. t - 2*x <= -2
+2. s - 2*x <= 0
+3. r - x <= 0
+4. p - 2*x <= 0
+5. m - 2*x <= 0
+6. l - 2*y <= 0
+7. k - 2*x <= 0
+8. a - x <= 0
+9. 2*q - 2*x <= -2
+10. 2*b - 2*x <= 0
+11. -r + y <= 0
+12. -q <= 0
+13. -p + 2*y <= 0
+14. -m + 2*y <= 0
+15. -l + 2*y <= 0
+16. -k + 2*x <= 0
+17. -a <= -1
+18. -2*y <= -2
+19. -2*t <= 0
+20. -2*s <= -4
+21. -2*b + 2*y <= 0
+vtrace2 (14 invs):
+1. t - 2*x <= 0
+2. r - y <= -1
+3. r - x <= 0
+4. m - 2*y <= -2
+5. m - 2*x <= 0
+6. l - 2*y <= 0
+7. k - 2*x <= 0
+8. 2*q - 2*x <= 0
+9. -q <= 0
+10. -m <= 0
+11. -l + 2*y <= 0
+12. -k + 2*x <= 0
+13. -2*t <= 0
+14. -2*r <= 0
+
+The list has some redundant invariables, for example for vtrace1 (15) and (6) implies each other. However, now we get all the expected invariables except one of the terms in the expression isn't the newly introduced variable. For example, t - 2*x <= -2 is found which is basically our expected t - k <= -2 (we introduced k = 2*x). I am not sure about the reason behind such behavior.
+
+-----------------------------------------------------------------------------------------------------
+Remark: Even if we forget the fact that most of the expected invaribales were not found, the program takes too much time because of the introduction of so many new variables. In this case, instead of introducing new variables, using [-2,2] range for coefficients clearly seems to be a better option. 
+=====================================================================================================
+=====================================================================================================
+
+For CohenDiv1Loc.java and Tripple.java, we get similar behavior as we got the CohenDiv.java i.e. the expected invariables aren't found. For CohenDiv1Loc.java, introducing new variables causes the program to have longer runtime than that of increasing the interval to [-2,2]. However, for Tripple.java, the runtime is shorter for interval [-1,1] even when we introduce new variables. 
+Observation: Usually expected invariable isn't found when the invariable contains scalar multiple of any variable that is not updated in the program and that scalar multiple is replaced with a new variable.
