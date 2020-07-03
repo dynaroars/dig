@@ -1,6 +1,11 @@
-By default Dig finds the linear octagonal inequality invaribales. We can introduce new variables to find non-linear octagonal invariable. The intended purpose of this test is to observe the tradeoff of program speed (runtime) for non-linear inequalities.
+By default Dig finds the linear octagonal inequality invaribales. We can introduce new variables to
+find non-linear octagonal invariable. The intended purpose of this test is to observe the tradeoff
+of program speed (runtime) for non-linear inequalities.
 
-For this test, the program Sqrt1.java is used. We have 4 variables a, n, s, t in the program. If we want 2nd degree non-linear inequalies, we will have to introduce new variables a^2, n^2, s^2, t^2, and 4C2 = 6 new variables which are products of 2 existing variables. So, we change the program to introduce following 10 new variables:
+For this test, the program Sqrt1.java is used. We have 4 variables a, n, s, t in the program. If we
+want 2nd degree non-linear inequalies, we will have to introduce new variables a^2, n^2, s^2, t^2,
+and 4C2 = 6 new variables which are products of 2 existing variables. So, we change the program to
+introduce following 10 new variables:
 
 a2 = a*a    
 n2 = n*n    
@@ -17,7 +22,8 @@ The modified program SqrtNonLin:
 
 -----------------------
 public class Sqrt1NonLin {
-    public static void vtrace1(int a, int n, int t, int s, int a2, int n2, int t2, int s2, int an, int at, int m, int nt, int ns, int ts){}
+    public static void vtrace1(int a, int n, int t, int s, int a2, int n2, int t2, int s2, int an,
+    int at, int m, int nt, int ns, int ts){}
     // public static void vtrace2(int a, int n, int t, int s){}    
     public static void main (String[] args) {}
 
@@ -122,4 +128,7 @@ List 2(17.04 s)
 
 [Note: -noeqts flag was used, that is dig was asked to not find any equality invariable]
 
-We see that there are a number of 2nd degree non-linear inequalities in the lists. While some of them are very obvious such as -s2 <= -1, we can see some interesting invariables too. For example, the invariable a2 - n <= 0 confirms that a^2 never exceeds n which is intended in the program given that the final value of a is the square root of n.  
+We see that there are a number of 2nd degree non-linear inequalities in the lists. While some of
+them are very obvious such as -s2 <= -1, we can see some interesting invariables too. For example,
+the invariable a2 - n <= 0 confirms that a^2 never exceeds n which is intended in the program given
+that the final value of a is the square root of n.  

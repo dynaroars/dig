@@ -1,4 +1,6 @@
-Here I am introducing new variables which are scalar multiples of the variables that are already in place to check difference between runtimes due to introduction of new variables vs increasing the interval of octagonal coefficients from default to [-2,2]
+Here I am introducing new variables which are scalar multiples of the variables that are already
+in place to check difference between runtimes due to introduction of new variables vs increasing
+the interval of octagonal coefficients from default to [-2,2]
 
 The programs updated with introduction of new variable are:
 
@@ -160,7 +162,8 @@ vtrace2 (9 invs):
 8. -l + y <= -1
 9. -k + x <= 0
 -----------------------------------------------------------------------------------------------------
-Although we didn't find most of the expected invariables after introducing new varibales, if we run the program for [-2,2] keeping the new variables:
+Although we didn't find most of the expected invariables after introducing new varibales,
+if we run the program for [-2,2] keeping the new variables:
 
 vtrace1 (21 invs):
 1. t - 2*x <= -2
@@ -200,12 +203,23 @@ vtrace2 (14 invs):
 13. -2*t <= 0
 14. -2*r <= 0
 
-The list has some redundant invariables, for example for vtrace1 (15) and (6) implies each other. However, now we get all the expected invariables except one of the terms in the expression isn't the newly introduced variable. For example, t - 2*x <= -2 is found which is basically our expected t - k <= -2 (we introduced k = 2*x). I am not sure about the reason behind such behavior.
+The list has some redundant invariables, for example for vtrace1 (15) and (6) implies each other.
+However, now we get all the expected invariables except one of the terms in the expression isn't
+the newly introduced variable. For example, t - 2*x <= -2 is found which is basically our expected
+t - k <= -2 (we introduced k = 2*x). I am not sure about the reason behind such behavior.
 
 -----------------------------------------------------------------------------------------------------
-Remark: Even if we forget the fact that most of the expected invaribales were not found, the program takes too much time because of the introduction of so many new variables. In this case, instead of introducing new variables, using [-2,2] range for coefficients clearly seems to be a better option. 
+Remark: Even if we forget the fact that most of the expected invaribales were not found, the
+program takes too much time because of the introduction of so many new variables. In this case,
+instead of introducing new variables, using [-2,2] range for coefficients clearly seems to be a
+better option. 
 =====================================================================================================
 =====================================================================================================
 
-For CohenDiv1Loc.java and Tripple.java, we get similar behavior as we got the CohenDiv.java i.e. the expected invariables aren't found. For CohenDiv1Loc.java, introducing new variables causes the program to have longer runtime than that of increasing the interval to [-2,2]. However, for Tripple.java, the runtime is shorter for interval [-1,1] even when we introduce new variables. 
-Observation: Usually expected invariable isn't found when the invariable contains scalar multiple of any variable that is not updated in the program and that scalar multiple is replaced with a new variable.
+For CohenDiv1Loc.java and Tripple.java, we get similar behavior as we got the CohenDiv.java i.e.
+the expected invariables aren't found. For CohenDiv1Loc.java, introducing new variables causes
+the program to have longer runtime than that of increasing the interval to [-2,2]. However, for
+Tripple.java, the runtime is shorter for interval [-1,1] even when we introduce new variables. 
+Observation: Usually expected invariable isn't found when the invariable contains scalar multiple
+of any variable that is not updated in the program and that scalar multiple is replaced with a
+new variable.
