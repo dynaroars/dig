@@ -94,7 +94,11 @@ if __name__ == "__main__":
 
     ag("--nosimplify", "-nosimplify",
        action="store_true",
-       help="don't simplify invariants, e.g., don't remove weaker invariants")
+       help="don't simplify invariants, e.g., don't remove weaker invariants (for debugging)")
+
+    ag("--nofilter", "-nofilter",
+       action="store_true",
+       help="don't filter inequality terms (for deubgging)")
 
     ag("--nomp", "-nomp",
        action="store_true",

@@ -93,13 +93,14 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         mlog.debug("{} terms for {}".format(
             len(terms), self.__class__.__name__))
 
-        # filter terms
-        st = time()
-        new_terms = self.filter_terms(
-            terms, set(self.inp_decls.names))
-        helpers.miscs.Miscs.show_removed(
-            'filter terms', len(terms), len(new_terms), time() - st)
-        return new_terms
+        if settings.DO_FILTER:
+            # filter terms
+            st = time()
+            new_terms = self.filter_terms(terms, set(self.inp_decls.names))
+            helpers.miscs.Miscs.show_removed(
+                'filter terms', len(terms), len(new_terms), time() - st)
+            terms = new_terms
+        return terms
 
     def filter_terms(self, terms, inps):
         assert isinstance(inps, set) and \

@@ -8,6 +8,7 @@ tmpdir = Path("/var/tmp/")
 logger_level = 2
 DO_MP = True  # use multiprocessing
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
+DO_FILTER = True  # simplify results, e.g., removing weaker invariants
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
@@ -118,6 +119,12 @@ def setup(settings, args):
             settings.DO_SIMPLIFY = not args.nosimplify
         else:
             opts.append("-nosimplify")
+
+    if args.nofilter:
+        if settings:
+            settings.DO_FILTER = not args.nofilter
+        else:
+            opts.append("-nofilter")
 
     if args.noss:
         if settings:
