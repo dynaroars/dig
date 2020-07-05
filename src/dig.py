@@ -7,7 +7,6 @@ from pathlib import Path
 
 DBG = pdb.set_trace
 
-
 """
 Example runs:
 - sage -python -O dig.py ../tests/benchmark/nla/Bresenham.java

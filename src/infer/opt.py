@@ -93,10 +93,11 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         mlog.debug("{} terms for {}".format(
             len(terms), self.__class__.__name__))
 
-        if settings.DO_FILTER:
+        inps = set(self.inp_decls.names)
+        if settings.DO_FILTER and inps:
             # filter terms
             st = time()
-            new_terms = self.filter_terms(terms, set(self.inp_decls.names))
+            new_terms = self.filter_terms(terms, inps)
             helpers.miscs.Miscs.show_removed(
                 'filter terms', len(terms), len(new_terms), time() - st)
             terms = new_terms
@@ -104,10 +105,8 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
     def filter_terms(self, terms, inps):
         assert isinstance(inps, set) and \
-            all(isinstance(s, str) for s in inps), inps
-
-        if not inps:
-            mlog.warning("Have not tested case with no inps")
+            all(isinstance(s, str) for s in inps)\
+            and inps, inps
 
         excludes = self.get_excludes(terms, inps)
         new_terms = [term for term in terms if term not in excludes]

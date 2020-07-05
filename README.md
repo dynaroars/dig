@@ -7,11 +7,9 @@ DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** 
 The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also can infer  invariants direclty from given concrete program execution traces.
 
 ## Usage
-
 You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java`, a bytecode file `.class`, or a C file `.c`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
 
 ### Generating Invariants From a Program
-
 Consider the following `CohenDiv.java` program
 
 ```java
@@ -23,7 +21,6 @@ public class CohenDiv {
      public static void vtrace2(int x, int y, int q, int r){}
 
      public static void main (String[] args) {}
-
 
      public static int mainQ_cohendiv(int x, int y) {
           assert(x>=0 && y>=1);
@@ -203,7 +200,7 @@ tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  
 6. -a <= 0
 
 
-tnguyen@debian ~/d/src> sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -ideg 2  # find nonlinear octagonal inequalities
+tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -ideg 2  # find nonlinear octagonal inequalities
 ...
 1. a*s - n*t <= 1
 2. a <= 10
@@ -217,7 +214,7 @@ tnguyen@debian ~/d/src> sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 
 10. -a*n + s <= 3
 11. -a <= 0
 
-tnguyen@debian ~/d/src> timeout 900 sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -icoefs 2  # find linear inequalities with coefs in {2,-1,0,1,2}
+tnguyen@debian ~/dig/src> timeout 900 sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -icoefs 2  # find linear inequalities with coefs in {2,-1,0,1,2}
 ...
 1. a <= 10
 2. 2*a - n <= 1
@@ -425,5 +422,7 @@ make test
 Additional information on DIG can be found from these papers:
 
 * ThanhVu Nguyen, Matthew Dwyer, and William Visser. SymInfer: Inferring Program Invariants using Symbolic States. In Automated Software Engineering (ASE). IEEE, 2017.
-
-
+* ThanhVu Nguyen, Timos Antopoulos, Andrew Ruef, and Michael Hicks. A Counterexample-guided Approach to Finding Numerical Invariants. In 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE), pages 605--615. ACM, 2017.
+* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants. Transactions on Software Engineering Methodology (TOSEM), 23(4):30:1--30:30, 2014.
+* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Generate Disjunctive Invariants. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
+* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Discover Polynomial and Array Invariants. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.
