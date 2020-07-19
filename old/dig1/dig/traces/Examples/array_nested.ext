@@ -1,0 +1,2 @@
+#Everything here (including this file) is optional. These information (if provided) gives additional hints to DIG.
+Expect: A[i]=B[C[2i+1]]

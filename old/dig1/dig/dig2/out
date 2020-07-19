@@ -1,0 +1,1375 @@
+changeset:   259:d980bd727cdb
+tag:         tip
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Feb 20 22:45:29 2017 -0600
+summary:     mv smt_z3py to common
+
+changeset:   258:3360b2dd84b9
+parent:      257:2682e1996317
+parent:      256:65100ccee405
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Feb 16 13:58:36 2017 -0600
+summary:     use this
+
+changeset:   257:2682e1996317
+parent:      198:f62c04de0ca1
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Feb 16 13:55:33 2017 -0600
+summary:     merge
+
+changeset:   256:65100ccee405
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Feb 16 13:38:06 2017 -0600
+summary:     changes
+
+changeset:   255:ae862e061301
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Aug 11 10:12:29 2016 -0500
+summary:     remove sig argument
+
+changeset:   254:b352533786cd
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Aug 02 22:25:20 2016 -0500
+summary:     change name of alg_term to term
+
+changeset:   253:98c1a06425b3
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 31 06:18:54 2016 -0500
+summary:     Split into multiple compilations to avoid large Java file
+
+changeset:   252:9a5002fe2ce8
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 31 01:11:16 2016 -0500
+summary:     simplify
+
+changeset:   251:99cc21dc781d
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 30 10:51:31 2016 -0500
+summary:     cleaner Java output code
+
+changeset:   250:30e3eb4a8162
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 30 10:39:18 2016 -0500
+summary:     updates ..
+
+changeset:   249:cc733fcb0f9b
+branch:      infer_axioms
+parent:      248:9d44dd202a0c
+parent:      245:38fc39dc4f67
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 26 16:19:58 2016 -0500
+summary:     weird merges
+
+changeset:   248:9d44dd202a0c
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 26 16:07:34 2016 -0500
+summary:     simplify
+
+changeset:   247:f9415e93110f
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 26 00:24:21 2016 -0500
+summary:     add cache to gen_trees, fix a bug with tlen, examples
+
+changeset:   246:aa0c35a9b972
+branch:      infer_axioms
+parent:      241:03245688784b
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Jul 20 12:59:19 2016 -0500
+summary:     use dict instead of OrderedDict for traces because poly.subs() in new SAGE requires dict
+
+changeset:   245:38fc39dc4f67
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jul 18 00:54:29 2016 -0500
+summary:     move gen code to alg_term
+
+changeset:   244:6158fb82eaa7
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 17 23:22:39 2016 -0500
+summary:     add missing py files
+
+changeset:   243:485267441272
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 17 23:19:44 2016 -0500
+summary:     clean up code output
+
+changeset:   242:2be1f5d6f723
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 16 22:17:46 2016 -0500
+summary:     a bunch of code cleanup, move Example to mytyp
+
+changeset:   241:03245688784b
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 08 16:20:31 2016 -0500
+summary:     fix a bug in gen_trees,  but now more trees will be generated
+
+changeset:   240:4a88c1c42de8
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 05 17:40:50 2016 -0500
+summary:     clean up
+
+changeset:   239:0fbc1c41ae4f
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 05 17:37:58 2016 -0500
+summary:     fast check Python
+
+changeset:   238:f2dcefbeb921
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 05 00:50:31 2016 -0500
+summary:     fast check
+
+changeset:   237:2b0566a07adc
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jul 04 21:24:20 2016 -0500
+summary:     fast check
+
+changeset:   236:659445daf027
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jul 04 05:31:18 2016 -0500
+summary:     simplify instantiate function
+
+changeset:   235:75ab49e2140b
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jul 04 05:23:56 2016 -0500
+summary:     commit before making big changes
+
+changeset:   234:a1f5cabb31da
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jul 04 03:48:30 2016 -0500
+summary:     create fun test that call individual tests
+
+changeset:   233:6c32d882c09f
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jul 04 00:43:03 2016 -0500
+summary:     a bunch of minor changes
+
+changeset:   232:a6a5453e2e0e
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 03 11:59:30 2016 -0500
+summary:     clean up
+
+changeset:   231:90708e129a2a
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 03 11:57:01 2016 -0500
+summary:     fix softcheck
+
+changeset:   230:5a0d55aaf1e3
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 03 07:26:27 2016 -0500
+summary:     ignores list
+
+changeset:   229:dc5e0d8ae9ad
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 02 07:47:36 2016 -0500
+summary:     move gen_args from EqFun to Fun
+
+changeset:   228:5804e152b29d
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 02 05:38:05 2016 -0500
+summary:     remove instantiate for EqFun, using the one in FunTerms. Not sure if this will cause any problem
+
+changeset:   227:7a879e0deddc
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 01 22:43:26 2016 -0500
+summary:     sig input is passed as argument now
+
+changeset:   226:901eea68bd0b
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 01 22:23:58 2016 -0500
+summary:     change number of tests and range
+
+changeset:   225:48a445edd0c1
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 01 20:47:59 2016 -0500
+summary:     clean up
+
+changeset:   224:fc67aa29b2db
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 01 20:34:56 2016 -0500
+summary:     Java code processing multiple tests together instead of individuals
+
+changeset:   223:87d70e675389
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 01 16:28:08 2016 -0500
+summary:     no use of term in alg_lang
+
+changeset:   222:0ce05df32473
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 01 15:22:07 2016 -0500
+summary:     no use of term in alg_lang
+
+changeset:   221:b7b7d689ce38
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Jun 29 21:36:16 2016 -0500
+summary:     move eval to Term class
+
+changeset:   220:20bdabb16fbc
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Jun 29 04:10:03 2016 -0500
+summary:     code clean up, try to take term dependent out of alg_lang
+
+changeset:   219:8bccf5f4dfba
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Jun 29 02:41:18 2016 -0500
+summary:     java fix for boolean type
+
+changeset:   218:faa2880c9786
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jun 28 09:57:09 2016 -0500
+summary:     Java working now
+
+changeset:   217:66d2d8a0ab05
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jun 28 03:30:33 2016 -0500
+summary:     pass in arg var when creating code
+
+changeset:   216:61949c99feaa
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jun 27 19:47:21 2016 -0500
+summary:     split into multiple files
+
+changeset:   215:21918035484c
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Jun 26 23:12:44 2016 -0500
+summary:     back to relatively stable state of 3 weeks ago, can do pruning now
+
+changeset:   214:6a49e68438f7
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jun 25 07:28:07 2016 -0500
+summary:     just commit before modification
+
+changeset:   213:94a0f03d578b
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat May 28 07:38:53 2016 -0400
+summary:     laetst commit but still has the random seed bug
+
+changeset:   212:6537a73267cf
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat May 28 03:35:40 2016 -0400
+summary:     quantifier imlication
+
+changeset:   211:9b6f153e467b
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat May 28 00:54:30 2016 -0400
+summary:     using python 3's type
+
+changeset:   210:4a7276c338b9
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu May 26 16:23:59 2016 -0400
+summary:     implications & prunes redundant axioms
+
+changeset:   209:5e2dc0823b00
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue May 10 11:29:04 2016 -0400
+summary:     gen examples
+
+changeset:   208:57436cac60b7
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon May 09 21:42:33 2016 -0400
+summary:     fix a bug with mk_var
+
+changeset:   207:20dd92b79463
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon May 09 06:49:44 2016 -0400
+summary:     Python exec
+
+changeset:   206:a6b1c0c4c16b
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon May 09 06:06:37 2016 -0400
+summary:     better outputs
+
+changeset:   205:2a60637c76de
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon May 09 03:20:10 2016 -0400
+summary:     dealing with sideeffects
+
+changeset:   204:09150ee8f269
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Apr 14 22:20:33 2016 -0400
+summary:     instantiate etc
+
+changeset:   203:bfe0ce6f5ba4
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Apr 13 13:08:19 2016 -0400
+summary:     split into two classes: Ground and Fun terms
+
+changeset:   202:d9cb8da844a0
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Apr 13 12:22:03 2016 -0400
+summary:     add gen args
+
+changeset:   201:7030cc6a1f17
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Apr 13 08:09:15 2016 -0400
+summary:     infer axioms
+
+changeset:   200:27b39d833e24
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Apr 01 09:34:51 2016 -0400
+summary:     ktree data structure
+
+changeset:   199:20e710131f27
+branch:      infer_axioms
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Mar 28 03:00:56 2016 -0400
+summary:     cached gen_parts -- pretty fast
+
+changeset:   198:f62c04de0ca1
+parent:      197:6009bd680268
+parent:      195:b0d31dd1cfa6
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Mar 26 17:37:25 2016 -0400
+summary:     merge
+
+changeset:   197:6009bd680268
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Mar 26 17:19:18 2016 -0400
+summary:     minor changes
+
+changeset:   196:c45fccc13bdf
+parent:      187:c6f9ddb99091
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 29 01:08:04 2016 -0500
+summary:     pass in range for each variable
+
+changeset:   195:b0d31dd1cfa6
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 13:39:30 2016 -0500
+summary:     rename DoUnsafe to DoSafe
+
+changeset:   194:230bc77e12ed
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 12:48:54 2016 -0500
+summary:     deal with another error from KLEE
+
+changeset:   193:e0487920c647
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 11:27:00 2016 -0500
+summary:     attempt to handle functions with 0 args
+
+changeset:   192:bf248dac831c
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 08:16:23 2016 -0500
+summary:     update unit test
+
+changeset:   191:1f3e557bb263
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 01:14:45 2016 -0500
+summary:     use iterator for traces
+
+changeset:   190:08ec7cecbcf7
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 01:00:43 2016 -0500
+summary:     using smaller number of traces for eqt solving
+
+changeset:   189:abcacb779e05
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 22 00:48:47 2016 -0500
+summary:     using smaller number of traces for eqt solving
+
+changeset:   188:cce990bfcd30
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Jan 21 22:48:35 2016 -0500
+summary:     check reachability
+
+changeset:   187:c6f9ddb99091
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 17:37:02 2016 -0500
+summary:     implement getKleeInpsAll but it's a bit dangerous to use , so gonna take it out
+
+changeset:   186:4e9ad92eee18
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 16:25:37 2016 -0500
+summary:     klee getInps return more info
+
+changeset:   185:c06e12e8f8da
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 10:49:15 2016 -0500
+summary:     change alg1 to alg
+
+changeset:   184:23499021130f
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 10:47:53 2016 -0500
+summary:     small display bug
+
+changeset:   183:6f4760b31436
+user:        Deepak Kapur (kapur@cs.umd.edu)
+date:        Tue Jan 19 10:38:10 2016 -0500
+summary:     new rage
+
+changeset:   182:ea0835dc2e7f
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 10:23:05 2016 -0500
+summary:     new range test
+
+changeset:   181:6b4483c94ca0
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 10:21:54 2016 -0500
+summary:     fix a bug with generating coef terms
+
+changeset:   180:3596211b8d4b
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 09:52:41 2016 -0500
+summary:     add test programs
+
+changeset:   179:85768248c0cd
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 09:45:32 2016 -0500
+summary:     add klee export
+
+changeset:   178:607d129e19fa
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 19 08:06:06 2016 -0500
+summary:     simplify and removing functions
+
+changeset:   177:8ad8dd9a0fb2
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jan 18 17:51:25 2016 -0500
+summary:     stuff for today ...  should work now but still not very stable
+
+changeset:   176:fbc246c02f49
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jan 16 22:34:29 2016 -0500
+summary:     buggy code, playing around with getting moretraces with doInps and doIgnore
+
+changeset:   175:70982588f03e
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jan 16 09:19:01 2016 -0500
+summary:     bug fix in Inv contain function
+
+changeset:   174:92ef92b34687
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jan 16 08:17:04 2016 -0500
+summary:     MyDict
+
+changeset:   173:902dec19df7a
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jan 16 01:10:09 2016 -0500
+summary:     move all files to tmpdir
+
+changeset:   172:8b47148757b7
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 15 22:52:43 2016 -0500
+summary:     MySet class
+
+changeset:   171:f3cf97b4c469
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 15 22:10:30 2016 -0500
+summary:     fake (true) invs
+
+changeset:   170:3e669695e4d6
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 12 22:52:21 2016 -0500
+summary:     add klee
+
+changeset:   169:a6b6789bcfee
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jan 12 14:31:34 2016 -0500
+summary:     adding klee asserts
+
+changeset:   168:1aabe34c4a4b
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Jan 11 08:37:57 2016 -0500
+summary:     infer ieqs
+
+changeset:   167:0ec48504e687
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jan 09 17:16:25 2016 -0500
+summary:     generate printf.c and assert.c files
+
+changeset:   166:6bb0c7a74a21
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jan 01 11:24:42 2016 -0500
+summary:     initial commit for iterative refinement dig
+
+changeset:   165:1e4f77b7118c
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Dec 31 07:58:52 2015 -0500
+summary:     revert to rev 161 before adding all the DIG2 stuff
+
+changeset:   164:a7f9320168d2
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Dec 31 07:48:03 2015 -0500
+summary:     add cohen standalone program
+
+changeset:   163:c8e9ce9eb6a2
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Dec 30 13:06:58 2015 -0500
+summary:     add dig2
+
+changeset:   162:ef29b023ee0a
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Dec 30 10:03:16 2015 -0500
+summary:     just commit everything before editing
+
+changeset:   161:e4a8094591e5
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Dec 17 11:32:37 2015 -0500
+summary:     compute_ext_rays_polar check
+
+changeset:   160:2715a138861d
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Dec 16 07:54:53 2015 -0500
+summary:     formatting
+
+changeset:   159:4b5dea4e90d8
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Mon Oct 19 03:49:23 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   158:b2a43df0f321
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 14:07:05 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   157:9fd6f30aba1b
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 04:02:17 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   156:fcb13cb2d23b
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 03:59:46 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   155:48478932535d
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 03:58:46 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   154:21858f1957dc
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 03:58:14 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   153:45360dd8fe3a
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 03:57:20 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   152:b80a1e9d3ce0
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 03:56:39 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   151:41b1b7a92071
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sat Oct 17 21:54:27 2015 -0400
+summary:     add array examples
+
+changeset:   150:b13878bb674b
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:59:42 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   149:c7f06862bedf
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:58:49 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   148:1a6191bd98f7
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:28:53 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   147:736e740d0ad2
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:27:28 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   146:bb115f7d796b
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:26:17 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   145:c5d5234fd9d8
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:24:30 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   144:8b264ceddce4
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:23:12 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   143:6fb1cc293732
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:21:41 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   142:e753dd5edf5b
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:20:32 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   141:68a706a8c9ed
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Oct 18 01:18:47 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   140:6d95c23747fa
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:46:48 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   139:fa1f9e547003
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:44:50 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   138:a3993b3c7804
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:44:08 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   137:7a9dd7e74899
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:43:03 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   136:2f103c9906e3
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:40:04 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   135:d4dc5ded4005
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:39:21 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   134:ff272730631a
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Oct 01 16:38:44 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   133:4d8def26ffc5
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Oct 01 12:33:50 2015 -0400
+summary:     update README 2
+
+changeset:   132:27cbbf463723
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Oct 01 12:27:59 2015 -0400
+summary:     update README
+
+changeset:   131:6a7bf68fc1fc
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Sep 03 00:33:12 2015 -0400
+summary:     remove reduce completely, using builtin def
+
+changeset:   130:1857c638d1e3
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Sep 03 00:15:28 2015 -0400
+summary:     simplify reduce op
+
+changeset:   129:5457c8089d16
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:50:17 2015 -0400
+summary:     doctest
+
+changeset:   128:06ba3fbb960a
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:46:37 2015 -0400
+summary:     update version checking
+
+changeset:   127:d5d391cf2dee
+parent:      126:6663807bc87a
+parent:      122:50149e6d19fd
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:41:27 2015 -0400
+summary:     finish merging
+
+changeset:   126:6663807bc87a
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:40:57 2015 -0400
+summary:     comment sage commands in dig_benchmark
+
+changeset:   125:b1633fd82752
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:40:41 2015 -0400
+summary:     print doctest result in sorted order
+
+changeset:   124:7a86b8770bbe
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:35:40 2015 -0400
+summary:     change OrderedDict to dict for compat with 6.8
+
+changeset:   123:f864d4e6abf3
+parent:      121:3c1b7cb824a0
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 22:31:12 2015 -0400
+summary:     new operator for compat with 6.8
+
+changeset:   122:50149e6d19fd
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Mon Aug 31 18:57:51 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   121:3c1b7cb824a0
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 14:52:06 2015 -0400
+summary:     remove some deprecated functions
+
+changeset:   120:96100bb9a719
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 14:42:15 2015 -0400
+summary:     fix typo and doctest
+
+changeset:   119:087e420610b1
+parent:      118:39338446797e
+parent:      107:d052173dbf2e
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 14:31:44 2015 -0400
+summary:     merged something
+
+changeset:   118:39338446797e
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Aug 31 14:31:10 2015 -0400
+summary:     comma typo?
+
+changeset:   117:2f0cb6409505
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Dec 07 22:13:42 2014 -0500
+summary:     Added classes and such.  I have a feeling it runs slower though !
+
+changeset:   116:a42bbabf3c76
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sun Dec 07 00:33:11 2014 -0500
+summary:     added new clustering based on neighborhood and reduces multiple matrices into one.
+
+changeset:   115:57bf2a3726dd
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Dec 03 10:44:35 2014 -0500
+summary:     cleanup on using concave only when needed
+
+changeset:   114:1be7458f213e
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 21:49:47 2014 -0500
+summary:     optimization, only compute concave when needed
+
+changeset:   113:10d2a2334b29
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 17:51:50 2014 -0500
+summary:     better performance (I think)
+
+changeset:   112:f47c4233227e
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 16:14:37 2014 -0500
+summary:     no longer require passing in allpts
+
+changeset:   111:92152b1bf2c7
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 15:49:10 2014 -0500
+summary:     added cluster guessing
+
+changeset:   110:ec7b995fba96
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 10:58:03 2014 -0500
+summary:     added sort by distance and convexity.  Still very slow.  Also need to do automatic clusterings instead of passing in the number
+
+changeset:   109:836751f9de50
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 09:45:40 2014 -0500
+summary:     added nots that check convexity requires puts in clockwise order
+
+changeset:   108:69b5b63b9c51
+parent:      103:94d99b487910
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Mon Dec 01 09:43:30 2014 -0500
+summary:     add test code for finding invs in matrices
+
+changeset:   107:d052173dbf2e
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Tue Aug 25 18:24:19 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   106:8d64be58761d
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Tue Aug 25 18:23:47 2015 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   105:01632c44e20f
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Tue Dec 30 01:53:18 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   104:fef8f84c48ec
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Tue Dec 30 01:49:25 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   103:94d99b487910
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Sep 29 08:01:30 2014 -0400
+summary:     added examples for sat2 (heavy computation due to permutations)
+
+changeset:   102:c927fabbc4df
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Sep 15 08:05:35 2014 -0400
+summary:     able to generate relations now
+
+changeset:   101:3e487cf70541
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Sep 14 17:05:29 2014 -0400
+summary:     added testcases and other functionalities to KTree
+
+changeset:   100:45c850d832c5
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Sep 14 12:35:57 2014 -0400
+summary:     add KTree to data structure file
+
+changeset:   99:9137a90902c8
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Wed Sep 10 12:53:56 2014 -0400
+summary:     merge count trees to this file
+
+changeset:   98:8b8463f7f62f
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Wed Sep 10 12:23:42 2014 -0400
+summary:     added unit tests for an2
+
+changeset:   97:a7b0f1a32b3f
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Tue Sep 09 18:18:48 2014 -0400
+summary:     code for generating trees when input is a tuple of values instead of single value ...  pretty hardcore
+
+changeset:   96:bc018cec6d58
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Sep 08 11:37:04 2014 -0400
+summary:     cleanup code
+
+changeset:   95:1a077496665e
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Mon Sep 08 11:36:05 2014 -0400
+summary:     implementation for AN algorithms from thesis
+
+changeset:   94:5d9e50240da0
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Sep 04 13:46:23 2014 -0400
+summary:     split perm.py to perm2
+
+changeset:   93:e6dbfd78978a
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Sep 04 10:10:23 2014 -0400
+summary:     create function gen_node_parts that combines gen_parts and dist_parts
+
+changeset:   92:29e662a796f5
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Sep 04 08:17:05 2014 -0400
+summary:     added miscs directory containing experimental and miscellenous code, e.g., generate counting trees
+
+changeset:   91:52ae439af6ac
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 15 16:12:26 2014 -0600
+summary:     Added tag r1 for changeset bf62bb63553c
+
+changeset:   90:bf62bb63553c
+tag:         r1
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Tue Jul 15 16:11:53 2014 -0600
+summary:     stable/release version
+
+changeset:   89:4a84de712c40
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 12 14:23:52 2014 -0600
+summary:     add gen_deg to automatically figure out best poly deg to use with respect to number of traces and max terms.
+
+changeset:   88:3eba0c629840
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 12 10:13:17 2014 -0600
+summary:     use get_traces instead of get_sample
+
+changeset:   87:d8f5488964e0
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 12 10:12:35 2014 -0600
+summary:     added AES programs (not sure which ones, sage or python, are used for experiments
+
+changeset:   86:80228b751b77
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 12 10:05:18 2014 -0600
+summary:     remove get_sample, sample_traces (use get_traces) instead
+
+changeset:   85:0f1c5b079fcd
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Fri Jul 11 10:03:04 2014 -0600
+summary:     rename files (e.g., refine -> dig_refine), blacklist is passed as list
+
+changeset:   84:eea30f7e85a3
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Jul 10 11:50:28 2014 -0600
+summary:     clean up doctests
+
+changeset:   83:d94430344ed2
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Jul 10 10:48:29 2014 -0600
+summary:     pass doctests on linux (prime)
+
+changeset:   82:b9527e29cf69
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Thu Jul 10 10:45:20 2014 -0600
+summary:     Remove support for Mac/Darwin
+
+changeset:   81:066df79dc124
+user:        ThanhVu (Vu) Nguyen <nguyenthanhvuh@gmail.com>
+date:        Wed Jul 09 21:30:49 2014 -0600
+summary:     - back to custom made parser and emove TraceConf because it doesn't work right
+
+changeset:   80:458817ae1584
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 20:50:47 2014 -0600
+summary:     added AES traces for tosem
+
+changeset:   79:8f20161d9bd4
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 18:40:04 2014 -0600
+summary:     experimental scripts for KIP in ICSE 14 paper
+
+changeset:   78:6e8b2830e695
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 16:34:49 2014 -0600
+summary:     added traces used for published experiments in ICSE 14
+
+changeset:   77:a36023231875
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 16:12:36 2014 -0600
+summary:     added scripts to generate MPP traces
+
+changeset:   76:a580493e64d7
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 16:07:39 2014 -0600
+summary:     added scripts to generate NLA traces
+
+changeset:   75:6147ee81413a
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 15:55:57 2014 -0600
+summary:     modify benchmark to explitly contain 3 options: eqts, mpp, nla .. only exec one at a time.  Add a new shortut to dig.py
+
+changeset:   74:a203f3ac947f
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sun Jul 06 10:26:20 2014 -0600
+summary:     adding result info to README
+
+changeset:   73:2e019aeee4ae
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Sat Jul 05 17:39:45 2014 -0600
+summary:     added result files for icse 2013/14 paper on max-plus
+
+changeset:   72:e27fdc508578
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jul 05 00:13:03 2014 -0600
+summary:     added KIP
+
+changeset:   71:9c7b18a2d383
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Jul 04 23:52:45 2014 -0600
+summary:     added tosem_results_all which logs the experimental runs used for the TOSEM paper
+
+changeset:   70:544e229e7ca7
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 11:37:45 2014 -0600
+summary:     rearrange NLA programs in order same as the experimental result table in thesis
+
+changeset:   69:40920a0e7e93
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 10:52:31 2014 -0600
+summary:     added benchmark programs inv.c
+
+changeset:   68:6c1c03d525dd
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 10:26:00 2014 -0600
+summary:     move dig files to dig directory
+
+changeset:   67:dc83116cb3ef
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 03:11:32 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   66:03ecc0f40977
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 03:10:34 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   65:f81e30aa6eb8
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 03:10:15 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   64:421c5682d617
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 03:08:42 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   63:a0af1a952f6b
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 03:08:20 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   62:69aa232bcdf0
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 03:03:14 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   61:7582b3108d83
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jul 03 02:57:43 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   60:de83adc30a4d
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Jul 02 20:54:36 2014 -0600
+summary:     use StringIO to add dummy section to .ext file
+
+changeset:   59:8ea5ae25c5b6
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 28 17:26:10 2014 -0600
+summary:     always multi process
+
+changeset:   58:be27f9c886f4
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 28 17:18:29 2014 -0600
+summary:     nested array is parallelized
+
+changeset:   57:a8528ff0b999
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 28 16:17:24 2014 -0600
+summary:     nested array: both sequential and parallel  (commit before removing sequential code)
+
+changeset:   56:3bc2a96c2b56
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 28 16:15:24 2014 -0600
+summary:     peelme returns list  (if nothing then returns empty list [] instead of None)
+
+changeset:   55:1e9fd8e875dc
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 28 11:57:11 2014 -0600
+summary:     usage is_sage_int_inf and some re-arrangement (queue Q passed as last arg instead of first)
+
+changeset:   54:2da1169d8520
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 28 11:50:20 2014 -0600
+summary:     attempt to repair incorrect array format .  Better to manually replace (AES) trace files so that they contain the correct array format , e.g., replace " ," with ","
+
+changeset:   53:fb4c5d6ba377
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Jun 27 16:14:39 2014 -0600
+summary:     added nested example and doctest to class NestedArray
+
+changeset:   52:d00165437883
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Jun 27 15:11:13 2014 -0600
+summary:     use readconfig for xinfo,  this means for all xinfo file, will need the header
+
+changeset:   51:8e22b12ccf09
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Fri Jun 27 13:30:46 2014 -0600
+summary:     move deg from dig to config
+
+changeset:   50:e62ee9696ed4
+user:        ThanhVu Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jun 26 21:27:05 2014 +0000
+summary:     README.md edited online with Bitbucket
+
+changeset:   49:a36a24042848
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Jun 26 13:35:57 2014 -0600
+summary:     passes doctests for polynomials
+
+changeset:   48:b9f640fedcd4
+user:        ThanhVu (Vu) Nguyen @ GiaoChi <nguyenthanhvuh@gmail.com>
+date:        Thu Jun 26 00:14:03 2014 -0600
+summary:     various fixes, updates for doctests
+
+changeset:   47:76306cee625e
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jan 18 21:50:10 2014 -0700
+summary:     Fix a bug  , Assumes -> Assume
+
+changeset:   46:7d4d1fb22c89
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Dec 13 17:42:17 2013 -0700
+summary:     Committing all changes for release
+
+changeset:   45:ab0baa09ccbd
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Mon Sep 09 02:11:22 2013 -0600
+summary:     brought back group_rs
+
+changeset:   44:c4669ae8262f
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Sep 06 12:12:58 2013 -0600
+summary:     fix a bug that cause only min_plus is used when pass in opt_max_then_min
+
+changeset:   43:905d8eb244ef
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Sep 06 02:11:00 2013 -0600
+summary:     use blacklist to reduce # of generated mpp invs
+
+changeset:   42:abc16bb27c78
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Sep 01 12:56:38 2013 -0600
+summary:     update doctests
+
+changeset:   41:2144a6064096
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Sep 01 12:49:21 2013 -0600
+summary:     added shortcuts for fixed n (dimensions)  in dig.py
+
+changeset:   40:d3ddffdc03d5
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Sep 01 00:55:44 2013 -0600
+summary:     Add code to merge x >= y and y >= x to x == y
+
+changeset:   39:52acbf3729ab
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 31 17:37:54 2013 -0600
+summary:     lots of changes,  added multiprocessing support and deprecate get_samples in dig_miscs etc
+
+changeset:   38:7e78ea196fb8
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Tue Aug 27 01:43:40 2013 -0600
+summary:     various updates to make use of the get_terms_fixed_coefs function …  still more work to do …
+
+changeset:   37:46e1e3903772
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Mon Aug 26 16:10:18 2013 -0600
+summary:     generalize Oct constraint to more than 2 variables (see get_terms_fixed_coefs in dig_miscs)
+
+changeset:   36:b7db84c66771
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 24 22:35:10 2013 -0600
+summary:     fix a bug in MPP , don't remove group 'None', aka nice group consists of things like
+
+changeset:   35:51df932eb4bd
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Aug 23 10:07:47 2013 -0600
+summary:     fix prob with dig_array, should work again
+
+changeset:   34:183f7e849c83
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Aug 22 01:34:02 2013 -0600
+summary:     added parallel processing support -- nice !! probably still very buggy though
+
+changeset:   33:a4ceede48b14
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Aug 21 18:50:24 2013 -0600
+summary:     created dig_inv to hold all the Inv* classes
+
+changeset:   32:e97c43b9e164
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Aug 21 14:47:28 2013 -0600
+summary:     Have separate classes for each Invs type instead of using universal IExp.
+
+changeset:   31:311089e1f345
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Aug 18 02:33:34 2013 -0600
+summary:     Fix a bug in dig_benchmark when Read Only option is passed in
+
+changeset:   30:283e83b31e64
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 10 22:39:36 2013 -0600
+summary:     added ability to rm MPP inv swith similar format (stair case)
+
+changeset:   29:4d62105e1db1
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 10 21:39:27 2013 -0600
+summary:     dig_benchmark: mpp invs instead of oct
+
+changeset:   28:5b2961314a8d
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 10 10:52:53 2013 -0600
+summary:     added ability to collect all results from all runs
+
+changeset:   27:e2289d271945
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 03 23:19:08 2013 -0600
+summary:     minor bug fix for read_only option
+
+changeset:   26:31370edd558f
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Aug 03 23:07:25 2013 -0600
+summary:     ieqs subset (generate inequalities over smaller subset)
+
+changeset:   25:61b2840f2e82
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Jul 07 10:50:32 2013 -0600
+summary:     mpp inv now is a tuple (lambda x: … ,  If(...))
+
+changeset:   24:84ced35c4164
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Jun 30 09:45:11 2013 -0600
+summary:     mostly unit test updates
+
+changeset:   23:5cf0d21879d1
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Jun 30 09:44:41 2013 -0600
+summary:     attempts to find the largest ctr range several times
+
+changeset:   22:c5937e60d140
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Jun 30 00:52:18 2013 -0600
+summary:     fix a bug that involves dummy var  (it should be removed from the list of variables in ReadFile)
+
+changeset:   21:a2bf1862ae56
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 29 22:44:55 2013 -0600
+summary:     various update
+
+changeset:   20:a9343e823694
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 29 22:17:22 2013 -0600
+summary:     make sample always preserve the original input list
+
+changeset:   19:147dde9bdb85
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 29 16:24:44 2013 -0600
+summary:     clean up code in DIG -- make default get_invs to obtain eqts, ieqs (deduction) and arrays
+
+changeset:   18:c721b3fd6aa6
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 29 13:46:18 2013 -0600
+summary:     apply vset to traces
+
+changeset:   17:c97815c7df80
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Jun 29 12:42:25 2013 -0600
+summary:     Automatically determine variable types and run eqts over num vars and array algs over array vars.  Still experimental
+
+changeset:   16:609832d563b2
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Jun 28 21:38:14 2013 -0600
+summary:     ability to remove unlikely used monomials / terms  (ideas from Sharma's paper).
+
+changeset:   15:7b8e7c54b12d
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Jun 28 15:38:40 2013 -0600
+summary:     attempt to use matrix form directly (reduced row echelon form) but it is also very slow like solve()  …
+
+changeset:   14:ac17f4ea4c25
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Fri Jun 28 00:51:07 2013 -0600
+summary:     update check_requirements
+
+changeset:   13:1b54b51a402b
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jun 27 23:50:39 2013 -0600
+summary:     just clean up -- remove replace_var_name
+
+changeset:   12:6f7f58106b60
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jun 27 23:50:05 2013 -0600
+summary:     force _eval_lambda_expr to return bool
+
+changeset:   11:ea531cf79d14
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu Jun 27 23:26:44 2013 -0600
+summary:     some clean up -- remove the min_indep_set  function,  won't probably use it at all
+
+changeset:   10:521a864121eb
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Jun 26 07:09:39 2013 -0600
+summary:     TOSEM code
+
+changeset:   9:125aa708bb2f
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Tue Jun 04 15:07:45 2013 -0600
+summary:     Added method get_rels_elems2 per DK suggestions to reduce equation solving time -- (by invoking eqt solving on smaller number of eqts many times instead of invoking eqt solving once but on a much larger number of eqts).  Didn't seem to help much -- in fact much slower -- so I won't use this method.  But save the code it here nonetheless.
+
+changeset:   8:8f8f755848e6
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu May 30 09:12:39 2013 -0600
+summary:     group arrays for SimpleArray Eqts
+
+changeset:   7:356e8867dc4f
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Tue May 28 00:17:18 2013 -0600
+summary:     refine uses Groebner basis since SMT really chokes on higher degree (for inference)
+
+changeset:   6:8e5317e9cc39
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Thu May 16 18:31:00 2013 -0600
+summary:     updated stuff -- renaming files
+
+changeset:   5:619181e9f10c
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Apr 24 15:25:45 2013 -0600
+summary:     main fixes in dig_miscs to avoid eq invariants that still have unknowns uk variables.  (see https://bitbucket.org/nguyenthanhvuh/dig/issue/1/unknowns-uks-appear-in-equality-results)
+
+changeset:   4:ecfc3ebaf36d
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Apr 24 10:54:39 2013 -0600
+summary:     dig_benchmark now works again
+
+changeset:   3:8b145dc9a400
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Apr 20 11:13:30 2013 -0600
+summary:     Max-Plus invs
+
+changeset:   2:125720e5c79f
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sun Apr 14 00:12:14 2013 -0600
+summary:     complete rework …
+
+changeset:   1:a78b6ee4606e
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Wed Apr 10 13:34:28 2013 -0600
+summary:     forking DIG from invgen (version generating results for TOSEM)
+
+changeset:   0:1d01768e932d
+user:        ThanhVu (Vu) Nguyen <tnguyen@cs.unm.edu>
+date:        Sat Mar 09 12:40:17 2013 -0700
+summary:     added miscs
+

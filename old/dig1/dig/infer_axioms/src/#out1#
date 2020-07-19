@@ -1,0 +1,67 @@
+infer_axioms.py:Warn:DEBUG MODE ON. Can be slow !
+alg.py:Info:seed: 1.0
+alg.py:Info:5 terms
+alg.py:Debug:
+0. push(Stack, MyAny)
+1. pop(Stack)
+2. peek(Stack)
+3. empty(Stack)
+4. search(Stack, MyAny)
+Test
+alg.py:Info:2 ignores
+alg.py:Debug:
+0. pop(Stack)
+1. peek(Stack)
+alg_term.py:Info:13 enumerated terms
+alg_term.py:Debug:
+0. push(Stack, MyAny)
+1. empty(Stack)
+2. search(Stack, MyAny)
+3. pop(push(Stack, MyAny))
+4. peek(push(Stack, MyAny))
+5. empty(push(Stack, MyAny))
+6. search(push(Stack, MyAny), MyAny)
+7. peek(pop(push(Stack, MyAny)))
+8. empty(pop(push(Stack, MyAny)))
+9. search(Stack, pop(push(Stack, MyAny)))
+10. search(pop(push(Stack, MyAny)), MyAny)
+11. search(Stack, peek(push(Stack, MyAny)))
+12. search(Stack, peek(pop(push(Stack, MyAny))))
+
+
+alg.py:Info:33 eqt templates
+alg.py:Debug:
+0. bool = empty(Stack)
+1. int = search(Stack, MyAny)
+2. MyAny = pop(push(Stack, MyAny))
+3. MyAny = peek(push(Stack, MyAny))
+4. bool = empty(push(Stack, MyAny))
+5. int = search(push(Stack, MyAny), MyAny)
+6. MyAny = peek(pop(push(Stack, MyAny)))
+7. bool = empty(pop(push(Stack, MyAny)))
+8. int = search(Stack, pop(push(Stack, MyAny)))
+9. int = search(pop(push(Stack, MyAny)), MyAny)
+10. int = search(Stack, peek(push(Stack, MyAny)))
+11. int = search(Stack, peek(pop(push(Stack, MyAny))))
+12. empty(Stack) = empty(push(Stack, MyAny))
+13. search(Stack, MyAny) = search(push(Stack, MyAny), MyAny)
+14. search(Stack, MyAny) = search(Stack, pop(push(Stack, MyAny)))
+15. search(Stack, MyAny) = search(pop(push(Stack, MyAny)), MyAny)
+16. pop(push(Stack, MyAny)) = peek(push(Stack, MyAny))
+17. pop(push(Stack, MyAny)) = peek(pop(push(Stack, MyAny)))
+18. peek(push(Stack, MyAny)) = peek(pop(push(Stack, MyAny)))
+19. empty(push(Stack, MyAny)) = empty(pop(push(Stack, MyAny)))
+20. search(push(Stack, MyAny), MyAny) = search(Stack, pop(push(Stack, MyAny)))
+21. search(push(Stack, MyAny), MyAny) = search(pop(push(Stack, MyAny)), MyAny)
+22. search(push(Stack, MyAny), MyAny) = search(Stack, peek(push(Stack, MyAny)))
+23. search(push(Stack, MyAny), MyAny) = search(Stack, peek(pop(push(Stack, MyAny))))
+24. empty(pop(push(Stack, MyAny))) = empty(Stack)
+25. search(Stack, pop(push(Stack, MyAny))) = search(pop(push(Stack, MyAny)), MyAny)
+26. search(Stack, pop(push(Stack, MyAny))) = search(Stack, peek(push(Stack, MyAny)))
+27. search(Stack, pop(push(Stack, MyAny))) = search(Stack, peek(pop(push(Stack, MyAny))))
+28. search(pop(push(Stack, MyAny)), MyAny) = search(Stack, peek(push(Stack, MyAny)))
+29. search(pop(push(Stack, MyAny)), MyAny) = search(Stack, peek(pop(push(Stack, MyAny))))
+30. search(Stack, peek(push(Stack, MyAny))) = search(Stack, MyAny)
+31. search(Stack, peek(push(Stack, MyAny))) = search(Stack, peek(pop(push(Stack, MyAny))))
+32. search(Stack, peek(pop(push(Stack, MyAny)))) = search(Stack, MyAny)
+Test

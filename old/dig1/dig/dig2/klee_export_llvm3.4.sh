@@ -1,0 +1,11 @@
+export DEVEL=/home/tnguyen/Src/Devel
+export KLEE_BASE=$DEVEL/KLEE/
+export KLEE=$KLEE_BASE/klee/Release+Asserts
+export PATH=$PATH:$KLEE/bin
+export SAGE=$DEVEL/SAGE/sage
+export Z3=$DEVEL/Z3/z3
+export PYTHONSTARTUP=$HOME/.pystartup
+export PYTHONPATH=$HOME/code/common_code:$Z3/build
+export DIG=$HOME/code/dig
+export SAGE=$DEVEL/SAGE/sage
+export SAGE_PATH=$HOME/code/common_code:$DIG/dig:$DIG/miscs:$DIG/dig2:$Z3/src/api/python
