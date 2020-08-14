@@ -17,10 +17,7 @@ import settings
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
-
-
 class Miscs(object):
-
     @staticmethod
     def msage_eval(s, d):
         assert all(isinstance(k, str) and
