@@ -47,9 +47,21 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             def _terms(loc):
                 return self.inv_decls[loc].sageExprs
 
-        tasks = [(loc, term)
-                 for loc in locs
-                 for term in self.get_terms(_terms(loc), dtraces[loc])]
+        # remove terms exceeding maxV
+        termss = [self.get_terms(_terms(loc)) for loc in locs]
+        mlog.debug("check upperbounds for {} terms at {} locs".format(
+            sum(map(len, termss)), len(locs)))
+        refs = {loc: {self.inv_cls(t.mk_le(settings.IUPPER)): t for t in terms}
+                for loc, terms in zip(locs, termss)}
+        ieqs = data.inv.invs.DInvs()
+        for loc in refs:
+            for inv in refs[loc].keys():
+                ieqs.setdefault(
+                    loc, data.inv.invs.Invs()).add(inv)
+
+        cexs, ieqs = self.check(ieqs, inps=None)
+        ieqs = ieqs.remove_disproved()
+        tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
         mlog.debug("infer upperbounds for {} terms at {} locs".format(
             len(tasks), len(locs)))
@@ -87,7 +99,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         return self.symstates.maximize(
             loc, self.to_expr(term), extra_constr)
 
-    def get_terms(self, symbols, traces):
+    def get_terms(self, symbols):
 
         terms = self.my_get_terms(symbols)
         mlog.debug("{} terms for {}".format(

@@ -40,7 +40,9 @@ class Inv(metaclass=ABCMeta):
 
     def __repr__(self): return repr(self.inv)
 
-    def __eq__(self, o): return self.inv.__eq__(o.inv)
+    def __eq__(self, o):
+        assert isinstance(o, Inv), o
+        return self.inv.__eq__(o.inv)
 
     def __ne__(self, o): return not self.inv.__eq__(o.inv)
 
