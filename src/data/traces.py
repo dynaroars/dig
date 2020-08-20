@@ -280,13 +280,14 @@ class DTraces(dict):
         inv_decls = data.prog.DSymbs()
         for line in tracefile.read_text().splitlines():
             line = line.strip()
-            if not line:
+            if not line or line.startswith("#"):
                 continue
             loc, contents = line.split(':')
+
             if loc not in inv_decls:
                 inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
             else:
-                trace_str.append(line.replace(',', ''))
+                trace_str.append(line.replace(',', ' '))
 
         dtraces = DTraces.parse(trace_str, inv_decls)
         return inv_decls, dtraces
