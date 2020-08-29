@@ -1,0 +1,34 @@
+The function varDeg gives the relation between two variables from their traces.
+
+Args: list of variables, trace of variable 1, trace of variable 2, . . .
+
+For example: If a program has three variables x, y, and z and the traces are:
+
+x = [1,4,7,10]
+y = [1,16,49,100]
+z = [2,20,56,110]
+
+First load varDeg.py using the command exec(open("varDeg.py").read()) in python
+Then run the function varDeg as follows:
+
+varDeg(['x','y','z'],[1,4,7,10],[1,16,49,100],[2,20,56,110])
+
+For this particular traces varDeg output is:
+
+y = 1+(5.0)*(x - 1)+(1.0)*(x - 1)(x - 4)
+z = 2+(6.0)*(x - 1)+(1.0)*(x - 1)(x - 4)
+
+These equations may not be correct 100% of the time. But the more important observation 
+is rate of change, and the rate of change will be correct. For example, for this particular
+traces:
+
+rate of changes of z with respect to x is of order 2
+rate of change of y with respect to x is of order 2
+
+So, we expect the invariants to have a maximum degree of 2. The invariants are:
+
+y = x^2;
+z = x + y;
+
+We see that the maximum degree in the invariants is indeed 2.
+
