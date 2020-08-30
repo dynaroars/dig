@@ -9,19 +9,24 @@ def varDeg(*args):
     if len(args)<2:
         return "wrong input. Not enough arguments"
     varNames = args[0]
+    lenArgs = len(args)
     varTraces = args[1:]
+    printTraces =False
+    if(args[lenArgs-1]=='p'):
+        varTraces = args[1:lenArgs-1]
+        printTraces = True
     if len(varNames) != len(varTraces):
         return "wrong input. Traces and variable names don't match"
     traceLength = len(varTraces[0])
     coeffs = dict()
     for i in range(len(varNames)-1):
         for j in range(i+1, len(varNames)):
-            valueList = dividedDiff(varTraces[i], varTraces[j])
+            valueList = dividedDiff(varTraces[i], varTraces[j], varNames[i], varNames[j], printTraces)
             if valueList != None and valueList[len(valueList)-1] == 0:
                 coeffs[(varNames[i], varNames[j])] = valueList
             else:
                 try:
-                    valueList = dividedDiff(varTraces[j], varTraces[i])
+                    valueList = dividedDiff(varTraces[j], varTraces[i], varNames[j], varNames[i], printTraces)
                     if valueList != None and valueList[len(valueList)-1] == 0:
                         coeffs[varNames[j], varNames[i]] = valueList
                 except ZeroDivisionError:
@@ -61,7 +66,7 @@ def makeFunc(list1, list2):
 
 
 
-def dividedDiff(trace1, trace2):
+def dividedDiff(trace1, trace2, varName1, varName2, printTraces):
     if trace2 == []:
         return None
     if not isFunction(trace1):
@@ -71,6 +76,7 @@ def dividedDiff(trace1, trace2):
     else:
         list1 = trace1.copy()
         list2 = trace2.copy()
+    derivativeTraces = [{varName1: trace1.copy()}, {varName2:trace2.copy()}]
     tempList = []
     coeffs = [list2[0]]
     diff = 1
@@ -81,6 +87,9 @@ def dividedDiff(trace1, trace2):
         coeffs.append(tempList[0])
         size = len(tempList)
         list2 = tempList.copy()
+        derivativeTraces.append(tempList.copy())
         tempList = []
         diff += 1
+    if printTraces:
+        print(derivativeTraces)
     return coeffs
