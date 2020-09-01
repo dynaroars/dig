@@ -30,7 +30,7 @@ class Dig(metaclass=ABCMeta):
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
-        mlog.debug("set seed to: {} (test {} {})".format(
+        mlog.debug("set seed to {} (test {} {})".format(
             seed, random.randint(0, 100), sage.all.randint(0, 100)))
 
     def get_auto_deg(self, maxdeg):
@@ -268,7 +268,7 @@ class DigTraces(Dig):
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-
+        print(self.dtraces)
         if test_tracefile:
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 

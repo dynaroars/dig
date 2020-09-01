@@ -30,13 +30,11 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
 
     def mkExpr(self, ss):
         # create z3 expression
-
         assert len(ss) == len(self.vs), (ss, self.vs)
         try:
             exprs = [s == v for s, v in zip(ss, self.vs)]
         except Exception:
-            myvals = map(int, self.vs)
-            exprs = [s == v for s, v in zip(ss, myvals)]
+            exprs = [s == int(v) for s, v in zip(ss, self.vs)]
         return z3.And(exprs)
 
 
@@ -139,12 +137,12 @@ class Traces(SymbsValsSet):
         assert Miscs.is_expr(term), term
         assert ntraces is None or ntraces >= 1, ntraces
 
+        exprs = set()
         if ntraces is None:
             for t in self.mydicts:
                 exprs = set(term.subs(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
-            exprs = set()
             for t in self.mydicts:
                 expr = term.subs(t)
                 if expr not in exprs:
