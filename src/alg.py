@@ -268,7 +268,10 @@ class DigTraces(Dig):
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-        print(self.dtraces)
+        for t in self.dtraces.values():
+            print(type(t))
+            print(t.maxdeg)
+        DBG()
         if test_tracefile:
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 

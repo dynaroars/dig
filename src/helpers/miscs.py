@@ -17,6 +17,8 @@ import settings
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
+
 class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
@@ -598,6 +600,66 @@ class Miscs(object):
                 results = others
 
         return sorted(results)
+
+    @classmethod
+    def guess_maxdeg(cls, ds):
+        """
+        ds = {'x':[1,2,3], 'y':[4,5,6]}
+        """
+        maxdeg = 0
+        pairs = itertools.combinations(ds.keys(), 2)
+        for x, y in pairs:
+            print(x, y)
+
+            cache = set()
+            dsx = []
+            dsy = []
+            for x, y in zip(ds[x], ds[y]):
+                if (x, y) in cache:
+                    continue
+                cache.add((x, y))
+                dsx.append(x)
+                dsy.append(y)
+
+            maxdeg_ = cls.deriv(dsx, dsy)
+            if maxdeg_ > maxdeg:
+                #print(x, y, maxdeg_)
+                maxdeg = maxdeg_
+            else:
+                maxdeg_ = cls.deriv(dsy, dsx)
+                if maxdeg_ > maxdeg:
+                    #print(y, x, maxdeg_)
+                    maxdeg = maxdeg_
+        return maxdeg
+
+    @classmethod
+    def deriv(cls, xs, ys):
+        assert len(xs), xs
+        assert len(xs) == len(ys), (xs, ys)
+        print(xs)
+        print(ys)
+        ys_ = list(ys)
+        i = 0
+        while ys_:
+            ys_change = [s-f for f, s in zip(ys_, ys_[1:])]
+            print('ys_change', ys_change)
+            if ys_ and all(y == 0 for y in ys_):
+                return i  # return max deg
+            i = i + 1
+            xs_change = [s-f for f, s in zip(xs, xs[i:])]
+            print('xs_change', xs_change)
+            # if xs_change and any(x == 0 for x in xs_change):
+            #    return -1  # div by 0
+            ys_ = [y/x for x, y in zip(xs_change, ys_change)]
+            print('ys_', ys_)
+        return -1
+
+    @classmethod
+    def deriv_test(cls):
+        ys = list(range(-3, 3))
+        xs = [y**2 for y in ys]
+
+        print(cls.deriv(xs, ys))
 
 
 class Z3(object):

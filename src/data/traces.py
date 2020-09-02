@@ -105,6 +105,10 @@ class Traces(SymbsValsSet):
         else:
             return str(len(self))
 
+    @property
+    def maxdeg(self):
+        return Miscs.guess_maxdeg(self.mydicts2)
+
     def myeval(self, expr, pred=None):
         assert Miscs.is_expr(expr), expr
 
@@ -132,6 +136,17 @@ class Traces(SymbsValsSet):
     @property
     def mydicts(self):
         return (trace.mydict for trace in self)
+
+    @property
+    def mydicts2(self):
+        myd = {}
+        for trace in sorted(self):
+            d = trace.mydict
+            for k in d:
+                if k not in myd:
+                    myd[k] = []
+                myd[k].append(d[k])
+        return myd
 
     def instantiate(self, term, ntraces):
         assert Miscs.is_expr(term), term
