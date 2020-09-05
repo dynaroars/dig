@@ -18,7 +18,7 @@ DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
 
 INP_MAX_V = 300
-SYMEXE_TIMEOUT = 15  # secs
+SYMEXE_TIMEOUT = 10  # secs
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 # EQT_SOLVER_TIMEOUT = 120  # secs
 EQT_RATE = 1.5
@@ -31,7 +31,7 @@ INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
-IUPPER = 20  # t <= iupper
+IUPPER = 10  # t <= iupper
 IDEG = 1  # deg (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
@@ -57,7 +57,7 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 
 class Java:
-    SE_MIN_DEPTH = 7
+    SE_MIN_DEPTH = 8
     SE_DEPTH_INCR = 5  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"

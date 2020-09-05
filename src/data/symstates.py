@@ -218,7 +218,6 @@ class PC_JPF(PathCondition):
             if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
                 mlog.warning("ignore {} (larger than {})".format(
                     p, settings.LARGE_N))
-                exit(-1)
                 return True
             else:
                 return False
@@ -374,7 +373,7 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         if all(not symstates[loc] for loc in symstates):
             mlog.error("No symbolic states found for any locs. Exit!")
-            exit(1)
+            sys.exit(1)
 
         # compute all z3 exprs once
         for loc in symstates:

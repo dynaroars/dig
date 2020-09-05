@@ -1,7 +1,7 @@
 """
 Analyze Dig's results
 """
-
+import sys
 import shutil
 import time
 import random
@@ -320,7 +320,7 @@ class Benchmark:
             bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
         else:
             mlog.error('something wrong with {}'.format(inp))
-            exit(-1)
+            sys.exit(1)
         ntimes = args.benchmark_times
 
         toruns = []
