@@ -1,14 +1,16 @@
 """
 Symbolic States
 """
+from time import time
 import sys
 import shlex
 from collections import defaultdict
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 import pdb
 from pathlib import Path
 from multiprocessing import Queue
 import subprocess
+from collections import namedtuple
 
 import z3
 import sage.all
@@ -30,34 +32,45 @@ zTrue = z3.BoolVal(True)
 zFalse = z3.BoolVal(False)
 
 
-class PC(metaclass=ABCMeta):
-    def __init__(self, loc, depth, pc, slocal, use_reals):
+class PathCondition(namedtuple(
+        "PathCondition", ["loc", "depth", "mypc", "myslocal", "use_reals"])):
+    __slots__ = ()
+
+    def __new__(cls, loc, depth, mypc, myslocal, use_reals):
         assert isinstance(loc, str) and loc, loc
         assert depth >= 0, depth
         assert pc is None or isinstance(pc, str) and pc, pc
         assert isinstance(slocal, str) and slocal, slocal
         assert isinstance(use_reals, bool), bool
 
-        self.pc = zTrue if pc is None else helpers.miscs.Z3.parse(
-            pc, use_reals)
-        self.slocal = helpers.miscs.Z3.parse(slocal, use_reals)
-        self.loc = loc
-        self.depth = depth
-        self.use_reals = use_reals
+        self = super().__new__(cls, loc, depth, mypc, myslocal, use_reals)
+        return self
 
     def __str__(self):
         return 'loc: {}\npc: {}\nslocal: {}'.format(
             self.loc, self.pc, self.slocal)
 
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash(self.__str__())
-
     @property
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
+
+    @property
+    def pc(self):
+        try:
+            return self._pc
+        except AttributeError:
+            self._pc = zTrue if self.mypc is None else helpers.miscs.Z3.parse(
+                self.mypc, self.use_reals)
+            return self._pc
+
+    @property
+    def slocal(self):
+        try:
+            return self._slocal
+        except AttributeError:
+            self._slocal = helpers.miscs.Z3.parse(
+                self.myslocal, self.use_reals)
+            return self._slocal
 
     @classmethod
     def parse(cls, s):
@@ -72,7 +85,7 @@ class PC(metaclass=ABCMeta):
         return pcs
 
 
-class PC_CIVL(PC):
+class PC_CIVL(PathCondition):
 
     @classmethod
     def parse_parts(cls, lines):
@@ -128,7 +141,7 @@ class PC_CIVL(PC):
                 strip())
 
 
-class PC_JPF(PC):
+class PC_JPF(PathCondition):
 
     @classmethod
     def parse_parts(cls, lines, delim="**********"):
@@ -291,7 +304,8 @@ class SymStatesMaker(metaclass=ABCMeta):
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
             sys.exit(0)
 
-        return self.merge(wrs, self.pc_cls, self.use_reals)
+        rs = self.merge(wrs, self.pc_cls, self.use_reals)
+        return rs
 
     def get_ss(self, depth):
         assert depth >= 1, depth
@@ -314,6 +328,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         except subprocess.CalledProcessError as ex:
             mlog.warning(ex)
             return None
+
         pcs = self.pc_cls.parse(s)
         return pcs
 
@@ -338,7 +353,6 @@ class SymStatesMaker(metaclass=ABCMeta):
             assert len(depths) >= 2, depths
             for i in range(len(depths)):
                 iss = symstates[loc][depths[i]]
-                # only keep diffs
                 for j in range(i):
                     jss = symstates[loc][depths[j]]
                     for s in jss:
@@ -362,7 +376,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             mlog.error("No symbolic states found for any locs. Exit!")
             exit(1)
 
-        # compute the z3 exprs once
+        # compute all z3 exprs once
         for loc in symstates:
             for depth in sorted(symstates[loc]):
                 pcs = symstates[loc][depth]
@@ -521,7 +535,6 @@ class SymStates(dict):
         return merge(mCexs), mdinvs
 
     def mcheck_d(self, loc, inv, inps, ncexs):
-
         assert isinstance(loc, str), loc
         assert inv is None or isinstance(
             inv, data.inv.base.Inv) or z3.is_expr(inv), inv
@@ -556,6 +569,7 @@ class SymStates(dict):
             ss = ssd[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
+            # print('solver stats', inv_expr, 'depth', depth)
             self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
@@ -573,7 +587,7 @@ class SymStates(dict):
             if stat_ != stat:
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("check depth diff {}: {} @ depth {}, {} @ depth {}"
+                mlog.debug("check depth diff {}: {} @depth {}, {} @depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
                 self.put_solver_stats(
                     analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_))
@@ -593,7 +607,6 @@ class SymStates(dict):
         assert expr is None or z3.is_expr(expr), expr
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
-        # assert self.check_check_mode(check_mode), check_mode
 
         f = symstates_expr
         iconstr = self.get_inp_constrs(inps)
@@ -657,7 +670,7 @@ class SymStates(dict):
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("maximize depth diff {}: {} {} @ depth {}, {} {} @ depth {}"
+                mlog.debug("maximize depth diff {}: {} {} @depth {}, {} {} @depth {}"
                            .format(term_expr, maxv, stat, mydepth,
                                    maxv_, stat_, mydepth_))
                 self.put_solver_stats(
