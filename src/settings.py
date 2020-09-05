@@ -16,8 +16,9 @@ DO_MINMAXPLUS = False  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
+
 INP_MAX_V = 300
-SYMEXE_TIMEOUT = 20  # secs
+SYMEXE_TIMEOUT = 15  # secs
 SOLVER_TIMEOUT = 5 * 1000  # 5 secs
 # EQT_SOLVER_TIMEOUT = 120  # secs
 EQT_RATE = 1.5
