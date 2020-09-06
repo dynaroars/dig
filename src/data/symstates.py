@@ -7,15 +7,13 @@ import shlex
 from collections import defaultdict
 from abc import ABCMeta
 import pdb
-from pathlib import Path
 from multiprocessing import Queue
 import subprocess
-from collections import namedtuple
 
 import z3
 import sage.all
 from sage.all import cached_function
-
+from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
 import helpers.miscs
@@ -32,19 +30,11 @@ zTrue = z3.BoolVal(True)
 zFalse = z3.BoolVal(False)
 
 
-class PathCondition(namedtuple(
-        "PathCondition", ["loc", "depth", "mypc", "myslocal", "use_reals"])):
-    __slots__ = ()
-
-    def __new__(cls, loc, depth, mypc, myslocal, use_reals):
-        assert isinstance(loc, str) and loc, loc
-        assert depth >= 0, depth
-        assert pc is None or isinstance(pc, str) and pc, pc
-        assert isinstance(slocal, str) and slocal, slocal
-        assert isinstance(use_reals, bool), bool
-
-        self = super().__new__(cls, loc, depth, mypc, myslocal, use_reals)
-        return self
+class PathCondition(NamedTuple):
+    loc: str
+    depth: int
+    pc: z3.ExprRef
+    slocal: z3.ExprRef
 
     def __str__(self):
         return 'loc: {}\npc: {}\nslocal: {}'.format(
@@ -53,24 +43,6 @@ class PathCondition(namedtuple(
     @property
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
-
-    @property
-    def pc(self):
-        try:
-            return self._pc
-        except AttributeError:
-            self._pc = zTrue if self.mypc is None else helpers.miscs.Z3.parse(
-                self.mypc, self.use_reals)
-            return self._pc
-
-    @property
-    def slocal(self):
-        try:
-            return self._slocal
-        except AttributeError:
-            self._slocal = helpers.miscs.Z3.parse(
-                self.myslocal, self.use_reals)
-            return self._slocal
 
     @classmethod
     def parse(cls, s):
@@ -86,7 +58,6 @@ class PathCondition(namedtuple(
 
 
 class PC_CIVL(PathCondition):
-
     @classmethod
     def parse_parts(cls, lines):
         """
@@ -100,14 +71,14 @@ class PC_CIVL(PathCondition):
 
         slocals = []
         pcs = []
-        lines = [l.strip() for l in lines]
-        lines = [l for l in lines if l]
-        for l in lines:
-            if l.startswith('vtrace'):
-                slocals.append(l)
-            elif l.startswith('path condition'):
+        lines = [line.strip() for line in lines]
+        lines = [line for line in lines if line]
+        for line in lines:
+            if line.startswith('vtrace'):
+                slocals.append(line)
+            elif line.startswith('path condition'):
                 assert len(pcs) == len(slocals) - 1
-                pcs.append(l)
+                pcs.append(line)
 
         parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
         return parts
@@ -164,20 +135,20 @@ class PC_JPF(PathCondition):
         end = delim + " END"
         do_append = False
 
-        lines = [l.strip() for l in lines]
-        lines = [l for l in lines if l]
-        for l in lines:
-            if l.startswith(start):
+        lines = [line.strip() for line in lines]
+        lines = [line for line in lines if line]
+        for line in lines:
+            if line.startswith(start):
                 do_append = True
                 continue
-            elif l.startswith(end):
+            elif line.startswith(end):
                 do_append = False
                 if curpart:
                     parts.append(curpart)
                     curpart = []
             else:
                 if do_append:
-                    curpart.append(l)
+                    curpart.append(line)
 
         return parts
 
@@ -253,7 +224,7 @@ class PCs(set):
         self.depth = depth
 
     def add(self, pc):
-        assert isinstance(pc, PC), pc
+        assert isinstance(pc, PathCondition), pc
         super().add(pc)
 
     @property
@@ -340,10 +311,18 @@ class SymStatesMaker(metaclass=ABCMeta):
         assert all(depth >= 1 and isinstance(ss, list)
                    for depth, ss in depthss), depthss
 
+        @cached_function
+        def zpc(p):
+            return zTrue if p is None else helpers.miscs.Z3.parse(p, use_reals)
+
+        @cached_function
+        def zslocal(p):
+            return helpers.miscs.Z3.parse(p, use_reals)
+
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
-                pc = pc_cls(loc, depth, pcs, slocals, use_reals)
+                pc = pc_cls(loc, depth, zpc(pcs), zslocal(slocals))
                 symstates[loc][depth].add(pc)
 
         # only store incremental states at each depth
@@ -384,7 +363,6 @@ class SymStatesMaker(metaclass=ABCMeta):
                 mlog.debug("{} uniq symstates at loc {} depth {}".format(
                     len(pcs), loc, depth))
                 # print(pcs.myexpr)
-
         return symstates
 
 
