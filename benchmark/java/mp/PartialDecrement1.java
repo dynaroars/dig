@@ -1,4 +1,4 @@
-public class PartialDecrement1 {
+public class PartialDecrement1{
     public static void vtrace_loop(int i, int p, int q){}
     public static void vtrace_post(int i, int p, int q){}
     public static void main (String[] args) {}

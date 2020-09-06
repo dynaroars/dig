@@ -598,7 +598,7 @@ class SymStates(dict):
         return cexs, is_succ, stat
 
     # Find maximal values for term using symbolic states
-    def maximize(self, loc, term_expr, extra_constr=None):
+    def maximize(self, loc, term_expr, iupper, extra_constr=None):
         """
         maximize value of term
         """
@@ -608,14 +608,14 @@ class SymStates(dict):
 
         if settings.DO_INCR_DEPTH:
             v, stat = self.mmaximize_depth(
-                self[loc], term_expr, extra_constr)
+                self[loc], term_expr, iupper, extra_constr)
         else:
             v, stat = self.mmaximize(
                 self.get_ss_at_depth(self[loc], depth=None),
-                term_expr)
+                term_expr, iupper)
         return v
 
-    def mmaximize_depth(self, ssd, term_expr, extra_constr):
+    def mmaximize_depth(self, ssd, term_expr, iupper, extra_constr):
         assert isinstance(ssd, SymStatesDepth), ssd
         assert z3.is_expr(term_expr), term_expr
         assert extra_constr is None or \
@@ -625,7 +625,7 @@ class SymStates(dict):
             ss = self.get_ss_at_depth(ssd, depth=depth)
             if extra_constr is not None:
                 ss = z3.And(ss, extra_constr)
-            maxv, stat = self.mmaximize(ss, term_expr)
+            maxv, stat = self.mmaximize(ss, term_expr, iupper)
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
 
@@ -651,14 +651,15 @@ class SymStates(dict):
                            .format(term_expr, maxv, stat, mydepth,
                                    maxv_, stat_, mydepth_))
                 self.put_solver_stats(
-                    analysis.MaxDepthChanges(str(term_expr), maxv, mydepth, maxv_, mydepth_))
+                    analysis.MaxDepthChanges(
+                        str(term_expr), maxv, mydepth, maxv_, mydepth_))
 
             depth_idx = depth_idx_
             maxv, stat = maxv_, stat_
 
         return maxv, stat
 
-    def mmaximize(self, ss, term_expr):
+    def mmaximize(self, ss, term_expr, iupper):
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
         opt = helpers.miscs.Z3.create_solver(maximize=True)
@@ -676,7 +677,7 @@ class SymStates(dict):
             v = str(opt.upper(h))
             if v != 'oo':  # no bound
                 v = int(v)
-                if v <= settings.IUPPER:
+                if v <= iupper:
                     return v, stat
 
         return None, stat

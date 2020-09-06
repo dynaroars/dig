@@ -1,16 +1,12 @@
 """
 Find upperbound of polynomials using optimizer
 """
-from abc import ABCMeta, abstractmethod
-
-import math
+from abc import ABCMeta
 import pdb
 from time import time
 import operator
 
 import z3
-import sage.all
-
 import helpers.vcommon as CM
 import helpers.miscs
 
@@ -33,7 +29,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         super().__init__(symstates, prog)
 
     def gen(self, dtraces, locs=None, extra_constr=None):
-        assert isinstance(dtraces, data.traces.DTraces) and dtraces, traces
+        assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
 
         if locs:
             # gen preconds
@@ -90,18 +86,25 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
         assert isinstance(dtraces, data.traces.DTraces), dtraces
 
+        iupper = (settings.IUPPER_MP if isinstance(
+            term, data.poly.mp.MP) else settings.IUPPER)
+
         # check if concrete states(traces) exceed upperbound
         if extra_constr is None:
             # skip if do prepost
-            if term.eval_traces(dtraces[loc], lambda v: int(v) > settings.IUPPER):
+            if term.eval_traces(
+                    dtraces[loc], lambda v: int(v) > iupper):
                 return None
 
         return self.symstates.maximize(
-            loc, self.to_expr(term), extra_constr)
+            loc, self.to_expr(term), iupper, extra_constr)
 
     def get_terms(self, symbols):
 
         terms = self.my_get_terms(symbols)
+        # for t in terms:
+        #     print(t)
+        # DBG()
         mlog.debug("{} terms for {}".format(
             len(terms), self.__class__.__name__))
 
@@ -175,9 +178,9 @@ class Ieq(Infer):
 
         mylocals = {str(s): s for s in symbols}
 
-        import sage.all
+        from sage.all import sage_eval
         try:
-            uterms = set(sage.all.sage_eval(term, locals=mylocals)
+            uterms = set(sage_eval(term, locals=mylocals)
                          for term in uterms)
         except NameError as ex:
             raise NameError(
@@ -224,7 +227,6 @@ class MP(Infer):
         return data.inv.mp.MP(term_ub)
 
     def my_get_terms(self, symbols):
-
         terms = []
         terms_u = data.poly.mp.MP.get_terms(symbols)
         terms_u_no_octs = [(a, b) for a, b in terms_u if len(b) >= 2]
@@ -249,19 +251,33 @@ class MP(Infer):
         assert isinstance(terms, list)
         assert all(isinstance(t, data.poly.mp.MP) for t in terms), terms
         assert isinstance(inps, set), inps
+
+        def is_pure(xs):
+            return all(x in inps for x in xs) or all(x not in inps for x in xs)
+
         excludes = set()
+        # print(inps)
         for term in terms:
-            a_symbs = list(map(str, helpers.miscs.Miscs.get_vars(term.a)))
-            b_symbs = list(map(str, helpers.miscs.Miscs.get_vars(term.b)))
+            a_symbs = set(map(str, helpers.miscs.Miscs.get_vars(term.a)))
+            b_symbs = set(map(str, helpers.miscs.Miscs.get_vars(term.b)))
+            # print(term, a_symbs, b_symbs)
+
+            if not is_pure(a_symbs) or not is_pure(b_symbs):
+                excludes.add(term)
+                # print('excluding, not pure', term)
+                continue
+
             inp_in_a = any(s in inps for s in a_symbs)
             inp_in_b = any(s in inps for s in b_symbs)
 
+            # if (inp in both a and b) or inp not in a or b
             if ((inp_in_a and inp_in_b) or
                     (not inp_in_a and not inp_in_b)):
                 excludes.add(term)
+                # print('excluding', term)
                 continue
 
-            t_symbs = set(a_symbs + b_symbs)
+            t_symbs = set.union(a_symbs, b_symbs)
 
             if len(t_symbs) <= 1:  # finding bound of single input val,
                 continue

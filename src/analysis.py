@@ -329,7 +329,7 @@ class Benchmark:
             assert benchmark_dir.is_dir(), benchmark_dir
         else:
             import tempfile
-            prefix = "dig_bm{}{}_".format(ntimes, bstr)
+            prefix = "bm_dig{}{}_".format(ntimes, bstr)
             benchmark_dir = Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
 
