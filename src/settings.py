@@ -12,7 +12,7 @@ DO_FILTER = True  # simplify results, e.g., removing weaker invariants
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
-DO_MINMAXPLUS = False  # support minmax-plus inequalities
+DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
@@ -151,11 +151,11 @@ def setup(settings, args):
         else:
             opts.append("-noieqs")
 
-    if args.dominmaxplus:
+    if args.nominmaxplus:
         if settings:
-            settings.DO_MINMAXPLUS = args.dominmaxplus
+            settings.DO_MINMAXPLUS = not args.nominmaxplus
         else:
-            opts.append("-dominmaxplus")
+            opts.append("-nominmaxplus")
 
     if args.nopreposts:
         if settings:

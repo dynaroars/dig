@@ -1,5 +1,5 @@
 """
-Find upperbound of polynomials using optimizer
+Find upperbound of polynomial and min/max terms using an SMT solver optimizer
 """
 from abc import ABCMeta
 import pdb
@@ -14,7 +14,7 @@ import settings
 import data.traces
 import data.poly.base
 import data.inv.oct
-import data.poly.mp
+# import data.poly.mp
 import data.inv.mp
 import infer.base
 
@@ -81,13 +81,13 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(term,
-                          (data.poly.base.GeneralPoly, data.poly.mp.MP)), \
+                          (data.poly.base.GeneralPoly, data.inv.mp.Term)), \
             (term, type(term))
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
         assert isinstance(dtraces, data.traces.DTraces), dtraces
 
         iupper = (settings.IUPPER_MP if isinstance(
-            term, data.poly.mp.MP) else settings.IUPPER)
+            term, data.inv.mp.Term) else settings.IUPPER)
 
         # check if concrete states(traces) exceed upperbound
         if extra_constr is None:
@@ -224,12 +224,12 @@ class MP(Infer):
         return data.inv.mp.MP(term_ub)
 
     def my_get_terms(self, symbols):
-        terms = data.poly.mp.MP.get_terms(symbols)
+        terms = data.inv.mp.Term.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
         def _get_terms(terms, is_max):
             terms_ = [(b, a) for a, b in terms]
-            return [data.poly.mp.MP(a, b, is_max) for a, b in terms + terms_]
+            return [data.inv.mp.Term.mk(a, b, is_max) for a, b in terms + terms_]
 
         terms_max = _get_terms(terms, is_max=True)
         terms_min = _get_terms(terms, is_max=False)
@@ -237,7 +237,7 @@ class MP(Infer):
 
     def get_excludes(self, terms, inps):
         assert isinstance(terms, list)
-        assert all(isinstance(t, data.poly.mp.MP) for t in terms), terms
+        assert all(isinstance(t, data.inv.mp.Term) for t in terms), terms
         assert isinstance(inps, set), inps
 
         def is_pure(xs):
@@ -274,12 +274,4 @@ class MP(Infer):
                     all(s not in inps for s in t_symbs)):
                 excludes.add(term)
 
-        # ins = [t for t in terms if t not in excludes]
-        # outs = [t for t in terms if t in excludes]
-        # print('ins')
-        # for t in ins:
-        #     print(t)
-        # print('outs')
-        # for t in outs:
-        #     print(t)
         return excludes

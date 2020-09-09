@@ -16,6 +16,7 @@ from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
 import helpers.miscs
+from helpers.miscs import Z3
 import data.prog
 import data.traces
 import data.inv.base
@@ -24,9 +25,6 @@ import analysis
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
-
-zTrue = z3.BoolVal(True)
-zFalse = z3.BoolVal(False)
 
 
 class PathCondition(NamedTuple):
@@ -67,7 +65,6 @@ class PC_CIVL(PathCondition):
         vtrace2: q = 0; r = X_x; a = 1; b = X_y; x = X_x; y = X_y
         path condition: (0<=(X_x+(-1*X_y)))&&(0<=(X_x-1))&&(0<=(X_y-1))
         """
-
         slocals = []
         pcs = []
         lines = [line.strip() for line in lines]
@@ -162,6 +159,8 @@ class PC_JPF(PathCondition):
         """
 
         assert isinstance(ss, list) and ss, ss
+        loc = None
+        pcs = []
 
         curpart = []
         for s in ss:
@@ -174,31 +173,32 @@ class PC_JPF(PathCondition):
                 curpart = []
                 continue
             curpart.append(s)
-
         slocals = curpart[:]
+        assert loc, loc
 
-        # some clean up
-        def isTooLarge(p):
-            if 'CON:' not in p:
-                return False
-
-            ps = p.split('=')
-            assert len(ps) == 2
-            v = sage_eval(ps[1])
-            if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
-                mlog.warning("ignore {} (larger than {})".format(
-                    p, settings.LARGE_N))
-                return True
-            else:
-                return False
-
-        slocals = [p for p in slocals if not isTooLarge(p)]
-        slocals = [cls.replace_str(p) for p in slocals if p]
-        slocal = ' and '.join(slocals) if slocals else None
+        slocals = [cls.replace_str(p)
+                   for p in slocals if p and not cls.too_large(p)]
+        slocals = ' and '.join(slocals) if slocals else None
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        pc = ' and '.join(pcs) if pcs else None
+        pcs = ' and '.join(pcs) if pcs else None
 
-        return loc, pc, slocal
+        return loc, pcs, slocals
+
+    @staticmethod
+    @cached_function
+    def too_large(p):
+        if 'CON:' not in p:
+            return False
+
+        ps = p.split('=')
+        assert len(ps) == 2
+        v = sage_eval(ps[1])
+        if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
+            mlog.warning("ignore {} (larger than {})".format(
+                p, settings.LARGE_N))
+            return True
+        else:
+            return False
 
     @staticmethod
     @cached_function
@@ -232,7 +232,7 @@ class PCs(set):
             return self._expr
         except AttributeError:
             _expr = z3.Or([p.expr for p in self])
-            self._expr = helpers.miscs.Z3.simplify(_expr)
+            self._expr = Z3.simplify(_expr)
             return self._expr
 
     @property
@@ -241,7 +241,7 @@ class PCs(set):
             return self._pc
         except AttributeError:
             _pc = z3.Or([p.pc for p in self])
-            self._pc = helpers.miscs.Z3.simplify(_pc)
+            self._pc = Z3.simplify(_pc)
             return self._pc
 
 
@@ -260,7 +260,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in range(self.mindepth, self.maxdepth+1)]
+        tasks = [depth for depth in range(self.mindepth, self.maxdepth + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -273,8 +273,27 @@ class SymStatesMaker(metaclass=ABCMeta):
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
             sys.exit(0)
 
-        rs = self.merge(wrs, self.pc_cls, self.use_reals)
-        return rs
+        symstates = self.merge(wrs, self.pc_cls, self.use_reals)
+
+        # precompute all z3 exprs
+        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
+
+        def f(tasks):
+            rs = [symstates[loc][depth] for loc, depth in tasks]
+            rs = [(Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc),
+                   loc, depth) for pcs, (loc, depth) in zip(rs, tasks)]
+            return rs
+
+        wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
+        for myexpr, mypc, loc, depth in wrs:
+            pcs = symstates[loc][depth]
+            pcs._expr = Z3.from_smt2_str(myexpr)
+            pcs._pc = Z3.from_smt2_str(mypc)
+            mlog.debug("{} uniq symstates at loc {} depth {}".format(
+                len(pcs), loc, depth))
+            # print(pcs.myexpr)
+
+        return symstates
 
     def get_ss(self, depth):
         assert depth >= 1, depth
@@ -312,11 +331,11 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         @cached_function
         def zpc(p):
-            return zTrue if p is None else helpers.miscs.Z3.parse(p, use_reals)
+            return Z3.zTrue if p is None else Z3.parse(p, use_reals)
 
         @cached_function
         def zslocal(p):
-            return helpers.miscs.Z3.parse(p, use_reals)
+            return Z3.parse(p, use_reals)
 
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
@@ -352,27 +371,6 @@ class SymStatesMaker(metaclass=ABCMeta):
         if all(not symstates[loc] for loc in symstates):
             mlog.error("No symbolic states found for any locs. Exit!")
             sys.exit(1)
-
-        # compute all z3 exprs once
-
-        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
-
-        def f(tasks):
-            rs = [symstates[loc][depth] for loc, depth in tasks]
-            rs = [(helpers.miscs.Z3.to_smt2_str(pcs.myexpr),
-                   helpers.miscs.Z3.to_smt2_str(pcs.mypc),
-                   loc, depth)
-                  for pcs, (loc, depth) in zip(rs, tasks)]
-            return rs
-
-        wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
-        for myexpr, mypc, loc, depth in wrs:
-            pcs = symstates[loc][depth]
-            pcs._expr = helpers.miscs.Z3.from_smt2_str(myexpr)
-            pcs._pc = helpers.miscs.Z3.from_smt2_str(mypc)
-            mlog.debug("{} uniq symstates at loc {} depth {}".format(
-                len(pcs), loc, depth))
-            # print(pcs.myexpr)
 
         return symstates
 
@@ -531,7 +529,7 @@ class SymStates(dict):
 
         try:
             inv_expr = inv.expr(self.use_reals)
-            if inv_expr is zFalse:
+            if inv_expr is Z3.zFalse:
                 inv_expr = None
         except AttributeError:
             if z3.is_expr(inv):
@@ -604,8 +602,8 @@ class SymStates(dict):
         if expr is not None:
             f = z3.Not(z3.Implies(f, expr))
 
-        models, stat = helpers.miscs.Z3.get_models(f, ncexs)
-        cexs, is_succ = helpers.miscs.Z3.extract(models)
+        models, stat = Z3.get_models(f, ncexs)
+        cexs, is_succ = Z3.extract(models)
         return cexs, is_succ, stat
 
     # Find maximal values for term using symbolic states
@@ -675,7 +673,7 @@ class SymStates(dict):
         assert z3.is_expr(term_expr), term_expr
         assert isinstance(iupper, int) and iupper >= 1, iupper
 
-        opt = helpers.miscs.Z3.create_solver(maximize=True)
+        opt = Z3.create_solver(maximize=True)
         opt.add(ss)
         try:
             h = opt.maximize(term_expr)

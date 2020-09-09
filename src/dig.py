@@ -78,9 +78,9 @@ if __name__ == "__main__":
        action="store_true",
        help="don't compute ieq/oct invariants")
 
-    ag("--dominmaxplus", "-dominmaxplus",
+    ag("--nominmaxplus", "-nominmaxplus",
        action="store_true",
-       help="compute min/max-plus invariants")
+       help="don't compute min/max-plus invariants")
 
     ag("--nopreposts", "-nopreposts",
        action="store_true",

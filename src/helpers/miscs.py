@@ -663,6 +663,9 @@ class Miscs(object):
 
 
 class Z3(object):
+    zTrue = z3.BoolVal(True)
+    zFalse = z3.BoolVal(False)
+
     @classmethod
     def is_var(cls, v):
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
@@ -993,6 +996,6 @@ class Z3(object):
     @classmethod
     def from_smt2_str(cls, s):
         assertions = z3.parse_smt2_string(s)
-        expr = z3.BoolVal(True) if not assertions else assertions[0]
+        expr = cls.zTrue if not assertions else assertions[0]
         assert z3.is_expr(expr), expr
         return expr
