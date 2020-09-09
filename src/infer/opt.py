@@ -12,9 +12,7 @@ import helpers.miscs
 
 import settings
 import data.traces
-import data.poly.base
 import data.inv.oct
-# import data.poly.mp
 import data.inv.mp
 import infer.base
 
@@ -81,7 +79,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(term,
-                          (data.poly.base.GeneralPoly, data.inv.mp.Term)), \
+                          (data.inv.base.RelTerm, data.inv.mp.Term)), \
             (term, type(term))
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
         assert isinstance(dtraces, data.traces.DTraces), dtraces
@@ -131,7 +129,7 @@ class Ieq(Infer):
 
     def to_expr(self, term):
         return helpers.miscs.Z3.parse(
-            str(term.poly), use_reals=self.symstates.use_reals)
+            str(term.term), use_reals=self.symstates.use_reals)
 
     def inv_cls(self, term_ub):
         return data.inv.oct.Oct(term_ub)
@@ -166,7 +164,7 @@ class Ieq(Infer):
             mlog.debug("adding {} new terms from user".format(
                 len(terms) - old_siz))
 
-        terms = [data.poly.base.GeneralPoly(t) for t in terms]
+        terms = [data.inv.base.RelTerm(t) for t in terms]
         return terms
 
     def my_get_terms_user(self, symbols, uterms):

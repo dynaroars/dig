@@ -36,7 +36,7 @@ class Poly(metaclass=ABCMeta):
         pass
 
 
-class GeneralPoly(Poly):
+class GeneralPolyDelMe(Poly):
     """
     e.g., x + y,  x,  x + 3
     """
