@@ -102,9 +102,6 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
     def get_terms(self, symbols):
 
         terms = self.my_get_terms(symbols)
-        # for t in terms:
-        #     print(t)
-        # DBG()
         mlog.debug("{} terms for {}".format(
             len(terms), self.__class__.__name__))
 
@@ -227,25 +224,16 @@ class MP(Infer):
         return data.inv.mp.MP(term_ub)
 
     def my_get_terms(self, symbols):
-        terms = []
-        terms_u = data.poly.mp.MP.get_terms(symbols)
-        terms_u_no_octs = [(a, b) for a, b in terms_u if len(b) >= 2]
+        terms = data.poly.mp.MP.get_terms(symbols)
+        terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
-        if settings.DO_IEQS:  # ignore oct invs
-            terms_u = terms_u_no_octs
+        def _get_terms(terms, is_max):
+            terms_ = [(b, a) for a, b in terms]
+            return [data.poly.mp.MP(a, b, is_max) for a, b in terms + terms_]
 
-        def _get_terms(terms_u, is_max):
-            terms_l = [(b, a) for a, b in terms_u]
-            terms = terms_u + terms_l
-            terms = [data.poly.mp.MP(a, b, is_max) for a, b in terms]
-            return terms
-
-        terms_max = _get_terms(terms_u, is_max=True)
-        terms_min = _get_terms(terms_u_no_octs, is_max=False)
-        terms_mp = terms_min + terms_max
-        terms.extend(terms_mp)
-
-        return terms
+        terms_max = _get_terms(terms, is_max=True)
+        terms_min = _get_terms(terms, is_max=False)
+        return terms_min + terms_max
 
     def get_excludes(self, terms, inps):
         assert isinstance(terms, list)

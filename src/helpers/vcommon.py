@@ -1,4 +1,3 @@
-import subprocess as sp
 import logging
 """
 To run doctest

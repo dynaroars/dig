@@ -11,8 +11,7 @@ from multiprocessing import Queue
 import subprocess
 
 import z3
-import sage.all
-from sage.all import cached_function
+from sage.all import cached_function, sage_eval
 from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
@@ -185,7 +184,7 @@ class PC_JPF(PathCondition):
 
             ps = p.split('=')
             assert len(ps) == 2
-            v = sage.all.sage_eval(ps[1])
+            v = sage_eval(ps[1])
             if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
                 mlog.warning("ignore {} (larger than {})".format(
                     p, settings.LARGE_N))
@@ -355,14 +354,26 @@ class SymStatesMaker(metaclass=ABCMeta):
             sys.exit(1)
 
         # compute all z3 exprs once
-        for loc in symstates:
-            for depth in sorted(symstates[loc]):
-                pcs = symstates[loc][depth]
-                pcs.myexpr
-                pcs.mypc
-                mlog.debug("{} uniq symstates at loc {} depth {}".format(
-                    len(pcs), loc, depth))
-                # print(pcs.myexpr)
+
+        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
+
+        def f(tasks):
+            rs = [symstates[loc][depth] for loc, depth in tasks]
+            rs = [(helpers.miscs.Z3.to_smt2_str(pcs.myexpr),
+                   helpers.miscs.Z3.to_smt2_str(pcs.mypc),
+                   loc, depth)
+                  for pcs, (loc, depth) in zip(rs, tasks)]
+            return rs
+
+        wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
+        for myexpr, mypc, loc, depth in wrs:
+            pcs = symstates[loc][depth]
+            pcs._expr = helpers.miscs.Z3.from_smt2_str(myexpr)
+            pcs._pc = helpers.miscs.Z3.from_smt2_str(mypc)
+            mlog.debug("{} uniq symstates at loc {} depth {}".format(
+                len(pcs), loc, depth))
+            # print(pcs.myexpr)
+
         return symstates
 
 
@@ -662,6 +673,8 @@ class SymStates(dict):
     def mmaximize(self, ss, term_expr, iupper):
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
+        assert isinstance(iupper, int) and iupper >= 1, iupper
+
         opt = helpers.miscs.Z3.create_solver(maximize=True)
         opt.add(ss)
         try:
@@ -676,9 +689,12 @@ class SymStates(dict):
         if stat == z3.sat:
             v = str(opt.upper(h))
             if v != 'oo':  # no bound
-                v = int(v)
-                if v <= iupper:
-                    return v, stat
+                try:
+                    v = int(v)
+                    if v <= iupper:
+                        return v, stat
+                except ValueError:  # invalid literal for 3/4
+                    pass
 
         return None, stat
 

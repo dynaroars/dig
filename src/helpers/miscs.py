@@ -982,3 +982,17 @@ class Z3(object):
         except z3.Z3Exception:
             pass
         return f
+
+    @classmethod
+    def to_smt2_str(cls, f, status="unknown", name="benchmark", logic=""):
+        v = (z3.Ast * 0)()
+        s = z3.Z3_benchmark_to_smtlib_string(
+            f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast())
+        return s
+
+    @classmethod
+    def from_smt2_str(cls, s):
+        assertions = z3.parse_smt2_string(s)
+        expr = z3.BoolVal(True) if not assertions else assertions[0]
+        assert z3.is_expr(expr), expr
+        return expr

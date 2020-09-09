@@ -1,7 +1,7 @@
 public class PartialDecrement3 {
-    public static void vtrace_loop1(int i, int p, int q, int r, int s){}
-    public static void vtrace_loop2(int i, int p, int q, int r, int s){}
-    public static void vtrace_loop3(int i, int p, int q, int r, int s){}    
+    // public static void vtrace_loop1(int i, int p, int q, int r, int s){}
+    // public static void vtrace_loop2(int i, int p, int q, int r, int s){}
+    // public static void vtrace_loop3(int i, int p, int q, int r, int s){}    
     public static void vtrace_post(int i, int p, int q, int r, int s){}
     public static void main (String[] args) {}
      
