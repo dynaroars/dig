@@ -57,7 +57,6 @@ class Miscs(object):
         sage: y = var('y')
         sage: assert Miscs.is_rel(x+y<=3)
         """
-
         try:
             if not f.is_relational():
                 return False

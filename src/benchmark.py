@@ -16,7 +16,7 @@ settings.logger_level = CM.getLogLevel(3)
 
 DBG = pdb.set_trace
 
-TIMEOUT = 900  # seconds
+TIMEOUT = 10 * 60  # mins
 CMD = "timeout {} ".format(TIMEOUT) +\
     "sage -python -O " +\
     "dig.py {filename} -log 4 -nominmax -seed {seed}"

@@ -13,7 +13,7 @@ public class PartialDecrement1{
 	    p>=i
 	    i >= min(p,q)
 	    */
-	    //vtrace_loop(i,p,q);
+	    vtrace_loop(i,p,q);
 	    
 	    if (!(i>q)){break;}
 	    i = i - 1;

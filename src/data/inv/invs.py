@@ -81,6 +81,7 @@ class Invs(set):
         def my_get_expr(p):
             return self.get_expr(p, use_reals, exprs_d)
 
+        mps = data.inv.mp.MP.simplify(mps)
         mps = self.simplify1(mps, eqts + octs, "mps", my_get_expr)
         octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
 

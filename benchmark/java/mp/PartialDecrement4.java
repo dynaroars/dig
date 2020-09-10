@@ -14,28 +14,28 @@ public class PartialDecrement4 {
     public static void mainQ(int p, int q, int r, int s, int t) {
 	int i = p;
 	while(true){
-	    // vtrace_loop1(i,p,q,r,s,t);
+	    vtrace_loop1(i,p,q,r,s,t);
 	    
 	    if (!(i>q)){break;}
 	    i = i - 1;
 	}
 
 	while(true){
-	    // vtrace_loop2(i,p,q,r,s,t);
+	    vtrace_loop2(i,p,q,r,s,t);
 	    
 	    if(!(i>r)){break;}
 	    i = i - 1;
 	}
 
 	while(true){
-	    // vtrace_loop3(i,p,q,r,s,t);
+	    vtrace_loop3(i,p,q,r,s,t);
 	    
 	    if(!(i>s)){break;}
 	    i = i - 1;
 	}
 
 	while(true){
-	    // vtrace_loop4(i,p,q,r,s,t);
+	    vtrace_loop4(i,p,q,r,s,t);
 	    
 	    if(!(i>t)){break;}
 	    i = i - 1;

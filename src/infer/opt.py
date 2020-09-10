@@ -8,7 +8,7 @@ import operator
 
 import z3
 import helpers.vcommon as CM
-import helpers.miscs
+from helpers.miscs import Miscs, Z3
 
 import settings
 import data.traces
@@ -64,7 +64,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             return [(loc, term,
                      self.maximize(loc, term, extra_constr, dtraces))
                     for loc, term in tasks]
-        wrs = helpers.miscs.Miscs.run_mp('optimize upperbound', tasks, f)
+        wrs = Miscs.run_mp('optimize upperbound', tasks, f)
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
@@ -108,7 +108,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             # filter terms
             st = time()
             new_terms = self.filter_terms(terms, inps)
-            helpers.miscs.Miscs.show_removed(
+            Miscs.show_removed(
                 'filter terms', len(terms), len(new_terms), time() - st)
             terms = new_terms
         return terms
@@ -128,7 +128,7 @@ class Ieq(Infer):
         super().__init__(symstates, prog)
 
     def to_expr(self, term):
-        return helpers.miscs.Z3.parse(
+        return Z3.parse(
             str(term.term), use_reals=self.symstates.use_reals)
 
     def inv_cls(self, term_ub):
@@ -139,13 +139,13 @@ class Ieq(Infer):
         assert settings.IDEG >= 1, settings.IDEG
 
         if settings.IDEG == 1:
-            terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
+            terms = Miscs.get_terms_fixed_coefs(
                 symbols, settings.ITERMS, settings.ICOEFS)
         else:
-            terms = helpers.miscs.Miscs.get_terms(
+            terms = Miscs.get_terms(
                 list(symbols), settings.IDEG)
             terms = [t for t in terms if t != 1]
-            terms = helpers.miscs.Miscs.get_terms_fixed_coefs(
+            terms = Miscs.get_terms_fixed_coefs(
                 terms, settings.ITERMS, settings.ICOEFS,
                 do_create_terms=False)
 
@@ -242,10 +242,9 @@ class MP(Infer):
             return all(x in inps for x in xs) or all(x not in inps for x in xs)
 
         excludes = set()
-        # print(inps)
         for term in terms:
-            a_symbs = set(map(str, helpers.miscs.Miscs.get_vars(term.a)))
-            b_symbs = set(map(str, helpers.miscs.Miscs.get_vars(term.b)))
+            a_symbs = set(map(str, Miscs.get_vars(term.a)))
+            b_symbs = set(map(str, Miscs.get_vars(term.b)))
             # print(term, a_symbs, b_symbs)
 
             if not is_pure(a_symbs) or not is_pure(b_symbs):

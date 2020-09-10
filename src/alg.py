@@ -190,6 +190,27 @@ class DigSymStates(Dig):
             mlog.debug('{}'.format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
 
+    def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout):
+        from multiprocessing import Process, Queue
+
+        def wprocess(auto_deg, dtraces, inps, myQ):
+            dinvs = solver.gen(auto_deg, dtraces, inps)
+            myQ.put((dinvs, dtraces, inps))
+
+        is_timeout = False
+        Q = Queue()
+        worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
+        worker.start()
+        worker.join(timeout=timeout)
+        worker.terminate()
+
+        if worker.exitcode is None:
+            dinvs = DInvs()
+            is_timeout = True
+        else:
+            dinvs, dtraces, inps = Q.get()
+        return dinvs, dtraces, inps, is_timeout
+
     def infer_eqts(self, maxdeg, dtraces, inps):
         import infer.eqt
         solver = infer.eqt.Infer(self.symstates, self.prog)
@@ -197,7 +218,21 @@ class DigSymStates(Dig):
 
         # determine degree
         auto_deg = self.get_auto_deg(maxdeg)
-        return solver.gen(auto_deg, dtraces, inps)
+
+        # timeout = settings.EQT_SOLVER_TIMEOUT
+        # maxct = settings.EQT_SOLVER_TIMEOUT_MAXTRIES
+        # ct = 0
+        # while True:
+        #     dinvs, dtraces, inps, is_timeout = self.my_infer_eqts(
+        #         solver, auto_deg, dtraces, inps, timeout)
+        #     if is_timeout is False or ct >= maxct:
+        #         break
+        #     ct += 1
+        #     mlog.warning('eqt solving, try {}/{} using timeout {}'.format(
+        #         ct, maxct, timeout))
+
+        dinvs = solver.gen(auto_deg, dtraces, inps)
+        return dinvs
 
     def infer_ieqs(self, dtraces, inps):
         import infer.opt
@@ -280,8 +315,6 @@ class DigTraces(Dig):
 
         super().start(seed, maxdeg)
 
-        st = time.time()
-
         tasks = []
         for loc in self.dtraces:
             symbols = self.inv_decls[loc]
@@ -321,7 +354,23 @@ class DigTraces(Dig):
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
             symbols.names, auto_deg, settings.EQT_RATE)
         exprs = list(traces.instantiate(template, n_eqts_needed))
-        eqts = Miscs.solve_eqts(exprs, uks, template)
+        from multiprocessing import Process, Queue
+
+        def wprocess(exprs, uks, template, myQ):
+            rs = Miscs.solve_eqts(exprs, uks, template)
+            myQ.put(rs)
+        Q = Queue()
+        worker = Process(target=wprocess, args=(exprs, uks, template, Q))
+        worker.start()
+        worker.join(timeout=1)
+        worker.teminate()
+
+        if worker.exitcode is None:
+            mlog.error("timeout!")
+
+        eqts = Q.get()
+
+        #eqts = Miscs.solve_eqts(exprs, uks, template)
         import data.inv.eqt
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 

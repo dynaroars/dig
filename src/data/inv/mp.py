@@ -3,9 +3,8 @@ import itertools
 from typing import NamedTuple
 
 import sage.all
-from sage.all import cached_function, cached_method
+from sage.all import cached_function
 import z3
-from z3.z3 import Bool
 
 import helpers.vcommon as CM
 from helpers.miscs import Z3, Miscs
@@ -41,6 +40,7 @@ class MP(data.inv.base.Inv):
             s += " {} 0".format('<=' if self.is_ieq is True else '==')
         if print_stat:
             s = "{} {}".format(s, self.stat)
+
         return s
 
     def expr(self, use_reals):
@@ -107,6 +107,24 @@ class MP(data.inv.base.Inv):
 
             return z3.If(cond, ite, rest_ite)
 
+    @classmethod
+    def simplify(cls, mps):
+        assert isinstance(mps, list), mps
+        assert all(isinstance(mp, cls) for mp in mps)
+
+        cached = {}
+        for mp in mps:
+            key = frozenset([
+                mp.term.a, mp.term.b, (mp.term.is_max, mp.is_ieq)])
+
+            if key not in cached:
+                cached[key] = mp
+            else:
+                assert cached[key].is_ieq is not False, cached[key]
+                cached[key] = cls(mp.term, is_ieq=False, stat=None)
+
+        return list(cached.values())
+
 
 class Term(NamedTuple):
     a: tuple
@@ -162,7 +180,7 @@ class Term(NamedTuple):
                        for t in traces)
 
     @classmethod
-    def get_terms(cls, terms, ignore_oct=False):
+    def get_terms(cls, terms):
         """
         Generate (weak) mp terms of the form
         xi <= max(c1+x1, ... ,cn+xn, c0) and
@@ -256,9 +274,6 @@ class Term(NamedTuple):
         # sage: print(MPInv._to_str((x,y), (z,7), is_max=True))
         # max(x, y) - max(z, 7)
         """
-        # print('a', a)
-        # print('b', b)
-        # print('is_max', is_max)
         def f(ls):
             assert ls
             if len(ls) >= 2:
