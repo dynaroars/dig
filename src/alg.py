@@ -211,6 +211,22 @@ class DigSymStates(Dig):
             dinvs, dtraces, inps = Q.get()
         return dinvs, dtraces, inps, is_timeout
 
+    def my_infer_eqts2(self, solver, auto_deg, dtraces, inps):
+
+        timeout = settings.EQT_SOLVER_TIMEOUT
+        maxct = settings.EQT_SOLVER_TIMEOUT_MAXTRIES
+        ct = 0
+        while True:
+            dinvs, dtraces, inps, is_timeout = self.my_infer_eqts(
+                solver, auto_deg, dtraces, inps, timeout)
+            if is_timeout is False or ct >= maxct:
+                break
+            ct += 1
+            mlog.warning('eqt solving, try {}/{} using timeout {}'.format(
+                ct, maxct, timeout))
+
+        return dinvs, dtraces, inps
+
     def infer_eqts(self, maxdeg, dtraces, inps):
         import infer.eqt
         solver = infer.eqt.Infer(self.symstates, self.prog)
@@ -218,18 +234,6 @@ class DigSymStates(Dig):
 
         # determine degree
         auto_deg = self.get_auto_deg(maxdeg)
-
-        # timeout = settings.EQT_SOLVER_TIMEOUT
-        # maxct = settings.EQT_SOLVER_TIMEOUT_MAXTRIES
-        # ct = 0
-        # while True:
-        #     dinvs, dtraces, inps, is_timeout = self.my_infer_eqts(
-        #         solver, auto_deg, dtraces, inps, timeout)
-        #     if is_timeout is False or ct >= maxct:
-        #         break
-        #     ct += 1
-        #     mlog.warning('eqt solving, try {}/{} using timeout {}'.format(
-        #         ct, maxct, timeout))
 
         dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
