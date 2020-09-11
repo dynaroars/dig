@@ -44,7 +44,7 @@ class Miscs(object):
     @staticmethod
     def is_rel(f, rel=None):
         """
-        sage: from helpers.miscs import Miscs
+        # sage: from miscs import Miscs
         sage: assert not Miscs.is_rel(7.2)
         sage: assert not Miscs.is_rel(x)
         sage: assert not Miscs.is_rel(x+7)
@@ -108,7 +108,7 @@ class Miscs(object):
 
         Examples:
 
-        sage: from helpers.miscs import Miscs
+        sage: from miscs import Miscs
         sage: assert Miscs.rat2str('.3333333') == 3333333/10000000
         sage: assert Miscs.rat2str('3/7') == 3/7
         sage: assert Miscs.rat2str('1.') == 1
@@ -387,10 +387,10 @@ class Miscs(object):
 
         # I don't think this helps
         # @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
-        def mysolve(eqts, uks, solution_dict):
+        def mysolve(eqts, uks):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 
-        rs = mysolve(eqts, uks, solution_dict=True)
+        rs = mysolve(eqts, uks)
         assert isinstance(rs, list), rs
         assert all(isinstance(s, dict) for s in rs), rs
 

@@ -135,11 +135,15 @@ class AResult(Result):
             maxdegs.append(maxdeg)
             ntermss.append(nterms)
 
-        nvs = len(set(v for vs in vss for v in vs))
+            # print(inv, vs, maxdeg, nterms)
+        vss = set(str(v) for vs in vss for v in vs)
+        nvs = len(vss)
         maxdeg = max(maxdegs)
         nterms = max(ntermss)
 
         nnonlinears = len([d for d in maxdegs if d >= 2])
+
+        # print(nvs, vss, maxdeg, nterms, nnonlinears)
         return nvs, maxdeg, nterms, nnonlinears
 
     @classmethod
@@ -164,7 +168,7 @@ class AResult(Result):
         elif isinstance(inv, data.inv.mp.MP):
             vs = inv.term.symbols
             degs = [1]
-            nterms = 1
+            nterms = 2
         else:
             p = inv.inv
             vs = set(p.variables())
@@ -189,7 +193,6 @@ class Results:
 
         nruns = len(rs)
         nlocs = f(len(r.dinvs) for r in rs)
-
         V = f(r.V for r in rs)
         T = f(r.T for r in rs)
         D = f(r.D for r in rs)
@@ -243,8 +246,9 @@ class Results:
 
         print("* prog {} locs {}; ".format(self.prog, nlocs),
               "{}".format(invtypss),
+              "V {} T {} D {}; ".format(V, T, D),
               "NL {} ({}) ;".format(NL, D))
-        # "V {} T {} D {}; ".format(V, T, D),
+
         print("-> time {}".format(time_s))
 
         print("-> checks {} {}".format(
@@ -294,7 +298,7 @@ class Results:
 
 
 class Benchmark:
-    TIMEOUT = 1200  # seconds
+    TIMEOUT = settings.BENCHMARK_TIMEOUT
 
     def __init__(self, inp, args):
         assert isinstance(inp, Path), inp
@@ -336,7 +340,7 @@ class Benchmark:
 
         self.benchmark_dir = benchmark_dir
 
-        # compute which runs we have to do (in case there are some existing runs)
+        # compute which runs have to do in case there are some existing runs
         self.toruns = []
         myruns = set(range(ntimes))
         for i, f in enumerate(bfiles):

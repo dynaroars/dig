@@ -1,6 +1,7 @@
 """
 Symbolic States
 """
+
 from time import time
 import sys
 import shlex
@@ -477,7 +478,8 @@ class SymStates(dict):
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
-            filename, mainQName, funname, len(self.inp_decls), self.use_reals, tmpdir)
+            filename, mainQName, funname,
+            len(self.inp_decls), self.use_reals, tmpdir)
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
@@ -656,7 +658,7 @@ class SymStates(dict):
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("maximize depth diff {}: {} {} @depth {}, {} {} @depth {}"
+                mlog.debug("max depth diff {}: {} {} @depth {}, {} {} @depth {}"
                            .format(term_expr, maxv, stat, mydepth,
                                    maxv_, stat_, mydepth_))
                 self.put_solver_stats(
