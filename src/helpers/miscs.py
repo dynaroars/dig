@@ -594,7 +594,7 @@ class Miscs(object):
                     wrs.extend(rs)
                 else:
                     mlog.warning("Got exception from worker: {rs}")
-                    mlog.expcetion(rs)
+                    mlog.exception(rs)
                     raise rs
 
             for w in workers:
