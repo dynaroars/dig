@@ -25,11 +25,17 @@ def killtree(pid, including_parent=True):
     parent = psutil.Process(pid)
     for child in parent.children(recursive=True):
         mlog.warning(f"Terminate child {child}")
-        child.terminate()
+        try:
+            child.terminate()
+        except:
+            mlog.exception(f"Can't terminate child {child}")
 
     if including_parent:
         mlog.warning(f"Terminate parent {parent}")
-        parent.terminate()
+        try:
+            parent.terminate()
+        except:
+            mlog.exception(f"Can't terminate parent {parent}")
 
 
 class Dig(metaclass=ABCMeta):
