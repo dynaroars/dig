@@ -575,6 +575,11 @@ class Miscs(object):
 
             wrs = [x for _ in workers for x in Q.get()]
 
+            for w in workers:
+                #w.terminate()
+                w.join()
+                w.close()
+
         else:
             wrs = wprocess(tasks, myQ=None)
 

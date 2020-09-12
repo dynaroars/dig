@@ -3,6 +3,7 @@ import pdb
 import random
 import time
 from pathlib import Path
+import psutil, os
 
 import sage.all
 
@@ -17,6 +18,17 @@ import data.symstates
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
+
+def killtree(pid, including_parent=True):
+    parent = psutil.Process(pid)
+    for child in parent.children(recursive=True):
+        mlog.warning(f"Terminate child {child}")
+        child.terminate()
+
+    if including_parent:
+        mlog.warning(f"Terminate parent {parent}")
+        parent.terminate()
 
 
 class Dig(metaclass=ABCMeta):
@@ -191,6 +203,7 @@ class DigSymStates(Dig):
                 print_stat=True, print_first_n=20)))
 
     def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout):
+        from queue import Empty
         from multiprocessing import Process, Queue
 
         def wprocess(auto_deg, dtraces, inps, myQ):
@@ -198,17 +211,28 @@ class DigSymStates(Dig):
             myQ.put((dinvs, dtraces, inps))
 
         is_timeout = False
+        #mlog.warning(f"### BEGIN my_infer_eqts {datetime.datetime.now()}")
         Q = Queue()
         worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
         worker.start()
-        worker.join(timeout=timeout)
-        worker.terminate()
 
-        if worker.exitcode is None:
-            dinvs = DInvs()
+        try:
+            dinvs, dtraces, inps = Q.get(timeout=timeout)
+        except Empty:
             is_timeout = True
-        else:
-            dinvs, dtraces, inps = Q.get()
+
+        #mlog.warning(f"### AFTER Queue get my_infer_eqts {datetime.datetime.now()}, is_timeout={is_timeout}")
+        worker.join(timeout=1)
+        if worker.is_alive():
+            killtree(worker.pid)
+            worker.terminate()
+        worker.join()
+        #mlog.warning(f"### AFTER 2nd JOIN my_infer_eqts {datetime.datetime.now()}, ec={worker.exitcode}")
+        worker.close()
+
+        if is_timeout:
+            dinvs = DInvs()
+
         return dinvs, dtraces, inps, is_timeout
 
     def my_infer_eqts2(self, solver, auto_deg, dtraces, inps):
@@ -225,7 +249,7 @@ class DigSymStates(Dig):
             mlog.warning('eqt solving, try {}/{} using timeout {}'.format(
                 ct, maxct, timeout))
 
-        return dinvs, dtraces, inps
+        return dinvs
 
     def infer_eqts(self, maxdeg, dtraces, inps):
         import infer.eqt
@@ -235,7 +259,8 @@ class DigSymStates(Dig):
         # determine degree
         auto_deg = self.get_auto_deg(maxdeg)
 
-        dinvs = solver.gen(auto_deg, dtraces, inps)
+        dinvs = self.my_infer_eqts2(solver, auto_deg, dtraces, inps)
+        #dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
