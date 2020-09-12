@@ -554,7 +554,16 @@ class Miscs(object):
         Run wprocess on tasks in parallel
         """
         def wprocess(mytasks, myQ):
-            rs = f(mytasks)
+            rs = None
+            try:
+                rs = f(mytasks)
+            except BaseException as ex:
+                mlog.warning(f"Got exception in worker: {ex}")
+                if myQ is None:
+                    raise
+                else:
+                    rs = ex
+
             if myQ is None:
                 return rs
             else:
@@ -578,12 +587,20 @@ class Miscs(object):
             for w in workers:
                 w.start()
 
-            wrs = [x for _ in workers for x in Q.get()]
+            wrs = []
+            for _ in workers:
+                rs = Q.get()
+                if isinstance(rs, list):
+                    wrs.extend(rs)
+                else:
+                    mlog.warning("Got exception from worker: {rs}")
+                    mlog.expcetion(rs)
+                    raise rs
 
             for w in workers:
                 #w.terminate()
-                #w.join()
-                #w.close()
+                w.join()
+                w.close()
                 pass
 
         else:

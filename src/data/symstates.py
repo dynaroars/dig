@@ -9,7 +9,9 @@ from collections import defaultdict
 from abc import ABCMeta
 import pdb
 from multiprocessing import Queue
+from queue import Empty
 import subprocess
+import threading
 
 import z3
 from sage.all import cached_function, sage_eval
@@ -465,16 +467,24 @@ class SymStatesDepth(dict):  # depth -> PCs
 class SymStates(dict):
     # loc -> SymStatesDepth
 
-    solver_stats = Queue() if settings.DO_SOLVER_STATS else None
-    solver_stats_ = []  # periodically save solver_stats results here
-
     def __init__(self, inp_decls, inv_decls):
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.use_reals = inv_decls.use_reals
         self.inp_exprs = inp_decls.exprs(self.use_reals)
+        
+        self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
+        self.solver_stats_ = []  # periodically save solver_stats results here
+
+        self.bg_thread_solver_stats = None
+        self.bg_thread_solver_stats_running = False
+        self.start_bg_get_solver_stats()
 
         super().__init__(dict())
+
+    def __del__(self):
+        self.stop_bg_get_solver_stats()
+        super().__del__()
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
@@ -736,17 +746,32 @@ class SymStates(dict):
 
     def get_solver_stats(self):
         if self.solver_stats is not None:
-            while not self.solver_stats.empty():
-                self.solver_stats_.append(
-                    self.solver_stats.get(block=True))
-            self.solver_stats = Queue()
+            while True:
+                try:
+                    self.solver_stats_.append(self.solver_stats.get(block=False))
+                except Empty:
+                    break
+            self.reset_solver_stats()
 
     def reset_solver_stats(self):
         if self.solver_stats is not None:
             self.solver_stats = Queue()
 
-    @staticmethod
-    def close_solver_stats():
-        if SymStates.solver_stats is not None:
-            SymStates.solver_stats.close()
-            SymStates.solver_stats.join_thread()
+    def start_bg_get_solver_stats(self):
+        def f():
+            import time
+            while self.bg_thread_solver_stats_running:
+                self.get_solver_stats()
+                time.sleep(1)
+
+        if self.solver_stats is not None and self.bg_thread_solver_stats is None:
+            self.bg_thread_solver_stats_running = True
+            
+            self.bg_thread_solver_stats = threading.Thread(target=f)
+            self.bg_thread_solver_stats.daemon = True
+            self.bg_thread_solver_stats.start()
+            
+    def stop_bg_get_solver_stats(self):
+        if self.bg_thread_solver_stats is not None:
+            self.bg_thread_solver_stats_running = False
+            self.bg_thread_solver_stats = None

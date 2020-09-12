@@ -176,7 +176,6 @@ class DigSymStates(Dig):
         # analyze and save results
         from analysis import Result, Analysis
 
-        self.symstates.get_solver_stats()
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
                         self.symstates.solver_stats_,
@@ -221,8 +220,9 @@ class DigSymStates(Dig):
         worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
         worker.start()
 
+        _dinvs, _dtraces, _inps = None, None, None
         try:
-            dinvs, _dtraces, _inps = Q.get(timeout=timeout)
+            _dinvs, _dtraces, _inps = Q.get(timeout=timeout)
         except Empty:
             is_timeout = True
 
@@ -240,7 +240,8 @@ class DigSymStates(Dig):
             dinvs = DInvs()
             self.symstates.reset_solver_stats()
         else:
-            dtraces, inps = _dtraces, _inps
+            dinvs, dtraces, inps = _dinvs, _dtraces, _inps
+            self.symstates.get_solver_stats()
 
         return dinvs, dtraces, inps, is_timeout
 
