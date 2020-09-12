@@ -32,7 +32,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class PathCondition(NamedTuple):
     loc: str
-    depth: int
     pc: z3.ExprRef
     slocal: z3.ExprRef
 
@@ -277,18 +276,19 @@ class SymStatesMaker(metaclass=ABCMeta):
             sys.exit(0)
 
         symstates = self.merge(wrs, self.pc_cls, self.use_reals)
+        # symstates = self.merge2(wrs)
 
         # precompute all z3 exprs
         tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
 
         def f(tasks):
             rs = [symstates[loc][depth] for loc, depth in tasks]
-            rs = [(Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc),
-                   loc, depth) for pcs, (loc, depth) in zip(rs, tasks)]
+            rs = [(loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
+                  for pcs, (loc, depth) in zip(rs, tasks)]
             return rs
 
         wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
-        for myexpr, mypc, loc, depth in wrs:
+        for loc, depth, myexpr, mypc in wrs:
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
@@ -323,6 +323,24 @@ class SymStatesMaker(metaclass=ABCMeta):
         pcs = self.pc_cls.parse(s)
         return pcs
 
+    # @classmethod
+    # def get_uniq_ss(cls, loc, depth, symstates):
+    #     pcs = list(symstates[loc][depth])
+    #     for loc_ in symstates:
+    #         if loc != loc:
+    #             continue
+    #         for depth_ in symstates[loc]:
+    #             if depth_ >= depth:
+    #                 continue
+    #             otherpcs = symstates[loc][depth_]
+    #             assert isinstance(otherpcs, PCs)
+    #             pcs = [pc for pc in pcs if pc not in otherpcs]
+
+    #     pcs = PCs(loc, depth)
+    #     for pc in pcs:
+    #         pcs.add(pc)
+    #     return pcs
+
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):
         """
@@ -343,7 +361,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
-                pc = pc_cls(loc, depth, zpc(pcs), zslocal(slocals))
+                pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
                 symstates[loc][depth].add(pc)
 
         # only store incremental states at each depth
@@ -395,11 +413,11 @@ def merge(ds):
 class SymStatesMakerC(SymStatesMaker):
     pc_cls = PC_CIVL
 
-    @property
+    @ property
     def mindepth(self):
         return settings.C.SE_MIN_DEPTH
 
-    @property
+    @ property
     def maxdepth(self):
         return self.mindepth + settings.C.SE_DEPTH_INCR
 
@@ -413,11 +431,11 @@ class SymStatesMakerC(SymStatesMaker):
 class SymStatesMakerJava(SymStatesMaker):
     pc_cls = PC_JPF
 
-    @property
+    @ property
     def mindepth(self):
         return settings.Java.SE_MIN_DEPTH
 
-    @property
+    @ property
     def maxdepth(self):
         return self.mindepth + settings.Java.SE_DEPTH_INCR
 

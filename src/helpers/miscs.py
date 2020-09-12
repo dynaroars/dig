@@ -571,7 +571,7 @@ class Miscs(object):
                 myQ.close()
                 myQ.join_thread()
                 #import data.symstates
-                #data.symstates.SymStates.close_solver_stats()
+                # data.symstates.SymStates.close_solver_stats()
 
         #mlog.warning(f"Begin run_mp {len(tasks)}")
         n_cpus = multiprocessing.cpu_count()

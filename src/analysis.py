@@ -251,12 +251,11 @@ class Results:
 
         print("-> time {}".format(time_s))
 
-        print("-> checks {} {}".format(
-            check_solvercallss, check_changedepthss))
-        # , check_changevalss))
+        print("-> checks {} {} {}".format(
+            check_solvercallss, check_changedepthss, check_changevalss))
 
-        print("-> max {} {}".format(
-            max_solvercallss, max_changedepthss))
+        print("-> max {} {} {}".format(
+            max_solvercallss, max_changedepthss, max_changevalss))
         print("runs {}".format(nruns))
 
         if len(rs) == 1:
@@ -264,7 +263,7 @@ class Results:
                 rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
             print(rs[0].dinvs.__str__(print_stat=False))
 
-    @classmethod
+    @ classmethod
     def analyze_dicts(cls, ds, f, label):
         ks = set(k for d in ds for k in d)
         dd = defaultdict(list)
@@ -326,28 +325,28 @@ class Benchmark:
         else:
             mlog.error('something wrong with {}'.format(inp))
             sys.exit(1)
-        ntimes = args.benchmark_times
+        ntimes=args.benchmark_times
 
-        toruns = []
+        toruns=[]
         if args.benchmark_dir:
-            benchmark_dir = Path(args.benchmark_dir).resolve()
+            benchmark_dir=Path(args.benchmark_dir).resolve()
             assert benchmark_dir.is_dir(), benchmark_dir
         else:
             import tempfile
-            prefix = "bm_dig{}{}_".format(ntimes, bstr)
-            benchmark_dir = Path(tempfile.mkdtemp(
+            prefix="bm_dig{}{}_".format(ntimes, bstr)
+            benchmark_dir=Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
 
-        self.benchmark_dir = benchmark_dir
+        self.benchmark_dir=benchmark_dir
 
         # compute which runs have to do in case there are some existing runs
-        self.toruns = []
-        myruns = set(range(ntimes))
+        self.toruns=[]
+        myruns=set(range(ntimes))
         for i, f in enumerate(bfiles):
-            bmdir = benchmark_dir / f.stem
+            bmdir=benchmark_dir / f.stem
             if bmdir.is_dir():  # if there's some previous runs
-                succruns = self.get_success_runs(bmdir)
-                remainruns = list(myruns - succruns)
+                succruns=self.get_success_runs(bmdir)
+                remainruns=list(myruns - succruns)
                 if not remainruns:
                     mlog.info(
                         "{} ran, results in {}".format(f, bmdir))
@@ -355,15 +354,15 @@ class Benchmark:
                     mlog.info("{} in {} needs {} more runs".format(
                         f, bmdir, len(remainruns)))
             else:
-                remainruns = list(myruns)
+                remainruns=list(myruns)
 
             if remainruns:
                 toruns.append((f, bmdir, remainruns))
 
-            self.toruns = toruns
+            self.toruns=toruns
 
-        opts = settings.setup(None, args)
-        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(
+        opts=settings.setup(None, args)
+        self.CMD="timeout {timeout} sage -python -O dig.py {opts} ".format(
             timeout=self.TIMEOUT, opts=opts) \
             + "{filename} -seed {seed} -tmpdir {tmpdir}"
 

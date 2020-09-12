@@ -3,7 +3,8 @@ import pdb
 import random
 import time
 from pathlib import Path
-import psutil, os
+import psutil
+import os
 
 import sage.all
 
@@ -212,7 +213,6 @@ class DigSymStates(Dig):
             myQ.put((dinvs, dtraces, inps))
             myQ.close()
             myQ.join_thread()
-
 
         is_timeout = False
         mlog.warning(f"### BEGIN my_infer_eqts")

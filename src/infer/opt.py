@@ -45,7 +45,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         termss = [self.get_terms(_terms(loc)) for loc in locs]
         mlog.debug("check upperbounds for {} terms at {} locs".format(
             sum(map(len, termss)), len(locs)))
-        refs = {loc: {self.inv_cls(t.mk_le(settings.IUPPER)): t for t in terms}
+        refs = {loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
                 for loc, terms in zip(locs, termss)}
         ieqs = data.inv.invs.DInvs()
         for loc in refs:
@@ -84,8 +84,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
         assert isinstance(dtraces, data.traces.DTraces), dtraces
 
-        iupper = (settings.IUPPER_MP if isinstance(
-            term, data.inv.mp.Term) else settings.IUPPER)
+        iupper = self.get_iupper(term)
 
         # check if concrete states(traces) exceed upperbound
         if extra_constr is None:
@@ -121,6 +120,11 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         excludes = self.get_excludes(terms, inps)
         new_terms = [term for term in terms if term not in excludes]
         return new_terms
+
+    @classmethod
+    def get_iupper(cls, term):
+        return settings.IUPPER_MP if isinstance(
+            term, data.inv.mp.Term) else settings.IUPPER
 
 
 class Ieq(Infer):
