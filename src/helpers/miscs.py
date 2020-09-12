@@ -559,7 +559,12 @@ class Miscs(object):
                 return rs
             else:
                 myQ.put(rs)
+                myQ.close()
+                myQ.join_thread()
+                #import data.symstates
+                # data.symstates.SymStates.close_solver_stats()
 
+        #mlog.warning(f"Begin run_mp {len(tasks)}")
         n_cpus = multiprocessing.cpu_count()
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
@@ -575,14 +580,16 @@ class Miscs(object):
 
             wrs = [x for _ in workers for x in Q.get()]
 
-            for w in workers:
-                #w.terminate()
-                w.join()
-                w.close()
+            # for w in workers:
+            #     # w.terminate()
+            #     # w.join()
+            #     # w.close()
+            #     pass
 
         else:
             wrs = wprocess(tasks, myQ=None)
 
+        #mlog.warning(f"End run_mp {len(tasks)}")
         return wrs
 
     @staticmethod

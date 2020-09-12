@@ -3,7 +3,8 @@ import pdb
 import random
 import time
 from pathlib import Path
-import psutil, os
+import psutil
+import os
 
 import sage.all
 
@@ -206,32 +207,40 @@ class DigSymStates(Dig):
         from queue import Empty
         from multiprocessing import Process, Queue
 
+        self.symstates.get_solver_stats()
+
         def wprocess(auto_deg, dtraces, inps, myQ):
             dinvs = solver.gen(auto_deg, dtraces, inps)
             myQ.put((dinvs, dtraces, inps))
+            myQ.close()
+            myQ.join_thread()
 
         is_timeout = False
-        #mlog.warning(f"### BEGIN my_infer_eqts {datetime.datetime.now()}")
+        mlog.warning(f"### BEGIN my_infer_eqts")
         Q = Queue()
         worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
         worker.start()
 
         try:
-            dinvs, dtraces, inps = Q.get(timeout=timeout)
+            dinvs, _dtraces, _inps = Q.get(timeout=timeout)
         except Empty:
             is_timeout = True
 
-        #mlog.warning(f"### AFTER Queue get my_infer_eqts {datetime.datetime.now()}, is_timeout={is_timeout}")
+        mlog.warning(f"### AFTER Queue get is_timeout={is_timeout}")
         worker.join(timeout=1)
         if worker.is_alive():
             killtree(worker.pid)
             worker.terminate()
+            is_timeout = True
         worker.join()
-        #mlog.warning(f"### AFTER 2nd JOIN my_infer_eqts {datetime.datetime.now()}, ec={worker.exitcode}")
+        mlog.warning(f"### AFTER 2nd JOIN  ec={worker.exitcode}")
         worker.close()
 
         if is_timeout:
             dinvs = DInvs()
+            self.symstates.reset_solver_stats()
+        else:
+            dtraces, inps = _dtraces, _inps
 
         return dinvs, dtraces, inps, is_timeout
 
