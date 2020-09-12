@@ -769,6 +769,9 @@ class SymStates(dict):
                     self.solver_stats_.append(self.solver_stats.get(block=False))
                 except Empty:
                     break
+                except:
+                    mlog.exception(f"get_solver_stats() error")
+                    break
             #self.reset_solver_stats()
 
     def reset_solver_stats(self):
@@ -784,12 +787,13 @@ class SymStates(dict):
 
         if self.solver_stats is not None and self.bg_thread_solver_stats is None:
             self.bg_thread_solver_stats_running = True
-            
+
             self.bg_thread_solver_stats = threading.Thread(target=f)
             self.bg_thread_solver_stats.daemon = True
             self.bg_thread_solver_stats.start()
-            
+
     def stop_bg_get_solver_stats(self):
         if self.bg_thread_solver_stats is not None:
             self.bg_thread_solver_stats_running = False
+            self.bg_thread_solver_stats.join()
             self.bg_thread_solver_stats = None
