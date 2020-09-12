@@ -17,7 +17,7 @@ DO_PREPOSTS = False  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
 
-BENCHMARK_TIMEOUT = 15 * 60  # mins
+BENCHMARK_TIMEOUT = 30 * 60  # mins
 
 INP_MAX_V = 300
 SYMEXE_TIMEOUT = 10  # secs
