@@ -739,3 +739,14 @@ class SymStates(dict):
             while not self.solver_stats.empty():
                 self.solver_stats_.append(
                     self.solver_stats.get(block=True))
+            self.solver_stats = Queue()
+
+    def reset_solver_stats(self):
+        if self.solver_stats is not None:
+            self.solver_stats = Queue()
+
+    @staticmethod
+    def close_solver_stats():
+        if SymStates.solver_stats is not None:
+            SymStates.solver_stats.close()
+            SymStates.solver_stats.join_thread()
