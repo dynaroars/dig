@@ -3,6 +3,8 @@ import pdb
 import random
 import time
 from pathlib import Path
+import psutil
+import os
 
 import sage.all
 
@@ -19,6 +21,17 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
+def killtree(pid, including_parent=True):
+    parent = psutil.Process(pid)
+    for child in parent.children(recursive=True):
+        mlog.warning(f"Terminate child {child}")
+        child.terminate()
+
+    if including_parent:
+        mlog.warning(f"Terminate parent {parent}")
+        parent.terminate()
+
+
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
         mlog.info("analyze '{}'".format(filename))
@@ -30,7 +43,7 @@ class Dig(metaclass=ABCMeta):
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
-        mlog.debug("set seed to: {} (test {} {})".format(
+        mlog.debug("set seed to {} (test {} {})".format(
             seed, random.randint(0, 100), sage.all.randint(0, 100)))
 
     def get_auto_deg(self, maxdeg):
@@ -164,7 +177,6 @@ class DigSymStates(Dig):
         # analyze and save results
         from analysis import Result, Analysis
 
-        self.symstates.get_solver_stats()
         result = Result(self.filename, self.seed,
                         dinvs, dtraces, inps,
                         self.symstates.solver_stats_,
@@ -190,6 +202,65 @@ class DigSymStates(Dig):
             mlog.debug('{}'.format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
 
+    def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout):
+        from queue import Empty
+        from multiprocessing import Process, Queue
+
+        self.symstates.get_solver_stats()
+
+        def wprocess(auto_deg, dtraces, inps, myQ):
+            dinvs = solver.gen(auto_deg, dtraces, inps)
+            myQ.put((dinvs, dtraces, inps))
+            myQ.close()
+            myQ.join_thread()
+
+        is_timeout = False
+        mlog.warning(f"### BEGIN my_infer_eqts")
+        Q = Queue()
+        worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
+        worker.start()
+
+        _dinvs, _dtraces, _inps = None, None, None
+        try:
+            _dinvs, _dtraces, _inps = Q.get(timeout=timeout)
+        except Empty:
+            is_timeout = True
+
+        mlog.warning(f"### AFTER Queue get is_timeout={is_timeout}")
+        worker.join(timeout=1)
+        if worker.is_alive():
+            killtree(worker.pid)
+            worker.terminate()
+            is_timeout = True
+        worker.join()
+        mlog.warning(f"### AFTER 2nd JOIN  ec={worker.exitcode}")
+        worker.close()
+
+        if is_timeout:
+            dinvs = DInvs()
+            self.symstates.reset_solver_stats()
+        else:
+            dinvs, dtraces, inps = _dinvs, _dtraces, _inps
+            self.symstates.get_solver_stats()
+
+        return dinvs, dtraces, inps, is_timeout
+
+    def my_infer_eqts2(self, solver, auto_deg, dtraces, inps):
+
+        timeout = settings.EQT_SOLVER_TIMEOUT
+        maxct = settings.EQT_SOLVER_TIMEOUT_MAXTRIES
+        ct = 0
+        while True:
+            dinvs, dtraces, inps, is_timeout = self.my_infer_eqts(
+                solver, auto_deg, dtraces, inps, timeout)
+            if is_timeout is False or ct >= maxct:
+                break
+            ct += 1
+            mlog.warning('eqt solving, try {}/{} using timeout {}'.format(
+                ct, maxct, timeout))
+
+        return dinvs
+
     def infer_eqts(self, maxdeg, dtraces, inps):
         import infer.eqt
         solver = infer.eqt.Infer(self.symstates, self.prog)
@@ -197,7 +268,10 @@ class DigSymStates(Dig):
 
         # determine degree
         auto_deg = self.get_auto_deg(maxdeg)
-        return solver.gen(auto_deg, dtraces, inps)
+
+        dinvs = self.my_infer_eqts2(solver, auto_deg, dtraces, inps)
+        #dinvs = solver.gen(auto_deg, dtraces, inps)
+        return dinvs
 
     def infer_ieqs(self, dtraces, inps):
         import infer.opt
@@ -268,7 +342,10 @@ class DigTraces(Dig):
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-
+        for t in self.dtraces.values():
+            print(type(t))
+            print(t.maxdeg)
+        DBG()
         if test_tracefile:
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 
@@ -276,8 +353,6 @@ class DigTraces(Dig):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
-
-        st = time.time()
 
         tasks = []
         for loc in self.dtraces:
@@ -318,7 +393,23 @@ class DigTraces(Dig):
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
             symbols.names, auto_deg, settings.EQT_RATE)
         exprs = list(traces.instantiate(template, n_eqts_needed))
-        eqts = Miscs.solve_eqts(exprs, uks, template)
+        from multiprocessing import Process, Queue
+
+        def wprocess(exprs, uks, template, myQ):
+            rs = Miscs.solve_eqts(exprs, uks, template)
+            myQ.put(rs)
+        Q = Queue()
+        worker = Process(target=wprocess, args=(exprs, uks, template, Q))
+        worker.start()
+        worker.join(timeout=1)
+        worker.teminate()
+
+        if worker.exitcode is None:
+            mlog.error("timeout!")
+
+        eqts = Q.get()
+
+        #eqts = Miscs.solve_eqts(exprs, uks, template)
         import data.inv.eqt
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 

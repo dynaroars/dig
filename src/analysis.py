@@ -1,12 +1,13 @@
 """
 Analyze Dig's results
 """
+import sys
 import shutil
 import time
 import random
 import pdb
 from collections import Counter, defaultdict, namedtuple
-from statistics import mean, median
+from statistics import mean, median_low
 from pathlib import Path
 import argparse
 
@@ -14,14 +15,12 @@ import sage.all
 
 import settings
 import helpers.vcommon as CM
-import helpers.miscs
 
 import data.inv
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
-
 
 CheckSolverCalls = namedtuple("CheckSolverCalls", ("stat"))
 CheckDepthChanges = namedtuple("CheckDepthChanges", ("prop v1 d1 v2 d2"))
@@ -49,6 +48,7 @@ class Result:
 
     def save(self, todir):
         assert todir.is_dir(), todir
+
         CM.vsave(todir / self.resultfile, self)
 
     @classmethod
@@ -77,7 +77,7 @@ class AResult(Result):
         self.max_depthchanges = [
             s for s in self.stats if isinstance(s, MaxDepthChanges)]
 
-        #print(len(self.check_solvercalls), self.check_solvercalls)
+        # print(len(self.check_solvercalls), self.check_solvercalls)
 
     def analyze(self):
         self.V, self.D, self.T, self.NL = self.analyze_dinvs(self.dinvs)
@@ -135,11 +135,15 @@ class AResult(Result):
             maxdegs.append(maxdeg)
             ntermss.append(nterms)
 
-        nvs = len(set(v for vs in vss for v in vs))
+            # print(inv, vs, maxdeg, nterms)
+        vss = set(str(v) for vs in vss for v in vs)
+        nvs = len(vss)
         maxdeg = max(maxdegs)
         nterms = max(ntermss)
 
         nnonlinears = len([d for d in maxdegs if d >= 2])
+
+        # print(nvs, vss, maxdeg, nterms, nnonlinears)
         return nvs, maxdeg, nterms, nnonlinears
 
     @classmethod
@@ -164,7 +168,7 @@ class AResult(Result):
         elif isinstance(inv, data.inv.mp.MP):
             vs = inv.term.symbols
             degs = [1]
-            nterms = 1
+            nterms = 2
         else:
             p = inv.inv
             vs = set(p.variables())
@@ -186,61 +190,80 @@ class Results:
     def start(self, f):
         rs = self.results
         _ = [r.analyze() for r in rs]
-        VTDL = "V {}, T {}, D {}, NL {}".format(
-            f(r.V for r in rs),
-            f(r.T for r in rs),
-            f(r.D for r in rs),
-            f(r.NL for r in rs)
-        )
+
+        nruns = len(rs)
+        nlocs = f(len(r.dinvs) for r in rs)
+        V = f(r.V for r in rs)
+        T = f(r.T for r in rs)
+        D = f(r.D for r in rs)
+        NL = f(r.NL for r in rs)
+
+        invtypss = [r.dinvs.typ_ctr for r in rs]
+        invtypss = self.analyze_dicts(invtypss, f, 'invs')
+
+        check_solvercallss = [r.check_solvercalls_ctr for r in rs]
+        check_solvercallss = self.analyze_dicts(
+            check_solvercallss, f, '')
+
+        check_changedepthss = [r.check_changedepths_ctr for r in rs]
+        check_changedepthss = self.analyze_dicts(
+            check_changedepthss, f, 'change depths')
+
+        check_changevalss = [r.check_changevals_ctr for r in rs]
+        check_changevalss = self.analyze_dicts(
+            check_changevalss, f, 'change vals')
+
+        max_solvercallss = [r.max_solvercalls_ctr for r in rs]
+        max_solvercallss = self.analyze_dicts(
+            max_solvercallss, f, '')
+
+        max_changedepthss = [r.max_changedepths_ctr for r in rs]
+        max_changedepthss = self.analyze_dicts(
+            max_changedepthss, f, 'change depths')
+
+        max_changevalss = [r.max_changevals_ctr for r in rs]
+        max_changevalss = self.analyze_dicts(
+            max_changevalss, f, 'change vals')
+        # ss = [
+        #     "prog {}".format(self.prog),
+        #     "locs {}".format(nlocs),
+        #     "V {}".format(V),
+        #     "T {}".format(T),
+        #     "D {}".format(D),
+        #     "NL {}".format(NL),
+        #     "runs {}".format(nruns),
+        #     "traces {}".format(f(r.dtraces.siz for r in rs)),
+        #     "inps {}".format(
+        #         f(len(r.inps) if r.inps else 0 for r in rs))
+        # ]
+
         time_d = defaultdict(list)
         for r in rs:
             for t in r.time_d:
                 time_d[t].append(r.time_d[t])
-
-        time_s = ', '.join("{} {:.2f}s".format(t, f(time_d[t]))
+        time_s = ', '.join("{} {:.1f}s".format(t, f(time_d[t]))
                            for t in sorted(time_d))
 
-        ss = [
-            "prog {}".format(self.prog),
-            "runs {}".format(len(rs)),
-            "locs {}".format(f(len(r.dinvs) for r in rs)),
-            "{}".format(VTDL),
-            "traces {}".format(f(r.dtraces.siz for r in rs)),
-            "inps {}".format(
-                f(len(r.inps) if r.inps else 0 for r in rs))
-        ]
+        print("* prog {} locs {}; ".format(self.prog, nlocs),
+              "{}".format(invtypss),
+              "V {} T {} D {}; ".format(V, T, D),
+              "NL {} ({}) ;".format(NL, D))
 
-        print('***', ', '.join(s for s in ss if s))
-        print("time {}".format(time_s))
-        print(self.analyze2(f))
+        print("-> time {}".format(time_s))
+
+        print("-> checks {} {} {}".format(
+            check_solvercallss, check_changedepthss, check_changevalss))
+
+        print("-> max {} {} {}".format(
+            max_solvercallss, max_changedepthss, max_changevalss))
+        print("runs {}".format(nruns))
+
         if len(rs) == 1:
             print("rand seed {}, test ({}, {})".format(
                 rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
             print(rs[0].dinvs.__str__(print_stat=False))
 
-    def analyze2(self, f):
-        invtypss = [r.dinvs.typ_ctr for r in self.results]
-        check_solvercallss = [r.check_solvercalls_ctr for r in self.results]
-        check_changevalss = [r.check_changevals_ctr for r in self.results]
-        check_changedepthss = [r.check_changedepths_ctr for r in self.results]
-
-        max_solvercallss = [r.max_solvercalls_ctr for r in self.results]
-        max_changevalss = [r.max_changevals_ctr for r in self.results]
-        max_changedepthss = [r.max_changedepths_ctr for r in self.results]
-
-        ss = [
-            self.analyze_dicts(invtypss, f, 'invs'),
-            self.analyze_dicts(check_solvercallss, f, 'check solver calls'),
-            self.analyze_dicts(check_changedepthss, f, 'check change depths'),
-            self.analyze_dicts(check_changevalss, f, 'check change vals'),
-            self.analyze_dicts(max_solvercallss, f, 'max solver calls'),
-            self.analyze_dicts(max_changedepthss, f, 'max change depths'),
-            self.analyze_dicts(max_changevalss, f, 'max change vals')
-        ]
-
-        return ', '.join(ss)
-
-    @classmethod
+    @ classmethod
     def analyze_dicts(cls, ds, f, label):
         ks = set(k for d in ds for k in d)
         dd = defaultdict(list)
@@ -274,7 +297,7 @@ class Results:
 
 
 class Benchmark:
-    TIMEOUT = 1200  # seconds
+    TIMEOUT = settings.BENCHMARK_TIMEOUT
 
     def __init__(self, inp, args):
         assert isinstance(inp, Path), inp
@@ -301,29 +324,29 @@ class Benchmark:
             bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
         else:
             mlog.error('something wrong with {}'.format(inp))
-            exit(-1)
-        ntimes = args.benchmark_times
+            sys.exit(1)
+        ntimes=args.benchmark_times
 
-        toruns = []
+        toruns=[]
         if args.benchmark_dir:
-            benchmark_dir = Path(args.benchmark_dir).resolve()
+            benchmark_dir=Path(args.benchmark_dir).resolve()
             assert benchmark_dir.is_dir(), benchmark_dir
         else:
             import tempfile
-            prefix = "dig_bm{}{}_".format(ntimes, bstr)
-            benchmark_dir = Path(tempfile.mkdtemp(
+            prefix="bm_dig{}{}_".format(ntimes, bstr)
+            benchmark_dir=Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
 
-        self.benchmark_dir = benchmark_dir
+        self.benchmark_dir=benchmark_dir
 
-        # compute which runs we have to do (in case there are some existing runs)
-        self.toruns = []
-        myruns = set(range(ntimes))
+        # compute which runs have to do in case there are some existing runs
+        self.toruns=[]
+        myruns=set(range(ntimes))
         for i, f in enumerate(bfiles):
-            bmdir = benchmark_dir / f.stem
+            bmdir=benchmark_dir / f.stem
             if bmdir.is_dir():  # if there's some previous runs
-                succruns = self.get_success_runs(bmdir)
-                remainruns = list(myruns - succruns)
+                succruns=self.get_success_runs(bmdir)
+                remainruns=list(myruns - succruns)
                 if not remainruns:
                     mlog.info(
                         "{} ran, results in {}".format(f, bmdir))
@@ -331,15 +354,15 @@ class Benchmark:
                     mlog.info("{} in {} needs {} more runs".format(
                         f, bmdir, len(remainruns)))
             else:
-                remainruns = list(myruns)
+                remainruns=list(myruns)
 
             if remainruns:
                 toruns.append((f, bmdir, remainruns))
 
-            self.toruns = toruns
+            self.toruns=toruns
 
-        opts = settings.setup(None, args)
-        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(
+        opts=settings.setup(None, args)
+        self.CMD="timeout {timeout} sage -python -O dig.py {opts} ".format(
             timeout=self.TIMEOUT, opts=opts) \
             + "{filename} -seed {seed} -tmpdir {tmpdir}"
 
@@ -381,10 +404,10 @@ class Benchmark:
 
 
 class Analysis:
-    def __init__(self, bdir, args=None):
-        assert bdir.is_dir(), bdir
+    def __init__(self, benchmark_dir, args=None):
+        assert benchmark_dir.is_dir(), benchmark_dir
 
-        self.bdir = bdir.resolve()
+        self.benchmark_dir = benchmark_dir.resolve()
         self.args = args
 
     def start(self):
@@ -408,26 +431,25 @@ class Analysis:
                 if d.is_dir():
                     load1(dir_.stem, d)
 
-        # single result
-        if (self.bdir / Result.resultfile).is_file():
-            load1(None, self.bdir)
+        # rusult for a single run
+        if (self.benchmark_dir / Result.resultfile).is_file():
+            load1(None, self.benchmark_dir)
 
-        # results for 1 prog
+        # results for multiple runs (of a program)
         elif any((d / Result.resultfile).is_file()
-                 for d in self.bdir.iterdir() if d.is_dir()):
-            load2(self.bdir)
+                 for d in self.benchmark_dir.iterdir() if d.is_dir()):
+            load2(self.benchmark_dir)
 
-        else:  # results for multiple progs
-            for d in self.bdir.iterdir():
+        else:  # results for multiple program
+            for d in self.benchmark_dir.iterdir():
                 if d.is_dir():
                     load2(d)
 
         for prog in sorted(results_d):
-            results = [AResult(r) for r in results_d[prog]
-                       if r.dinvs.siz]
+            results = [AResult(r) for r in results_d[prog] if r.dinvs.siz]
             if not results:
                 mlog.warning("no results for {}".format(prog))
                 continue
             stats = Results(prog, results)
-            stats.start(median)
+            stats.start(median_low)
             # stats.analyze(mean)

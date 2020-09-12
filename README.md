@@ -401,7 +401,7 @@ To run doctests
 make test
 ```
 
-## Publications ##
+## Publications
 Additional information on DIG can be found from these papers:
 
 * ThanhVu Nguyen, Matthew Dwyer, and William Visser. SymInfer: Inferring Program Invariants using Symbolic States. In Automated Software Engineering (ASE). IEEE, 2017.
@@ -409,3 +409,6 @@ Additional information on DIG can be found from these papers:
 * ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants. Transactions on Software Engineering Methodology (TOSEM), 23(4):30:1--30:30, 2014.
 * ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Generate Disjunctive Invariants. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
 * ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Discover Polynomial and Array Invariants. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.
+
+## ACKNOWLEDGEMENT 
+* This project is supported in part by NSF grant CCF-1948536 and ARO grant W911NF-19-1-0054.

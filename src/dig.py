@@ -2,7 +2,6 @@ import pdb
 import sys
 import datetime
 import time
-import helpers.vcommon
 from pathlib import Path
 
 DBG = pdb.set_trace
@@ -79,9 +78,9 @@ if __name__ == "__main__":
        action="store_true",
        help="don't compute ieq/oct invariants")
 
-    ag("--dominmaxplus", "-dominmaxplus",
+    ag("--nominmaxplus", "-nominmaxplus",
        action="store_true",
-       help="compute min/max-plus invariants")
+       help="don't compute min/max-plus invariants")
 
     ag("--nopreposts", "-nopreposts",
        action="store_true",
@@ -168,3 +167,4 @@ if __name__ == "__main__":
             dig = alg.DigTraces(inp, test_tracefile)
 
         dig.start(seed=seed, maxdeg=args.maxdeg)
+        mlog.warning("End program")

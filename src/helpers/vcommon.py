@@ -1,4 +1,3 @@
-import subprocess as sp
 import logging
 """
 To run doctest
@@ -47,7 +46,7 @@ def getLogger(name, level):
     logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(level)
-    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+    formatter = logging.Formatter("%(asctime)s %(process)d ] %(name)s:%(levelname)s:%(message)s")
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     return logger

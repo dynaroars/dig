@@ -1,22 +1,25 @@
 """
 Symbolic States
 """
+
+from time import time
 import sys
 import shlex
 from collections import defaultdict
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 import pdb
-from pathlib import Path
 from multiprocessing import Queue
+from queue import Empty
 import subprocess
+import threading
 
 import z3
-import sage.all
-from sage.all import cached_function
-
+from sage.all import cached_function, sage_eval
+from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
 import helpers.miscs
+from helpers.miscs import Z3
 import data.prog
 import data.traces
 import data.inv.base
@@ -26,34 +29,15 @@ import analysis
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-zTrue = z3.BoolVal(True)
-zFalse = z3.BoolVal(False)
 
-
-class PC(metaclass=ABCMeta):
-    def __init__(self, loc, depth, pc, slocal, use_reals):
-        assert isinstance(loc, str) and loc, loc
-        assert depth >= 0, depth
-        assert pc is None or isinstance(pc, str) and pc, pc
-        assert isinstance(slocal, str) and slocal, slocal
-        assert isinstance(use_reals, bool), bool
-
-        self.pc = zTrue if pc is None else helpers.miscs.Z3.parse(
-            pc, use_reals)
-        self.slocal = helpers.miscs.Z3.parse(slocal, use_reals)
-        self.loc = loc
-        self.depth = depth
-        self.use_reals = use_reals
+class PathCondition(NamedTuple):
+    loc: str
+    pc: z3.ExprRef
+    slocal: z3.ExprRef
 
     def __str__(self):
         return 'loc: {}\npc: {}\nslocal: {}'.format(
             self.loc, self.pc, self.slocal)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash(self.__str__())
 
     @property
     def expr(self):
@@ -72,8 +56,7 @@ class PC(metaclass=ABCMeta):
         return pcs
 
 
-class PC_CIVL(PC):
-
+class PC_CIVL(PathCondition):
     @classmethod
     def parse_parts(cls, lines):
         """
@@ -84,17 +67,16 @@ class PC_CIVL(PC):
         vtrace2: q = 0; r = X_x; a = 1; b = X_y; x = X_x; y = X_y
         path condition: (0<=(X_x+(-1*X_y)))&&(0<=(X_x-1))&&(0<=(X_y-1))
         """
-
         slocals = []
         pcs = []
-        lines = [l.strip() for l in lines]
-        lines = [l for l in lines if l]
-        for l in lines:
-            if l.startswith('vtrace'):
-                slocals.append(l)
-            elif l.startswith('path condition'):
+        lines = [line.strip() for line in lines]
+        lines = [line for line in lines if line]
+        for line in lines:
+            if line.startswith('vtrace'):
+                slocals.append(line)
+            elif line.startswith('path condition'):
                 assert len(pcs) == len(slocals) - 1
-                pcs.append(l)
+                pcs.append(line)
 
         parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
         return parts
@@ -128,7 +110,7 @@ class PC_CIVL(PC):
                 strip())
 
 
-class PC_JPF(PC):
+class PC_JPF(PathCondition):
 
     @classmethod
     def parse_parts(cls, lines, delim="**********"):
@@ -151,20 +133,20 @@ class PC_JPF(PC):
         end = delim + " END"
         do_append = False
 
-        lines = [l.strip() for l in lines]
-        lines = [l for l in lines if l]
-        for l in lines:
-            if l.startswith(start):
+        lines = [line.strip() for line in lines]
+        lines = [line for line in lines if line]
+        for line in lines:
+            if line.startswith(start):
                 do_append = True
                 continue
-            elif l.startswith(end):
+            elif line.startswith(end):
                 do_append = False
                 if curpart:
                     parts.append(curpart)
                     curpart = []
             else:
                 if do_append:
-                    curpart.append(l)
+                    curpart.append(line)
 
         return parts
 
@@ -179,6 +161,8 @@ class PC_JPF(PC):
         """
 
         assert isinstance(ss, list) and ss, ss
+        loc = None
+        pcs = []
 
         curpart = []
         for s in ss:
@@ -191,32 +175,32 @@ class PC_JPF(PC):
                 curpart = []
                 continue
             curpart.append(s)
-
         slocals = curpart[:]
+        assert loc, loc
 
-        # some clean up
-        def isTooLarge(p):
-            if 'CON:' not in p:
-                return False
-
-            ps = p.split('=')
-            assert len(ps) == 2
-            v = sage.all.sage_eval(ps[1])
-            if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
-                mlog.warning("ignore {} (larger than {})".format(
-                    p, settings.LARGE_N))
-                exit(-1)
-                return True
-            else:
-                return False
-
-        slocals = [p for p in slocals if not isTooLarge(p)]
-        slocals = [cls.replace_str(p) for p in slocals if p]
-        slocal = ' and '.join(slocals) if slocals else None
+        slocals = [cls.replace_str(p)
+                   for p in slocals if p and not cls.too_large(p)]
+        slocals = ' and '.join(slocals) if slocals else None
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        pc = ' and '.join(pcs) if pcs else None
+        pcs = ' and '.join(pcs) if pcs else None
 
-        return loc, pc, slocal
+        return loc, pcs, slocals
+
+    @staticmethod
+    @cached_function
+    def too_large(p):
+        if 'CON:' not in p:
+            return False
+
+        ps = p.split('=')
+        assert len(ps) == 2
+        v = sage_eval(ps[1])
+        if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
+            mlog.warning("ignore {} (larger than {})".format(
+                p, settings.LARGE_N))
+            return True
+        else:
+            return False
 
     @staticmethod
     @cached_function
@@ -241,7 +225,7 @@ class PCs(set):
         self.depth = depth
 
     def add(self, pc):
-        assert isinstance(pc, PC), pc
+        assert isinstance(pc, PathCondition), pc
         super().add(pc)
 
     @property
@@ -250,7 +234,7 @@ class PCs(set):
             return self._expr
         except AttributeError:
             _expr = z3.Or([p.expr for p in self])
-            self._expr = helpers.miscs.Z3.simplify(_expr)
+            self._expr = Z3.simplify(_expr)
             return self._expr
 
     @property
@@ -259,7 +243,7 @@ class PCs(set):
             return self._pc
         except AttributeError:
             _pc = z3.Or([p.pc for p in self])
-            self._pc = helpers.miscs.Z3.simplify(_pc)
+            self._pc = Z3.simplify(_pc)
             return self._pc
 
 
@@ -278,7 +262,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in range(self.mindepth, self.maxdepth+1)]
+        tasks = [depth for depth in range(self.mindepth, self.maxdepth + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -291,7 +275,28 @@ class SymStatesMaker(metaclass=ABCMeta):
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
             sys.exit(0)
 
-        return self.merge(wrs, self.pc_cls, self.use_reals)
+        symstates = self.merge(wrs, self.pc_cls, self.use_reals)
+        # symstates = self.merge2(wrs)
+
+        # precompute all z3 exprs
+        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
+
+        def f(tasks):
+            rs = [symstates[loc][depth] for loc, depth in tasks]
+            rs = [(loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
+                  for pcs, (loc, depth) in zip(rs, tasks)]
+            return rs
+
+        wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
+        for loc, depth, myexpr, mypc in wrs:
+            pcs = symstates[loc][depth]
+            pcs._expr = Z3.from_smt2_str(myexpr)
+            pcs._pc = Z3.from_smt2_str(mypc)
+            mlog.debug("{} uniq symstates at loc {} depth {}".format(
+                len(pcs), loc, depth))
+            # print(pcs.myexpr)
+
+        return symstates
 
     def get_ss(self, depth):
         assert depth >= 1, depth
@@ -314,8 +319,27 @@ class SymStatesMaker(metaclass=ABCMeta):
         except subprocess.CalledProcessError as ex:
             mlog.warning(ex)
             return None
+
         pcs = self.pc_cls.parse(s)
         return pcs
+
+    # @classmethod
+    # def get_uniq_ss(cls, loc, depth, symstates):
+    #     pcs = list(symstates[loc][depth])
+    #     for loc_ in symstates:
+    #         if loc != loc:
+    #             continue
+    #         for depth_ in symstates[loc]:
+    #             if depth_ >= depth:
+    #                 continue
+    #             otherpcs = symstates[loc][depth_]
+    #             assert isinstance(otherpcs, PCs)
+    #             pcs = [pc for pc in pcs if pc not in otherpcs]
+
+    #     pcs = PCs(loc, depth)
+    #     for pc in pcs:
+    #         pcs.add(pc)
+    #     return pcs
 
     @classmethod
     def merge(cls, depthss, pc_cls, use_reals):
@@ -326,10 +350,18 @@ class SymStatesMaker(metaclass=ABCMeta):
         assert all(depth >= 1 and isinstance(ss, list)
                    for depth, ss in depthss), depthss
 
+        @cached_function
+        def zpc(p):
+            return Z3.zTrue if p is None else Z3.parse(p, use_reals)
+
+        @cached_function
+        def zslocal(p):
+            return Z3.parse(p, use_reals)
+
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
-                pc = pc_cls(loc, depth, pcs, slocals, use_reals)
+                pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
                 symstates[loc][depth].add(pc)
 
         # only store incremental states at each depth
@@ -338,7 +370,6 @@ class SymStatesMaker(metaclass=ABCMeta):
             assert len(depths) >= 2, depths
             for i in range(len(depths)):
                 iss = symstates[loc][depths[i]]
-                # only keep diffs
                 for j in range(i):
                     jss = symstates[loc][depths[j]]
                     for s in jss:
@@ -360,17 +391,7 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         if all(not symstates[loc] for loc in symstates):
             mlog.error("No symbolic states found for any locs. Exit!")
-            exit(1)
-
-        # compute the z3 exprs once
-        for loc in symstates:
-            for depth in sorted(symstates[loc]):
-                pcs = symstates[loc][depth]
-                pcs.myexpr
-                pcs.mypc
-                mlog.debug("{} uniq symstates at loc {} depth {}".format(
-                    len(pcs), loc, depth))
-                # print(pcs.myexpr)
+            sys.exit(1)
 
         return symstates
 
@@ -392,11 +413,11 @@ def merge(ds):
 class SymStatesMakerC(SymStatesMaker):
     pc_cls = PC_CIVL
 
-    @property
+    @ property
     def mindepth(self):
         return settings.C.SE_MIN_DEPTH
 
-    @property
+    @ property
     def maxdepth(self):
         return self.mindepth + settings.C.SE_DEPTH_INCR
 
@@ -410,11 +431,11 @@ class SymStatesMakerC(SymStatesMaker):
 class SymStatesMakerJava(SymStatesMaker):
     pc_cls = PC_JPF
 
-    @property
+    @ property
     def mindepth(self):
         return settings.Java.SE_MIN_DEPTH
 
-    @property
+    @ property
     def maxdepth(self):
         return self.mindepth + settings.Java.SE_DEPTH_INCR
 
@@ -464,20 +485,29 @@ class SymStatesDepth(dict):  # depth -> PCs
 class SymStates(dict):
     # loc -> SymStatesDepth
 
-    solver_stats = Queue() if settings.DO_SOLVER_STATS else None
-    solver_stats_ = []  # periodically save solver_stats results here
-
     def __init__(self, inp_decls, inv_decls):
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.use_reals = inv_decls.use_reals
         self.inp_exprs = inp_decls.exprs(self.use_reals)
+        
+        self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
+        self.solver_stats_ = []  # periodically save solver_stats results here
+
+        self.bg_thread_solver_stats = None
+        self.bg_thread_solver_stats_running = False
+        self.start_bg_get_solver_stats()
 
         super().__init__(dict())
 
+    def __del__(self):
+        self.stop_bg_get_solver_stats()
+        super().__del__()
+
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
-            filename, mainQName, funname, len(self.inp_decls), self.use_reals, tmpdir)
+            filename, mainQName, funname,
+            len(self.inp_decls), self.use_reals, tmpdir)
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
@@ -521,7 +551,6 @@ class SymStates(dict):
         return merge(mCexs), mdinvs
 
     def mcheck_d(self, loc, inv, inps, ncexs):
-
         assert isinstance(loc, str), loc
         assert inv is None or isinstance(
             inv, data.inv.base.Inv) or z3.is_expr(inv), inv
@@ -530,7 +559,7 @@ class SymStates(dict):
 
         try:
             inv_expr = inv.expr(self.use_reals)
-            if inv_expr is zFalse:
+            if inv_expr is Z3.zFalse:
                 inv_expr = None
         except AttributeError:
             if z3.is_expr(inv):
@@ -556,6 +585,7 @@ class SymStates(dict):
             ss = ssd[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
+            # print('solver stats', inv_expr, 'depth', depth)
             self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
@@ -573,7 +603,7 @@ class SymStates(dict):
             if stat_ != stat:
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("check depth diff {}: {} @ depth {}, {} @ depth {}"
+                mlog.debug("check depth diff {}: {} @depth {}, {} @depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
                 self.put_solver_stats(
                     analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_))
@@ -593,7 +623,6 @@ class SymStates(dict):
         assert expr is None or z3.is_expr(expr), expr
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
-        # assert self.check_check_mode(check_mode), check_mode
 
         f = symstates_expr
         iconstr = self.get_inp_constrs(inps)
@@ -603,12 +632,12 @@ class SymStates(dict):
         if expr is not None:
             f = z3.Not(z3.Implies(f, expr))
 
-        models, stat = helpers.miscs.Z3.get_models(f, ncexs)
-        cexs, is_succ = helpers.miscs.Z3.extract(models)
+        models, stat = Z3.get_models(f, ncexs)
+        cexs, is_succ = Z3.extract(models)
         return cexs, is_succ, stat
 
     # Find maximal values for term using symbolic states
-    def maximize(self, loc, term_expr, extra_constr=None):
+    def maximize(self, loc, term_expr, iupper, extra_constr=None):
         """
         maximize value of term
         """
@@ -618,14 +647,14 @@ class SymStates(dict):
 
         if settings.DO_INCR_DEPTH:
             v, stat = self.mmaximize_depth(
-                self[loc], term_expr, extra_constr)
+                self[loc], term_expr, iupper, extra_constr)
         else:
             v, stat = self.mmaximize(
                 self.get_ss_at_depth(self[loc], depth=None),
-                term_expr)
+                term_expr, iupper)
         return v
 
-    def mmaximize_depth(self, ssd, term_expr, extra_constr):
+    def mmaximize_depth(self, ssd, term_expr, iupper, extra_constr):
         assert isinstance(ssd, SymStatesDepth), ssd
         assert z3.is_expr(term_expr), term_expr
         assert extra_constr is None or \
@@ -635,7 +664,7 @@ class SymStates(dict):
             ss = self.get_ss_at_depth(ssd, depth=depth)
             if extra_constr is not None:
                 ss = z3.And(ss, extra_constr)
-            maxv, stat = self.mmaximize(ss, term_expr)
+            maxv, stat = self.mmaximize(ss, term_expr, iupper)
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
 
@@ -657,21 +686,24 @@ class SymStates(dict):
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("maximize depth diff {}: {} {} @ depth {}, {} {} @ depth {}"
+                mlog.debug("max depth diff {}: {} {} @depth {}, {} {} @depth {}"
                            .format(term_expr, maxv, stat, mydepth,
                                    maxv_, stat_, mydepth_))
                 self.put_solver_stats(
-                    analysis.MaxDepthChanges(str(term_expr), maxv, mydepth, maxv_, mydepth_))
+                    analysis.MaxDepthChanges(
+                        str(term_expr), maxv, mydepth, maxv_, mydepth_))
 
             depth_idx = depth_idx_
             maxv, stat = maxv_, stat_
 
         return maxv, stat
 
-    def mmaximize(self, ss, term_expr):
+    def mmaximize(self, ss, term_expr, iupper):
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
-        opt = helpers.miscs.Z3.create_solver(maximize=True)
+        assert isinstance(iupper, int) and iupper >= 1, iupper
+
+        opt = Z3.create_solver(maximize=True)
         opt.add(ss)
         try:
             h = opt.maximize(term_expr)
@@ -685,9 +717,12 @@ class SymStates(dict):
         if stat == z3.sat:
             v = str(opt.upper(h))
             if v != 'oo':  # no bound
-                v = int(v)
-                if v <= settings.IUPPER:
-                    return v, stat
+                try:
+                    v = int(v)
+                    if v <= iupper:
+                        return v, stat
+                except ValueError:  # invalid literal for 3/4
+                    pass
 
         return None, stat
 
@@ -729,6 +764,32 @@ class SymStates(dict):
 
     def get_solver_stats(self):
         if self.solver_stats is not None:
-            while not self.solver_stats.empty():
-                self.solver_stats_.append(
-                    self.solver_stats.get(block=True))
+            while True:
+                try:
+                    self.solver_stats_.append(self.solver_stats.get(block=False))
+                except Empty:
+                    break
+            self.reset_solver_stats()
+
+    def reset_solver_stats(self):
+        if self.solver_stats is not None:
+            self.solver_stats = Queue()
+
+    def start_bg_get_solver_stats(self):
+        def f():
+            import time
+            while self.bg_thread_solver_stats_running:
+                self.get_solver_stats()
+                time.sleep(1)
+
+        if self.solver_stats is not None and self.bg_thread_solver_stats is None:
+            self.bg_thread_solver_stats_running = True
+            
+            self.bg_thread_solver_stats = threading.Thread(target=f)
+            self.bg_thread_solver_stats.daemon = True
+            self.bg_thread_solver_stats.start()
+            
+    def stop_bg_get_solver_stats(self):
+        if self.bg_thread_solver_stats is not None:
+            self.bg_thread_solver_stats_running = False
+            self.bg_thread_solver_stats = None

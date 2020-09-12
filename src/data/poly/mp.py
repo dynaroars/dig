@@ -2,19 +2,17 @@ import itertools
 import pdb
 
 import sage.all
-from sage.all import cached_function
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 import settings
 
-from data.poly.base import Poly
-
+import data.poly.base
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class MP(Poly):
+class MP(data.poly.base.Poly):
     def __init__(self, a, b, is_max=True):
         if not isinstance(a, tuple):
             a = (a, )

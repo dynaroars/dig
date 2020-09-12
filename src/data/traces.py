@@ -30,13 +30,11 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
 
     def mkExpr(self, ss):
         # create z3 expression
-
         assert len(ss) == len(self.vs), (ss, self.vs)
         try:
             exprs = [s == v for s, v in zip(ss, self.vs)]
         except Exception:
-            myvals = map(int, self.vs)
-            exprs = [s == v for s, v in zip(ss, myvals)]
+            exprs = [s == int(v) for s, v in zip(ss, self.vs)]
         return z3.And(exprs)
 
 
@@ -107,6 +105,10 @@ class Traces(SymbsValsSet):
         else:
             return str(len(self))
 
+    @property
+    def maxdeg(self):
+        return Miscs.guess_maxdeg(self.mydicts2)
+
     def myeval(self, expr, pred=None):
         assert Miscs.is_expr(expr), expr
 
@@ -135,16 +137,27 @@ class Traces(SymbsValsSet):
     def mydicts(self):
         return (trace.mydict for trace in self)
 
+    @property
+    def mydicts2(self):
+        myd = {}
+        for trace in sorted(self):
+            d = trace.mydict
+            for k in d:
+                if k not in myd:
+                    myd[k] = []
+                myd[k].append(d[k])
+        return myd
+
     def instantiate(self, term, ntraces):
         assert Miscs.is_expr(term), term
         assert ntraces is None or ntraces >= 1, ntraces
 
+        exprs = set()
         if ntraces is None:
             for t in self.mydicts:
                 exprs = set(term.subs(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
-            exprs = set()
             for t in self.mydicts:
                 expr = term.subs(t)
                 if expr not in exprs:
@@ -280,13 +293,14 @@ class DTraces(dict):
         inv_decls = data.prog.DSymbs()
         for line in tracefile.read_text().splitlines():
             line = line.strip()
-            if not line:
+            if not line or line.startswith("#"):
                 continue
             loc, contents = line.split(':')
+
             if loc not in inv_decls:
                 inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
             else:
-                trace_str.append(line.replace(',', ''))
+                trace_str.append(line.replace(',', ' '))
 
         dtraces = DTraces.parse(trace_str, inv_decls)
         return inv_decls, dtraces

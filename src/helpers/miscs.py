@@ -17,6 +17,8 @@ import settings
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
+
 class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
@@ -42,7 +44,7 @@ class Miscs(object):
     @staticmethod
     def is_rel(f, rel=None):
         """
-        sage: from helpers.miscs import Miscs
+        # sage: from miscs import Miscs
         sage: assert not Miscs.is_rel(7.2)
         sage: assert not Miscs.is_rel(x)
         sage: assert not Miscs.is_rel(x+7)
@@ -55,7 +57,6 @@ class Miscs(object):
         sage: y = var('y')
         sage: assert Miscs.is_rel(x+y<=3)
         """
-
         try:
             if not f.is_relational():
                 return False
@@ -107,7 +108,7 @@ class Miscs(object):
 
         Examples:
 
-        sage: from helpers.miscs import Miscs
+        sage: from miscs import Miscs
         sage: assert Miscs.rat2str('.3333333') == 3333333/10000000
         sage: assert Miscs.rat2str('3/7') == 3/7
         sage: assert Miscs.rat2str('1.') == 1
@@ -386,10 +387,10 @@ class Miscs(object):
 
         # I don't think this helps
         # @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
-        def mysolve(eqts, uks, solution_dict):
+        def mysolve(eqts, uks):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 
-        rs = mysolve(eqts, uks, solution_dict=True)
+        rs = mysolve(eqts, uks)
         assert isinstance(rs, list), rs
         assert all(isinstance(s, dict) for s in rs), rs
 
@@ -553,12 +554,26 @@ class Miscs(object):
         Run wprocess on tasks in parallel
         """
         def wprocess(mytasks, myQ):
-            rs = f(mytasks)
+            rs = None
+            try:
+                rs = f(mytasks)
+            except BaseException as ex:
+                mlog.warning(f"Got exception in worker: {ex}")
+                if myQ is None:
+                    raise
+                else:
+                    rs = ex
+
             if myQ is None:
                 return rs
             else:
                 myQ.put(rs)
+                myQ.close()
+                myQ.join_thread()
+                #import data.symstates
+                # data.symstates.SymStates.close_solver_stats()
 
+        #mlog.warning(f"Begin run_mp {len(tasks)}")
         n_cpus = multiprocessing.cpu_count()
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
@@ -572,11 +587,26 @@ class Miscs(object):
             for w in workers:
                 w.start()
 
-            wrs = [x for _ in workers for x in Q.get()]
+            wrs = []
+            for _ in workers:
+                rs = Q.get()
+                if isinstance(rs, list):
+                    wrs.extend(rs)
+                else:
+                    mlog.warning("Got exception from worker: {rs}")
+                    mlog.expcetion(rs)
+                    raise rs
+
+            for w in workers:
+                #w.terminate()
+                w.join()
+                w.close()
+                pass
 
         else:
             wrs = wprocess(tasks, myQ=None)
 
+        #mlog.warning(f"End run_mp {len(tasks)}")
         return wrs
 
     @staticmethod
@@ -599,8 +629,71 @@ class Miscs(object):
 
         return sorted(results)
 
+    @classmethod
+    def guess_maxdeg(cls, ds):
+        """
+        ds = {'x':[1,2,3], 'y':[4,5,6]}
+        """
+        maxdeg = 0
+        pairs = itertools.combinations(ds.keys(), 2)
+        for x, y in pairs:
+            print(x, y)
+
+            cache = set()
+            dsx = []
+            dsy = []
+            for x, y in zip(ds[x], ds[y]):
+                if (x, y) in cache:
+                    continue
+                cache.add((x, y))
+                dsx.append(x)
+                dsy.append(y)
+
+            maxdeg_ = cls.deriv(dsx, dsy)
+            if maxdeg_ > maxdeg:
+                #print(x, y, maxdeg_)
+                maxdeg = maxdeg_
+            else:
+                maxdeg_ = cls.deriv(dsy, dsx)
+                if maxdeg_ > maxdeg:
+                    #print(y, x, maxdeg_)
+                    maxdeg = maxdeg_
+        return maxdeg
+
+    @classmethod
+    def deriv(cls, xs, ys):
+        assert len(xs), xs
+        assert len(xs) == len(ys), (xs, ys)
+        print(xs)
+        print(ys)
+        ys_ = list(ys)
+        i = 0
+        while ys_:
+            ys_change = [s-f for f, s in zip(ys_, ys_[1:])]
+            print('ys_change', ys_change)
+            if ys_ and all(y == 0 for y in ys_):
+                return i  # return max deg
+            i = i + 1
+            xs_change = [s-f for f, s in zip(xs, xs[i:])]
+            print('xs_change', xs_change)
+            # if xs_change and any(x == 0 for x in xs_change):
+            #    return -1  # div by 0
+            ys_ = [y/x for x, y in zip(xs_change, ys_change)]
+            print('ys_', ys_)
+        return -1
+
+    @classmethod
+    def deriv_test(cls):
+        ys = list(range(-3, 3))
+        xs = [y**2 for y in ys]
+
+        print(cls.deriv(xs, ys))
+
 
 class Z3(object):
+    zTrue = z3.BoolVal(True)
+    zFalse = z3.BoolVal(False)
+
     @classmethod
     def is_var(cls, v):
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
@@ -920,3 +1013,17 @@ class Z3(object):
         except z3.Z3Exception:
             pass
         return f
+
+    @classmethod
+    def to_smt2_str(cls, f, status="unknown", name="benchmark", logic=""):
+        v = (z3.Ast * 0)()
+        s = z3.Z3_benchmark_to_smtlib_string(
+            f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast())
+        return s
+
+    @classmethod
+    def from_smt2_str(cls, s):
+        assertions = z3.parse_smt2_string(s)
+        expr = cls.zTrue if not assertions else assertions[0]
+        assert z3.is_expr(expr), expr
+        return expr

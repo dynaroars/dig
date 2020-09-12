@@ -12,15 +12,18 @@ DO_FILTER = True  # simplify results, e.g., removing weaker invariants
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
-DO_MINMAXPLUS = False  # support minmax-plus inequalities
+DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
 
+BENCHMARK_TIMEOUT = 15 * 60  # mins
+
 INP_MAX_V = 300
-SYMEXE_TIMEOUT = 20  # secs
-SOLVER_TIMEOUT = 5 * 1000  # 5 secs
-# EQT_SOLVER_TIMEOUT = 120  # secs
+SYMEXE_TIMEOUT = 10  # secs
+SOLVER_TIMEOUT = 3 * 1000  # secs
+EQT_SOLVER_TIMEOUT = 5 * 60  # mins
+EQT_SOLVER_TIMEOUT_MAXTRIES = 3
 EQT_RATE = 1.5
 MAX_LARGE_COEF = 50
 MAX_TERM = 200
@@ -32,6 +35,7 @@ UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
 IUPPER = 20  # t <= iupper
+IUPPER_MP = 2  # for min/max ieqs
 IDEG = 1  # deg (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
@@ -57,7 +61,7 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 
 class Java:
-    SE_MIN_DEPTH = 7
+    SE_MIN_DEPTH = 8
     SE_DEPTH_INCR = 5  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
@@ -150,11 +154,11 @@ def setup(settings, args):
         else:
             opts.append("-noieqs")
 
-    if args.dominmaxplus:
+    if args.nominmaxplus:
         if settings:
-            settings.DO_MINMAXPLUS = args.dominmaxplus
+            settings.DO_MINMAXPLUS = not args.nominmaxplus
         else:
-            opts.append("-dominmaxplus")
+            opts.append("-nominmaxplus")
 
     if args.nopreposts:
         if settings:

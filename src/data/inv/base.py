@@ -1,8 +1,11 @@
 from abc import ABCMeta
 import pdb
 import operator
+from typing import NamedTuple
 
-from helpers.miscs import Z3
+import sage.all
+
+from helpers.miscs import Z3, Miscs
 import helpers.vcommon as CM
 import settings
 import data.traces
@@ -40,7 +43,9 @@ class Inv(metaclass=ABCMeta):
 
     def __repr__(self): return repr(self.inv)
 
-    def __eq__(self, o): return self.inv.__eq__(o.inv)
+    def __eq__(self, o):
+        assert isinstance(o, Inv), o
+        return self.inv.__eq__(o.inv)
 
     def __ne__(self, o): return not self.inv.__eq__(o.inv)
 
@@ -110,3 +115,41 @@ class RelInv(Inv, metaclass=ABCMeta):
         also, cannot save this to sel._expr
         """
         return Z3.parse(str(self.inv), use_reals)
+
+
+class RelTerm(NamedTuple):
+    """
+    e.g., x + y,  x,  x + 3
+    """
+    term: sage.symbolic.expression.Expression
+
+    @classmethod
+    def mk(cls, term):
+        assert isinstance(term, sage.symbolic.expression.Expression), term
+        return cls(term)
+
+    @property
+    def symbols(self):
+        return Miscs.get_vars(self.term)
+
+    def eval_traces(self, traces, pred):
+        return traces.myeval(self.term, pred)
+
+    def mk_lt(self, val):
+        return self._mk_rel(operator.lt, val)
+
+    def mk_le(self, val):
+        return self._mk_rel(operator.le, val)
+
+    def mk_eq(self, val):
+        return self._mk_rel(operator.eq, val)
+
+    def _mk_rel(self, myop, val):
+        """
+        return myop(self.term, val), e.g., x + y <= 8
+        """
+        assert (myop == operator.eq or
+                myop == operator.le or
+                myop == operator.lt), myop
+
+        return myop(self.term, val)
