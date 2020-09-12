@@ -17,12 +17,12 @@ DO_PREPOSTS = False  # support prepostconditions #not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False
 
-BENCHMARK_TIMEOUT = 30 * 60  # mins
+BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
 SYMEXE_TIMEOUT = 10  # secs
 SOLVER_TIMEOUT = 3 * 1000  # secs
-EQT_SOLVER_TIMEOUT = 5 * 60  # mins
+EQT_SOLVER_TIMEOUT = 3 * 60  # mins
 EQT_SOLVER_TIMEOUT_MAXTRIES = 3
 EQT_RATE = 1.5
 MAX_LARGE_COEF = 50
