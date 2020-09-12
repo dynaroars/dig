@@ -111,10 +111,10 @@ def single_trace_max_deg(*args):
         return max(degs)
 
 
-def max_deg(*args):
-    inputs = args[0]
-    vars = args[1]
-    traces = args[2:]
+def max_deg(traces_as_dict, input):
+    inputs = input
+    vars = list(traces_as_dict.keys())
+    traces = list(map(lambda x: traces_as_dict[x], vars))
     input_indexes = list(map(lambda x: vars.index(x), inputs))
     input_traces = list(map(lambda x: traces[x], input_indexes))
     max_degs = []
@@ -138,3 +138,4 @@ def max_deg(*args):
             begin_index = counter
             curr_input_vals = list(map(lambda x: x[counter], input_traces))
     return Counter(max_degs).most_common(1)[0][0]
+
