@@ -769,7 +769,7 @@ class SymStates(dict):
                     self.solver_stats_.append(self.solver_stats.get(block=False))
                 except Empty:
                     break
-            self.reset_solver_stats()
+            #self.reset_solver_stats()
 
     def reset_solver_stats(self):
         if self.solver_stats is not None:
