@@ -269,23 +269,6 @@ You can install DIG yourself.  The tool has been tested using the following setu
   * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
   * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
 
-### Using DOCKER
-
-```
-# in DIG's directory
-
-# build the docker image, 
-$ docker build . -t='dig'
-... 
-... 
-# this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
-
-# then run dig
-$ docker run -it dig
-
-# docker will drop you into a Linux prompt like below.
-$ root@b53e0bd86c11:/dig/src# 
-```
 
 #### Installing SAGE and Z3
 * Setup SAGE: download a precompiled [SageMath](http://mirrors.mit.edu/sage/linux/64bit/index.html) binary
