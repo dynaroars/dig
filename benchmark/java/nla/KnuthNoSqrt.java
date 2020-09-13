@@ -8,7 +8,7 @@ public class KnuthNoSqrt {
 	//algorithm searching for a divisor for factorization, by Knuth
 	assert(a > 2);
 	assert(s >= 0);
-	assert(s <= 10);
+	assert(s <= 30);
 	
 	int n,r,k,q,d,t;
 	n = s*s;

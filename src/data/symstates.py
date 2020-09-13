@@ -25,6 +25,7 @@ import data.traces
 import data.inv.base
 import data.inv.invs
 import analysis
+from settings import SE_DEPTH_NOCHANGES_MAX
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -262,7 +263,8 @@ class SymStatesMaker(metaclass=ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in range(self.mindepth, self.maxdepth + 1)]
+        tasks = [depth for depth in
+                 range(self.mindepth, settings.SE_MAXDEPTH + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -288,27 +290,30 @@ class SymStatesMaker(metaclass=ABCMeta):
             return rs
 
         wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
-        for loc, depth, myexpr, mypc in wrs:
+        for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
-            mlog.debug("{} uniq symstates at loc {} depth {}".format(
-                len(pcs), loc, depth))
+            mlog.debug("loc {} depth {} has {} uniq symstates".format(
+                loc, depth, len(pcs)))
             # print(pcs.myexpr)
 
+        # DBG()
         return symstates
 
     def get_ss(self, depth):
         assert depth >= 1, depth
 
         cmd = self.mk(depth)
-        mlog.debug("Obtain symbolic states (depth {})".format(depth))
+        timeout = depth
+        mlog.debug(
+            "Obtain symbolic states at depth {} (timeout {}s)".format(depth, timeout))
         mlog.debug(cmd)
 
         s = None
         try:
             cp = subprocess.run(
-                shlex.split(cmd), timeout=settings.SYMEXE_TIMEOUT,
+                shlex.split(cmd), timeout=timeout,
                 capture_output=True, check=True, text=True)
             s = cp.stdout
         except subprocess.TimeoutExpired as ex:
@@ -341,7 +346,7 @@ class SymStatesMaker(metaclass=ABCMeta):
     #         pcs.add(pc)
     #     return pcs
 
-    @classmethod
+    @ classmethod
     def merge(cls, depthss, pc_cls, use_reals):
         """
         Merge PC's info into symbolic states sd[loc][depth]
@@ -350,11 +355,11 @@ class SymStatesMaker(metaclass=ABCMeta):
         assert all(depth >= 1 and isinstance(ss, list)
                    for depth, ss in depthss), depthss
 
-        @cached_function
+        @ cached_function
         def zpc(p):
             return Z3.zTrue if p is None else Z3.parse(p, use_reals)
 
-        @cached_function
+        @ cached_function
         def zslocal(p):
             return Z3.parse(p, use_reals)
 
@@ -412,14 +417,7 @@ def merge(ds):
 
 class SymStatesMakerC(SymStatesMaker):
     pc_cls = PC_CIVL
-
-    @ property
-    def mindepth(self):
-        return settings.C.SE_MIN_DEPTH
-
-    @ property
-    def maxdepth(self):
-        return self.mindepth + settings.C.SE_DEPTH_INCR
+    mindepth = settings.C.SE_MIN_DEPTH
 
     def mk(self, depth):
         """
@@ -430,14 +428,7 @@ class SymStatesMakerC(SymStatesMaker):
 
 class SymStatesMakerJava(SymStatesMaker):
     pc_cls = PC_JPF
-
-    @ property
-    def mindepth(self):
-        return settings.Java.SE_MIN_DEPTH
-
-    @ property
-    def maxdepth(self):
-        return self.mindepth + settings.Java.SE_DEPTH_INCR
+    mindepth = settings.Java.SE_MIN_DEPTH
 
     def mk(self, depth):
         max_val = settings.INP_MAX_V
@@ -490,7 +481,7 @@ class SymStates(dict):
         self.inv_decls = inv_decls
         self.use_reals = inv_decls.use_reals
         self.inp_exprs = inp_decls.exprs(self.use_reals)
-        
+
         self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
         self.solver_stats_ = []  # periodically save solver_stats results here
 
@@ -597,16 +588,21 @@ class SymStates(dict):
             self.put_solver_stats(analysis.CheckDepthChanges(
                 str(inv), None, None, stat, depths[depth_idx]))
 
-        while(stat != z3.sat and depth_idx < len(depths) - 1):
+        nochanges = 0
+        while(stat != z3.sat and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+              and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
             cexs_, is_succ_, stat_ = f(depths[depth_idx_])
             if stat_ != stat:
+                nochanges = 0
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
                 mlog.debug("check depth diff {}: {} @depth {}, {} @depth {}"
                            .format(inv_expr, stat, mydepth, stat_, mydepth_))
                 self.put_solver_stats(
                     analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_))
+            else:
+                nochanges += 1
 
             depth_idx = depth_idx_
             cexs, is_succ, stat = cexs_, is_succ_, stat_
@@ -676,11 +672,13 @@ class SymStates(dict):
             self.put_solver_stats(
                 analysis.MaxDepthChanges(
                     str(term_expr), None, None, maxv, depths[depth_idx]))
-
-        while(maxv is not None and depth_idx < len(depths) - 1):
+        nochanges = 0
+        while(maxv is not None and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+              and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
             maxv_, stat_ = f(depths[depth_idx_])
             if maxv_ != maxv:
+                nochanges = 0
                 assert(not(isinstance(maxv_, int) and isinstance(maxv, int))
                        or (maxv_ > maxv)), (maxv_, maxv)
 
@@ -692,6 +690,8 @@ class SymStates(dict):
                 self.put_solver_stats(
                     analysis.MaxDepthChanges(
                         str(term_expr), maxv, mydepth, maxv_, mydepth_))
+            else:
+                nochanges += 1
 
             depth_idx = depth_idx_
             maxv, stat = maxv_, stat_
@@ -766,13 +766,14 @@ class SymStates(dict):
         if self.solver_stats is not None:
             while True:
                 try:
-                    self.solver_stats_.append(self.solver_stats.get(block=False))
+                    self.solver_stats_.append(
+                        self.solver_stats.get(block=False))
                 except Empty:
                     break
                 except:
                     mlog.exception(f"get_solver_stats() error")
                     break
-            #self.reset_solver_stats()
+            # self.reset_solver_stats()
 
     def reset_solver_stats(self):
         if self.solver_stats is not None:
