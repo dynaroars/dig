@@ -46,8 +46,8 @@ public class StrnCopy {
 		//System.out.printf("l_post: n s d\n");
 		//System.out.printf("l_post: %d %d %d\n", n, ls, ld);
 		//inv
-		//assert(!(n <= ls) || ld >= n);
-		//assert(!(n > ls) || ld == ls);
+		assert(!(n <= ls) || ld >= n);
+		assert(!(n > ls) || ld == ls);
 		vtrace_post(n, ls, ld);
 		return 0;
 	}
