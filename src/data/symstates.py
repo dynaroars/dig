@@ -491,9 +491,9 @@ class SymStates(dict):
 
         super().__init__(dict())
 
-    def __del__(self):
-        self.stop_bg_get_solver_stats()
-        super().__del__()
+    #def __del__(self):
+    #    self.stop_bg_get_solver_stats()
+    #    super().__del__()
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
@@ -796,5 +796,5 @@ class SymStates(dict):
     def stop_bg_get_solver_stats(self):
         if self.bg_thread_solver_stats is not None:
             self.bg_thread_solver_stats_running = False
-            self.bg_thread_solver_stats.join()
+            #self.bg_thread_solver_stats.join()
             self.bg_thread_solver_stats = None
