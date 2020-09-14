@@ -570,10 +570,7 @@ class Miscs(object):
                 myQ.put(rs)
                 myQ.close()
                 myQ.join_thread()
-                #import data.symstates
-                # data.symstates.SymStates.close_solver_stats()
 
-        #mlog.warning(f"Begin run_mp {len(tasks)}")
         n_cpus = multiprocessing.cpu_count()
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
@@ -597,15 +594,12 @@ class Miscs(object):
                     raise rs
 
             for w in workers:
-                #w.terminate()
                 w.join()
                 w.close()
-                pass
 
         else:
             wrs = wprocess(tasks, myQ=None)
 
-        #mlog.warning(f"End run_mp {len(tasks)}")
         return wrs
 
     @staticmethod
@@ -628,65 +622,65 @@ class Miscs(object):
 
         return sorted(results)
 
-    @classmethod
-    def guess_maxdeg(cls, ds):
-        """
-        ds = {'x':[1,2,3], 'y':[4,5,6]}
-        """
-        maxdeg = 0
-        pairs = itertools.combinations(ds.keys(), 2)
-        for x, y in pairs:
-            print(x, y)
+    # @classmethod
+    # def guess_maxdeg(cls, ds):
+    #     """
+    #     ds = {'x':[1,2,3], 'y':[4,5,6]}
+    #     """
+    #     maxdeg = 0
+    #     pairs = itertools.combinations(ds.keys(), 2)
+    #     for x, y in pairs:
+    #         print(x, y)
 
-            cache = set()
-            dsx = []
-            dsy = []
-            for x, y in zip(ds[x], ds[y]):
-                if (x, y) in cache:
-                    continue
-                cache.add((x, y))
-                dsx.append(x)
-                dsy.append(y)
+    #         cache = set()
+    #         dsx = []
+    #         dsy = []
+    #         for x, y in zip(ds[x], ds[y]):
+    #             if (x, y) in cache:
+    #                 continue
+    #             cache.add((x, y))
+    #             dsx.append(x)
+    #             dsy.append(y)
 
-            maxdeg_ = cls.deriv(dsx, dsy)
-            if maxdeg_ > maxdeg:
-                #print(x, y, maxdeg_)
-                maxdeg = maxdeg_
-            else:
-                maxdeg_ = cls.deriv(dsy, dsx)
-                if maxdeg_ > maxdeg:
-                    #print(y, x, maxdeg_)
-                    maxdeg = maxdeg_
-        return maxdeg
+    #         maxdeg_ = cls.deriv(dsx, dsy)
+    #         if maxdeg_ > maxdeg:
+    #             #print(x, y, maxdeg_)
+    #             maxdeg = maxdeg_
+    #         else:
+    #             maxdeg_ = cls.deriv(dsy, dsx)
+    #             if maxdeg_ > maxdeg:
+    #                 #print(y, x, maxdeg_)
+    #                 maxdeg = maxdeg_
+    #     return maxdeg
 
-    @classmethod
-    def deriv(cls, xs, ys):
-        assert len(xs), xs
-        assert len(xs) == len(ys), (xs, ys)
-        print(xs)
-        print(ys)
-        ys_ = list(ys)
-        i = 0
-        while ys_:
-            ys_change = [s-f for f, s in zip(ys_, ys_[1:])]
-            print('ys_change', ys_change)
-            if ys_ and all(y == 0 for y in ys_):
-                return i  # return max deg
-            i = i + 1
-            xs_change = [s-f for f, s in zip(xs, xs[i:])]
-            print('xs_change', xs_change)
-            # if xs_change and any(x == 0 for x in xs_change):
-            #    return -1  # div by 0
-            ys_ = [y/x for x, y in zip(xs_change, ys_change)]
-            print('ys_', ys_)
-        return -1
+    # @classmethod
+    # def deriv(cls, xs, ys):
+    #     assert len(xs), xs
+    #     assert len(xs) == len(ys), (xs, ys)
+    #     print(xs)
+    #     print(ys)
+    #     ys_ = list(ys)
+    #     i = 0
+    #     while ys_:
+    #         ys_change = [s-f for f, s in zip(ys_, ys_[1:])]
+    #         print('ys_change', ys_change)
+    #         if ys_ and all(y == 0 for y in ys_):
+    #             return i  # return max deg
+    #         i = i + 1
+    #         xs_change = [s-f for f, s in zip(xs, xs[i:])]
+    #         print('xs_change', xs_change)
+    #         # if xs_change and any(x == 0 for x in xs_change):
+    #         #    return -1  # div by 0
+    #         ys_ = [y/x for x, y in zip(xs_change, ys_change)]
+    #         print('ys_', ys_)
+    #     return -1
 
-    @classmethod
-    def deriv_test(cls):
-        ys = list(range(-3, 3))
-        xs = [y**2 for y in ys]
+    # @classmethod
+    # def deriv_test(cls):
+    #     ys = list(range(-3, 3))
+    #     xs = [y**2 for y in ys]
 
-        print(cls.deriv(xs, ys))
+    #     print(cls.deriv(xs, ys))
 
 
 class Z3(object):
@@ -751,7 +745,7 @@ class Z3(object):
                     mv = str(model[v])
                     try:
                         cex[str(v)] = sage.all.sage_eval(mv)
-                    except SyntaxError as ex:
+                    except SyntaxError:
                         mlog.warning('cannot analyze {}'.format(model))
                 cexs.append(cex)
         return cexs, isSucc
@@ -783,7 +777,7 @@ class Z3(object):
             for v in m:
                 try:
                     e = v() == m[v]
-                except z3.Z3Exception as ex:
+                except z3.Z3Exception:
                     """
                     when the model contains functions, e.g., 
                     [..., div0 = [(3, 2) -> 1, else -> 0]]

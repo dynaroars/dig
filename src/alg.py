@@ -221,7 +221,6 @@ class DigSymStates(Dig):
             myQ.join_thread()
 
         is_timeout = False
-        mlog.warning(f"### BEGIN my_infer_eqts")
         Q = Queue()
         worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
         worker.start()
@@ -232,14 +231,12 @@ class DigSymStates(Dig):
         except Empty:
             is_timeout = True
 
-        mlog.warning(f"### AFTER Queue get is_timeout={is_timeout}")
         worker.join(timeout=1)
         if worker.is_alive():
             killtree(worker.pid)
             worker.terminate()
             is_timeout = True
         worker.join()
-        mlog.warning(f"### AFTER 2nd JOIN  ec={worker.exitcode}")
         worker.close()
 
         if is_timeout:
@@ -276,7 +273,7 @@ class DigSymStates(Dig):
         auto_deg = self.get_auto_deg(maxdeg)
 
         dinvs = self.my_infer_eqts2(solver, auto_deg, dtraces, inps)
-        #dinvs = solver.gen(auto_deg, dtraces, inps)
+        # dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
@@ -399,23 +396,23 @@ class DigTraces(Dig):
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
             symbols.names, auto_deg, settings.EQT_RATE)
         exprs = list(traces.instantiate(template, n_eqts_needed))
-        from multiprocessing import Process, Queue
+        # from multiprocessing import Process, Queue
 
-        def wprocess(exprs, uks, template, myQ):
-            rs = Miscs.solve_eqts(exprs, uks, template)
-            myQ.put(rs)
-        Q = Queue()
-        worker = Process(target=wprocess, args=(exprs, uks, template, Q))
-        worker.start()
-        worker.join(timeout=1)
-        worker.teminate()
+        # def wprocess(exprs, uks, template, myQ):
+        #     rs = Miscs.solve_eqts(exprs, uks, template)
+        #     myQ.put(rs)
+        # Q = Queue()
+        # worker = Process(target=wprocess, args=(exprs, uks, template, Q))
+        # worker.start()
+        # worker.join(timeout=1)
+        # worker.teminate()
 
-        if worker.exitcode is None:
-            mlog.error("timeout!")
+        # if worker.exitcode is None:
+        #     mlog.error("timeout!")
 
-        eqts = Q.get()
+        # eqts = Q.get()
 
-        #eqts = Miscs.solve_eqts(exprs, uks, template)
+        eqts = Miscs.solve_eqts(exprs, uks, template)
         import data.inv.eqt
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 

@@ -1,6 +1,6 @@
 public class KnuthNoSqrt {
     public static void vtrace1(int n, int a, int r, int k, int q, int d, int s, int t){}
-    public static void vtrace2(int n, int a, int r, int k, int q, int d, int s, int t){}
+    // public static void vtrace2(int n, int a, int r, int k, int q, int d, int s, int t){}
     public static void main (String[] args) {
     }
 

@@ -5,11 +5,6 @@ $ python -m doctest -v common.py
 """
 
 
-def is_python3():
-    import sys
-    return sys.version_info > (3, 0)
-
-
 def pause(s=None):
     input("Press any key to continue ..." if s is None else s)
 
@@ -46,7 +41,8 @@ def getLogger(name, level):
     logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(level)
-    formatter = logging.Formatter("%(asctime)s %(process)d ] %(name)s:%(levelname)s:%(message)s")
+    # formatter = logging.Formatter("%(asctime)s %(process)d ] %(name)s:%(levelname)s:%(message)s")
+    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     return logger

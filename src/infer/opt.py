@@ -243,7 +243,10 @@ class MP(Infer):
         assert isinstance(inps, set), inps
 
         def is_pure(xs):
-            return all(x in inps for x in xs) or all(x not in inps for x in xs)
+            # if it's small, then we won't be too strict and allow it
+            return (len(xs) <= 2 or
+                    all(x in inps for x in xs) or
+                    all(x not in inps for x in xs))
 
         excludes = set()
         for term in terms:
@@ -259,7 +262,7 @@ class MP(Infer):
             inp_in_a = any(s in inps for s in a_symbs)
             inp_in_b = any(s in inps for s in b_symbs)
 
-            # if (inp in both a and b) or inp not in a or b
+            # exclude if (inp in both a and b) or inp not in a or b
             if ((inp_in_a and inp_in_b) or
                     (not inp_in_a and not inp_in_b)):
                 excludes.add(term)
