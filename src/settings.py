@@ -20,7 +20,9 @@ DO_SOLVER_STATS = False
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
-SYMEXE_TIMEOUT = 10  # secs
+# SYMEXE_TIMEOUT = 10  # secs
+SE_DEPTH_NOCHANGES_MAX = 3
+SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs
 EQT_SOLVER_TIMEOUT = 3 * 60  # mins
 EQT_SOLVER_TIMEOUT_MAXTRIES = 3
@@ -61,8 +63,8 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 
 class Java:
-    SE_MIN_DEPTH = 8
-    SE_DEPTH_INCR = 5  # maxdepth = mindepth + depth_incr
+    SE_MIN_DEPTH = 7
+    # SE_DEPTH_INCR = 20  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
     ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
@@ -106,7 +108,7 @@ class C:
     C_RUN = partial(C_RUN.format)
 
     SE_MIN_DEPTH = 20
-    SE_DEPTH_INCR = 5
+    # SE_DEPTH_INCR = 5
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME"))
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
