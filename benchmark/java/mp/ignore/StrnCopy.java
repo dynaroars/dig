@@ -1,23 +1,54 @@
 public class StrnCopy {
-    public static void vtrace_post(int n){}
+    public static void vtrace_post(int n, int ls, int ld){}
     public static void main (String[] args) {}
      
-	public static int mainQ(int n, int srcsiz, int destsiz){
-		int src, i, c;
+	public static int mainQ(int n, int siz, int srcsiz, int destsiz){
+		assert(1 <= siz);
+		assert(0 <= n);
+		assert(n <= siz-1);
+		
+		int src = srcsiz;
+		int dst = destsiz;
 
-		src = srcsiz; // Comment this line out will make it work
-
-		i = 0;
+		int i = 0;
+		int c = 0;
+		while(i < n &&  i != src /*src[i] != '\0'*/){
+			//dst[i] = src[i];
+		    //dst = setchar(dst, i, siz, getchar(src, i, siz));
+			dst = siz;
+		    i = i + 1;
+		}
 		while(i < n){
-			if (i == srcsiz) {
-				c = 0;
-			} else {
-				c = 32;
+		    //dst[i] = '\0';
+		    //dst = setchar(dst, i, siz, 0);
+			if (i < dst) {
+				dst = i;
 			}
 		    i = i + 1;
 		}
+		
+		//int ls = mylen(n,src,siz);
+		//int ld = mylen(n,dst,siz);
 
-		vtrace_post(n);
+		int ls = 0;
+		int ld = 0;
+		if (src == siz) {
+			ls = siz-1;
+		} else {
+			ls = src;
+		}
+		if (dst == siz) {
+			ld = siz-1;
+		} else {
+			ld = dst;
+		}
+
+		//System.out.printf("l_post: n s d\n");
+		//System.out.printf("l_post: %d %d %d\n", n, ls, ld);
+		//inv
+		//assert(!(n <= ls) || ld >= n);
+		//assert(!(n > ls) || ld == ls);
+		vtrace_post(n, ls, ld);
 		return 0;
 	}
 }
