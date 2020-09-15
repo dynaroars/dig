@@ -25,7 +25,6 @@ import data.traces
 import data.inv.base
 import data.inv.invs
 import analysis
-from settings import SE_DEPTH_NOCHANGES_MAX
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -587,12 +586,14 @@ class SymStates(dict):
                 str(inv), None, None, stat, depths[depth_idx]))
 
         nochanges = 0
-        while(stat != z3.sat and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+        while(stat != z3.sat
+              and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
               and depth_idx < len(depths) - 1):
             depth_idx_ = depth_idx + 1
             cexs_, is_succ_, stat_ = f(depths[depth_idx_])
             if stat_ != stat:
                 nochanges = 0
+
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
                 mlog.debug("check depth diff {}: {} @depth {}, {} @depth {}"
@@ -670,29 +671,41 @@ class SymStates(dict):
             self.put_solver_stats(
                 analysis.MaxDepthChanges(
                     str(term_expr), None, None, maxv, depths[depth_idx]))
+
         nochanges = 0
-        while(maxv is not None and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+        changes = 0
+        while(maxv is not None
+              and changes <= settings.SE_DEPTH_NOCHANGES_MAX
+              and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
               and depth_idx < len(depths) - 1):
+
             depth_idx_ = depth_idx + 1
             maxv_, stat_ = f(depths[depth_idx_])
             if maxv_ != maxv:
                 nochanges = 0
+                changes += 1
+
                 assert(not(isinstance(maxv_, int) and isinstance(maxv, int))
                        or (maxv_ > maxv)), (maxv_, maxv)
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("max depth diff {}: {} {} @depth {}, {} {} @depth {}"
-                           .format(term_expr, maxv, stat, mydepth,
-                                   maxv_, stat_, mydepth_))
+                mlog.debug(f"max depth diff {term_expr}: "
+                           f"{maxv} {stat} @depth {mydepth}, "
+                           f"{maxv_} {stat_} @depth {mydepth_}")
                 self.put_solver_stats(
                     analysis.MaxDepthChanges(
                         str(term_expr), maxv, mydepth, maxv_, mydepth_))
             else:
                 nochanges += 1
+                # changes = 0 # yes, this is intentional
 
             depth_idx = depth_idx_
             maxv, stat = maxv_, stat_
+
+        if maxv is not None and changes >= settings.SE_DEPTH_NOCHANGES_MAX:
+            mlog.warning(f"the value of {term_expr} changes frequently, skip")
+            maxv = None
 
         return maxv, stat
 
@@ -707,7 +720,7 @@ class SymStates(dict):
             h = opt.maximize(term_expr)
             stat = opt.check()
         except Exception as ex:
-            mlog.error("maximize error: {}".format(ex))
+            mlog.error(f"maximize error: {ex}")
             stat = z3.unknown
 
         assert stat == z3.sat or stat == z3.unknown, stat
