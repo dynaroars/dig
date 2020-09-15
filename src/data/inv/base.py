@@ -107,14 +107,15 @@ class RelInv(Inv, metaclass=ABCMeta):
             mlog.debug("{}: failed test".format(self))
             return False
 
-    def expr(self, use_reals):
+    @property
+    def expr(self):
         """
         cannot make this as property because z3 expr is ctype,
         not compat with multiprocessing Queue
 
         also, cannot save this to sel._expr
         """
-        return Z3.parse(str(self.inv), use_reals)
+        return Z3.parse(str(self.inv))
 
 
 class RelTerm(NamedTuple):

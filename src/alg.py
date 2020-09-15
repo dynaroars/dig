@@ -83,7 +83,7 @@ class Dig(metaclass=ABCMeta):
             mlog.debug("{}".format(dinvs.__str__(
                 print_stat=True, print_first_n=20)))
             st1 = time.time()
-            dinvs = dinvs.simplify(self.inv_decls.use_reals)
+            dinvs = dinvs.simplify()
             mlog.info("{} ({:.2f}s)".format(msg, time.time() - st1))
 
         self.time_d['simplify'] = time.time() - st

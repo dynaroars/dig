@@ -62,13 +62,12 @@ class Invs(set):
         invs = self.__class__(myinvs)
         return invs
 
-    def get_expr(cls, p, use_reals, exprs_d):
+    def get_expr(cls, p, exprs_d):
         if p not in exprs_d:
-            exprs_d[p] = p.expr(use_reals)
+            exprs_d[p] = p.expr
         return exprs_d[p]
 
-    def simplify(self, use_reals):
-        assert isinstance(use_reals, bool), use_reals
+    def simplify(self):
 
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
             self.classify(self)
@@ -79,7 +78,7 @@ class Invs(set):
         exprs_d = {}
 
         def my_get_expr(p):
-            return self.get_expr(p, use_reals, exprs_d)
+            return self.get_expr(p, exprs_d)
 
         mps = data.inv.mp.MP.simplify(mps)
         mps = self.simplify1(mps, eqts + octs, "mps", my_get_expr)
@@ -172,18 +171,18 @@ class DInvs(dict):
 
         super().__setitem__(loc, invs)
 
-    @ property
+    @property
     def invs(self):
         return (inv for invs in self.values() for inv in invs)
 
-    @ property
+    @property
     def siz(self): return sum(map(len, self.values()))
 
-    @ property
+    @property
     def typ_ctr(self):
         return sum([self[loc].typ_ctr for loc in self], Counter())
 
-    @ property
+    @property
     def n_eqs(self):
         return self.typ_ctr[data.inv.eqt.Eqt.__name__]
 
@@ -269,28 +268,27 @@ class DInvs(dict):
 
         return deltas
 
-    def simplify(self, use_reals):
-        assert isinstance(use_reals, bool), use_reals
+    def simplify(self):
         assert(self.siz), self
 
         st = time()
 
         def f(tasks):
-            return [(loc, self[loc].simplify(use_reals)) for loc in tasks]
+            return [(loc, self[loc].simplify()) for loc in tasks]
         wrs = Miscs.run_mp('simplify', list(self), f)
         mlog.debug("done simplifying , time {}".format(time() - st))
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
         Miscs.show_removed('simplify', self.siz, dinvs.siz, time() - st)
         return dinvs
 
-    @ classmethod
+    @classmethod
     def mk_false_invs(cls, locs):
         dinvs = cls()
         for loc in locs:
             dinvs.add(loc, FalseInv.mk())
         return dinvs
 
-    @ classmethod
+    @classmethod
     def mk(cls, loc, invs):
         assert isinstance(invs, Invs), invs
         new_invs = cls()
@@ -299,9 +297,6 @@ class DInvs(dict):
 
 
 class FalseInv(data.inv.base.Inv):
-    """
-    Use
-    """
 
     def __init__(self, inv, stat=None):
         assert inv == 0, inv
@@ -313,7 +308,8 @@ class FalseInv(data.inv.base.Inv):
             s = "{} {}".format(s, self.stat)
         return s
 
-    def expr(self, _):
+    @property
+    def expr(self):
         return z3.BoolVal(False)
 
     @ classmethod

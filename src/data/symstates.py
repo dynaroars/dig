@@ -249,7 +249,7 @@ class PCs(set):
 
 
 class SymStatesMaker(metaclass=ABCMeta):
-    def __init__(self, filename, mainQName, funname, ninps, use_reals, tmpdir):
+    def __init__(self, filename, mainQName, funname, ninps, tmpdir):
         assert tmpdir.is_dir(), tmpdir
 
         self.filename = filename
@@ -257,7 +257,6 @@ class SymStatesMaker(metaclass=ABCMeta):
         self.funname = funname
         self.tmpdir = tmpdir
         self.ninps = ninps
-        self.use_reals = use_reals
 
     def compute(self):
         """
@@ -277,7 +276,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
             sys.exit(0)
 
-        symstates = self.merge(wrs, self.pc_cls, self.use_reals)
+        symstates = self.merge(wrs, self.pc_cls)
         # symstates = self.merge2(wrs)
 
         # precompute all z3 exprs
@@ -347,7 +346,7 @@ class SymStatesMaker(metaclass=ABCMeta):
     #     return pcs
 
     @ classmethod
-    def merge(cls, depthss, pc_cls, use_reals):
+    def merge(cls, depthss, pc_cls):
         """
         Merge PC's info into symbolic states sd[loc][depth]
         """
@@ -357,11 +356,11 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         @ cached_function
         def zpc(p):
-            return Z3.zTrue if p is None else Z3.parse(p, use_reals)
+            return Z3.zTrue if p is None else Z3.parse(p)
 
         @ cached_function
         def zslocal(p):
-            return Z3.parse(p, use_reals)
+            return Z3.parse(p)
 
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
@@ -479,8 +478,7 @@ class SymStates(dict):
     def __init__(self, inp_decls, inv_decls):
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
-        self.use_reals = inv_decls.use_reals
-        self.inp_exprs = inp_decls.exprs(self.use_reals)
+        self.inp_exprs = inp_decls.exprs
 
         self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
         self.solver_stats_ = []  # periodically save solver_stats results here
@@ -491,14 +489,14 @@ class SymStates(dict):
 
         super().__init__(dict())
 
-    #def __del__(self):
+    # def __del__(self):
     #    self.stop_bg_get_solver_stats()
     #    super().__del__()
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
             filename, mainQName, funname,
-            len(self.inp_decls), self.use_reals, tmpdir)
+            len(self.inp_decls), tmpdir)
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
@@ -549,7 +547,7 @@ class SymStates(dict):
         assert ncexs >= 1, ncexs
 
         try:
-            inv_expr = inv.expr(self.use_reals)
+            inv_expr = inv.expr
             if inv_expr is Z3.zFalse:
                 inv_expr = None
         except AttributeError:
@@ -796,5 +794,5 @@ class SymStates(dict):
     def stop_bg_get_solver_stats(self):
         if self.bg_thread_solver_stats is not None:
             self.bg_thread_solver_stats_running = False
-            #self.bg_thread_solver_stats.join()
+            # self.bg_thread_solver_stats.join()
             self.bg_thread_solver_stats = None

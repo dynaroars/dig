@@ -43,7 +43,8 @@ class MP(data.inv.base.Inv):
 
         return s
 
-    def expr(self, use_reals):
+    @property
+    def expr(self):
         """
         # sage: x, y, z = sage.all.var('x y z')
         # sage: mp = MPInv.mk_max_ieq((x-10, y-3), (y, 5))
@@ -55,8 +56,8 @@ class MP(data.inv.base.Inv):
         # If(And(y >= z, y >= 0), x <= y, If(z >= 0, x <= z, x <= 0))
         """
 
-        a = tuple(Z3.parse(str(x), use_reals) for x in self.term.a)
-        b = tuple(Z3.parse(str(x), use_reals) for x in self.term.b)
+        a = tuple(Z3.parse(str(x)) for x in self.term.a)
+        b = tuple(Z3.parse(str(x)) for x in self.term.b)
 
         expr = self.mp2df_expr(a, b, 0, self.term.is_max, self.is_ieq)
 

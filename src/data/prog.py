@@ -171,11 +171,12 @@ class Symb(namedtuple('Symb', ('name', 'typ'))):
             self._sageExpr = sage.all.var(self.name)
             return self._sageExpr
 
-    def expr(self, use_reals):
+    @property
+    def expr(self):
         try:
             return self._expr
         except AttributeError:
-            self._expr = Z3.parse(str(self.sageExpr), use_reals)
+            self._expr = Z3.parse(str(self.sageExpr))
             return self._expr
 
 
@@ -197,11 +198,12 @@ class Symbs(tuple):
     @property
     def sageExprs(self): return tuple(s.sageExpr for s in self)
 
-    def exprs(self, use_reals):
+    @property
+    def exprs(self):
         try:
             return self._exprs
         except AttributeError:
-            self._exprs = [s.expr(use_reals) for s in self]
+            self._exprs = [s.expr for s in self]
             return self._exprs
 
     @classmethod
@@ -219,14 +221,7 @@ class Symbs(tuple):
 
 
 class DSymbs(dict):
-    @property
-    def use_reals(self):
-        try:
-            return self._use_reals
-        except AttributeError:
-            self._use_reals = any(
-                s.is_real for syms in self.values() for s in syms)
-            return self._use_reals
+    pass
 
 
 class Src:

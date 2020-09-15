@@ -816,7 +816,7 @@ class Z3(object):
         return rs, stat
 
     @classmethod
-    def imply(cls, fs, g, use_reals):
+    def imply(cls, fs, g):
         """
         sage: from helpers.miscs import Z3
 
@@ -850,15 +850,14 @@ class Z3(object):
 
         assert all(Miscs.is_expr(f) for f in fs), fs
         assert Miscs.is_expr(g), g
-        assert isinstance(use_reals, bool), use_reals
 
         if not fs:
             return False  # conservative approach
         # fs = [cls.toZ3(f, use_reals, use_mod=False) for f in fs]
         # g = cls.toZ3(g, use_reals, use_mod=False)
 
-        fs = [Z3.parse(str(f), use_reals) for f in fs]
-        g = Z3.parse(str(g), use_reals)
+        fs = [Z3.parse(str(f)) for f in fs]
+        g = Z3.parse(str(g))
 
         return cls._imply(fs, g)
 
@@ -903,7 +902,7 @@ class Z3(object):
             return -1
 
     @classmethod
-    def parse(cls, node, use_reals):
+    def parse(cls, node):
         """
         Parse sage expr to z3
         e.g., parse(str(sage_expr), use_reals=False)
@@ -918,7 +917,7 @@ class Z3(object):
             tnode = ast.parse(node)
             tnode = tnode.body[0].value
             try:
-                expr = cls.parse(tnode, use_reals)
+                expr = cls.parse(tnode)
                 expr = z3.simplify(expr)
                 return expr
             except NotImplementedError:
@@ -927,8 +926,8 @@ class Z3(object):
                 raise
 
         elif isinstance(node, ast.BoolOp):
-            vals = [cls.parse(v, use_reals) for v in node.values]
-            op = cls.parse(node.op, use_reals)
+            vals = [cls.parse(v) for v in node.values]
+            op = cls.parse(node.op)
             return op(vals)
 
         elif isinstance(node, ast.And):
@@ -938,31 +937,29 @@ class Z3(object):
             return z3.Or
 
         elif isinstance(node, ast.BinOp):
-            left = cls.parse(node.left, use_reals)
-            right = cls.parse(node.right, use_reals)
-            op = cls.parse(node.op, use_reals)
+            left = cls.parse(node.left)
+            right = cls.parse(node.right)
+            op = cls.parse(node.op)
             return op(left, right)
 
         elif isinstance(node, ast.UnaryOp):
-            operand = cls.parse(node.operand, use_reals)
-            op = cls.parse(node.op, use_reals)
+            operand = cls.parse(node.operand)
+            op = cls.parse(node.op)
             return op(operand)
 
         elif isinstance(node, ast.Compare):
             assert len(node.ops) == 1 and len(
                 node.comparators) == 1, ast.dump(node)
-            left = cls.parse(node.left, use_reals)
-            right = cls.parse(node.comparators[0], use_reals)
-            op = cls.parse(node.ops[0], use_reals)
+            left = cls.parse(node.left)
+            right = cls.parse(node.comparators[0])
+            op = cls.parse(node.ops[0])
             return op(left, right)
 
         elif isinstance(node, ast.Name):
-            f = z3.Real if use_reals else z3.Int
-            return f(str(node.id))
+            return z3.Int(str(node.id))
 
         elif isinstance(node, ast.Num):
-            f = z3.RealVal if use_reals else z3.IntVal
-            return f(str(node.n))
+            return z3.IntVal(str(node.n))
 
         elif isinstance(node, ast.Add):
             return operator.add

@@ -132,8 +132,7 @@ class Ieq(Infer):
         super().__init__(symstates, prog)
 
     def to_expr(self, term):
-        return Z3.parse(
-            str(term.term), use_reals=self.symstates.use_reals)
+        return Z3.parse(str(term.term))
 
     def inv_cls(self, term_ub):
         return data.inv.oct.Oct(term_ub)
@@ -220,7 +219,7 @@ class MP(Infer):
         super().__init__(symstates, prog)
 
     def to_expr(self, term):
-        return data.inv.mp.MP(term, is_ieq=None).expr(self.symstates.use_reals)
+        return data.inv.mp.MP(term, is_ieq=None).expr
 
     def inv_cls(self, term_ub):
         return data.inv.mp.MP(term_ub)
