@@ -305,7 +305,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         cmd = self.mk(depth)
         timeout = depth
         mlog.debug(
-            "Obtain symbolic states at depth {} (timeout {}s)".format(depth, timeout))
+            f"Obtain symbolic states at depth {depth} (timeout {timeout}s)")
         mlog.debug(cmd)
 
         s = None
@@ -344,7 +344,7 @@ class SymStatesMaker(metaclass=ABCMeta):
     #         pcs.add(pc)
     #     return pcs
 
-    @ classmethod
+    @classmethod
     def merge(cls, depthss, pc_cls):
         """
         Merge PC's info into symbolic states sd[loc][depth]
@@ -353,19 +353,23 @@ class SymStatesMaker(metaclass=ABCMeta):
         assert all(depth >= 1 and isinstance(ss, list)
                    for depth, ss in depthss), depthss
 
-        @ cached_function
+        @cached_function
         def zpc(p):
             return Z3.zTrue if p is None else Z3.parse(p)
 
-        @ cached_function
+        @cached_function
         def zslocal(p):
             return Z3.parse(p)
 
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
-                pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
-                symstates[loc][depth].add(pc)
+                try:
+                    pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
+                    symstates[loc][depth].add(pc)
+                except MemoryError:
+                    mlog.error("cannot parse pcs {}".format(pcs))
+                    mlog.error("cannot parse slocals {}".format(slocals))
 
         # only store incremental states at each depth
         for loc in symstates:
