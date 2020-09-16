@@ -26,6 +26,8 @@ class NestArray:
             all_index = []
             for index in frequencyTrace[outerMost][value]:
                 all_index += self.reachAnalysisPerLevel(proposedVariance, trace, frequencyTrace, 2, index)
+            if len(all_index) == 0:
+                return []
             result.append([frequencyTrace[pivot][value], all_index])
         return result
 
