@@ -71,20 +71,21 @@ class NestArray:
             print("Cannot solve")
         #solve(s)
 
+    def start(self, trace):
+        variable = range(len(trace))
+        nestedArray.genNesting(list(variable), 0, len(variable) - 1)
+        allDict = nestedArray.preprocess(trace)
+        for nesting in nestings:
+            inps = nestedArray.reachAnalysisTopLevel(len(nesting), nesting, trace, allDict)
+            if len(inps) == 0:
+                print("Reach analysis fails")
+            else:
+                nestedArray.z3_solver(inps)
+
 
 
 nestedArray = NestArray()
-variable = [0, 1, 2]
-nestings = []
-nestedArray.genNesting(list(variable), 0, len(variable) - 1)
 
-print(nestings)
 #trace = [[7, 1, -3], [1, -3, 5, 1, 0, 7, 1], [8, 5, 6, 6, 2, 1, 4], [0, 1, 3, 5]]
 trace = [[7, 1, -3], [1, -3, 5, 1, 0, 7, 1], [8, 5, 6, 6, 2, 1, 4]]
-allDict = nestedArray.preprocess(trace)
-for nesting in nestings:
-    inps = nestedArray.reachAnalysisTopLevel(len(nesting), nesting, trace, allDict)
-    if  len(inps) == 0 :
-        print("Reach analysis fails")
-    else:
-        nestedArray.z3_solver(inps)
+nestedArray.start(trace)
