@@ -12,7 +12,7 @@ public class Freire2 {
 
     while (true) {
       // assert(8*r*s - 24*a + 16*r - 12*s + 24*x - 3 == 0)
-			// assert(12*(r*r) - 4*s + 1 == 0)
+      // assert(12*(r*r) - 4*s + 1 == 0)
 
       // assert(2*r*s - 24*a + 16*r - 3*s + 6*x - 3 == 0)  // NEW
       // assert(12*(r*r) - s + 1 == 0)  // NEW
@@ -21,9 +21,9 @@ public class Freire2 {
       if (! (x > s)) break;
       //assert(((int)(4*r*r*r - 6*r*r + 3*r) + (int)(4*x - 4*a)) == 1); 
       //assert((int)(4*s) -12*r*r == 1);
-			
-			//assert(((4*r*r*r - 6*r*r + 3*r) + (x - 4*a)) == 1);  // NEW
-			//assert(s - 12*r*r == 1);  // NEW
+      
+      //assert(((4*r*r*r - 6*r*r + 3*r) + (x - 4*a)) == 1);  // NEW
+      //assert(s - 12*r*r == 1);  // NEW
 
       x = x - s;
       s = s + (6 * r + 3) * 4;
@@ -31,10 +31,10 @@ public class Freire2 {
     }
 
     // assert(8*r*s - 24*a + 16*r - 12*s + 24*x - 3 == 0)
-		// assert(12*(r*r) - 4*s + 1 == 0)
-		
+    // assert(12*(r*r) - 4*s + 1 == 0)
+    
     //assert(2*r*s - 24*a + 16*r - 3*s + 6*x - 3 == 0)  // NEW
-		//assert(12*(r*r) - s + 1 == 0)  // NEW
+    //assert(12*(r*r) - s + 1 == 0)  // NEW
 
     vtrace2(a, x, r, s);
     return r;
