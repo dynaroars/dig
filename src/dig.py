@@ -13,7 +13,6 @@ Example runs:
 - sage -python -O dig.py ../tests/benchmark/nla/ -benchmark_times 5 -benchmark_dir /path/to/existing_dir/ :  run all files in this dir 5 times
 - sage -python -O dig.py ../tests/benchmark/nla/ -benchmark_times 5 -benchmark_dir existing_dir/ :  run all files in this dir 5 times and store results in `existing_dir`. If existing_dir has results from previous runs, will only attempt to do incomplete runs.  
 """
-
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser("DIG")
@@ -146,11 +145,10 @@ if __name__ == "__main__":
         seed = round(time.time(), 2) if args.seed is None else float(args.seed)
         import settings
         mlog, se_mindepth = settings.setup(settings, args)
-        mlog.info("{}: {}".format(datetime.datetime.now(), ' '.join(sys.argv)))
+        mlog.info(f"{datetime.datetime.now()}: {' '.join(sys.argv)}")
 
         if __debug__:
             mlog.warning("DEBUG MODE ON. Can be slow !")
-
         import alg
         if inp.suffix == ".java" or inp.suffix == ".class":
             if se_mindepth:

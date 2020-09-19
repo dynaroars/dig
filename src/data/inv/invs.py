@@ -104,7 +104,7 @@ class Invs(set):
                 assert iexpr.decl().kind() != z3.Z3_OP_EQ
                 jexprs = [ps_exprs[j] for j in js]
                 ret = Z3._imply(eqt_exprs + jexprs, iexpr, is_conj=True)
-                #print('{} => {}'.format(jexprs, iexpr))
+                # print('{} => {}'.format(jexprs, iexpr))
                 return ret
 
             results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
@@ -138,7 +138,7 @@ class Invs(set):
             ps = [p for p in wrs]
         return ps
 
-    @ classmethod
+    @classmethod
     def classify(cls, invs):
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
 
