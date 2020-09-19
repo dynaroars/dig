@@ -38,11 +38,11 @@ class PathCondition(NamedTuple):
     def __str__(self):
         return f'loc: {self.loc}\npc: {self.pc}\nslocal: {self.slocal}'
 
-    @ property
+    @property
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
 
-    @ classmethod
+    @classmethod
     def parse(cls, s):
         assert isinstance(s, str), s
 
@@ -56,7 +56,7 @@ class PathCondition(NamedTuple):
 
 
 class PC_CIVL(PathCondition):
-    @ classmethod
+    @classmethod
     def parse_parts(cls, lines):
         """
         vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
@@ -80,7 +80,7 @@ class PC_CIVL(PathCondition):
         parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
         return parts
 
-    @ classmethod
+    @classmethod
     def parse_part(cls, ss):
         """
         ['vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y',
@@ -97,7 +97,7 @@ class PC_CIVL(PathCondition):
         assert slocal
         return loc, pc, slocal
 
-    @ staticmethod
+    @staticmethod
     def replace_str(s):
         return (s.
                 replace(' = ', ' == ').
@@ -111,7 +111,7 @@ class PC_CIVL(PathCondition):
 
 class PC_JPF(PathCondition):
 
-    @ classmethod
+    @classmethod
     def parse_parts(cls, lines, delim="**********"):
         """
         Return a list of strings representing path conditions
@@ -149,7 +149,7 @@ class PC_JPF(PathCondition):
 
         return parts
 
-    @ classmethod
+    @classmethod
     def parse_part(cls, ss):
         """
         vtrace1
@@ -312,7 +312,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             s = cp.stdout
         except subprocess.TimeoutExpired as ex:
             mlog.warning(f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
-                         "time out after {ex.timeout}s")
+                         f"time out after {ex.timeout}s")
             s = ex.stdout
 
         except subprocess.CalledProcessError as ex:
