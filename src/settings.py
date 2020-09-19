@@ -77,19 +77,21 @@ class Java:
     assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
-    JPF_RUN = "{java} {flags} -jar {jar} {jpffile}"
-    JPF_RUN = partial(JPF_RUN.format, java=JAVA_CMD,
-                      flags=JVM_FLAGS, jar=JPF_JAR)
+    JPF_RUN = (f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} "
+               "{jpffile}")
+    JPF_RUN = partial(JPF_RUN.format)
 
-    COMPILE = "{javac} -g {filename} -d {tmpdir}"
-    COMPILE = partial(COMPILE.format, javac=JAVAC_CMD)
+    COMPILE = (f"{JAVAC_CMD} "
+               "-g {filename} -d {tmpdir}")
+    COMPILE = partial(COMPILE.format)
 
-    INSTRUMENT = ("{java} -cp {cp} Instrument {filename} "
-                  "{tracefile} {symexefile}")
-    INSTRUMENT = partial(INSTRUMENT.format, java=JAVA_CMD, cp=CLASSPATH)
+    INSTRUMENT = (f"{JAVA_CMD} -cp {CLASSPATH} "
+                  "Instrument {filename} {tracefile} {symexefile}")
+    INSTRUMENT = partial(INSTRUMENT.format)
 
-    JAVA_RUN = "{java} -ea -cp {tracedir} {funname}"
-    JAVA_RUN = partial(JAVA_RUN.format, java=JAVA_CMD)
+    JAVA_RUN = (f"{JAVA_CMD} "
+                "-ea -cp {tracedir} {funname}")
+    JAVA_RUN = partial(JAVA_RUN.format)
 
 
 class C:
