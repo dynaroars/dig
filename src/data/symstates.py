@@ -185,8 +185,8 @@ class PC_JPF(PathCondition):
 
         return loc, pcs, slocals
 
-    @ staticmethod
-    @ cached_function
+    @staticmethod
+    @cached_function
     def too_large(p):
         if 'CON:' not in p:
             return False
@@ -200,8 +200,8 @@ class PC_JPF(PathCondition):
         else:
             return False
 
-    @ staticmethod
-    @ cached_function
+    @staticmethod
+    @cached_function
     def replace_str(s):
         return (s.replace('&&', '').
                 replace(' = ', '==').
@@ -226,7 +226,7 @@ class PCs(set):
         assert isinstance(pc, PathCondition), pc
         super().add(pc)
 
-    @ property
+    @property
     def myexpr(self):
         try:
             return self._expr
@@ -235,7 +235,7 @@ class PCs(set):
             self._expr = Z3.simplify(_expr)
             return self._expr
 
-    @ property
+    @property
     def mypc(self):
         try:
             return self._pc
