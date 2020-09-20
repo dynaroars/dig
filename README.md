@@ -1,15 +1,18 @@
 # DIG
-DIG is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG can infer equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use terms to represent desired information, e.g., $t = 2^x$, and have DIG infer invariants over terms.
+
+**DIG** is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG can infer equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., $t = 2^x$, and have DIG infer invariants over terms.
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
-DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving. 
+DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving.
 
-The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also can infer  invariants direclty from given concrete program execution traces.
+The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also infers  invariants direclty from given concrete program execution traces.
 
 ## Usage
+
 You can use DIG to generate invariants from a [program](#generating-invariants-from-a-program) (either a Java file `.java`, a bytecode file `.class`, or a C file `.c`), or a [trace file](#generating-invariants-from-traces) (a plain text file consisting of concrete values of variables).
 
 ### Generating Invariants From a Program
+
 Consider the following `CohenDiv.java` program
 
 ```java
@@ -52,13 +55,13 @@ public class CohenDiv {
 ```
 
 * To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
-  * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions. 
+  * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions.
   * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
 * Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following equality and inequality invariants at `vtracesX` locations:
 
-```
-#in DIG's src directory
+```bash
+# in DIG's src directory
 tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3
 settings:INFO:2020-06-30 13:13:43.240386: dig.py ../tests/paper/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/paper/CohenDiv.java'
@@ -102,16 +105,15 @@ vtrace2 (4 invs):
 alg:INFO:tmpdir: /var/tmp/dig_553402345795059927_3r_6gwkz
 ```
 
-
 #### Other programs
-The directory `tests/nla/` contains many programs having nonlinear invariants.
 
+The directory `tests/nla/` contains many programs having nonlinear invariants.
 
 ### Generating Invariants From Traces
 
 DIG can infer invariants directly from a file concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
-```
+```bash
 # in DIG's src directory
 $ less ../test/traces/CohenDiv.tcs
 vtrace1: I q, I r, I a, I b, I x, I y
@@ -130,7 +132,7 @@ vtrace2: 2, 287, 0, 2
 ...
 ```
 
-```
+```bash
 # in DIG's src directory
 tnguyen@debian ~/d/src> sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
@@ -151,21 +153,27 @@ vtrace2 (5 invs):
 4. -x - y <= -10
 5. -r <= 0
 ```
+
 Note that most of the inequality results here are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), then DIG can check and remove spurious results.
 
 ### Additional Options
+
 Most of DIG's behaviors can be controlled by the users.  Use `-h` or `--help` option to see options that can be passed into DIG. Below we show several ones
 
 #### Specify max degree for equalities
+
 By default, DIG automatically to find equalities up to certain degree.  We can specify this degree directly with `-maxdeg X`
-```
+
+```bash
 tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
 ...
 ```
 
-#### Infer Min/Max 
+#### Infer Min/Max
+
 We can find *min/max* inqualities with the option `-dominmax`.  This typically will take some time depends on the program.  Also, DIG might not return any min/max results if they are not available or can be implied by other invariants in the program.
-```
+
+```bash
 tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -maxdeg 2 -noieqs -dominmax  #find equalities up to degree 2, donot infer inequalities, infer min/max inequalities
 ...
 vtrace1 (7 invs):
@@ -185,11 +193,12 @@ vtrace2 (5 invs):
 ```
 
 #### Customizing Inequalities
+
 By default, DIG infers octagonal inequalities (i.e., linear inequalities among 2 variables with coefs in in the set {-1,0,1}).  But we can customize DIG to find more expression inequalities (of course, with the trade-off that it takes more time to generate more expressive invs).
 
 Below we use a different example `Sqrt1.java` to demonstrate
 
-```
+```bash
 tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
 ...
 1. a <= 10
@@ -226,33 +235,33 @@ tnguyen@debian ~/dig/src> timeout 900 sage -python -O dig.py  ../tests/paper/Sqr
 8. -2*n + s <= 2
 ```
 
-
 ## Setup
 
 First, clone DIG
 
-```shell
+```bash
 git clone https://github.com/unsat/dig.git
 ```
+
 Then go to DIG's directory (`cd dig`).  Also make sure that you're in the right branch (e.g., `master` or `dev`).
 To run DIG, you can either use the [provided  *docker* script](#using-docker) (easiest way) or [install DIG yourself](#installing-dig).
 
 ### Using DOCKER
 
-```
+```bash
 # in DIG's directory
 
-# build the docker image, 
+# build the docker image,
 $ docker build . -t='dig'
-... 
-... 
+...
+...
 # this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
 
 # then run dig
 $ docker run -it dig
 
 # docker will drop you into a Linux prompt like below.
-$ root@b53e0bd86c11:/dig/src# 
+$ root@b53e0bd86c11:/dig/src#
 ```
 
 You are now ready to use DIG, see instructions in [USAGE](#usage) below
@@ -265,17 +274,17 @@ You can install DIG yourself.  The tool has been tested using the following setu
 * SageMath `9.0` (64 bit)
 * Microsoft Z3 SMT solver `4.8.3`
 * Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
-* Java PathFinder and Symbolic Finder: 
+* Java PathFinder and Symbolic Finder:
   * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
   * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
 
-
 #### Installing SAGE and Z3
+
 * Setup SAGE: download a precompiled [SageMath](http://mirrors.mit.edu/sage/linux/64bit/index.html) binary
-* Setup Z3: [download](https://github.com/Z3Prover/z3/releases) and build Z3 by following the instructions in its README file 
+* Setup Z3: [download](https://github.com/Z3Prover/z3/releases) and build Z3 by following the instructions in its README file
 * To check that you have all needed stuff
 
-```shell
+```bash
 # in DIG's src directory
 $ cd src
 $ sage helpers/check_requirements.py
@@ -285,11 +294,12 @@ Everything seems OK. Have fun with DIG!
 ```
 
 #### For Java files: installing Java and Symbolic PathFinder
+
 * Install Java 8: either the JDK from Oracle 1.8.0_121 or the OpenJDK packaged in Debian (`apt-get install -y default-jdk`, besure the version is 1.8.0_121 or 1.8.0_122).
 
 * Install both Java PathFinder and the Symbolic Pathfinder extension
 
-```shell
+```bash
 $ mkdir /PATH/TO/JPF
 $ cd /PATH/TO/JPF
 $ git clone https://github.com/javapathfinder/jpf-core #JPF
@@ -320,7 +330,7 @@ extensions=${jpf-core},${jpf-symbc}
 
 * Compile Java files in `java` directory for instrumenting Java byte classes
 
-```shell
+```bash
 # in DIG's src directory
 $ cd src/java
 $ make
@@ -329,7 +339,9 @@ $ make
 #### For C files: install the [CIVL symbolic execution tool](https://vsl.cis.udel.edu/civl/)
 
 * Build CIL
-```shell
+
+```bash
+# build CIL
 $ git clone https://github.com/cil-project/cil.git
 $ cd cil
 $ ./configure ; make
@@ -337,7 +349,7 @@ $ ./configure ; make
 
 * Compile the Ocaml files in `ocaml` directory for instrumenting C files (to CIVL format)
 
-```shell
+```bash
 # in DIG's src directory
 $ cd src/ocaml
 $ edit Makefile  #point the OCAML_OPTIONS to where CIL is
@@ -346,7 +358,7 @@ $ make
 
 * Get CIVL
 
-```shell
+```bash
 $ wget --no-check-certificate https://vsl.cis.udel.edu/lib/sw/civl/1.20/r5259/release/CIVL-1.20_5259.tgz
 $ tar xf CIVL-1.20_5259.tgz
 $ ln -sf CIVL-1.20_5259 civl
@@ -357,7 +369,7 @@ $ ln -sf civl/lib/ lib
 prover {
  aliases = z3;
  kind = Z3;
- version = "4.8.7 - 64 bit";    
+ version = "4.8.7 - 64 bit";
  path = "/home/SHARED/Devel/Z3/z3/build/z3";
  timeout = 10.0;
  showQueries = false;
@@ -366,7 +378,7 @@ prover {
 }
 
 # test CIVL
-/home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
+$ /home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
 CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
 vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
 path condition: (0<=(X_x-1))&&(0<=(X_y-1))
@@ -378,8 +390,8 @@ path condition: (0<=(X_x-1))&&(0<=(X_y-1))
 
 * Put the following in your `~/.bash_profile`
 
-```shell
-#~/.bash_profile
+```bash
+# ~/.bash_profile
 export Z3=PATH/TO/z3   #Z3 dir
 export SAGE=PATH/TO/sage  #where your SAGE dir is
 export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
@@ -390,18 +402,20 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 ```
 
 * Some troubleshooting tips:
-  *  Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
-  *  Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
-  *  Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
-
+  * Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
+  * Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
+  * Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
 
 ### Additional Info
+
 To run doctests
-```
+
+```bash
 make test
 ```
 
 ## Publications
+
 Additional information on DIG can be found from these papers:
 
 * ThanhVu Nguyen, Matthew Dwyer, and William Visser. SymInfer: Inferring Program Invariants using Symbolic States. In Automated Software Engineering (ASE). IEEE, 2017.
@@ -410,5 +424,6 @@ Additional information on DIG can be found from these papers:
 * ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Generate Disjunctive Invariants. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
 * ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Discover Polynomial and Array Invariants. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.
 
-## ACKNOWLEDGEMENT 
+## ACKNOWLEDGEMENTS
+
 * This project is supported in part by NSF grant CCF-1948536 and ARO grant W911NF-19-1-0054.
