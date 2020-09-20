@@ -4,12 +4,14 @@ import numpy as np
 from z3 import *
 import array
 
-nestings = []
+
 
 class NestArray:
+    nestings = []
+
     def genNesting(self, lstTrace, l, r):
         if l == r:
-            nestings.insert(len(nestings), deepcopy(lstTrace))
+            self.nestings.insert(len(self.nestings), deepcopy(lstTrace))
         else:
             for i in range(l, r + 1):
                 lstTrace[l], lstTrace[i] = lstTrace[i], lstTrace[l]
@@ -24,14 +26,19 @@ class NestArray:
             if value not in frequencyTrace[outerMost]:
                 return []
             all_index = []
-            for index in frequencyTrace[outerMost][value]:
-                all_index += self.reachAnalysisPerLevel(proposedVariance, trace, frequencyTrace, 2, index)
-            if len(all_index) == 0:
-                return []
+            if n > 2:
+                for index in frequencyTrace[outerMost][value]:
+                    all_index += self.reachAnalysisPerLevel(proposedVariance, trace, frequencyTrace, 2, index)
+                if len(all_index) == 0:
+                    return []
+            else:
+                all_index = list(frequencyTrace[outerMost][value])
             result.append([frequencyTrace[pivot][value], all_index])
         return result
 
     def reachAnalysisPerLevel(self, proposedVariance, trace, frequencyTrace, level, value):
+        if level >= len(proposedVariance):
+            return []
         if value not in frequencyTrace[proposedVariance[level]]:
             return []
         if level == len(proposedVariance) - 1:
@@ -75,17 +82,32 @@ class NestArray:
         variable = range(len(trace))
         nestedArray.genNesting(list(variable), 0, len(variable) - 1)
         allDict = nestedArray.preprocess(trace)
-        for nesting in nestings:
+        success = False
+        for nesting in self.nestings:
             inps = nestedArray.reachAnalysisTopLevel(len(nesting), nesting, trace, allDict)
-            if len(inps) == 0:
-                print("Reach analysis fails")
-            else:
+            if len(inps) != 0:
                 nestedArray.z3_solver(inps)
+                success = True
+        if not success:
+            print("Reach analysis failed")
+        self.nestings.clear()
 
 
 
+import sys
+sys.stdin = open("input.txt", "r")
 nestedArray = NestArray()
 
-#trace = [[7, 1, -3], [1, -3, 5, 1, 0, 7, 1], [8, 5, 6, 6, 2, 1, 4], [0, 1, 3, 5]]
-trace = [[7, 1, -3], [1, -3, 5, 1, 0, 7, 1], [8, 5, 6, 6, 2, 1, 4]]
-nestedArray.start(trace)
+t = int(input())
+
+for test in range(t):
+    print("Test number #" + str(test + 1))
+    n = int(input())
+    print("n = " + str(n))
+    trace = []
+    for i in range(n):
+        a = [int(item) for item in input().split()]
+        trace.insert(len(trace), a)
+    print(trace)
+    nestedArray.start(trace)
+
