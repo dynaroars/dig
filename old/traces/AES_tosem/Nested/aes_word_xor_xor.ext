@@ -1,0 +1,2 @@
+Expect: r[i] = xor_xor(a[i],b[i],c[i])
+ExtFun: xor_xor
