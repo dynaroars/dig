@@ -56,6 +56,7 @@ class PathCondition(NamedTuple):
 
 
 class PC_CIVL(PathCondition):
+
     @classmethod
     def parse_parts(cls, lines):
         """
@@ -503,15 +504,14 @@ class SymStates(dict):
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
-        mlog.debug(
-            f"checking {dinvs.siz} invs:\n{dinvs.__str__(print_first_n=20)}")
+        mlog.debug(f"checking {dinvs.siz} invs:\n"
+                   f"{dinvs.__str__(print_first_n=20)}")
         tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
                  if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
 
         def f(tasks):
-            return [(loc, str(inv),
-                     self.mcheck_d(loc, inv, inps, ncexs=1))
+            return [(loc, str(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
                     for loc, inv in tasks]
         wrs = helpers.miscs.Miscs.run_mp("prove", tasks, f)
 
