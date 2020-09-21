@@ -107,11 +107,11 @@ alg:INFO:tmpdir: /var/tmp/dig_553402345795059927_3r_6gwkz
 
 #### Other programs
 
-The directory `tests/nla/` contains many programs having nonlinear invariants.
+* The directory `../benchmarks/java/nla` contains many programs having nonlinear invariants.
 
 ### Generating Invariants From Traces
 
-DIG can infer invariants directly from a file concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+DIG can infer invariants directly from a file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
 ```bash
 # in DIG's src directory
@@ -158,7 +158,7 @@ Note that most of the inequality results here are spurious, i.e., they are corre
 
 ### Additional Options
 
-Most of DIG's behaviors can be controlled by the users.  Use `-h` or `--help` option to see options that can be passed into DIG. Below we show several ones
+Most of DIG's behaviors can be controlled by the users.  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
 
 #### Specify max degree for equalities
 
