@@ -8,19 +8,18 @@ tmpdir = Path("/var/tmp/")
 logger_level = 2
 DO_MP = True  # use multiprocessing
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
-DO_FILTER = True  # simplify results, e.g., removing weaker invariants
+DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
-DO_PREPOSTS = False  # support prepostconditions #not well-tested
+DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
-DO_SOLVER_STATS = False
+DO_SOLVER_STATS = False  # collect solver usage stats
 
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
-# SYMEXE_TIMEOUT = 10  # secs
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs

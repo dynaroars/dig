@@ -209,7 +209,7 @@ class Infer(infer.base.Infer):
             cexs = Traces.extract(cexs[loc])
             cexs = cexs.padzeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
-            mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
+            mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
             exprs.extend(exprs_)
 
         return eqts, new_cexs

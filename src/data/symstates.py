@@ -293,7 +293,6 @@ class SymStatesMaker(metaclass=ABCMeta):
             pcs._pc = Z3.from_smt2_str(mypc)
             mlog.debug(
                 f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
-        # DBG()
         return symstates
 
     def get_ss(self, depth):
