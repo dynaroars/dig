@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 import psutil
 import os
+from threading import Thread
 
 import sage.all
 
@@ -203,7 +204,7 @@ class DigSymStates(Dig):
             dinvs.merge(new_invs)
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
-    def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout):
+    def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout, n_tries):
         from queue import Empty
         from multiprocessing import Process, Queue
 
@@ -217,8 +218,9 @@ class DigSymStates(Dig):
 
         is_timeout = False
         Q = Queue()
-        worker = Process(target=wprocess, args=(auto_deg, dtraces, inps, Q))
-        worker.start()
+        workers = [Process(target=wprocess, args=(auto_deg, dtraces, inps, Q)) for _ in range(n_tries)]
+        for w in workers:
+            w.start()
 
         _dinvs, _dtraces, _inps = None, None, None
         try:
@@ -226,31 +228,37 @@ class DigSymStates(Dig):
         except Empty:
             is_timeout = True
 
-        worker.join(timeout=1)
-        if worker.is_alive():
-            killtree(worker.pid)
-            worker.terminate()
-            is_timeout = True
-        worker.join()
-        worker.close()
+        def finalize(w):
+            w.join(timeout=1)
+            if w.is_alive():
+                killtree(w.pid)
+                w.terminate()
+            w.join()
+            w.close()
+        finalize_threads = [Thread(target=finalize, args=(w,)) for w in workers]
+        for t in finalize_threads:
+            t.start()
+        for t in finalize_threads:
+            t.join()
 
+        self.symstates.get_solver_stats()
+        self.symstates.reset_solver_stats()
         if is_timeout:
             dinvs = DInvs()
-            self.symstates.reset_solver_stats()
         else:
             dinvs, dtraces, inps = _dinvs, _dtraces, _inps
-            self.symstates.get_solver_stats()
 
         return dinvs, dtraces, inps, is_timeout
 
     def my_infer_eqts2(self, solver, auto_deg, dtraces, inps):
 
         timeout = settings.EQT_SOLVER_TIMEOUT
-        maxct = settings.EQT_SOLVER_TIMEOUT_MAXTRIES
+        maxct = settings.EQT_SOLVER_TIMEOUT_MAX_RETRIES
+        parallel_tries = settings.EQT_SOLVER_PARALLEL_TRIES
         ct = 0
         while True:
             dinvs, dtraces, inps, is_timeout = self.my_infer_eqts(
-                solver, auto_deg, dtraces, inps, timeout)
+                solver, auto_deg, dtraces, inps, timeout, parallel_tries)
             if is_timeout is False or ct >= maxct:
                 break
             ct += 1
