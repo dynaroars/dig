@@ -1,4 +1,4 @@
-public class Freire2 {
+public class Freire2_Int {
   public static void vtrace1(float a, float x, int r, float s) {}
   public static void vtrace2(float a, float x, int r, float s) {}
   public static void main(String[] args) {}

@@ -6,6 +6,11 @@ public class StrnCopy {
 		assert(1 <= siz);
 		assert(0 <= n);
 		assert(n <= siz-1);
+		assert(0 <= srcsiz);
+		assert(srcsiz <= siz-1);
+		assert(0 <= destsiz);
+		assert(destsiz <= siz-1);
+
 		
 		int src = srcsiz;
 		int dst = destsiz;
@@ -46,8 +51,10 @@ public class StrnCopy {
 		//System.out.printf("l_post: n s d\n");
 		//System.out.printf("l_post: %d %d %d\n", n, ls, ld);
 		//inv
-		assert(!(n <= ls) || ld >= n);
-		assert(!(n > ls) || ld == ls);
+
+ 		//assert(!(n <= ls) || ld >= n);
+ 		//assert(!(n > ls) || ld == ls);
+
 		vtrace_post(n, ls, ld);
 		return 0;
 	}
