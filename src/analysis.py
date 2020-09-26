@@ -123,6 +123,58 @@ class AResult(Result):
             for x in self.max_depthchanges
             if not isinstance(x.prop, data.inv.invs.FalseInv))
 
+        # Check Solver
+        from pprint import pprint
+        td = {}
+        for x in self.check_depthchanges:
+            a = td.get(x.d2, [])
+            td[x.d2] = a
+            a.append(x)
+
+        #pprint(self.check_depthchanges)
+        #pprint(td)
+
+
+        self.check_invs_at_depth = dict()
+        if len(self.check_depthchanges) > 0:
+            mind = min(self.check_depthchanges, key=lambda x: x.d2).d2
+            ddepths = dict()
+            for x in self.check_depthchanges:
+                d = x.d2
+                val = ddepths.get(d, 0)
+                if str(x.v2) == 'sat': # disproved
+                    if d > mind:
+                        ddepths[d] = val - 1
+                elif d == mind:
+                    ddepths[d] = val + 1
+            #pprint(ddepths)
+            s = 0
+            for k, v in sorted(ddepths.items()):
+                s += v
+                # assert s >= 0 // TODO: uncomment this assert
+                self.check_invs_at_depth[k] = s
+
+        # Max Solver
+        self.max_invs_at_depth = dict()
+        if len(self.max_depthchanges) > 0:
+            mind = min(self.max_depthchanges, key=lambda x: x.d2).d2
+            ddepths = dict()
+            for x in self.max_depthchanges:
+                d = x.d2
+                val = ddepths.get(d, 0)
+                if x.v2 is None:
+                    assert d > mind
+                    ddepths[d] = val - 1
+                elif d == mind:
+                    ddepths[d] = val + 1
+            s = 0
+            for k, v in sorted(ddepths.items()):
+                s += v
+                assert s >= 0
+                self.max_invs_at_depth[k] = s
+
+            # self.max_invs_at_depth = dict([(k,v) for k, v in self.max_invs_at_depth.items() if v != 0])
+
     @classmethod
     def analyze_dinvs(cls, dinvs):
         """
@@ -254,7 +306,22 @@ class Results:
         time_map = dict([  (t, f(time_d[t]),)  for t in sorted(time_d)  ])
 
         REAL_N_RUNS = 5
-        SEL = 1
+        SEL = settings.ANALYSIS_MODE
+
+        if SEL > 0:
+            # Map name
+            self.prog = {
+                "KnuthNoSqrt": "Knuth",
+                "StrnCopy": "strncopy"
+            }.get(self.prog, self.prog)
+            self.prog = self.prog.replace("_Int", "")
+            self.prog = self.prog.replace("OddEven", "oddeven")
+            self.prog = self.prog.replace("PartialDecrement", "partd")
+            self.prog = self.prog.replace("PartialIncrement", "parti")
+
+            EIM = f'{invmap.get("Eqt", 0)},{invmap.get("Oct", 0)},{invmap.get("MP", 0)}'
+            NL_D = f'{NL}({D})'
+            STAR_IF_FAIL = f"{'$^*$' if nruns < REAL_N_RUNS else ''}"
 
         if SEL == 0:
             #########
@@ -283,16 +350,16 @@ class Results:
             most_exp = max([(k,v,) for k, v in time_map.items() 
                                 if k != 'total' and k != 'symbolic_states' and k != 'simplify'], 
                             key=lambda x: x[1])
-            print(f"{self.prog}{'$^*$' if nruns < REAL_N_RUNS else ''} & {nlocs} & "
-                    f'{invcnt} & {invmap.get("Eqt", 0)},{invmap.get("Oct", 0)},{invmap.get("MP", 0)} & '
-                    f'{NL}({D}) & {time_map["total"]:.1f} & {most_exp[1]:.1f} {most_exp[0][0].upper()} & '
+            print(f"{self.prog}{STAR_IF_FAIL} & {nlocs} & "
+                    f'{invcnt} & {EIM} & '
+                    f'{NL_D} & {time_map["total"]:.1f} & {most_exp[1]:.1f} {most_exp[0][0].upper()} & '
                     f'\\checkmark  \\\\')
         elif SEL == 2:
             #########
             # Table 2
             checksol_ukn = check_solvercall_map.get("unknown", 0)
             maxsol_unkn = max_solvercall_map.get("unknown", 0)
-            print(f"{self.prog}{'$^*$' if nruns < REAL_N_RUNS else ''} & "
+            print(f"{self.prog}{STAR_IF_FAIL} & "
                     f'{time_map["symbolic_states"]:.1f} & '
                     f'{check_solvercall_map.get("sat",0)},{check_solvercall_map["unsat"]} '
                         f'{f"({checksol_ukn})" if checksol_ukn != 0 else ""} & '
@@ -301,8 +368,16 @@ class Results:
         elif SEL == 3:
             ##########
             ## Table 3
-            print(f"{self.prog}{'$^*$' if nruns < REAL_N_RUNS else ''} & {nlocs} & {V} & "
-                    f'{invcnt} & {time_map["total"]:.1f} & \\checkmark  \\\\')
+            print(f"{self.prog}{STAR_IF_FAIL} & {nlocs} & {V} & "
+                    f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark  \\\\')
+
+        elif SEL == 4:
+            ##########
+            ## Table 4
+            self.prog = self.prog.lower().replace('_', '\\_')
+            print(f"{self.prog}{STAR_IF_FAIL} & {V} & "
+                    f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark  \\\\')
+
         elif SEL == 10:
             #########
             # Graph
@@ -315,6 +390,18 @@ class Results:
             if len(max_changedepth_map) > 1:
                 self.print_depthplot(self.prog, max_changedepth_map, divi=1000)
 
+        elif SEL == 20:
+            agg_check_invs_at_depth = [r.check_invs_at_depth for r in rs]
+            _, agg_check_invs_at_depth = self.analyze_dicts(agg_check_invs_at_depth, f, '', ret_tuple=True)
+            print(self.prog)
+            print(agg_check_invs_at_depth)
+
+        elif SEL == 21:
+            agg_max_invs_at_depth = [r.max_invs_at_depth for r in rs]
+            _, agg_max_invs_at_depth = self.analyze_dicts(agg_max_invs_at_depth, f, '', ret_tuple=True)
+            if sum(1 for _, v in agg_max_invs_at_depth.items() if v != 0) > 1:
+                self.print_depthplot(self.prog, agg_max_invs_at_depth, divi=1000)
+
     @ classmethod
     def print_depthplot(cls, prog, depth_map, divi=8):
         #print(f"{self.prog:10} ---> Check {check_changedepth_map}")
@@ -325,21 +412,10 @@ class Results:
             PROG_ARR = [prog]
         else:
             PROG_ARR.append(prog)
-        MIN_DEP = 8
-        MAX_DEP = 14
-        KMAX = f"{MAX_DEP}+"
-        pmap = dict([(i,0) for i in range(MIN_DEP, MAX_DEP)])
-        pmap[KMAX] = 0
-        for k, v in depth_map.items():
-            x = int(k.split("->")[1])
-            if x < MIN_DEP: continue
-            if x >= MAX_DEP:
-                pmap[KMAX] += v
-            else:
-                pmap[x] += v
 
+        smap = [(int(k), v) for k, v in depth_map.items() if v != 0]
         plot = f"% {prog}\n\\addplot coordinates {{"
-        plot += ''.join([f"({k},{v}) " for k, v in pmap.items()])
+        plot += ''.join([f"({k},{v}) " for k, v in sorted(smap)])
         plot += "};"
         print(plot)
 

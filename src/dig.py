@@ -130,8 +130,15 @@ if __name__ == "__main__":
        default=None,
        help="store benchmark results in this dir")
 
+    ag("--analysis_mode", "-analysis_mode",
+       type=int,
+       default=None,
+       help="analysis mode")
+
     args = aparser.parse_args()
     inp = Path(args.inp)
+    import settings
+    settings.ANALYSIS_MODE = args.analysis_mode
     if args.benchmark_times:
         from analysis import Benchmark
         Benchmark(inp, args).start()

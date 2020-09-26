@@ -62,6 +62,8 @@ assert JAVAC_CMD.is_file(), JAVAC_CMD
 assert JAVA_CMD.is_file(), JAVA_CMD
 
 
+ANALYSIS_MODE = 0
+
 class Java:
     SE_MIN_DEPTH = 7
     # SE_DEPTH_INCR = 20  # maxdepth = mindepth + depth_incr
