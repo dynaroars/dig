@@ -138,6 +138,7 @@ class AResult(Result):
         self.check_invs_at_depth = dict()
         if len(self.check_depthchanges) > 0:
             mind = min(self.check_depthchanges, key=lambda x: x.d2).d2
+            maxd = max(self.check_depthchanges, key=lambda x: x.d2).d2
             ddepths = dict()
             for x in self.check_depthchanges:
                 d = x.d2
@@ -149,8 +150,8 @@ class AResult(Result):
                     ddepths[d] = val + 1
             #pprint(ddepths)
             s = 0
-            for k, v in sorted(ddepths.items()):
-                s += v
+            for k in range(mind, maxd + 1):
+                s += ddepths[k] if k in ddepths else 0
                 # assert s >= 0 // TODO: uncomment this assert
                 self.check_invs_at_depth[k] = s
 
@@ -158,6 +159,7 @@ class AResult(Result):
         self.max_invs_at_depth = dict()
         if len(self.max_depthchanges) > 0:
             mind = min(self.max_depthchanges, key=lambda x: x.d2).d2
+            maxd = max(self.max_depthchanges, key=lambda x: x.d2).d2
             ddepths = dict()
             for x in self.max_depthchanges:
                 d = x.d2
@@ -168,8 +170,8 @@ class AResult(Result):
                 elif d == mind:
                     ddepths[d] = val + 1
             s = 0
-            for k, v in sorted(ddepths.items()):
-                s += v
+            for k in range(mind, maxd + 1):
+                s += ddepths[k] if k in ddepths else 0
                 assert s >= 0
                 self.max_invs_at_depth[k] = s
 
@@ -374,9 +376,16 @@ class Results:
         elif SEL == 4:
             ##########
             ## Table 4
+            dmark = {
+                """pldi09\_fig2""": """\checkmark""",
+                """pldi09\_fig4\_5""": """$^*$""",
+                """popl09\_fig2\_2""": """\checkmark""",
+                """popl09\_fig4\_1""": """$^*$""",
+            }
             self.prog = self.prog.lower().replace('_', '\\_')
+            markaux = dmark[self.prog] if self.prog in dmark else ''
             print(f"{self.prog}{STAR_IF_FAIL} & {V} & "
-                    f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark  \\\\')
+                    f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark{markaux}  \\\\')
 
         elif SEL == 10:
             #########
@@ -399,8 +408,17 @@ class Results:
         elif SEL == 21:
             agg_max_invs_at_depth = [r.max_invs_at_depth for r in rs]
             _, agg_max_invs_at_depth = self.analyze_dicts(agg_max_invs_at_depth, f, '', ret_tuple=True)
-            if sum(1 for _, v in agg_max_invs_at_depth.items() if v != 0) > 1:
+            agg_max_invs_at_depth = self.filter_depthmap(agg_max_invs_at_depth)
+            if len(agg_max_invs_at_depth) > 1:
                 self.print_depthplot(self.prog, agg_max_invs_at_depth, divi=1000)
+
+    @ staticmethod
+    def filter_depthmap(inp):
+        ret = [(int(k), int(v)) for k, v in inp.items()]
+        ret.sort()
+        while len(ret) > 1 and (ret[-1][1] == 0 or ret[-1][1] == ret[0][1]):
+            ret.pop()
+        return dict(ret)
 
     @ classmethod
     def print_depthplot(cls, prog, depth_map, divi=8):
@@ -413,7 +431,7 @@ class Results:
         else:
             PROG_ARR.append(prog)
 
-        smap = [(int(k), v) for k, v in depth_map.items() if v != 0]
+        smap = [(int(k), v) for k, v in depth_map.items()]
         plot = f"% {prog}\n\\addplot coordinates {{"
         plot += ''.join([f"({k},{v}) " for k, v in sorted(smap)])
         plot += "};"
