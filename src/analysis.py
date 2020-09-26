@@ -251,8 +251,8 @@ class Results:
 
         print("-> time {}".format(time_s))
 
-        print(f"-> checks {check_solvercallss} {check_changedepthss}")
-        # , check_changevalss
+        print(
+            f"-> checks {check_solvercallss} {check_changedepthss} {check_changevalss}")
 
         print(f"-> max {max_solvercallss} {max_changedepthss}")
         # , max_changevalss
