@@ -479,10 +479,6 @@ class SymStates(dict):
         self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
         self.solver_stats_ = []  # periodically save solver_stats results here
 
-        self.bg_thread_solver_stats = None
-        self.bg_thread_solver_stats_running = False
-        self.start_bg_get_solver_stats()
-
         super().__init__(dict())
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
@@ -768,35 +764,10 @@ class SymStates(dict):
         if self.solver_stats is not None:
             while True:
                 try:
-                    self.solver_stats_.append(
-                        self.solver_stats.get(block=False))
+                    stat = self.solver_stats.get(block=False)
+                    self.solver_stats_.append(stat)
                 except Empty:
                     break
                 except:
                     mlog.exception(f"get_solver_stats() error")
                     break
-            # self.reset_solver_stats()
-
-    def reset_solver_stats(self):
-        if self.solver_stats is not None:
-            self.solver_stats = Queue()
-
-    def start_bg_get_solver_stats(self):
-        def f():
-            import time
-            while self.bg_thread_solver_stats_running:
-                self.get_solver_stats()
-                time.sleep(1)
-
-        if self.solver_stats is not None and self.bg_thread_solver_stats is None:
-            self.bg_thread_solver_stats_running = True
-
-            self.bg_thread_solver_stats = threading.Thread(target=f)
-            self.bg_thread_solver_stats.daemon = True
-            self.bg_thread_solver_stats.start()
-
-    def stop_bg_get_solver_stats(self):
-        if self.bg_thread_solver_stats is not None:
-            self.bg_thread_solver_stats_running = False
-            # self.bg_thread_solver_stats.join()
-            self.bg_thread_solver_stats = None

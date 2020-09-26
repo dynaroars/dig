@@ -2,9 +2,20 @@ import pdb
 import sys
 import datetime
 import time
+import psutil
+import os
 from pathlib import Path
 
 DBG = pdb.set_trace
+
+def killchildren(pid):
+    parent = psutil.Process(pid)
+    for child in parent.children(recursive=True):
+        mlog.warning(f"Terminate child {child}")
+        try:
+            child.terminate()
+        except:
+            mlog.exception(f"Can't terminate child {child}")
 
 """
 Example runs:
@@ -166,3 +177,5 @@ if __name__ == "__main__":
 
         dig.start(seed=seed, maxdeg=args.maxdeg)
         # mlog.warning("End program")
+
+    killchildren(os.getpid())

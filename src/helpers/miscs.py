@@ -5,6 +5,7 @@ import itertools
 import operator
 import ast
 import multiprocessing
+import queue
 from collections import Iterable
 
 import sage.all
@@ -353,10 +354,33 @@ class Miscs(object):
         return x1 != x2
 
     @classmethod
+    def reduce_with_timeout(cls, ps, timeout=settings.EQT_REDUCE_TIMEOUT):
+        Q = multiprocessing.Queue()
+        def wprocess(ps, myQ):
+            rs = Miscs.reduce_eqts(ps)
+            myQ.put(rs)
+
+        w = multiprocessing.Process(target=wprocess, args=(ps, Q,))
+        w.start()
+        mlog.debug(f"start reduce_eqts for {len(ps)} eqts")
+
+        try:
+            newps = Q.get(timeout=timeout)
+            mlog.debug(f"finish reduce_eqts for {len(ps)} eqts, result {len(newps)} eqts")
+            ps = newps
+        except queue.Empty:
+            mlog.warning(f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
+            w.terminate()
+
+        w.join()
+        w.close()
+        return ps
+
+    @classmethod
     def refine(cls, sols, ignoreLargeCoefs=True):
         if not sols:
             return sols
-        sols = cls.reduce_eqts(sols)
+        sols = cls.reduce_with_timeout(sols)
         sols = [cls.elim_denom(s) for s in sols]
 
         def okCoefs(s): return all(
@@ -568,8 +592,6 @@ class Miscs(object):
                 return rs
             else:
                 myQ.put(rs)
-                myQ.close()
-                myQ.join_thread()
 
         n_cpus = multiprocessing.cpu_count()
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
@@ -592,10 +614,6 @@ class Miscs(object):
                 else:
                     mlog.warning("Got exception from worker: {rs}")
                     raise rs
-
-            for w in workers:
-                w.join()
-                w.close()
 
         else:
             wrs = wprocess(tasks, myQ=None)
@@ -726,6 +744,7 @@ class Z3(object):
 
         solver = z3.Optimize() if maximize else z3.Solver()
         solver.set(timeout=settings.SOLVER_TIMEOUT)
+        solver.set("timeout", settings.SOLVER_TIMEOUT)
         return solver
 
     @classmethod
@@ -746,7 +765,8 @@ class Z3(object):
                     try:
                         cex[str(v)] = sage.all.sage_eval(mv)
                     except SyntaxError:
-                        mlog.warning('cannot analyze {}'.format(model))
+                        #mlog.warning('cannot analyze {}'.format(model))
+                        pass
                 cexs.append(cex)
         return cexs, isSucc
 
@@ -782,7 +802,8 @@ class Z3(object):
                     when the model contains functions, e.g., 
                     [..., div0 = [(3, 2) -> 1, else -> 0]]
                     """
-                    mlog.warning('cannot analyze {}'.format(m))
+                    #mlog.warning('cannot analyze {}'.format(m))
+                    pass
 
                 ands.append(e)
             block = z3.Not(z3.And(ands))

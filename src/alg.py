@@ -22,23 +22,6 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-def killtree(pid, including_parent=True):
-    parent = psutil.Process(pid)
-    for child in parent.children(recursive=True):
-        mlog.warning(f"Terminate child {child}")
-        try:
-            child.terminate()
-        except:
-            mlog.exception(f"Can't terminate child {child}")
-
-    if including_parent:
-        mlog.warning(f"Terminate parent {parent}")
-        try:
-            parent.terminate()
-        except:
-            mlog.exception(f"Can't terminate parent {parent}")
-
-
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
         mlog.info(f"analyze '{filename}'")
@@ -204,68 +187,6 @@ class DigSymStates(Dig):
             dinvs.merge(new_invs)
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
-    def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout, n_tries):
-        from queue import Empty
-        from multiprocessing import Process, Queue
-
-        self.symstates.get_solver_stats()
-
-        def wprocess(auto_deg, dtraces, inps, myQ):
-            dinvs = solver.gen(auto_deg, dtraces, inps)
-            myQ.put((dinvs, dtraces, inps))
-            myQ.close()
-            myQ.join_thread()
-
-        is_timeout = False
-        Q = Queue()
-        workers = [Process(target=wprocess, args=(auto_deg, dtraces, inps, Q)) for _ in range(n_tries)]
-        for w in workers:
-            w.start()
-
-        _dinvs, _dtraces, _inps = None, None, None
-        try:
-            _dinvs, _dtraces, _inps = Q.get(timeout=timeout)
-        except Empty:
-            is_timeout = True
-
-        def finalize(w):
-            w.join(timeout=1)
-            if w.is_alive():
-                killtree(w.pid)
-                w.terminate()
-            w.join()
-            w.close()
-        finalize_threads = [Thread(target=finalize, args=(w,)) for w in workers]
-        for t in finalize_threads:
-            t.start()
-        for t in finalize_threads:
-            t.join()
-
-        self.symstates.get_solver_stats()
-        self.symstates.reset_solver_stats()
-        if is_timeout:
-            dinvs = DInvs()
-        else:
-            dinvs, dtraces, inps = _dinvs, _dtraces, _inps
-
-        return dinvs, dtraces, inps, is_timeout
-
-    def my_infer_eqts2(self, solver, auto_deg, dtraces, inps):
-
-        timeout = settings.EQT_SOLVER_TIMEOUT
-        maxct = settings.EQT_SOLVER_TIMEOUT_MAX_RETRIES
-        parallel_tries = settings.EQT_SOLVER_PARALLEL_TRIES
-        ct = 0
-        while True:
-            dinvs, dtraces, inps, is_timeout = self.my_infer_eqts(
-                solver, auto_deg, dtraces, inps, timeout, parallel_tries)
-            if is_timeout is False or ct >= maxct:
-                break
-            ct += 1
-            mlog.warning(f'eqt solving, try {ct}/{maxct} (timeout {timeout})')
-
-        return dinvs
-
     def infer_eqts(self, maxdeg, dtraces, inps):
         import infer.eqt
         solver = infer.eqt.Infer(self.symstates, self.prog)
@@ -274,8 +195,7 @@ class DigSymStates(Dig):
         # determine degree
         auto_deg = self.get_auto_deg(maxdeg)
 
-        dinvs = self.my_infer_eqts2(solver, auto_deg, dtraces, inps)
-        # dinvs = solver.gen(auto_deg, dtraces, inps)
+        dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
