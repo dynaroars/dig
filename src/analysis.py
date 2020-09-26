@@ -28,6 +28,9 @@ MaxSolverCalls = namedtuple("MaxSolverCalls", ("stat"))
 MaxDepthChanges = namedtuple("MaxDepthChanges", "prop v1 d1 v2 d2")
 
 
+PROG_ARR = []
+
+
 class Result:
     resultfile = 'result'
 
@@ -198,28 +201,33 @@ class Results:
         D = f(r.D for r in rs)
         NL = f(r.NL for r in rs)
 
-        invtypss = [r.dinvs.typ_ctr for r in rs]
-        invtypss = self.analyze_dicts(invtypss, f, 'invs')
+        invtypss_inp = [r.dinvs.typ_ctr for r in rs]
+        invtypss = self.analyze_dicts(invtypss_inp, f, 'invs')
+        invcnt, invmap = self.analyze_dicts(invtypss_inp, f, 'invs', ret_tuple=True)
 
-        check_solvercallss = [r.check_solvercalls_ctr for r in rs]
+        check_solvercallss_inp = [r.check_solvercalls_ctr for r in rs]
         check_solvercallss = self.analyze_dicts(
-            check_solvercallss, f, '')
+            check_solvercallss_inp, f, '')
+        _, check_solvercall_map = self.analyze_dicts(check_solvercallss_inp, f, '', ret_tuple=True)
 
-        check_changedepthss = [r.check_changedepths_ctr for r in rs]
+        check_changedepthss_inp = [r.check_changedepths_ctr for r in rs]
         check_changedepthss = self.analyze_dicts(
-            check_changedepthss, f, 'change depths')
+            check_changedepthss_inp, f, 'change depths')
+        _, check_changedepth_map = self.analyze_dicts(check_changedepthss_inp, f, 'change depths', ret_tuple=True)
 
         check_changevalss = [r.check_changevals_ctr for r in rs]
         check_changevalss = self.analyze_dicts(
             check_changevalss, f, 'change vals')
 
-        max_solvercallss = [r.max_solvercalls_ctr for r in rs]
+        max_solvercallss_inp = [r.max_solvercalls_ctr for r in rs]
         max_solvercallss = self.analyze_dicts(
-            max_solvercallss, f, '')
-
-        max_changedepthss = [r.max_changedepths_ctr for r in rs]
+            max_solvercallss_inp, f, '')
+        _, max_solvercall_map = self.analyze_dicts(max_solvercallss_inp, f, '', ret_tuple=True)
+        
+        max_changedepthss_inp = [r.max_changedepths_ctr for r in rs]
         max_changedepthss = self.analyze_dicts(
-            max_changedepthss, f, 'change depths')
+            max_changedepthss_inp, f, 'change depths')
+        _, max_changedepth_map = self.analyze_dicts(max_changedepthss_inp, f, 'change depths', ret_tuple=True)
 
         max_changevalss = [r.max_changevals_ctr for r in rs]
         max_changevalss = self.analyze_dicts(
@@ -243,28 +251,100 @@ class Results:
                 time_d[t].append(r.time_d[t])
         time_s = ', '.join("{} {:.1f}s".format(t, f(time_d[t]))
                            for t in sorted(time_d))
+        time_map = dict([  (t, f(time_d[t]),)  for t in sorted(time_d)  ])
 
-        print("* prog {} locs {}; ".format(self.prog, nlocs),
-              "{}".format(invtypss),
-              "V {} T {} D {}; ".format(V, T, D),
-              "NL {} ({}) ;".format(NL, D))
+        REAL_N_RUNS = 5
+        SEL = 1
 
-        print("-> time {}".format(time_s))
+        if SEL == 0:
+            #########
+            # Default
+            print("* prog {} locs {}; ".format(self.prog, nlocs),
+                "{}".format(invtypss),
+                "V {} T {} D {}; ".format(V, T, D),
+                "NL {} ({}) ;".format(NL, D))
 
-        print(f"-> checks {check_solvercallss} {check_changedepthss}")
-        # , check_changevalss
+            print("-> time {}".format(time_s))
 
-        print(f"-> max {max_solvercallss} {max_changedepthss}")
-        # , max_changevalss
-        print("runs {}".format(nruns))
+            print(f"-> checks {check_solvercallss} {check_changedepthss}")
+            # , check_changevalss
 
-        if len(rs) == 1:
-            print("rand seed {}, test ({}, {})".format(
-                rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
-            print(rs[0].dinvs.__str__(print_stat=False))
+            print(f"-> max {max_solvercallss} {max_changedepthss}")
+            # , max_changevalss
+            print("runs {}".format(nruns))
+
+            if len(rs) == 1:
+                print("rand seed {}, test ({}, {})".format(
+                    rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
+                print(rs[0].dinvs.__str__(print_stat=False))
+        elif SEL == 1:
+            ##########
+            ## Table 1
+            most_exp = max([(k,v,) for k, v in time_map.items() 
+                                if k != 'total' and k != 'symbolic_states' and k != 'simplify'], 
+                            key=lambda x: x[1])
+            print(f"{self.prog}{'$^*$' if nruns < REAL_N_RUNS else ''} & {nlocs} & "
+                    f'{invcnt} & {invmap.get("Eqt", 0)},{invmap.get("Oct", 0)},{invmap.get("MP", 0)} & '
+                    f'{NL}({D}) & {time_map["total"]:.1f} & {most_exp[1]:.1f} {most_exp[0][0].upper()} & '
+                    f'\\checkmark  \\\\')
+        elif SEL == 2:
+            #########
+            # Table 2
+            checksol_ukn = check_solvercall_map.get("unknown", 0)
+            maxsol_unkn = max_solvercall_map.get("unknown", 0)
+            print(f"{self.prog}{'$^*$' if nruns < REAL_N_RUNS else ''} & "
+                    f'{time_map["symbolic_states"]:.1f} & '
+                    f'{check_solvercall_map.get("sat",0)},{check_solvercall_map["unsat"]} '
+                        f'{f"({checksol_ukn})" if checksol_ukn != 0 else ""} & '
+                    f'{max_solvercall_map.get("sat",0)} {f"({maxsol_unkn})" if maxsol_unkn != 0 else ""} '
+                    f' \\\\')
+        elif SEL == 3:
+            ##########
+            ## Table 3
+            print(f"{self.prog}{'$^*$' if nruns < REAL_N_RUNS else ''} & {nlocs} & {V} & "
+                    f'{invcnt} & {time_map["total"]:.1f} & \\checkmark  \\\\')
+        elif SEL == 10:
+            #########
+            # Graph
+            check_changedepth_map = dict([(k,v,) for k, v in check_changedepth_map.items() if v != 0])
+            if len(check_changedepth_map) > 1:
+                self.print_depthplot(self.prog, check_changedepth_map, divi=8000)
+
+        elif SEL == 11:
+            max_changedepth_map = dict([(k,v,) for k, v in max_changedepth_map.items() if v != 0])
+            if len(max_changedepth_map) > 1:
+                self.print_depthplot(self.prog, max_changedepth_map, divi=1000)
 
     @ classmethod
-    def analyze_dicts(cls, ds, f, label):
+    def print_depthplot(cls, prog, depth_map, divi=8):
+        #print(f"{self.prog:10} ---> Check {check_changedepth_map}")
+        global PROG_ARR
+        if len(PROG_ARR) >= divi:
+            print(f"\n\legend{{{', '.join(PROG_ARR)}}}")
+            print("")
+            PROG_ARR = [prog]
+        else:
+            PROG_ARR.append(prog)
+        MIN_DEP = 8
+        MAX_DEP = 14
+        KMAX = f"{MAX_DEP}+"
+        pmap = dict([(i,0) for i in range(MIN_DEP, MAX_DEP)])
+        pmap[KMAX] = 0
+        for k, v in depth_map.items():
+            x = int(k.split("->")[1])
+            if x < MIN_DEP: continue
+            if x >= MAX_DEP:
+                pmap[KMAX] += v
+            else:
+                pmap[x] += v
+
+        plot = f"% {prog}\n\\addplot coordinates {{"
+        plot += ''.join([f"({k},{v}) " for k, v in pmap.items()])
+        plot += "};"
+        print(plot)
+
+    @ classmethod
+    def analyze_dicts(cls, ds, f, label, ret_tuple=False):
         ks = set(k for d in ds for k in d)
         dd = defaultdict(list)
         for d in ds:
@@ -289,6 +369,9 @@ class Results:
                 k_str = str(k)
             s.append((k, k_str, t))
             sizs.append(t)
+
+        if ret_tuple:
+            return sum(sizs), dict([ (k_str, f(dd[k]),) for k, k_str, t in s ])
 
         s = ', '.join('{}: {}'.format(k_str, f(dd[k]))
                       for k, k_str, t in s)

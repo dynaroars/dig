@@ -140,6 +140,9 @@ if __name__ == "__main__":
     elif inp.is_dir():
         from analysis import Analysis
         Analysis(inp, args).start()
+        import analysis
+        if len(analysis.PROG_ARR) > 0:
+            print(f"\n\legend{{{', '.join(analysis.PROG_ARR)}}}")
 
     else:  # benchmark_times is None, input is a file: normal, single run
         assert args.benchmark_times is None and inp.is_file(), inp
