@@ -40,7 +40,7 @@ def killtree(pid, including_parent=True):
 
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
-        mlog.info("analyze '{}'".format(filename))
+        mlog.info(f"analyze '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
@@ -49,8 +49,8 @@ class Dig(metaclass=ABCMeta):
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
-        mlog.debug("set seed to {} (test {} {})".format(
-            seed, random.randint(0, 100), sage.all.randint(0, 100)))
+        mlog.debug(f"set seed to {seed} "
+                   f"(test {random.randint(0, 100)} {sage.all.randint(0, 100)})")
 
     def get_auto_deg(self, maxdeg):
         maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
@@ -61,12 +61,11 @@ class Dig(metaclass=ABCMeta):
         if not dinvs.siz:
             return dinvs
 
-        msg = "test {} invs using {} traces".format(
-            dinvs.siz, dtraces.siz)
+        msg = f"test {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
         st = time.time()
         dinvs = dinvs.test(dtraces)
-        mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
+        mlog.info(f"{msg} ({time.time() - st:.2f}s)")
 
         if not dinvs.siz:
             return dinvs
@@ -78,13 +77,12 @@ class Dig(metaclass=ABCMeta):
                 # DigTraces does not have symbolic states
                 pass
 
-            msg = "simplify {} invs".format(dinvs.siz)
+            msg = f"simplify {dinvs.siz} invs"
             mlog.debug(msg)
-            mlog.debug("{}".format(dinvs.__str__(
-                print_stat=True, print_first_n=20)))
+            mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
             st1 = time.time()
             dinvs = dinvs.simplify()
-            mlog.info("{} ({:.2f}s)".format(msg, time.time() - st1))
+            mlog.info(f"{msg} ({time.time() - st1:.2f}s)")
 
         self.time_d['simplify'] = time.time() - st
 
@@ -127,19 +125,19 @@ class DigSymStates(Dig):
             st = time.time()
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
-            mlog.info("compute symbolic states ({:.2f}s)".format(et))
+            mlog.info(f"compute symbolic states ({et:.2f}s)")
             self.time_d['symbolic_states'] = et
 
             # remove locations with no symbolic states
             for loc in list(self.inv_decls.keys()):
                 if loc not in self.symstates:
-                    mlog.warning('{}: no symbolic states. Skip'.format(loc))
+                    mlog.warning(f'{loc}: no symbolic states. Skip')
                     self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()
 
-        mlog.info('infer invs at {} locs: {}'.format(
-            len(self.locs), ', '.join(self.locs)))
+        mlog.info(
+            f"infer invs at {len(self.locs)} locs: {', '.join(self.locs)}")
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
@@ -166,8 +164,7 @@ class DigSymStates(Dig):
         et = time.time() - st
         self.time_d['total'] = et
 
-        print("{}\nrun time {:.2f}s, result dir: {}".format(
-            dinvs, et, self.tmpdir))
+        print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
 
         self.postprocess(dinvs, dtraces, inps)
 
@@ -189,11 +186,11 @@ class DigSymStates(Dig):
                         self.time_d)
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()
-        mlog.info("tmpdir: {}".format(self.tmpdir))
+        mlog.info(f"tmpdir: {self.tmpdir}")
 
     def infer(self, typ, dinvs, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
-        mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
+        mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
         st = time.time()
         new_invs = f()  # get invs
@@ -201,12 +198,10 @@ class DigSymStates(Dig):
         if new_invs.siz:
             et = time.time() - st
             self.time_d[typ] = et
-            mlog.info("found {} {} ({:.2f}s)".format(
-                new_invs.siz, typ, et))
+            mlog.info(f"found {new_invs.siz} {typ} ({et:.2f}s)")
 
             dinvs.merge(new_invs)
-            mlog.debug('{}'.format(dinvs.__str__(
-                print_stat=True, print_first_n=20)))
+            mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
     def my_infer_eqts(self, solver, auto_deg, dtraces, inps, timeout):
         from queue import Empty
@@ -259,8 +254,7 @@ class DigSymStates(Dig):
             if is_timeout is False or ct >= maxct:
                 break
             ct += 1
-            mlog.warning('eqt solving, try {}/{} using timeout {}'.format(
-                ct, maxct, timeout))
+            mlog.warning(f'eqt solving, try {ct}/{maxct} (timeout {timeout})')
 
         return dinvs
 
@@ -345,10 +339,10 @@ class DigTraces(Dig):
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-        for t in self.dtraces.values():
-            print(type(t))
-            print(t.maxdeg)
-        DBG()
+        # for t in self.dtraces.values():
+        #     print(type(t))
+        #     print(t.maxdeg)
+        # DBG()
         if test_tracefile:
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 
@@ -383,7 +377,7 @@ class DigTraces(Dig):
 
         try:
             new_traces = self.dtraces.merge(self.test_dtraces)
-            mlog.debug('added {} test traces'.format(new_traces.siz))
+            mlog.debug(f'added {new_traces.siz} test traces')
         except AttributeError:
             # no test traces
             pass
@@ -396,22 +390,6 @@ class DigTraces(Dig):
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
             symbols.names, auto_deg, settings.EQT_RATE)
         exprs = list(traces.instantiate(template, n_eqts_needed))
-        # from multiprocessing import Process, Queue
-
-        # def wprocess(exprs, uks, template, myQ):
-        #     rs = Miscs.solve_eqts(exprs, uks, template)
-        #     myQ.put(rs)
-        # Q = Queue()
-        # worker = Process(target=wprocess, args=(exprs, uks, template, Q))
-        # worker.start()
-        # worker.join(timeout=1)
-        # worker.teminate()
-
-        # if worker.exitcode is None:
-        #     mlog.error("timeout!")
-
-        # eqts = Q.get()
-
         eqts = Miscs.solve_eqts(exprs, uks, template)
         import data.inv.eqt
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]

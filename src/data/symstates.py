@@ -36,8 +36,7 @@ class PathCondition(NamedTuple):
     slocal: z3.ExprRef
 
     def __str__(self):
-        return 'loc: {}\npc: {}\nslocal: {}'.format(
-            self.loc, self.pc, self.slocal)
+        return f'loc: {self.loc}\npc: {self.pc}\nslocal: {self.slocal}'
 
     @property
     def expr(self):
@@ -186,8 +185,8 @@ class PC_JPF(PathCondition):
 
         return loc, pcs, slocals
 
-    @staticmethod
-    @cached_function
+    @ staticmethod
+    @ cached_function
     def too_large(p):
         if 'CON:' not in p:
             return False
@@ -196,14 +195,13 @@ class PC_JPF(PathCondition):
         assert len(ps) == 2
         v = sage_eval(ps[1])
         if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
-            mlog.warning("ignore {} (larger than {})".format(
-                p, settings.LARGE_N))
+            mlog.warning(f"ignore {p} (larger than {settings.LARGE_N})")
             return True
         else:
             return False
 
-    @staticmethod
-    @cached_function
+    @ staticmethod
+    @ cached_function
     def replace_str(s):
         return (s.replace('&&', '').
                 replace(' = ', '==').
@@ -228,7 +226,7 @@ class PCs(set):
         assert isinstance(pc, PathCondition), pc
         super().add(pc)
 
-    @property
+    @ property
     def myexpr(self):
         try:
             return self._expr
@@ -237,7 +235,7 @@ class PCs(set):
             self._expr = Z3.simplify(_expr)
             return self._expr
 
-    @property
+    @ property
     def mypc(self):
         try:
             return self._pc
@@ -292,10 +290,8 @@ class SymStatesMaker(metaclass=ABCMeta):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
-            mlog.debug("loc {} depth {} has {} uniq symstates".format(
-                loc, depth, len(pcs)))
-            # print(pcs.myexpr)
-
+            mlog.debug(
+                f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
         # DBG()
         return symstates
 
@@ -315,8 +311,8 @@ class SymStatesMaker(metaclass=ABCMeta):
                 capture_output=True, check=True, text=True)
             s = cp.stdout
         except subprocess.TimeoutExpired as ex:
-            mlog.warning("{}: {} time out after {}s".format(
-                ex.__class__.__name__, ' '.join(ex.cmd), ex.timeout))
+            mlog.warning(f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
+                         f"time out after {ex.timeout}s")
             s = ex.stdout
 
         except subprocess.CalledProcessError as ex:
@@ -368,8 +364,8 @@ class SymStatesMaker(metaclass=ABCMeta):
                     pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
                     symstates[loc][depth].add(pc)
                 except MemoryError:
-                    mlog.error("cannot parse pcs {}".format(pcs))
-                    mlog.error("cannot parse slocals {}".format(slocals))
+                    mlog.error(f"cannot parse pcs {pcs}")
+                    mlog.error(f"cannot parse slocals {slocals}")
 
         # only store incremental states at each depth
         for loc in symstates:
@@ -387,13 +383,12 @@ class SymStatesMaker(metaclass=ABCMeta):
         empties = [(loc, depth) for loc in symstates
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
-            mlog.warning(
-                "{}: no new symbolic states at depth {}".format(loc, depth))
+            mlog.warning(f"{loc}: no new symbolic states at depth {depth}")
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]
         for loc in empties:
-            mlog.warning("{}: no symbolic states found".format(loc))
+            mlog.warning(f"{loc}: no symbolic states found")
             symstates.pop(loc)
 
         if all(not symstates[loc] for loc in symstates):
@@ -442,29 +437,27 @@ class SymStatesMakerJava(SymStatesMaker):
         symargs = ['sym'] * self.ninps
         symargs = '#'.join(symargs)
         stmts = [
-            "target={}".format(self.funname),
-            "classpath={}".format(self.tmpdir),
-            "symbolic.method={}.{}({})".format(
-                self.funname, self.mainQName, symargs),
+            f"target={self.funname}",
+            f"classpath={self.tmpdir}",
+            f"symbolic.method={self.funname}.{self.mainQName}({symargs})",
             "listener=gov.nasa.jpf.symbc.InvariantListenerVu",
             "vm.storage.class=nil",
             "search.multiple_errors=true",
-            "symbolic.min_int={}".format(-max_int),
-            "symbolic.max_int={}".format(max_int),
-            "symbolic.min_long={}".format(-max_int),
-            "symbolic.max_long={}".format(max_int),
-            "symbolic.min_short={}".format(-max_int),
-            "symbolic.max_short={}".format(max_int),
-            "symbolic.min_float={}.0f".format(-max_int),
-            "symbolic.max_float={}.0f".format(max_int),
-            "symbolic.min_double={}.0".format(-max_int),
-            "symbolic.max_double={}.0".format(max_int),
+            f"symbolic.min_int={-max_int}",
+            f"symbolic.max_int={max_int}",
+            f"symbolic.min_long={-max_int}",
+            f"symbolic.max_long={max_int}",
+            f"symbolic.min_short={-max_int}",
+            f"symbolic.max_short={max_int}",
+            f"symbolic.min_float={-max_int}.0f",
+            f"symbolic.max_float={max_int}.0f",
+            f"symbolic.min_double={-max_int}.0",
+            f"symbolic.max_double={max_int}.0",
             "symbolic.dp=z3bitvector",
-            "search.depth_limit={}".format(depth)]
+            f"search.depth_limit={depth}"]
         contents = '\n'.join(stmts)
 
-        filename = self.tmpdir / \
-            "{}_{}_{}.jpf".format(self.funname, max_int, depth)
+        filename = self.tmpdir / f"{self.funname}_{max_int}_{depth}.jpf"
 
         assert not filename.is_file(), filename
         CM.vwrite(filename, contents)
@@ -492,10 +485,6 @@ class SymStates(dict):
 
         super().__init__(dict())
 
-    # def __del__(self):
-    #    self.stop_bg_get_solver_stats()
-    #    super().__del__()
-
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
             filename, mainQName, funname,
@@ -514,8 +503,8 @@ class SymStates(dict):
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
-        mlog.debug("checking {} invs:\n{}".format(
-            dinvs.siz, dinvs.__str__(print_first_n=20)))
+        mlog.debug(
+            f"checking {dinvs.siz} invs:\n{dinvs.__str__(print_first_n=20)}")
         tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
                  if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
@@ -577,7 +566,6 @@ class SymStates(dict):
             ss = ssd[depth]
             ss = ss.mypc if inv_expr is None else ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
-            # print('solver stats', inv_expr, 'depth', depth)
             self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
@@ -600,8 +588,8 @@ class SymStates(dict):
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug("check depth diff {}: {} @depth {}, {} @depth {}"
-                           .format(inv_expr, stat, mydepth, stat_, mydepth_))
+                mlog.debug(f"check depth diff {inv_expr}: "
+                           f"{stat} @depth {mydepth}, {stat_} @depth {mydepth_}")
                 self.put_solver_stats(
                     analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_))
             else:
@@ -708,7 +696,7 @@ class SymStates(dict):
             maxv, stat = maxv_, stat_
 
         if maxv is not None and changes >= settings.SE_DEPTH_NOCHANGES_MAX:
-            mlog.warning(f"the value of {term_expr} changes frequently, skip")
+            mlog.warning(f"value of {term_expr} changes frequently, skip")
             maxv = None
 
         return maxv, stat
@@ -720,8 +708,8 @@ class SymStates(dict):
 
         opt = Z3.create_solver(maximize=True)
         opt.add(ss)
+        h = opt.maximize(term_expr)
         try:
-            h = opt.maximize(term_expr)
             stat = opt.check()
         except Exception as ex:
             mlog.error(f"maximize error: {ex}")

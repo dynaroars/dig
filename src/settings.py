@@ -70,26 +70,28 @@ class Java:
     ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
     assert JAVA_INSTRUMENT_DIR.is_dir(), JAVA_INSTRUMENT_DIR
     assert ASM_JAR.is_file(), ASM_JAR
-    CLASSPATH = "{}:{}".format(JAVA_INSTRUMENT_DIR, ASM_JAR)
+    CLASSPATH = f"{JAVA_INSTRUMENT_DIR}:{ASM_JAR}"
 
     JPF_HOME = Path(os.path.expandvars("$JPF_HOME")) / "jpf-core"
     JPF_JAR = JPF_HOME / "build/RunJPF.jar"
     assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
-    JPF_RUN = "{java} {flags} -jar {jar} {jpffile}"
-    JPF_RUN = partial(JPF_RUN.format, java=JAVA_CMD,
-                      flags=JVM_FLAGS, jar=JPF_JAR)
+    JPF_RUN = (f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} "
+               "{jpffile}")
+    JPF_RUN = partial(JPF_RUN.format)
 
-    COMPILE = "{javac} -g {filename} -d {tmpdir}"
-    COMPILE = partial(COMPILE.format, javac=JAVAC_CMD)
+    COMPILE = (f"{JAVAC_CMD} "
+               "-g {filename} -d {tmpdir}")
+    COMPILE = partial(COMPILE.format)
 
-    INSTRUMENT = ("{java} -cp {cp} Instrument {filename} "
-                  "{tracefile} {symexefile}")
-    INSTRUMENT = partial(INSTRUMENT.format, java=JAVA_CMD, cp=CLASSPATH)
+    INSTRUMENT = (f"{JAVA_CMD} -cp {CLASSPATH} "
+                  "Instrument {filename} {tracefile} {symexefile}")
+    INSTRUMENT = partial(INSTRUMENT.format)
 
-    JAVA_RUN = "{java} -ea -cp {tracedir} {funname}"
-    JAVA_RUN = partial(JAVA_RUN.format, java=JAVA_CMD)
+    JAVA_RUN = (f"{JAVA_CMD} "
+                "-ea -cp {tracedir} {funname}")
+    JAVA_RUN = partial(JAVA_RUN.format)
 
 
 class C:
@@ -187,62 +189,62 @@ def setup(settings, args):
                 settings.logger_level)
             mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
         else:
-            opts.append("-log_level {}".format(args.log_level))
+            opts.append(f"-log_level {args.log_level}")
 
     if args.inpMaxV and args.inpMaxV >= 1:
         if settings:
             settings.INP_MAX_V = args.inpMaxV
         else:
-            opts.append("-inpMaxV {}".format(args.inpMaxV))
+            opts.append(f"-inpMaxV {args.inpMaxV}")
 
     if args.iupper and args.iupper >= 1:
         if settings:
             settings.IUPPER = args.iupper
         else:
-            opts.append("-iupper {}".format(args.iupper))
+            opts.append(f"-iupper {args.iupper}")
 
     if args.ideg and args.ideg >= 1:
         if settings:
             settings.IDEG = args.ideg
         else:
-            opts.append("-ideg {}".format(args.ideg))
+            opts.append(f"-ideg {args.ideg}")
 
     if args.iterms and args.iterms >= 1:
         if settings:
             settings.ITERMS = args.iterms
         else:
-            opts.append("-iterms {}".format(args.iterms))
+            opts.append(f"-iterms {args.iterms}")
 
     if args.icoefs and args.icoefs >= 1:
         if settings:
             settings.ICOEFS = args.icoefs
         else:
-            opts.append("-icoefs {}".format(args.icoefs))
+            opts.append(f"-icoefs {args.icoefs}")
 
     if args.maxterm and args.maxterm >= 1:
         if settings:
             settings.MAX_TERM = args.maxterm
         else:
-            opts.append("-maxterm {}".format(args.maxterm))
+            opts.append(f"-maxterm {args.maxterm}")
 
     if args.uterms:
         if settings:
             settings.UTERMS = set(args.uterms.split())
         else:
-            opts.append("-uterms \"{}\"".format(args.uterms))  # not tested
+            opts.append(f"-uterms \"{args.uterms}\"")  # not tested
 
     se_mindepth = None
     if args.se_mindepth and args.se_mindepth >= 1:
         if settings:
             se_mindepth = args.se_mindepth
         else:
-            opts.append("-se_mindepth {}".format(args.se_mindepth))
+            opts.append(f"-se_mindepth {args.se_mindepth}")
 
     if args.tmpdir:
         if settings:
             settings.tmpdir = Path(args.tmpdir)
             assert settings.tmpdir.is_dir()
         else:
-            opts.append("-tmpdir {}".format(args.tmpdir))
+            opts.append(f"-tmpdir {args.tmpdir}")
 
     return (mlog, se_mindepth) if settings else ' '.join(opts)

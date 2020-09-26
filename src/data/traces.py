@@ -26,7 +26,7 @@ class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
         return super().__new__(cls, ss, vs)
 
     def __str__(self):
-        return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
+        return ','.join(f'{s}={v}' for s, v in zip(self.ss, self.vs))
 
     def mkExpr(self, ss):
         # create z3 expression
@@ -194,7 +194,7 @@ class DTraces(dict):
     def siz(self): return sum(map(len, self.values()))
 
     def __str__(self, printDetails=False):
-        return "\n".join("{}: {}".format(loc, traces.__str__(printDetails))
+        return "\n".join(f"{loc}: {traces.__str__(printDetails)}"
                          for loc, traces in self.items())
 
     def add(self, loc, trace):
@@ -220,7 +220,7 @@ class DTraces(dict):
                 if not_in:
                     new_traces_.add(loc, trace)
                 else:
-                    mlog.warning("trace {} exist".format(trace))
+                    mlog.warning(f"trace {trace} exist")
         return new_traces_
 
     @classmethod
@@ -279,7 +279,7 @@ class DTraces(dict):
         for loc in self:
             traces = [inv_decls[loc]]
             traces.extend([', '.join(map(str, t.vs)) for t in self[loc]])
-            traces = ['{}: {}'.format(loc, t) for t in traces]
+            traces = [f'{loc}: {trace}' for trace in traces]
             ss.extend(traces)
 
         tracefile.write_text('\n'.join(ss))
