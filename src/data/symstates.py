@@ -668,12 +668,16 @@ class SymStates(dict):
 
             depth_idx_ = depth_idx + 1
             maxv_, stat_ = f(depths[depth_idx_])
+
+            if maxv_ is not None and maxv_ < maxv:
+                maxv_ = maxv
+
             if maxv_ != maxv:
                 nochanges = 0
                 changes += 1
-
-                assert(not(isinstance(maxv_, int) and isinstance(maxv, int))
-                       or (maxv_ > maxv)), (maxv_, maxv)
+                # if (max_ is int and maxv is int) then maxv_ > maxv
+                # assert(not(isinstance(maxv_, int) and isinstance(maxv, int))
+                # or (maxv_ > maxv)), (maxv_, maxv)
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
