@@ -383,7 +383,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         empties = [(loc, depth) for loc in symstates
                    for depth in symstates[loc] if not symstates[loc][depth]]
         for loc, depth in empties:
-            mlog.warning(f"{loc}: no new symbolic states at depth {depth}")
+            mlog.debug(f"{loc}: no new symbolic states at depth {depth}")
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]

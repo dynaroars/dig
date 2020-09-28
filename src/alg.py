@@ -148,11 +148,12 @@ class DigSymStates(Dig):
         et = time.time() - st
         self.time_d['total'] = et
 
-        print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
+        #print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
 
-        self.postprocess(dinvs, dtraces, inps)
+        self.cleanup(dinvs, dtraces, inps)
+        print(f"tmpdir: {self.tmpdir}")
 
-    def postprocess(self, dinvs, dtraces, inps):
+    def cleanup(self, dinvs, dtraces, inps):
         """
         Save and analyze result
         Clean up tmpdir
@@ -169,8 +170,7 @@ class DigSymStates(Dig):
                         self.symstates.solver_stats_,
                         self.time_d)
         result.save(self.tmpdir)
-        Analysis(self.tmpdir).start()
-        mlog.info(f"tmpdir: {self.tmpdir}")
+        Analysis(self.tmpdir).start()  # output stats
 
     def infer(self, typ, dinvs, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
