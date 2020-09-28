@@ -36,11 +36,11 @@ class MP(data.inv.base.Inv):
 
     def __str__(self, print_stat=False, use_lambda=False):
         s = self.term.__str__(use_lambda)
-        if self.is_ieq is not None:
-            s += " {} 0".format('<=' if self.is_ieq is True else '==')
-        if print_stat:
-            s = "{} {}".format(s, self.stat)
 
+        if self.is_ieq is not None:
+            s += f" {'<=' if self.is_ieq is True else '=='} 0"
+        if print_stat:
+            s = f"{s} {self.stat}"
         return s
 
     @property
@@ -110,6 +110,9 @@ class MP(data.inv.base.Inv):
 
     @classmethod
     def simplify(cls, mps):
+        """
+        if have both ...  , then create ==
+        """
         assert isinstance(mps, list), mps
         assert all(isinstance(mp, cls) for mp in mps)
 

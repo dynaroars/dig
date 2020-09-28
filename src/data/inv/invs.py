@@ -57,11 +57,12 @@ class Invs(set):
             if passed:
                 myinvs.add(inv)
             else:
-                mlog.debug("remove {}".format(inv))
+                mlog.debug(f"remove {inv}")
 
         invs = self.__class__(myinvs)
         return invs
 
+    @classmethod
     def get_expr(cls, p, exprs_d):
         if p not in exprs_d:
             exprs_d[p] = p.expr
@@ -80,7 +81,15 @@ class Invs(set):
         def my_get_expr(p):
             return self.get_expr(p, exprs_d)
 
-        mps = data.inv.mp.MP.simplify(mps)
+        mps = data.inv.mp.MP.simplify(mps)  # find ==
+        mps_ = []
+        for mp in mps:
+            if mp.is_ieq is True:
+                mps_.append(mp)
+            else:
+                assert mp.is_ieq is False
+                eqts.append(mp)
+        mps = mps_
         mps = self.simplify1(mps, eqts + octs, "mps", my_get_expr)
         octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
 
@@ -122,6 +131,7 @@ class Invs(set):
         Simplify a class of invariants (e.g., oct or mps)
         Relatively fast, using multiprocessing
         """
+
         if len(ps) >= 2 and others:
             st = time()
             conj = [get_expr(p) for p in others]
@@ -130,10 +140,9 @@ class Invs(set):
 
             def f(ps):
                 return [p for p in ps if not Z3._imply(conj, get_expr(p))]
-            wrs = Miscs.run_mp(
-                "simplify1 {} {}".format(len(ps), msg), ps, f)
+            wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
 
-            Miscs.show_removed('simplify1 {}'.format(msg),
+            Miscs.show_removed(f"simplify1 {msg}",
                                len(ps), len(wrs), time() - st)
             ps = [p for p in wrs]
         return ps
@@ -151,7 +160,12 @@ class Invs(set):
             elif isinstance(inv, data.inv.oct.Oct):
                 octs.append(inv)
             elif isinstance(inv, data.inv.mp.MP):
-                mps.append(inv)
+                # mps.append(inv)
+                if inv.is_ieq is True:
+                    mps.append(inv)
+                else:
+                    assert inv.is_ieq is False, inv
+                    eqts.append(inv)
             elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
             else:
@@ -192,7 +206,7 @@ class DInvs(dict):
         for loc in sorted(self):
             eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self[loc].classify(
                 self[loc])
-            ss.append("{} ({} invs):".format(loc, len(self[loc])))
+            ss.append(f"{loc} ({len(self[loc])} invs):")
 
             invs = sorted(eqts + eqts_largecoefs, reverse=True, key=str) + \
                 sorted(preposts, reverse=True, key=str) +\
@@ -203,10 +217,8 @@ class DInvs(dict):
             if print_first_n and print_first_n < len(invs):
                 invs = invs[:print_first_n] + ['...']
 
-            ss.extend("{}. {}".format(
-                i+1,
-                inv if isinstance(inv, str) else inv.__str__(print_stat))
-                for i, inv in enumerate(invs))
+            ss.extend(f"{i + 1}. {inv if isinstance(inv, str) else inv.__str__(print_stat)}"
+                      for i, inv in enumerate(invs))
 
         return '\n'.join(ss)
 
@@ -312,6 +324,6 @@ class FalseInv(data.inv.base.Inv):
     def expr(self):
         return z3.BoolVal(False)
 
-    @ classmethod
+    @classmethod
     def mk(cls):
         return FalseInv(0)
