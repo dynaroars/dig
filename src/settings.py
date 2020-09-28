@@ -26,6 +26,8 @@ SOLVER_TIMEOUT = 3 * 1000  # secs
 EQT_REDUCE_TIMEOUT = 20  # secs
 EQT_RATE = 1.5
 MAX_LARGE_COEF = 50
+# some value is smaller than MAX_LARGE_COEF but still UGLY, e.g., 660728/592756013*p*q^2
+MAX_LARGE_COEF_STR = 15
 MAX_TERM = 200
 
 LARGE_N = 200000  # powersum programs can go up to very large vals

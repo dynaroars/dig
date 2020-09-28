@@ -1,5 +1,6 @@
 from functools import reduce
 from collections import defaultdict
+from logging import warning
 import pdb
 import itertools
 import operator
@@ -30,7 +31,7 @@ class Miscs(object):
                 return sage.all.sage_eval(s, d)
             except NameError as e:  # name 'yy' is not defined
                 symb = str(e).split("'")[1]
-                mlog.debug("create new symbol {}".format(symb))
+                mlog.debug(f"create new symbol {symb}")
                 d[symb] = sage.all.var(symb)
 
     @staticmethod
@@ -212,10 +213,10 @@ class Miscs(object):
     def get_auto_deg(cls, maxdeg, nvars, maxterm):
         if maxdeg:
             deg = maxdeg
-            mlog.debug("using deg {}".format(deg))
+            mlog.debug(f"using deg {deg}")
         else:
             deg = cls.get_deg(nvars, maxterm)
-            mlog.debug("autodeg {}".format(deg))
+            mlog.debug(f"autodeg {deg}")
 
         return deg
 
@@ -261,7 +262,10 @@ class Miscs(object):
     def reduce_eqts(ps):
         """
         Return the basis (e.g., a min subset of ps that implies ps)
-        of the set of eqts input ps using Groebner basis
+        of the set of polynomial eqts using Groebner basis.
+        Warning 1: Grobner basis sometimes results in a larger set of eqts,
+        in which case we return the original set of eqts.
+        Warning 2: seems to get stuck often.  So had to give it "nice" polynomials
 
         sage: from helpers.miscs import Miscs
 
@@ -278,22 +282,24 @@ class Miscs(object):
         sage: rs =  Miscs.reduce_eqts([x*x==4,x==2])
         sage: assert set(rs) == set([x == 2, x^2 == 4])
         """
+
         if len(ps) <= 1:
             return ps
-
         assert (p.operator() == sage.all.operator.eq for p in ps), ps
+
         try:
             Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.get_vars(ps))
             myIdeal = Q*ps
-            ps = myIdeal.radical().interreduced_basis()
-            ps = [(sage.all.SR(p) == 0) for p in ps]
+            ps_ = myIdeal.radical().interreduced_basis()
+
+            mlog.debug(f"Grobner basis: {len(ps_)} ps from {len(ps)} ps")
+            if len(ps_) < len(ps):
+                ps = [(sage.all.SR(p) == 0) for p in ps_]
+
         except AttributeError as ex:
             mlog.error(ex)
-            pass
         except ValueError as ex:
             mlog.error(ex)
-            pass
-
         return ps
 
     @staticmethod
@@ -346,8 +352,8 @@ class Miscs(object):
     @staticmethod
     def is_repeating_rational(x):
         "check if x is a repating rational"
-        assert isinstance(x, sage.rings.rational.Rational) \
-            and not x.is_integer(), x
+        assert (isinstance(x, sage.rings.rational.Rational)
+                and not x.is_integer()), x
 
         x1 = x.n(digits=50).str(skip_zeroes=True)
         x2 = x.n(digits=100).str(skip_zeroes=True)
@@ -356,20 +362,22 @@ class Miscs(object):
     @classmethod
     def reduce_with_timeout(cls, ps, timeout=settings.EQT_REDUCE_TIMEOUT):
         Q = multiprocessing.Queue()
+
         def wprocess(ps, myQ):
             rs = Miscs.reduce_eqts(ps)
             myQ.put(rs)
 
         w = multiprocessing.Process(target=wprocess, args=(ps, Q,))
         w.start()
-        mlog.debug(f"start reduce_eqts for {len(ps)} eqts")
-
+        # mlog.debug(f"start reduce_eqts for {len(ps)} eqts")
         try:
             newps = Q.get(timeout=timeout)
-            mlog.debug(f"finish reduce_eqts for {len(ps)} eqts, result {len(newps)} eqts")
+            mlog.debug(
+                f"done reduce_eqts, got {len(newps)} ps from  {len(ps)} ps")
             ps = newps
         except queue.Empty:
-            mlog.warning(f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
+            mlog.warning(
+                f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
             w.terminate()
 
         w.join()
@@ -377,27 +385,38 @@ class Miscs(object):
         return ps
 
     @classmethod
-    def refine(cls, sols, ignoreLargeCoefs=True):
+    def remove_ugly(cls, ps):
+        def okCoef(c):
+            try:
+                return ((abs(c) <= settings.MAX_LARGE_COEF and
+                         len(str(c)) <= settings.MAX_LARGE_COEF_STR) or
+                        sage.all.mod(c, 10) == 0 or
+                        sage.all.mod(c, 5) == 0)
+            except ZeroDivisionError:
+                return False
+
+        ps_ = []
+        for p in ps:
+            if all(okCoef(c) for c in cls.get_coefs(p)):
+                # print(f"append {p}")
+                ps_.append(p)
+            else:
+                mlog.debug(
+                    f"ignore large coefs {str(p)[:settings.MAX_LARGE_COEF]} ..")
+
+        return ps_
+
+    @classmethod
+    def refine(cls, sols):
+        sols = cls.remove_ugly(sols)
         if not sols:
             return sols
+
         sols = cls.reduce_with_timeout(sols)
         sols = [cls.elim_denom(s) for s in sols]
+        # need this because the results can be "ugly", e.g., dijkstra
+        sols = cls.remove_ugly(sols)
 
-        def okCoefs(s): return all(
-            abs(c) <= settings.MAX_LARGE_COEF or
-            sage.all.mod(c, 10) == 0 or
-            sage.all.mod(c, 5) == 0
-            for c in cls.get_coefs(s))
-
-        if ignoreLargeCoefs:  # don't allow large coefs
-            sols_ = []
-            for s in sols:
-                if okCoefs(s):
-                    sols_.append(s)
-                else:
-                    mlog.debug("ignore large coefs {} ..".format(
-                        str(s)[:settings.MAX_LARGE_COEF]))
-            sols = sols_
         return sols
 
     @classmethod
@@ -406,7 +425,7 @@ class Miscs(object):
         assert isinstance(uks, list) and uks, uks
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
-        mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
+        mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
         # print(eqts)
 
         # I don't think this helps
@@ -505,8 +524,7 @@ class Miscs(object):
         if not sols:
             return []
         if len(sols) > 1:
-            mlog.warning('instantiate_template with sols: len(sols) = {}'
-                         .format(len(sols)))
+            mlog.warning(f"instantiate_template with {len(sols)} sols")
             mlog.warning(str(sols))
 
         def fEq(d):
@@ -529,12 +547,12 @@ class Miscs(object):
 
         return sols
 
-    @staticmethod
+    @ staticmethod
     def show_removed(s, orig_siz, new_siz, elapsed_time):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
-        mlog.debug("{}: removed {} invs in {:.2f}s (orig {}, new {})"
-                   .format(s, n_removed, elapsed_time, orig_siz, new_siz))
+        mlog.debug(f"{s}: removed {n_removed} invs "
+                   f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})")
 
     @classmethod
     def get_workload(cls, tasks, n_cpus):
@@ -597,8 +615,8 @@ class Miscs(object):
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
             wloads = cls.get_workload(tasks, n_cpus=n_cpus)
-            mlog.debug("{}:running {} jobs using {} threads: {}".format(
-                taskname, len(tasks), len(wloads), list(map(len, wloads))))
+            mlog.debug(f"{taskname}:running {len(tasks)} jobs "
+                       f"using {len(wloads)} threads: {list(map(len, wloads))}")
 
             workers = [multiprocessing.Process(
                 target=wprocess, args=(wl, Q)) for wl in wloads]
@@ -612,7 +630,7 @@ class Miscs(object):
                 if isinstance(rs, list):
                     wrs.extend(rs)
                 else:
-                    mlog.warning("Got exception from worker: {rs}")
+                    mlog.warning(f"Got exception from worker: {rs}")
                     raise rs
 
         else:
@@ -620,7 +638,7 @@ class Miscs(object):
 
         return wrs
 
-    @staticmethod
+    @ staticmethod
     def simplify_idxs(ordered_idxs, imply_f):
         """
         attempt to remove i in idxs if imply_f returns true
@@ -724,7 +742,7 @@ class Z3(object):
                 cls._get_vars(c, rs)
 
     @classmethod
-    @cached_function
+    @ cached_function
     def get_vars(cls, f):
         """
         sage: from helpers.miscs import Z3
@@ -765,7 +783,7 @@ class Z3(object):
                     try:
                         cex[str(v)] = sage.all.sage_eval(mv)
                     except SyntaxError:
-                        #mlog.warning('cannot analyze {}'.format(model))
+                        # mlog.warning('cannot analyze {}'.format(model))
                         pass
                 cexs.append(cex)
         return cexs, isSucc
@@ -799,10 +817,10 @@ class Z3(object):
                     e = v() == m[v]
                 except z3.Z3Exception:
                     """
-                    when the model contains functions, e.g., 
+                    when the model contains functions, e.g.,
                     [..., div0 = [(3, 2) -> 1, else -> 0]]
                     """
-                    #mlog.warning('cannot analyze {}'.format(m))
+                    # mlog.warning('cannot analyze {}'.format(m))
                     pass
 
                 ands.append(e)
@@ -825,13 +843,13 @@ class Z3(object):
                 rs = None
                 stat = z3.unknown
 
-        if (isinstance(rs, list) and not rs):
-            print(f)
-            print(k)
-            print(stat)
-            print(models)
+        # if (isinstance(rs, list) and not rs):
+        #     print(f)
+        #     print(k)
+        #     print(stat)
+        #     print(models)
 
-            DBG()
+        #     DBG()
 
         assert not (isinstance(rs, list) and not rs), rs
         return rs, stat
@@ -907,7 +925,8 @@ class Z3(object):
         sage: import z3
 
         sage: x,y = z3.Ints('x y')
-        sage: sorted([x>=z3.IntVal('0'), x>= z3.IntVal('3') ,  x>= z3.IntVal('3'), x>= z3.IntVal('1'), x>= z3.IntVal('10'), y - x >= z3.IntVal('20')], cmp=Z3._mycmp_)
+        sage: sorted([x>=z3.IntVal('0'), x>= z3.IntVal('3') ,  x>= z3.IntVal('3'), x>= z3.IntVal(
+            '1'), x>= z3.IntVal('10'), y - x >= z3.IntVal('20')], cmp=Z3._mycmp_)
         [y - x >= 20, x >= 0, x >= 1, x >= 3, x >= 3, x >= 10]
 
         """
@@ -942,8 +961,7 @@ class Z3(object):
                 expr = z3.simplify(expr)
                 return expr
             except NotImplementedError:
-                mlog.error("cannot parse: '{}'\n{}".format(
-                    node, ast.dump(tnode)))
+                mlog.error(f"cannot parse: '{node}'\n{ast.dump(tnode)}")
                 raise
 
         elif isinstance(node, ast.BoolOp):
