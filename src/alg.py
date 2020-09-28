@@ -17,6 +17,7 @@ import data.prog
 from data.traces import Inps, DTraces
 from data.inv.invs import DInvs, Invs
 import data.symstates
+
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -33,8 +34,10 @@ class Dig(metaclass=ABCMeta):
         self.seed = seed
         random.seed(seed)
         sage.all.set_random_seed(seed)
-        mlog.debug(f"set seed to {seed} "
-                   f"(test {random.randint(0, 100)} {sage.all.randint(0, 100)})")
+        mlog.debug(
+            f"set seed to {seed} "
+            f"(test {random.randint(0, 100)} {sage.all.randint(0, 100)})"
+        )
 
     def get_auto_deg(self, maxdeg):
         maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
@@ -68,7 +71,7 @@ class Dig(metaclass=ABCMeta):
             dinvs = dinvs.simplify()
             mlog.info(f"{msg} ({time.time() - st1:.2f}s)")
 
-        self.time_d['simplify'] = time.time() - st
+        self.time_d["simplify"] = time.time() - st
 
         return dinvs
 
@@ -90,9 +93,11 @@ class DigSymStates(Dig):
 
         assert settings.tmpdir.is_dir()
         import tempfile
+
         prefix = hash(self.seed)
-        self.tmpdir = Path(tempfile.mkdtemp(
-            dir=settings.tmpdir, prefix="dig_{}_".format(prefix)))
+        self.tmpdir = Path(
+            tempfile.mkdtemp(dir=settings.tmpdir, prefix="dig_{}_".format(prefix))
+        )
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
 
@@ -100,8 +105,7 @@ class DigSymStates(Dig):
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
-        self.prog = data.prog.Prog(
-            self.exe_cmd, self.inp_decls, self.inv_decls)
+        self.prog = data.prog.Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
         self.use_rand_init = True
 
         self.symstates = None
@@ -110,45 +114,40 @@ class DigSymStates(Dig):
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
             mlog.info(f"compute symbolic states ({et:.2f}s)")
-            self.time_d['symbolic_states'] = et
+            self.time_d["symbolic_states"] = et
 
             # remove locations with no symbolic states
             for loc in list(self.inv_decls.keys()):
                 if loc not in self.symstates:
-                    mlog.warning(f'{loc}: no symbolic states. Skip')
+                    mlog.warning(f"{loc}: no symbolic states. Skip")
                     self.inv_decls.pop(loc)
 
         self.locs = self.inv_decls.keys()
 
-        mlog.info(
-            f"infer invs at {len(self.locs)} locs: {', '.join(self.locs)}")
+        mlog.info(f"infer invs at {len(self.locs)} locs: {', '.join(self.locs)}")
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
         inps = Inps()
 
         if settings.DO_EQTS:
-            self.infer(self.EQTS, dinvs,
-                       lambda: self.infer_eqts(maxdeg, dtraces, inps))
+            self.infer(self.EQTS, dinvs, lambda: self.infer_eqts(maxdeg, dtraces, inps))
 
         if settings.DO_IEQS:
-            self.infer(self.IEQS, dinvs,
-                       lambda: self.infer_ieqs(dtraces, inps))
+            self.infer(self.IEQS, dinvs, lambda: self.infer_ieqs(dtraces, inps))
 
         if settings.DO_MINMAXPLUS:
-            self.infer(self.MINMAX, dinvs,
-                       lambda: self.infer_minmax(dtraces, inps))
+            self.infer(self.MINMAX, dinvs, lambda: self.infer_minmax(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
         if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer('preposts', dinvs,
-                       lambda: self.infer_preposts(dinvs, dtraces))
+            self.infer("preposts", dinvs, lambda: self.infer_preposts(dinvs, dtraces))
 
         et = time.time() - st
-        self.time_d['total'] = et
+        self.time_d["total"] = et
 
-        #print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
+        # print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
 
         self.cleanup(dinvs, dtraces, inps)
         print(f"tmpdir: {self.tmpdir}")
@@ -160,15 +159,21 @@ class DigSymStates(Dig):
         """
         # clean up
         import shutil
+
         shutil.rmtree(self.tmpdir_del)
 
         # analyze and save results
         from analysis import Result, Analysis
 
-        result = Result(self.filename, self.seed,
-                        dinvs, dtraces, inps,
-                        self.symstates.solver_stats_,
-                        self.time_d)
+        result = Result(
+            self.filename,
+            self.seed,
+            dinvs,
+            dtraces,
+            inps,
+            self.symstates.solver_stats_,
+            self.time_d,
+        )
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()  # output stats
 
@@ -189,6 +194,7 @@ class DigSymStates(Dig):
 
     def infer_eqts(self, maxdeg, dtraces, inps):
         import infer.eqt
+
         solver = infer.eqt.Infer(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
@@ -200,29 +206,35 @@ class DigSymStates(Dig):
 
     def infer_ieqs(self, dtraces, inps):
         import infer.opt
+
         solver = infer.opt.Ieq(self.symstates, self.prog)
         return solver.gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
         import infer.opt
+
         solver = infer.opt.MP(self.symstates, self.prog)
         return solver.gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):
         import infer.prepost
+
         solver = infer.prepost.Infer(self.symstates, self.prog)
         return solver.gen(dinvs, dtraces)
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
-        symstates.compute(self.symstatesmaker_cls,
-                          self.symexefile, self.mysrc.mainQ_name,
-                          self.mysrc.funname, self.mysrc.symexedir)
+        symstates.compute(
+            self.symstatesmaker_cls,
+            self.symexefile,
+            self.mysrc.mainQ_name,
+            self.mysrc.funname,
+            self.mysrc.symexedir,
+        )
         return symstates
 
 
 class DigSymStatesJava(DigSymStates):
-
     @property
     def mysrc_cls(self):
         return data.prog.Java
@@ -238,11 +250,11 @@ class DigSymStatesJava(DigSymStates):
     @property
     def exe_cmd(self):
         return settings.Java.JAVA_RUN(
-            tracedir=self.mysrc.tracedir, funname=self.mysrc.funname)
+            tracedir=self.mysrc.tracedir, funname=self.mysrc.funname
+        )
 
 
 class DigSymStatesC(DigSymStates):
-
     @property
     def mysrc_cls(self):
         return data.prog.C
@@ -284,18 +296,23 @@ class DigTraces(Dig):
             symbols = self.inv_decls[loc]
             traces = self.dtraces[loc]
             if settings.DO_EQTS:
+
                 def _f():
                     return self.infer_eqts(maxdeg, symbols, traces)
+
                 tasks.append((loc, _f))
 
             if settings.DO_IEQS:
+
                 def _f():
                     return self.infer_ieqs(symbols, traces)
+
                 tasks.append((loc, _f))
 
         def f(tasks):
             rs = [(loc, _f()) for loc, _f in tasks]
             return rs
+
         wrs = Miscs.run_mp("(pure) dynamic inference", tasks, f)
 
         dinvs = DInvs()
@@ -305,7 +322,7 @@ class DigTraces(Dig):
 
         try:
             new_traces = self.dtraces.merge(self.test_dtraces)
-            mlog.debug(f'added {new_traces.siz} test traces')
+            mlog.debug(f"added {new_traces.siz} test traces")
         except AttributeError:
             # no test traces
             pass
@@ -316,18 +333,22 @@ class DigTraces(Dig):
     def infer_eqts(self, maxdeg, symbols, traces):
         auto_deg = self.get_auto_deg(maxdeg)
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
-            symbols.names, auto_deg, settings.EQT_RATE)
+            symbols.names, auto_deg, settings.EQT_RATE
+        )
         exprs = list(traces.instantiate(template, n_eqts_needed))
         eqts = Miscs.solve_eqts(exprs, uks, template)
         import data.inv.eqt
+
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 
     def infer_ieqs(self, symbols, traces):
         maxV = settings.IUPPER
-        minV = -1*maxV
+        minV = -1 * maxV
 
         terms = Miscs.get_terms_fixed_coefs(
-            symbols.sageExprs, settings.ITERMS, settings.ICOEFS,
+            symbols.sageExprs,
+            settings.ITERMS,
+            settings.ICOEFS,
         )
         ieqs = []
         for t in terms:
@@ -337,5 +358,6 @@ class DigTraces(Dig):
             ieqs.append(t <= upperbound)
 
         import data.inv.oct
+
         ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
         return ieqs

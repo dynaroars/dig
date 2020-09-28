@@ -24,8 +24,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
-        assert all(isinstance(k, str) and
-                   Miscs.is_expr(v) for k, v in d.items()), d
+        assert all(isinstance(k, str) and Miscs.is_expr(v) for k, v in d.items()), d
         while True:
             try:
                 return sage.all.sage_eval(s, d)
@@ -35,13 +34,16 @@ class Miscs(object):
                 d[symb] = sage.all.var(symb)
 
     @staticmethod
-    def is_real(x): return isinstance(x, sage.rings.real_mpfr.RealLiteral)
+    def is_real(x):
+        return isinstance(x, sage.rings.real_mpfr.RealLiteral)
 
     @staticmethod
-    def is_int(x): return isinstance(x, sage.rings.integer.Integer)
+    def is_int(x):
+        return isinstance(x, sage.rings.integer.Integer)
 
     @classmethod
-    def is_num(cls, x): return cls.is_real(x) or cls.is_int(x)
+    def is_num(cls, x):
+        return cls.is_real(x) or cls.is_int(x)
 
     @staticmethod
     def is_rel(f, rel=None):
@@ -205,7 +207,7 @@ class Miscs(object):
                 return d
 
             # look ahead
-            nterms = sage.all.binomial(nvs + d+1, d+1)
+            nterms = sage.all.binomial(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
 
@@ -250,10 +252,13 @@ class Miscs(object):
         rs = []
         for ssSubset in itertools.combinations(ss, subset_siz):
             css = itertools.product(*([coefs] * len(ssSubset)))
-            rs_ = [tuple((t, c) for t, c in zip(ssSubset, cs) if c != 0)
-                   for cs in css if not all(c_ == 0 for c_ in cs)]
+            rs_ = [
+                tuple((t, c) for t, c in zip(ssSubset, cs) if c != 0)
+                for cs in css
+                if not all(c_ == 0 for c_ in cs)
+            ]
             if do_create_terms:
-                rs_ = [sum(t*c for t, c in tc) for tc in rs_]
+                rs_ = [sum(t * c for t, c in tc) for tc in rs_]
             rs.extend(rs_)
 
         return set(rs)
@@ -289,11 +294,11 @@ class Miscs(object):
 
         try:
             Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.get_vars(ps))
-            myIdeal = Q*ps
+            myIdeal = Q * ps
             ps_ = myIdeal.radical().interreduced_basis()
 
-            mlog.debug(f"Grobner basis: {len(ps_)} ps from {len(ps)} ps")
-            if len(ps_) < len(ps):
+            mlog.debug(f"Grobner basis: got {len(ps_)} ps from {len(ps)} ps")
+            if len(ps_) <= len(ps):
                 ps = [(sage.all.SR(p) == 0) for p in ps_]
 
         except AttributeError as ex:
@@ -327,8 +332,10 @@ class Miscs(object):
 
         """
         try:
-            def f(g): return [sage.all.Integer(o.denominator())
-                              for o in g.operands()]
+
+            def f(g):
+                return [sage.all.Integer(o.denominator()) for o in g.operands()]
+
             denoms = f(p.lhs()) + f(p.rhs()) if p.is_relational() else f(p)
             return p * sage.all.lcm(denoms)
         except TypeError:
@@ -352,8 +359,7 @@ class Miscs(object):
     @staticmethod
     def is_repeating_rational(x):
         "check if x is a repating rational"
-        assert (isinstance(x, sage.rings.rational.Rational)
-                and not x.is_integer()), x
+        assert isinstance(x, sage.rings.rational.Rational) and not x.is_integer(), x
 
         x1 = x.n(digits=50).str(skip_zeroes=True)
         x2 = x.n(digits=100).str(skip_zeroes=True)
@@ -367,17 +373,21 @@ class Miscs(object):
             rs = Miscs.reduce_eqts(ps)
             myQ.put(rs)
 
-        w = multiprocessing.Process(target=wprocess, args=(ps, Q,))
+        w = multiprocessing.Process(
+            target=wprocess,
+            args=(
+                ps,
+                Q,
+            ),
+        )
         w.start()
         # mlog.debug(f"start reduce_eqts for {len(ps)} eqts")
         try:
             newps = Q.get(timeout=timeout)
-            mlog.debug(
-                f"done reduce_eqts, got {len(newps)} ps from  {len(ps)} ps")
+            mlog.debug(f"done reduce_eqts, got {len(newps)} ps from  {len(ps)} ps")
             ps = newps
         except queue.Empty:
-            mlog.warning(
-                f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
+            mlog.warning(f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
             w.terminate()
 
         w.join()
@@ -388,21 +398,24 @@ class Miscs(object):
     def remove_ugly(cls, ps):
         def okCoef(c):
             try:
-                return ((abs(c) <= settings.MAX_LARGE_COEF and
-                         len(str(c)) <= settings.MAX_LARGE_COEF_STR) or
-                        sage.all.mod(c, 10) == 0 or
-                        sage.all.mod(c, 5) == 0)
+                return (
+                    (
+                        abs(c) <= settings.MAX_LARGE_COEF
+                        and len(str(c)) <= settings.MAX_LARGE_COEF_STR
+                    )
+                    or sage.all.mod(c, 10) == 0
+                    or sage.all.mod(c, 5) == 0
+                )
             except ZeroDivisionError:
                 return False
 
         ps_ = []
         for p in ps:
             if all(okCoef(c) for c in cls.get_coefs(p)):
-                # print(f"append {p}")
+                print(f"append {p}")
                 ps_.append(p)
             else:
-                mlog.debug(
-                    f"ignore large coefs {str(p)[:settings.MAX_LARGE_COEF]} ..")
+                mlog.debug(f"ignore large coefs {str(p)[:settings.MAX_LARGE_COEF]} ..")
 
         return ps_
 
@@ -450,9 +463,9 @@ class Miscs(object):
         return reqts
 
     @classmethod
-    def mk_template(cls, terms, rhsVal,
-                    op=sage.all.operator.eq,
-                    prefix=None, retCoefVars=False):
+    def mk_template(
+        cls, terms, rhsVal, op=sage.all.operator.eq, prefix=None, retCoefVars=False
+    ):
         """
         get a template from terms.
 
@@ -490,7 +503,7 @@ class Miscs(object):
             prefix = "uk_"
         uks = [sage.all.var(prefix + str(i)) for i in range(len(terms))]
 
-        assert not set(terms).intersection(set(uks)), 'name conflict'
+        assert not set(terms).intersection(set(uks)), "name conflict"
 
         template = sum(map(sage.all.prod, zip(uks, terms)))
 
@@ -542,17 +555,20 @@ class Miscs(object):
         sols = [y for x in sols for y in fEq(x)]
 
         # remove trivial (tautology) str(x) <=> str(x)
-        sols = [s for s in sols
-                if not (s.is_relational() and str(s.lhs()) == str(s.rhs()))]
+        sols = [
+            s for s in sols if not (s.is_relational() and str(s.lhs()) == str(s.rhs()))
+        ]
 
         return sols
 
-    @ staticmethod
+    @staticmethod
     def show_removed(s, orig_siz, new_siz, elapsed_time):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
-        mlog.debug(f"{s}: removed {n_removed} invs "
-                   f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})")
+        mlog.debug(
+            f"{s}: removed {n_removed} invs "
+            f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})"
+        )
 
     @classmethod
     def get_workload(cls, tasks, n_cpus):
@@ -585,8 +601,7 @@ class Miscs(object):
             cpu_id = i % n_cpus
             wloads[cpu_id].append(task)
 
-        wloads = [wl for wl in
-                  sorted(wloads.values(), key=lambda wl: len(wl))]
+        wloads = [wl for wl in sorted(wloads.values(), key=lambda wl: len(wl))]
 
         return wloads
 
@@ -595,6 +610,7 @@ class Miscs(object):
         """
         Run wprocess on tasks in parallel
         """
+
         def wprocess(mytasks, myQ):
             rs = None
             try:
@@ -615,11 +631,14 @@ class Miscs(object):
         if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
             wloads = cls.get_workload(tasks, n_cpus=n_cpus)
-            mlog.debug(f"{taskname}:running {len(tasks)} jobs "
-                       f"using {len(wloads)} threads: {list(map(len, wloads))}")
+            mlog.debug(
+                f"{taskname}:running {len(tasks)} jobs "
+                f"using {len(wloads)} threads: {list(map(len, wloads))}"
+            )
 
-            workers = [multiprocessing.Process(
-                target=wprocess, args=(wl, Q)) for wl in wloads]
+            workers = [
+                multiprocessing.Process(target=wprocess, args=(wl, Q)) for wl in wloads
+            ]
 
             for w in workers:
                 w.start()
@@ -638,7 +657,7 @@ class Miscs(object):
 
         return wrs
 
-    @ staticmethod
+    @staticmethod
     def simplify_idxs(ordered_idxs, imply_f):
         """
         attempt to remove i in idxs if imply_f returns true
@@ -742,7 +761,7 @@ class Z3(object):
                 cls._get_vars(c, rs)
 
     @classmethod
-    @ cached_function
+    @cached_function
     def get_vars(cls, f):
         """
         sage: from helpers.miscs import Z3
@@ -767,10 +786,15 @@ class Z3(object):
 
     @classmethod
     def extract(self, models):
-        assert models is None or models is False \
-            or (isinstance(models, list) and
-                all(isinstance(m, z3.ModelRef) for m in models)
-                and models), models
+        assert (
+            models is None
+            or models is False
+            or (
+                isinstance(models, list)
+                and all(isinstance(m, z3.ModelRef) for m in models)
+                and models
+            )
+        ), models
 
         cexs = set()
         isSucc = models is not None
@@ -952,7 +976,7 @@ class Z3(object):
         # print(ast.dump(node))
 
         if isinstance(node, str):
-            node = node.replace('^', '**')
+            node = node.replace("^", "**")
 
             tnode = ast.parse(node)
             tnode = tnode.body[0].value
@@ -987,8 +1011,7 @@ class Z3(object):
             return op(operand)
 
         elif isinstance(node, ast.Compare):
-            assert len(node.ops) == 1 and len(
-                node.comparators) == 1, ast.dump(node)
+            assert len(node.ops) == 1 and len(node.comparators) == 1, ast.dump(node)
             left = cls.parse(node.left)
             right = cls.parse(node.comparators[0])
             op = cls.parse(node.ops[0])
@@ -1035,7 +1058,7 @@ class Z3(object):
     @classmethod
     def simplify(cls, f):
         assert z3.is_expr(f), f
-        simpl = z3.Tactic('ctx-solver-simplify')
+        simpl = z3.Tactic("ctx-solver-simplify")
         simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
         try:
             f = simpl(f).as_expr()
@@ -1047,7 +1070,8 @@ class Z3(object):
     def to_smt2_str(cls, f, status="unknown", name="benchmark", logic=""):
         v = (z3.Ast * 0)()
         s = z3.Z3_benchmark_to_smtlib_string(
-            f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast())
+            f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast()
+        )
         return s
 
     @classmethod
