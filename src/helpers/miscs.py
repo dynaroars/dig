@@ -418,8 +418,8 @@ class Miscs(object):
 
     @classmethod
     def refine(cls, sols):
-        sols = [cls.elim_denom(s) for s in sols]
-        sols = cls.remove_ugly(sols)
+        # sols = [cls.elim_denom(s) for s in sols]
+        # sols = cls.remove_ugly(sols)
         if not sols:
             return sols
 

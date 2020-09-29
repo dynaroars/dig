@@ -96,7 +96,7 @@ class DigSymStates(Dig):
 
         prefix = hash(self.seed)
         self.tmpdir = Path(
-            tempfile.mkdtemp(dir=settings.tmpdir, prefix="dig_{}_".format(prefix))
+            tempfile.mkdtemp(dir=settings.tmpdir, prefix=f"dig_{prefix}_")
         )
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
