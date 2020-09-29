@@ -1,6 +1,7 @@
 from functools import reduce
 from collections import defaultdict
 from logging import warning
+from os import truncate
 import pdb
 import itertools
 import operator
@@ -417,17 +418,22 @@ class Miscs(object):
         return ps_
 
     @classmethod
-    def refine(cls, sols):
-        # sols = [cls.elim_denom(s) for s in sols]
-        # sols = cls.remove_ugly(sols)
-        if not sols:
-            return sols
+    def refine(cls, eqts):
 
-        sols = cls.reduce_with_timeout(sols)
-        sols = [cls.elim_denom(s) for s in sols]
-        # need this because the results can still be "ugly", e.g., dijkstra
-        sols = cls.remove_ugly(sols)
-        return sols
+        if not eqts:
+            return eqts
+
+        nice_eqts = [cls.elim_denom(s) for s in eqts]
+        nice_eqts = cls.remove_ugly(nice_eqts)
+
+        eqts = cls.reduce_with_timeout(eqts)
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
+
+        eqts = list(set(eqts + nice_eqts))
+        eqts = cls.reduce_with_timeout(eqts)
+
+        return eqts
 
     @classmethod
     def solve_eqts(cls, eqts, uks, template):
