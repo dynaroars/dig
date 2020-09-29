@@ -428,9 +428,8 @@ class Miscs(object):
 
         sols = cls.reduce_with_timeout(sols)
         sols = [cls.elim_denom(s) for s in sols]
-        # need this because the results can be "ugly", e.g., dijkstra
+        # need this because the results can still be "ugly", e.g., dijkstra
         sols = cls.remove_ugly(sols)
-        # sols = cls.reduce_with_timeout(sols)
         return sols
 
     @classmethod
