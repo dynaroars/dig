@@ -25,11 +25,13 @@ class Inv(metaclass=ABCMeta):
         """
         stat = None means never been checked
         """
-        assert (inv == 0  # FalseInv
-                or (isinstance(inv, tuple)
-                    and (len(inv) == 2  # PrePost
-                         or len(inv) == 4))  # Max/MinPlus
-                or inv.is_relational()), inv
+        assert (
+            inv == 0  # FalseInv
+            or (
+                isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)  # PrePost
+            )  # Max/MinPlus
+            or inv.is_relational()
+        ), inv
 
         assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
 
@@ -39,15 +41,18 @@ class Inv(metaclass=ABCMeta):
         else:
             self.stat = stat
 
-    def __hash__(self): return hash(self.inv)
+    def __hash__(self):
+        return hash(self.inv)
 
-    def __repr__(self): return repr(self.inv)
+    def __repr__(self):
+        return repr(self.inv)
 
     def __eq__(self, o):
         assert isinstance(o, Inv), o
         return self.inv.__eq__(o.inv)
 
-    def __ne__(self, o): return not self.inv.__eq__(o.inv)
+    def __ne__(self, o):
+        return not self.inv.__eq__(o.inv)
 
     def get_stat(self):
         return self._stat
@@ -55,6 +60,7 @@ class Inv(metaclass=ABCMeta):
     def set_stat(self, stat):
         assert stat in {self.PROVED, self.DISPROVED, self.UNKNOWN}, stat
         self._stat = stat
+
     stat = property(get_stat, set_stat)
 
     def reset_stat(self):
@@ -65,28 +71,32 @@ class Inv(metaclass=ABCMeta):
         return all(self.test_single_trace(trace) for trace in traces)
 
     @property
-    def is_proved(self): return self.stat == self.PROVED
+    def is_proved(self):
+        return self.stat == self.PROVED
 
     @property
-    def is_disproved(self): return self.stat == self.DISPROVED
+    def is_disproved(self):
+        return self.stat == self.DISPROVED
 
     @property
-    def is_unknown(self): return self.stat == self.UNKNOWN
+    def is_unknown(self):
+        return self.stat == self.UNKNOWN
 
 
 class RelInv(Inv, metaclass=ABCMeta):
-
     def __init__(self, rel, stat=None):
-        assert (rel.operator() == operator.eq or
-                rel.operator() == operator.le or
-                rel.operator() == operator.lt), rel
+        assert rel.is_relational() and (
+            rel.operator() == operator.eq
+            or rel.operator() == operator.le
+            or rel.operator() == operator.lt
+        ), rel
 
         super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
         s = str(self.inv)
         if print_stat:
-            s = "{} {}".format(s, self.stat)
+            s = f"{s} {self.stat}"
         return s
 
     def test_single_trace(self, trace):
@@ -95,8 +105,7 @@ class RelInv(Inv, metaclass=ABCMeta):
         # temp fix: disable traces that wih extreme large values
         # (see geo1 e.g., 435848050)
         if any(x > trace.max_val for x in trace.vs):
-            mlog.debug(
-                "{}: skip trace with large val: {}".format(self, trace.vs))
+            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
             return True
 
         try:
@@ -104,7 +113,7 @@ class RelInv(Inv, metaclass=ABCMeta):
             bval = bool(bval)
             return bval
         except ValueError:
-            mlog.debug("{}: failed test".format(self))
+            mlog.debug(f"{self}: failed test")
             return False
 
     @property
@@ -122,11 +131,15 @@ class RelTerm(NamedTuple):
     """
     e.g., x + y,  x,  x + 3
     """
+
     term: sage.symbolic.expression.Expression
 
     @classmethod
     def mk(cls, term):
-        assert isinstance(term, sage.symbolic.expression.Expression), term
+        assert (
+            isinstance(term, sage.symbolic.expression.Expression)
+            and not term.is_relational()
+        ), term
         return cls(term)
 
     @property
@@ -149,8 +162,6 @@ class RelTerm(NamedTuple):
         """
         return myop(self.term, val), e.g., x + y <= 8
         """
-        assert (myop == operator.eq or
-                myop == operator.le or
-                myop == operator.lt), myop
+        assert myop == operator.eq or myop == operator.le or myop == operator.lt, myop
 
         return myop(self.term, val)

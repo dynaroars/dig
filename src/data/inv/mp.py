@@ -44,6 +44,10 @@ class MP(data.inv.base.Inv):
         return s
 
     @property
+    def is_eqt(self):
+        return self.is_ieq is False
+
+    @property
     def expr(self):
         """
         # sage: x, y, z = sage.all.var('x y z')

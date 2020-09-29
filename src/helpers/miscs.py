@@ -412,7 +412,7 @@ class Miscs(object):
         ps_ = []
         for p in ps:
             if all(okCoef(c) for c in cls.get_coefs(p)):
-                print(f"append {p}")
+                # print(f"append {p}")
                 ps_.append(p)
             else:
                 mlog.debug(f"ignore large coefs {str(p)[:settings.MAX_LARGE_COEF]} ..")

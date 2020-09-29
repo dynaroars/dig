@@ -35,6 +35,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
             def _terms(_):
                 return self.inp_decls.sageExprs
+
         else:
             locs = self.inv_decls.keys()
 
@@ -43,28 +44,33 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
-        mlog.debug("check upperbounds for {} terms at {} locs".format(
-            sum(map(len, termss)), len(locs)))
-        refs = {loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
-                for loc, terms in zip(locs, termss)}
+        mlog.debug(
+            "check upperbounds for {} terms at {} locs".format(
+                sum(map(len, termss)), len(locs)
+            )
+        )
+        refs = {
+            loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
+            for loc, terms in zip(locs, termss)
+        }
         ieqs = data.inv.invs.DInvs()
         for loc in refs:
             for inv in refs[loc].keys():
-                ieqs.setdefault(
-                    loc, data.inv.invs.Invs()).add(inv)
+                ieqs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
         cexs, ieqs = self.check(ieqs, inps=None)
         ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
-        mlog.debug("infer upperbounds for {} terms at {} locs".format(
-            len(tasks), len(locs)))
+        mlog.debug(f"infer upperbounds for {len(tasks)} terms at {len(locs)} locs")
 
         def f(tasks):
-            return [(loc, term,
-                     self.maximize(loc, term, extra_constr, dtraces))
-                    for loc, term in tasks]
-        wrs = Miscs.run_mp('optimize upperbound', tasks, f)
+            return [
+                (loc, term, self.maximize(loc, term, extra_constr, dtraces))
+                for loc, term in tasks
+            ]
+
+        wrs = Miscs.run_mp("optimize upperbound", tasks, f)
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
@@ -78,9 +84,10 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(term,
-                          (data.inv.base.RelTerm, data.inv.mp.Term)), \
-            (term, type(term))
+        assert isinstance(term, (data.inv.base.RelTerm, data.inv.mp.Term)), (
+            term,
+            type(term),
+        )
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
         assert isinstance(dtraces, data.traces.DTraces), dtraces
 
@@ -89,42 +96,32 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         # check if concrete states(traces) exceed upperbound
         if extra_constr is None:
             # skip if do prepost
-            if term.eval_traces(
-                    dtraces[loc], lambda v: int(v) > iupper):
+            if term.eval_traces(dtraces[loc], lambda v: int(v) > iupper):
                 return None
 
-        return self.symstates.maximize(
-            loc, self.to_expr(term), iupper, extra_constr)
+        return self.symstates.maximize(loc, self.to_expr(term), iupper, extra_constr)
 
     def get_terms(self, symbols):
 
         terms = self.my_get_terms(symbols)
-        mlog.debug("{} terms for {}".format(
-            len(terms), self.__class__.__name__))
+        mlog.debug(f"{len(terms)} terms for {self.__class__.__name__}")
 
         inps = set(self.inp_decls.names)
         if settings.DO_FILTER and inps:
-            # filter terms
             st = time()
-            new_terms = self.filter_terms(terms, inps)
-            Miscs.show_removed(
-                'filter terms', len(terms), len(new_terms), time() - st)
+            excludes = self.get_excludes(terms, inps)
+            new_terms = [term for term in terms if term not in excludes]
+            Miscs.show_removed("filter terms", len(terms), len(new_terms), time() - st)
             terms = new_terms
         return terms
 
-    def filter_terms(self, terms, inps):
-        assert isinstance(inps, set) and \
-            all(isinstance(s, str) for s in inps)\
-            and inps, inps
-
-        excludes = self.get_excludes(terms, inps)
-        new_terms = [term for term in terms if term not in excludes]
-        return new_terms
-
     @classmethod
     def get_iupper(cls, term):
-        return settings.IUPPER_MP if isinstance(
-            term, data.inv.mp.Term) else settings.IUPPER
+        return (
+            settings.IUPPER_MP
+            if isinstance(term, data.inv.mp.Term)
+            else settings.IUPPER
+        )
 
 
 class Ieq(Infer):
@@ -143,14 +140,14 @@ class Ieq(Infer):
 
         if settings.IDEG == 1:
             terms = Miscs.get_terms_fixed_coefs(
-                symbols, settings.ITERMS, settings.ICOEFS)
+                symbols, settings.ITERMS, settings.ICOEFS
+            )
         else:
-            terms = Miscs.get_terms(
-                list(symbols), settings.IDEG)
+            terms = Miscs.get_terms(list(symbols), settings.IDEG)
             terms = [t for t in terms if t != 1]
             terms = Miscs.get_terms_fixed_coefs(
-                terms, settings.ITERMS, settings.ICOEFS,
-                do_create_terms=False)
+                terms, settings.ITERMS, settings.ICOEFS, do_create_terms=False
+            )
 
             terms_ = set()
             for ts in terms:
@@ -164,8 +161,7 @@ class Ieq(Infer):
             uterms = self.my_get_terms_user(symbols, settings.UTERMS)
             old_siz = len(terms)
             terms.update(uterms)
-            mlog.debug("adding {} new terms from user".format(
-                len(terms) - old_siz))
+            mlog.debug(f"add {len(terms) - old_siz} new terms from user")
 
         terms = [data.inv.base.RelTerm(t) for t in terms]
         return terms
@@ -177,12 +173,11 @@ class Ieq(Infer):
         mylocals = {str(s): s for s in symbols}
 
         from sage.all import sage_eval
+
         try:
-            uterms = set(sage_eval(term, locals=mylocals)
-                         for term in uterms)
+            uterms = set(sage_eval(term, locals=mylocals) for term in uterms)
         except NameError as ex:
-            raise NameError(
-                "{} (defined vars: {})".format(ex, ','.join(map(str, symbols))))
+            raise NameError(f"{ex}, defined vars: {','.join(map(str, symbols))}")
 
         terms = set()
         for t in uterms:
@@ -198,15 +193,16 @@ class Ieq(Infer):
         return terms
 
     def get_excludes(self, terms, inps):
+        # print(len(terms), terms)
         excludes = set()
         for term in terms:
             t_symbs = set(map(str, term.symbols))
             if len(t_symbs) <= 1:  # ok for finding bound of single input val
                 continue
 
-            if (inps.issuperset(t_symbs) or
-                    all(s not in inps for s in t_symbs)):
+            if inps.issuperset(t_symbs):
                 excludes.add(term)
+                print("exclude", term)
         return excludes
 
 
@@ -243,9 +239,11 @@ class MP(Infer):
 
         def is_pure(xs):
             # if it's small, then we won't be too strict and allow it
-            return (len(xs) <= 2 or
-                    all(x in inps for x in xs) or
-                    all(x not in inps for x in xs))
+            return (
+                len(xs) <= 2
+                or all(x in inps for x in xs)
+                or all(x not in inps for x in xs)
+            )
 
         excludes = set()
         for term in terms:
@@ -262,8 +260,7 @@ class MP(Infer):
             inp_in_b = any(s in inps for s in b_symbs)
 
             # exclude if (inp in both a and b) or inp not in a or b
-            if ((inp_in_a and inp_in_b) or
-                    (not inp_in_a and not inp_in_b)):
+            if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
                 excludes.add(term)
                 # print('excluding', term)
                 continue
@@ -273,8 +270,7 @@ class MP(Infer):
             if len(t_symbs) <= 1:  # finding bound of single input val,
                 continue
 
-            if (inps.issuperset(t_symbs) or
-                    all(s not in inps for s in t_symbs)):
+            if inps.issuperset(t_symbs) or all(s not in inps for s in t_symbs):
                 excludes.add(term)
 
         return excludes
