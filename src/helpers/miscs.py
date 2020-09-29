@@ -399,10 +399,7 @@ class Miscs(object):
         def okCoef(c):
             try:
                 return (
-                    (
-                        abs(c) <= settings.MAX_LARGE_COEF
-                        and len(str(c)) <= settings.MAX_LARGE_COEF_STR
-                    )
+                    abs(c) <= settings.MAX_LARGE_COEF
                     or sage.all.mod(c, 10) == 0
                     or sage.all.mod(c, 5) == 0
                 )

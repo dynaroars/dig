@@ -77,10 +77,11 @@ class Invs(set):
         assert not falseinvs, falseinvs
         assert not preposts, preposts
 
-        exprs_d = {}
-
-        def my_get_expr(p):
-            return self.get_expr(p, exprs_d)
+        # try to apply reduce here to see if we can remove anything else
+        eqts_ = [eqt.inv for eqt in eqts]
+        eqts_ = Miscs.reduce_with_timeout(eqts_)
+        eqts_ = [data.inv.eqt.Eqt(eqt) for eqt in eqts_]
+        eqts = eqts_
 
         octs_simple = []
         octs_ = []
@@ -101,6 +102,12 @@ class Invs(set):
                 mps_.append(mp)
 
         mps = mps_
+
+        exprs_d = {}
+
+        def my_get_expr(p):
+            return self.get_expr(p, exprs_d)
+
         mps = self.simplify1(mps, eqts + octs + octs_simple, "mps", my_get_expr)
         octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
 

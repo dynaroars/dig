@@ -28,25 +28,28 @@ class Infer(infer.base.Infer):
 
         locs = traces.keys()
         # first obtain enough traces
-        tasks = [(loc, self._get_init_traces(loc, deg, traces, inps,
-                                             settings.EQT_RATE))
-                 for loc in locs]
+        tasks = [
+            (loc, self._get_init_traces(loc, deg, traces, inps, settings.EQT_RATE))
+            for loc in locs
+        ]
         tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
 
         # then solve/prove in parallel
         def f(tasks):
-            return [(loc, self._infer(loc, template, uks, exprs, traces, inps))
-                    for loc, (template, uks, exprs) in tasks]
-        wrs = Miscs.run_mp('find eqts', tasks, f)
+            return [
+                (loc, self._infer(loc, template, uks, exprs, traces, inps))
+                for loc, (template, uks, exprs) in tasks
+            ]
+
+        wrs = Miscs.run_mp("find eqts", tasks, f)
 
         # put results together
         dinvs = DInvs()
         for loc, (eqts, cexs) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
-            mlog.debug("{}: got {} eqts, {} new inps"
-                       .format(loc, len(eqts), len(new_inps)))
+            mlog.debug(f"{loc}: got {len(eqts)} eqts, {len(new_inps)} new inps")
             if eqts:
-                mlog.debug('\n'.join(map(str, eqts)))
+                mlog.debug("\n".join(map(str, eqts)))
             dinvs[loc] = Invs(eqts)
 
         return dinvs
@@ -54,7 +57,7 @@ class Infer(infer.base.Infer):
     # PRIVATE
     def add_exprs(cls, template, n_eqts_needed, traces, exprs):
         assert traces
-        mlog.debug("got {} new traces".format(len(traces)))
+        mlog.debug(f"got {len(traces)} new traces")
         new_exprs = traces.instantiate(template, n_eqts_needed - len(exprs))
         for expr in new_exprs:
             assert expr not in exprs
@@ -69,11 +72,13 @@ class Infer(infer.base.Infer):
         doRand = True
         while n_eqts_needed > len(exprs):
             new_traces = {}
-            mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
-                       .format(loc, len(exprs), n_eqts_needed, len(inps)))
+            mlog.debug(
+                f"{loc}: need more traces ({len(exprs)} eqts, "
+                f"need >= {n_eqts_needed}, inps {len(inps)})"
+            )
             if doRand:
                 rInps = self.prog.gen_rand_inps(n_eqts_needed - len(exprs))
-                mlog.debug("gen {} random inps".format(len(rInps)))
+                mlog.debug(f"gen {len(rInps)} random inps")
                 rInps = inps.merge(rInps, self.inp_decls.names)
                 if rInps:
                     new_traces = self.get_traces(rInps, traces)
@@ -86,8 +91,9 @@ class Infer(infer.base.Infer):
 
                 # cannot find new inputs
                 if loc not in cexs:
-                    mlog.debug("{}: cannot find new inps ({} curr inps)"
-                               .format(loc, len(inps)))
+                    mlog.debug(
+                        "{}: cannot find new inps ({} curr inps)".format(loc, len(inps))
+                    )
                     return
 
                 new_inps = inps.merge(cexs, self.inp_decls.names)
@@ -95,10 +101,13 @@ class Infer(infer.base.Infer):
 
                 # cannot find new traces (new inps do not produce new traces)
                 if loc not in new_traces:
-                    mlog.debug("{}: cannot find new traces ".format(loc) +
-                               "(new inps {}, ".format(len(new_inps)) +
-                               "curr traces {})".format(
-                                   len(traces[loc]) if loc in traces else 0))
+                    mlog.debug(
+                        "{}: cannot find new traces ".format(loc)
+                        + "(new inps {}, ".format(len(new_inps))
+                        + "curr traces {})".format(
+                            len(traces[loc]) if loc in traces else 0
+                        )
+                    )
                     return
 
             self.add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
@@ -114,8 +123,11 @@ class Infer(infer.base.Infer):
 
         exprs = traces[loc].instantiate(template, n_eqts_needed)
         while n_eqts_needed > len(exprs):
-            mlog.debug("{}: need more traces ({} eqts, need >= {})"
-                       .format(loc, len(exprs), n_eqts_needed))
+            mlog.debug(
+                "{}: need more traces ({} eqts, need >= {})".format(
+                    loc, len(exprs), n_eqts_needed
+                )
+            )
             dinvsFalse = DInvs.mk_false_invs([loc])
             cexs, _, _ = self.symstates.check(dinvsFalse, inps)
 
@@ -140,23 +152,31 @@ class Infer(infer.base.Infer):
             whileF, whileFName = self._while_rand, "random"
         else:
             whileF, whileFName = self._while_symstates, "symstates"
-        mlog.debug("{}: gen init inps using {} (curr inps {}, traces {})"
-                   .format(loc, whileFName, len(inps), len(traces)))
+        mlog.debug(
+            "{}: gen init inps using {} (curr inps {}, traces {})".format(
+                loc, whileFName, len(inps), len(traces)
+            )
+        )
 
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
-            self.inv_decls[loc].names, deg, rate)
+            self.inv_decls[loc].names, deg, rate
+        )
         exprs = whileF(loc, template, n_eqts_needed, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
-        while (not exprs):
+        while not exprs:
             if deg < 2:
                 return  # cannot generate enough traces
 
             deg = deg - 1
-            mlog.info("Reduce polynomial degree to {}, terms {}, uks {}"
-                      .format(deg, len(terms), len(uks)))
+            mlog.info(
+                "Reduce polynomial degree to {}, terms {}, uks {}".format(
+                    deg, len(terms), len(uks)
+                )
+            )
             terms, template, uks, n_eqts_needed = Miscs.init_terms(
-                self.inv_decls[loc].names, deg, rate)
+                self.inv_decls[loc].names, deg, rate
+            )
             exprs = whileF(loc, template, n_eqts_needed, inps, traces)
 
         return template, uks, exprs
@@ -178,8 +198,9 @@ class Infer(infer.base.Infer):
 
         while True:
             curIter += 1
-            mlog.debug("{}, iter {} infer using {} exprs"
-                       .format(loc, curIter, len(exprs)))
+            mlog.debug(
+                "{}, iter {} infer using {} exprs".format(loc, curIter, len(exprs))
+            )
 
             new_eqts = Miscs.solve_eqts(exprs, uks, template)
             unchecks = [eqt for eqt in new_eqts if eqt not in cache]
@@ -188,11 +209,17 @@ class Infer(infer.base.Infer):
                 mlog.debug("{}: no new results -- break".format(loc))
                 break
 
-            mlog.debug('{}: {} candidates:\n{}'.format(
-                loc, len(new_eqts), '\n'.join(map(str, new_eqts))))
+            mlog.debug(
+                "{}: {} candidates:\n{}".format(
+                    loc, len(new_eqts), "\n".join(map(str, new_eqts))
+                )
+            )
 
-            mlog.debug("{}: check {} unchecked ({} candidates)"
-                       .format(loc, len(unchecks), len(new_eqts)))
+            mlog.debug(
+                "{}: check {} unchecked ({} candidates)".format(
+                    loc, len(unchecks), len(new_eqts)
+                )
+            )
 
             dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
             cexs, dinvs = self.check(dinvs, None)
