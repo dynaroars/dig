@@ -429,7 +429,7 @@ class Miscs(object):
         sols = [cls.elim_denom(s) for s in sols]
         # need this because the results can be "ugly", e.g., dijkstra
         sols = cls.remove_ugly(sols)
-
+        # sols = cls.reduce_with_timeout(sols)
         return sols
 
     @classmethod
@@ -441,8 +441,6 @@ class Miscs(object):
         mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
         # print(eqts)
 
-        # I don't think this helps
-        # @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
         def mysolve(eqts, uks):
             return sage.all.solve(eqts, *uks, solution_dict=True)
 
