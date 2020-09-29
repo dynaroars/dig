@@ -202,7 +202,6 @@ class Ieq(Infer):
 
             if inps.issuperset(t_symbs):
                 excludes.add(term)
-                print("exclude", term)
         return excludes
 
 
