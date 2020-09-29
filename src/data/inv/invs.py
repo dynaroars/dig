@@ -77,11 +77,11 @@ class Invs(set):
         assert not falseinvs, falseinvs
         assert not preposts, preposts
 
-        # try to apply reduce here to see if we can remove anything else
-        eqts_ = [eqt.inv for eqt in eqts]
-        eqts_ = Miscs.reduce_with_timeout(eqts_)
-        eqts_ = [data.inv.eqt.Eqt(eqt) for eqt in eqts_]
-        eqts = eqts_
+        # # try to apply reduce here to see if we can remove anything else
+        # eqts_ = [eqt.inv for eqt in eqts]
+        # eqts_ = Miscs.reduce_with_timeout(eqts_)
+        # eqts_ = [data.inv.eqt.Eqt(eqt) for eqt in eqts_]
+        # eqts = eqts_
 
         octs_simple = []
         octs_ = []
