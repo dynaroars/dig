@@ -13,10 +13,20 @@ class NestArray:
         if l == r:
             self.nestings.insert(len(self.nestings), deepcopy(lstTrace))
         else:
-            for i in range(l, r + 1):
+            for i in range(l, r):
                 lstTrace[l], lstTrace[i] = lstTrace[i], lstTrace[l]
                 self.genNesting(lstTrace, l + 1, r)
                 lstTrace[l], lstTrace[i] = lstTrace[i], lstTrace[l]
+    def genSubset(self, lstTrace):
+        n = len(lstTrace)
+        for i in range((1 << n) - 1):
+            a = []
+            for j in range(n):
+                if i & (1 << j):
+                    a.append(lstTrace[j])
+            if len(a) > 1:
+                self.genNesting(a, 0, len(a))
+        self.genNesting(lstTrace, 0, len(lstTrace))
 
     def reachAnalysisTopLevel(self, n, proposedVariance, trace, frequencyTrace):
         pivot = proposedVariance[0]
@@ -80,7 +90,7 @@ class NestArray:
 
     def start(self, trace):
         variable = range(len(trace))
-        nestedArray.genNesting(list(variable), 0, len(variable) - 1)
+        nestedArray.genSubset(list(variable))
         allDict = nestedArray.preprocess(trace)
         success = False
         for nesting in self.nestings:
