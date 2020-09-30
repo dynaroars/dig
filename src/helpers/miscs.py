@@ -431,6 +431,8 @@ class Miscs(object):
         eqts = cls.remove_ugly(eqts)
 
         eqts = cls.reduce_with_timeout(list(set(eqts + nice_eqts)))
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
 
         return eqts
 
