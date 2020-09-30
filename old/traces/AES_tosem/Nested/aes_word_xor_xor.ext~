@@ -1,0 +1,9 @@
+Expect: r[i] = xor3(a[i],b[i],c[i])
+Input: a
+Input: b
+Input: c
+Output: r
+ExtFun: xor_xor #necessary
+#ExtFun: xor     #not necessary, here for completeness (will slow down system)
+#ExtFun: add     #not necessary, here for completeness (will slow down system)
+#ExtFun: mod255  #not necessary, here for completeness (will slow down system)

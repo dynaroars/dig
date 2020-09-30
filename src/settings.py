@@ -2,32 +2,31 @@ import pdb
 from functools import partial
 import os.path
 from pathlib import Path
+
 DBG = pdb.set_trace
 
 tmpdir = Path("/var/tmp/")
 logger_level = 2
 DO_MP = True  # use multiprocessing
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
-DO_FILTER = True  # simplify results, e.g., removing weaker invariants
+DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
-DO_PREPOSTS = False  # support prepostconditions #not well-tested
+DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
-DO_SOLVER_STATS = False
+DO_SOLVER_STATS = False  # collect solver usage stats
 
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
-# SYMEXE_TIMEOUT = 10  # secs
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs
-EQT_SOLVER_TIMEOUT = 3 * 60  # mins
-EQT_SOLVER_TIMEOUT_MAXTRIES = 3
+EQT_REDUCE_TIMEOUT = 20  # secs
 EQT_RATE = 1.5
-MAX_LARGE_COEF = 50
+MAX_LARGE_COEF = 20
 MAX_TERM = 200
 
 LARGE_N = 200000  # powersum programs can go up to very large vals
@@ -43,8 +42,8 @@ ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
 
 # options for full specs analysis
-CTR_VAR = 'Ct'  # counter variable contains this string
-POST_LOC = 'post'  # vtraceX_post  indicates postconditions
+CTR_VAR = "Ct"  # counter variable contains this string
+POST_LOC = "post"  # vtraceX_post  indicates postconditions
 
 # Program Paths
 SRC_DIR = Path(__file__).parent
@@ -79,20 +78,18 @@ class Java:
     assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
-    JPF_RUN = (f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} "
-               "{jpffile}")
+    JPF_RUN = f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} " "{jpffile}"
     JPF_RUN = partial(JPF_RUN.format)
 
-    COMPILE = (f"{JAVAC_CMD} "
-               "-g {filename} -d {tmpdir}")
+    COMPILE = f"{JAVAC_CMD} " "-g {filename} -d {tmpdir}"
     COMPILE = partial(COMPILE.format)
 
-    INSTRUMENT = (f"{JAVA_CMD} -cp {CLASSPATH} "
-                  "Instrument {filename} {tracefile} {symexefile}")
+    INSTRUMENT = (
+        f"{JAVA_CMD} -cp {CLASSPATH} " "Instrument {filename} {tracefile} {symexefile}"
+    )
     INSTRUMENT = partial(INSTRUMENT.format)
 
-    JAVA_RUN = (f"{JAVA_CMD} "
-                "-ea -cp {tracedir} {funname}")
+    JAVA_RUN = f"{JAVA_CMD} " "-ea -cp {tracedir} {funname}"
     JAVA_RUN = partial(JAVA_RUN.format)
 
 
@@ -187,8 +184,7 @@ def setup(settings, args):
     if 0 <= args.log_level <= 4:
         if settings:
             settings.logger_level = args.log_level
-            settings.logger_level = helpers.vcommon.getLogLevel(
-                settings.logger_level)
+            settings.logger_level = helpers.vcommon.getLogLevel(settings.logger_level)
             mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
         else:
             opts.append(f"-log_level {args.log_level}")
@@ -233,7 +229,7 @@ def setup(settings, args):
         if settings:
             settings.UTERMS = set(args.uterms.split())
         else:
-            opts.append(f"-uterms \"{args.uterms}\"")  # not tested
+            opts.append(f'-uterms "{args.uterms}"')  # not tested
 
     se_mindepth = None
     if args.se_mindepth and args.se_mindepth >= 1:
@@ -249,4 +245,4 @@ def setup(settings, args):
         else:
             opts.append(f"-tmpdir {args.tmpdir}")
 
-    return (mlog, se_mindepth) if settings else ' '.join(opts)
+    return (mlog, se_mindepth) if settings else " ".join(opts)

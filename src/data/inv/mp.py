@@ -36,12 +36,16 @@ class MP(data.inv.base.Inv):
 
     def __str__(self, print_stat=False, use_lambda=False):
         s = self.term.__str__(use_lambda)
-        if self.is_ieq is not None:
-            s += " {} 0".format('<=' if self.is_ieq is True else '==')
-        if print_stat:
-            s = "{} {}".format(s, self.stat)
 
+        if self.is_ieq is not None:
+            s += f" {'<=' if self.is_ieq is True else '=='} 0"
+        if print_stat:
+            s = f"{s} {self.stat}"
         return s
+
+    @property
+    def is_eqt(self):
+        return self.is_ieq is False
 
     @property
     def expr(self):
@@ -93,7 +97,7 @@ class MP(data.inv.base.Inv):
                 ite = b == elem
 
             # ite = "{} {} {}".format(b, '<=' if is_ieq else '==', elem)
-        rest = a[idx + 1:]
+        rest = a[idx + 1 :]
 
         if not rest:  # t <= max(x,y,z)
             return ite
@@ -110,13 +114,15 @@ class MP(data.inv.base.Inv):
 
     @classmethod
     def simplify(cls, mps):
+        """
+        if have both ...  , then create ==
+        """
         assert isinstance(mps, list), mps
         assert all(isinstance(mp, cls) for mp in mps)
 
         cached = {}
         for mp in mps:
-            key = frozenset([
-                mp.term.a, mp.term.b, (mp.term.is_max, mp.is_ieq)])
+            key = frozenset([mp.term.a, mp.term.b, (mp.term.is_max, mp.is_ieq)])
 
             if key not in cached:
                 cached[key] = mp
@@ -143,7 +149,7 @@ class Term(NamedTuple):
         """
         s = self._to_str(self.a, self.b, self.is_max)
         if use_lambda:
-            s = "lambda {}: {}".format(','.join(self.symbols), s)
+            s = f"lambda {','.join(self.symbols)}: {s}"
         return s
 
     @classmethod
@@ -151,7 +157,7 @@ class Term(NamedTuple):
         if not isinstance(a, tuple):
             a = (a,)
         if not isinstance(b, tuple):
-            b = (b, )
+            b = (b,)
         return cls(a, b, is_max)
 
     def mk_le(self, uv):
@@ -174,11 +180,14 @@ class Term(NamedTuple):
 
     def eval_traces(self, traces, pred=None):
         if pred is None:
-            return [self._eval(self.__str__(use_lambda=True), t.mydict_str)
-                    for t in traces]
+            return [
+                self._eval(self.__str__(use_lambda=True), t.mydict_str) for t in traces
+            ]
         else:
-            return any(pred(self._eval(self.__str__(use_lambda=True), t.mydict_str))
-                       for t in traces)
+            return any(
+                pred(self._eval(self.__str__(use_lambda=True), t.mydict_str))
+                for t in traces
+            )
 
     @classmethod
     def get_terms(cls, terms):
@@ -252,15 +261,15 @@ class Term(NamedTuple):
         terms = sorted(terms, key=lambda x: str(x))
         results = set((t, (0,)) for t in terms)
         for i, term in enumerate(terms):
-            terms_ = terms[:i] + terms[i+1:]
+            terms_ = terms[:i] + terms[i + 1 :]
             powerset = itertools.chain.from_iterable(
-                itertools.combinations(terms_, r)
-                for r in range(len(terms_)+1))
+                itertools.combinations(terms_, r) for r in range(len(terms_) + 1)
+            )
             powerset = [ps for ps in powerset if ps]
             for pset in powerset:
                 results.add((term, tuple(list(pset) + [0])))
                 # ignore [y], x if [x],y exists
-                if not(len(pset) == 1 and (pset[0], (term,)) in results):
+                if not (len(pset) == 1 and (pset[0], (term,)) in results):
                     results.add((term, pset))
 
         return sorted(results, key=lambda x: str(x))
@@ -275,29 +284,29 @@ class Term(NamedTuple):
         # sage: print(MPInv._to_str((x,y), (z,7), is_max=True))
         # max(x, y) - max(z, 7)
         """
+
         def f(ls):
             assert ls
             if len(ls) >= 2:
-                return '{}({})'.format(
-                    'max' if is_max else 'min',
-                    ', '.join(map(str, ls)))
+                return f"{'max' if is_max else 'min'}({', '.join(map(str, ls))})"
             else:
                 term = ls[0]
                 try:
                     if term.operands():  # x - 3
-                        t = '({})'
+                        t = "({})"
                     else:
-                        t = '{}'
+                        t = "{}"
                 except AttributeError:  # 3
-                    t = '{}'
+                    t = "{}"
 
                 return t.format(term)
+
         a_ = f(a)
         b_ = f(b)
-        if b_ == '0':
+        if b_ == "0":
             return a_
         else:
-            return "{} - {}".format(a_, b_)
+            return f"{a_} - {b_}"
 
     @staticmethod
     def _eval(lambda_str, trace):
@@ -312,7 +321,7 @@ class Term(NamedTuple):
         # sage: assert MPInv._eval('lambda x,y: x+y == 6', {'x': 2,'y':3,'d':7}) == False
         # sage: assert MPInv._eval('lambda x,y: x+y == 1 or x + y == 2', {'x': 2,'y':3,'d':7}) == False
         """
-        assert isinstance(lambda_str, str) and 'lambda' in lambda_str
+        assert isinstance(lambda_str, str) and "lambda" in lambda_str
         assert trace, trace
 
         f = sage.all.sage_eval(lambda_str)

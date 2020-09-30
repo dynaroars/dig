@@ -1,0 +1,11 @@
+Expect:	r[i] = xor2(a[i],b[i])
+Input: a
+Input: b
+Output: r
+ExtFun: xor  #must be here otherwise system will not include xor which is required
+#ExtFun: add  #not necessary, here for completeness (will slow down system) 
+#ExtFun: mod255  #not necessary, here for completeness (will slow down system)
+#Commute: xor
+Commute: add
+
+

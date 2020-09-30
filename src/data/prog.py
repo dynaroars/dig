@@ -62,8 +62,7 @@ class Prog:
                 inps.add(myinp)
 
             if len(inps) == old_siz:
-                mlog.debug("can't gen new rand inps (current {})".format(
-                    len(inps)))
+                mlog.debug(f"can't gen new rand inps (current {len(inps)})")
                 break
         return inps
 
@@ -71,15 +70,13 @@ class Prog:
     def _get_traces(self, inp):
         assert isinstance(inp, data.traces.Inp), inp
 
-        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
-                for v in inp.vs)
-        inp_ = ' '.join(map(str, inp_))
-        cmd = "{} {}".format(self.exe_cmd, inp_)
+        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n() for v in inp.vs)
+        inp_ = " ".join(map(str, inp_))
+        cmd = f"{self.exe_cmd} {inp_}"
         mlog.debug(cmd)
 
         # do not check cmd status, could get error status due to incorrect input
-        cp = subprocess.run(shlex.split(cmd),
-                            capture_output=True, text=True)
+        cp = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
         traces = cp.stdout.splitlines()
         return traces
 
@@ -94,6 +91,7 @@ class Prog:
 
         def f(tasks):
             return [(inp, self._get_traces(inp)) for inp in tasks]
+
         wrs = Miscs.run_mp("get traces", tasks, f)
 
         for inp, traces in wrs:
@@ -122,7 +120,7 @@ class Prog:
                 valid_ranges.add(dr[myInp])
                 valid_inps.add(di[myInp])
             else:
-                mlog.debug("inp range {} invalid".format(dr[myInp]))
+                mlog.debug(f"inp range {dr[myInp]} invalid")
 
         return valid_ranges, valid_inps
 
@@ -135,8 +133,7 @@ class Prog:
         small = 0.10
         large = 1 - small
         maxV = settings.INP_MAX_V
-        rinps = [(0, int(maxV * small)),
-                 (int(maxV * large), maxV)]
+        rinps = [(0, int(maxV * small)), (int(maxV * large), maxV)]
         if n_inps <= settings.INP_RANGE_V:
             # consider some ranges for smaller #'s of inps
             tiny = 0.05
@@ -147,21 +144,22 @@ class Prog:
         return rinps_i
 
 
-class Symb(namedtuple('Symb', ('name', 'typ'))):
+class Symb(namedtuple("Symb", ("name", "typ"))):
     """
     Symbolic variable and its type,
     e.g., (x, 'I') means x is an integer
     """
+
     @property
     def is_real(self):
         try:
             return self._is_real
         except AttributeError:
-            self._is_real = self.typ in {'D', 'F'}
+            self._is_real = self.typ in {"D", "F"}
             return self._is_real
 
     def __str__(self):
-        return "{} {}".format(self.typ, self.name)
+        return f"{self.typ} {self.name}"
 
     @property
     def sageExpr(self):
@@ -190,13 +188,16 @@ class Symbs(tuple):
         return ", ".join(map(str, self))
 
     @property
-    def names(self): return tuple(s.name for s in self)
+    def names(self):
+        return tuple(s.name for s in self)
 
     @property
-    def typs(self): return tuple(s.typ for s in self)
+    def typs(self):
+        return tuple(s.typ for s in self)
 
     @property
-    def sageExprs(self): return tuple(s.sageExpr for s in self)
+    def sageExprs(self):
+        return tuple(s.sageExpr for s in self)
 
     @property
     def exprs(self):
@@ -213,9 +214,10 @@ class Symbs(tuple):
         """
         assert isinstance(s, str), s
 
-        cs = (x.split() for x in s.split(',') if x.strip())
+        cs = (x.split() for x in s.split(",") if x.strip())
         symbs = [Symb(k.strip(), t.strip()) for t, k in cs]
         return cls(symbs)
+
 
 # inv_decls = {loc: Symbs}
 
@@ -236,45 +238,60 @@ class Src:
         symexedir = self.mkdir(tmpdir / settings.SYMEXE_DIR)
         symexefile = symexedir / basename
 
-        cmd = self.instrument_cmd(filename=filename,
-                                  tracefile=tracefile,
-                                  symexefile=symexefile)
+        cmd = self.instrument_cmd(
+            filename=filename, tracefile=tracefile, symexefile=symexefile
+        )
         try:
-            cp = subprocess.run(shlex.split(cmd),
-                                capture_output=True, check=True, text=True)
+            cp = subprocess.run(
+                shlex.split(cmd), capture_output=True, check=True, text=True
+            )
         except subprocess.CalledProcessError as ex:
-            mlog.error("cmd '{}' gives error\n{}".format(
-                ' '.join(ex.cmd), ex.stderr))
+            mlog.error("cmd '{}' gives error\n{}".format(" ".join(ex.cmd), ex.stderr))
             raise
         inp_decls, inv_decls, mainQ_name = self.parse_type_info(cp.stdout)
 
         self.filename, self.basename, self.funname = filename, basename, funname
         self.tracedir, self.tracefile = tracedir, tracefile
         self.symexedir, self.symexefile = symexedir, symexefile
-        self.inp_decls, self.inv_decls, self.mainQ_name = \
-            inp_decls, inv_decls, mainQ_name
+        self.inp_decls, self.inv_decls, self.mainQ_name = (
+            inp_decls,
+            inv_decls,
+            mainQ_name,
+        )
 
     def parse_type_info(self, msg):
         # vtrace2: I x, I y, I q, I r,
         # vtrace1: I q, I r, I a, I b, I x, I y,
         # mainQ_cohendiv: I x, I y,
-        lines = [l.split(':') for l in msg.split('\n')
-                 if settings.MAINQ_FUN in l
-                 or settings.TRACE_INDICATOR in l]
+        lines = [
+            l.split(":")
+            for l in msg.split("\n")
+            if settings.MAINQ_FUN in l or settings.TRACE_INDICATOR in l
+        ]
 
         lines = [(fun.strip(), Symbs.mk(sstyps)) for fun, sstyps in lines]
 
         # mainQ
-        inp_decls = [(fun, symbs) for fun, symbs in lines
-                     if fun.startswith(settings.MAINQ_FUN)]
+        inp_decls = [
+            (fun, symbs) for fun, symbs in lines if fun.startswith(settings.MAINQ_FUN)
+        ]
         assert len(inp_decls) == 1
 
         inp_decls = inp_decls[0]
         mainQ_name, inp_decls = inp_decls[0], inp_decls[1]
-        inv_decls = DSymbs([(fun, symbs) for fun, symbs in lines
-                            if fun.startswith(settings.TRACE_INDICATOR)])
+        inv_decls = DSymbs(
+            [
+                (fun, symbs)
+                for fun, symbs in lines
+                if fun.startswith(settings.TRACE_INDICATOR)
+            ]
+        )
 
-        return inp_decls, inv_decls, mainQ_name,
+        return (
+            inp_decls,
+            inv_decls,
+            mainQ_name,
+        )
 
     def mkdir(self, d):
         assert not d.exists(), d
@@ -283,7 +300,6 @@ class Src:
 
 
 class Java(Src):
-
     def check(self, filename, tmpdir):
         basename = Path(filename.name)  # c.class
         funname = basename.stem  # c
@@ -291,13 +307,15 @@ class Java(Src):
         if basename.suffix == ".java":
             cmd = settings.Java.COMPILE(filename=filename, tmpdir=tmpdir)
             try:
-                cp = subprocess.run(shlex.split(cmd),
-                                    capture_output=True, check=True, text=True)
+                cp = subprocess.run(
+                    shlex.split(cmd), capture_output=True, check=True, text=True
+                )
             except subprocess.CalledProcessError as ex:
-                mlog.error("cmd '{}' gives error\n{}".format(
-                    ' '.join(ex.cmd), ex.stderr))
+                mlog.error(
+                    "cmd '{}' gives error\n{}".format(" ".join(ex.cmd), ex.stderr)
+                )
                 raise
-            filename = (tmpdir / funname).with_suffix('.class')
+            filename = (tmpdir / funname).with_suffix(".class")
             basename = Path(filename.name)
 
         return filename, basename, funname
@@ -308,17 +326,16 @@ class Java(Src):
 
 
 class C(Src):
-
     def __init__(self, filename, tmpdir):
         super().__init__(filename, tmpdir)
 
-        self.traceexe = self.tracefile.with_suffix('.exe')
+        self.traceexe = self.tracefile.with_suffix(".exe")
         self.compile_test(self.tracefile, self.traceexe)
 
     def check(self, filename, tmpdir):
         basename = Path(filename.name)
         funname = basename.stem
-        self.compile_test(filename, tmpdir / "{}.exe".format(funname))
+        self.compile_test(filename, tmpdir / f"{funname}.exe")
         return filename, basename, funname
 
     @classmethod
@@ -327,6 +344,6 @@ class C(Src):
         subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out
 
-    @ property
+    @property
     def instrument_cmd(self):
         return settings.C.INSTRUMENT

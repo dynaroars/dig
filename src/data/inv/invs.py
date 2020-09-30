@@ -23,9 +23,10 @@ class Invs(set):
         assert all(isinstance(inv, data.inv.base.Inv) for inv in invs), invs
         super().__init__(invs)
 
-    def __str__(self, print_stat=False, delim='\n'):
-        invs = sorted(self, reverse=True,
-                      key=lambda inv: isinstance(inv, data.inv.eqt.Eqt))
+    def __str__(self, print_stat=False, delim="\n"):
+        invs = sorted(
+            self, reverse=True, key=lambda inv: isinstance(inv, data.inv.eqt.Eqt)
+        )
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
     def __contains__(self, inv):
@@ -46,10 +47,11 @@ class Invs(set):
 
     def test(self, traces):
         # assert isinstance(traces, Traces)
-        assert(self), self
+        assert self, self
 
         def f(tasks):
             return [(inv, inv.test(traces)) for inv in tasks]
+
         wrs = Miscs.run_mp("test", list(self), f)
 
         myinvs = set()
@@ -57,11 +59,12 @@ class Invs(set):
             if passed:
                 myinvs.add(inv)
             else:
-                mlog.debug("remove {}".format(inv))
+                mlog.debug(f"remove {inv}")
 
         invs = self.__class__(myinvs)
         return invs
 
+    @classmethod
     def get_expr(cls, p, exprs_d):
         if p not in exprs_d:
             exprs_d[p] = p.expr
@@ -69,19 +72,43 @@ class Invs(set):
 
     def simplify(self):
 
-        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = \
-            self.classify(self)
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify(self)
 
         assert not falseinvs, falseinvs
         assert not preposts, preposts
+
+        # # try to apply reduce here to see if we can remove anything else
+        # eqts_ = [eqt.inv for eqt in eqts]
+        # eqts_ = Miscs.reduce_with_timeout(eqts_)
+        # eqts_ = [data.inv.eqt.Eqt(eqt) for eqt in eqts_]
+        # eqts = eqts_
+
+        octs_simple = []
+        octs_ = []
+        for oct in octs:
+            if oct.is_simple:
+                octs_simple.append(oct)
+            else:
+                octs_.append(oct)
+        octs = octs_
+
+        mps = data.inv.mp.MP.simplify(mps)  # find ==
+        mps_ = []
+        for mp in mps:
+            if mp.is_eqt:
+                eqts.append(mp)
+            else:
+                assert mp.is_ieq is True, mp
+                mps_.append(mp)
+
+        mps = mps_
 
         exprs_d = {}
 
         def my_get_expr(p):
             return self.get_expr(p, exprs_d)
 
-        mps = data.inv.mp.MP.simplify(mps)
-        mps = self.simplify1(mps, eqts + octs, "mps", my_get_expr)
+        mps = self.simplify1(mps, eqts + octs + octs_simple, "mps", my_get_expr)
         octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
 
         # simplify both mps and octs (slow)
@@ -109,10 +136,10 @@ class Invs(set):
 
             results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
             results = [ps[i] for i in results]
-            Miscs.show_removed('simplify2', len(ps), len(results), time() - st)
-            results = eqts + eqts_largecoefs + results
+            Miscs.show_removed("simplify2", len(ps), len(results), time() - st)
+            results = eqts + eqts_largecoefs + octs_simple + results
         else:
-            results = eqts + eqts_largecoefs + mps + octs
+            results = eqts + eqts_largecoefs + mps + octs_simple + octs
 
         return self.__class__(results)
 
@@ -122,6 +149,7 @@ class Invs(set):
         Simplify a class of invariants (e.g., oct or mps)
         Relatively fast, using multiprocessing
         """
+
         if len(ps) >= 2 and others:
             st = time()
             conj = [get_expr(p) for p in others]
@@ -130,11 +158,10 @@ class Invs(set):
 
             def f(ps):
                 return [p for p in ps if not Z3._imply(conj, get_expr(p))]
-            wrs = Miscs.run_mp(
-                "simplify1 {} {}".format(len(ps), msg), ps, f)
 
-            Miscs.show_removed('simplify1 {}'.format(msg),
-                               len(ps), len(wrs), time() - st)
+            wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
+
+            Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
             ps = [p for p in wrs]
         return ps
 
@@ -151,7 +178,12 @@ class Invs(set):
             elif isinstance(inv, data.inv.oct.Oct):
                 octs.append(inv)
             elif isinstance(inv, data.inv.mp.MP):
-                mps.append(inv)
+                if inv.is_eqt:
+                    eqts.append(inv)
+                else:
+                    assert inv.is_ieq is True, inv
+                    mps.append(inv)
+
             elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
             else:
@@ -176,7 +208,8 @@ class DInvs(dict):
         return (inv for invs in self.values() for inv in invs)
 
     @property
-    def siz(self): return sum(map(len, self.values()))
+    def siz(self):
+        return sum(map(len, self.values()))
 
     @property
     def typ_ctr(self):
@@ -191,24 +224,27 @@ class DInvs(dict):
 
         for loc in sorted(self):
             eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self[loc].classify(
-                self[loc])
-            ss.append("{} ({} invs):".format(loc, len(self[loc])))
+                self[loc]
+            )
+            ss.append(f"{loc} ({len(self[loc])} invs):")
 
-            invs = sorted(eqts + eqts_largecoefs, reverse=True, key=str) + \
-                sorted(preposts, reverse=True, key=str) +\
-                sorted(octs, reverse=True, key=str) +\
-                sorted(mps, reverse=True, key=str) +\
-                sorted(falseinvs, reverse=True, key=str)
+            invs = (
+                sorted(eqts + eqts_largecoefs, reverse=True, key=str)
+                + sorted(preposts, reverse=True, key=str)
+                + sorted(octs, reverse=True, key=str)
+                + sorted(mps, reverse=True, key=str)
+                + sorted(falseinvs, reverse=True, key=str)
+            )
 
             if print_first_n and print_first_n < len(invs):
-                invs = invs[:print_first_n] + ['...']
+                invs = invs[:print_first_n] + ["..."]
 
-            ss.extend("{}. {}".format(
-                i+1,
-                inv if isinstance(inv, str) else inv.__str__(print_stat))
-                for i, inv in enumerate(invs))
+            ss.extend(
+                f"{i + 1}. {inv if isinstance(inv, str) else inv.__str__(print_stat)}"
+                for i, inv in enumerate(invs)
+            )
 
-        return '\n'.join(ss)
+        return "\n".join(ss)
 
     def add(self, loc, inv):
         assert isinstance(loc, str) and loc, loc
@@ -269,16 +305,17 @@ class DInvs(dict):
         return deltas
 
     def simplify(self):
-        assert(self.siz), self
+        assert self.siz, self
 
         st = time()
 
         def f(tasks):
             return [(loc, self[loc].simplify()) for loc in tasks]
-        wrs = Miscs.run_mp('simplify', list(self), f)
+
+        wrs = Miscs.run_mp("simplify", list(self), f)
         mlog.debug("done simplifying , time {}".format(time() - st))
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
-        Miscs.show_removed('simplify', self.siz, dinvs.siz, time() - st)
+        Miscs.show_removed("simplify", self.siz, dinvs.siz, time() - st)
         return dinvs
 
     @classmethod
@@ -297,7 +334,6 @@ class DInvs(dict):
 
 
 class FalseInv(data.inv.base.Inv):
-
     def __init__(self, inv, stat=None):
         assert inv == 0, inv
         super().__init__(inv, stat)
@@ -312,6 +348,6 @@ class FalseInv(data.inv.base.Inv):
     def expr(self):
         return z3.BoolVal(False)
 
-    @ classmethod
+    @classmethod
     def mk(cls):
         return FalseInv(0)

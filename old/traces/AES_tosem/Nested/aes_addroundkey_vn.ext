@@ -1,0 +1,4 @@
+Expect: r[i][j]= xor(st[i,j],rk[i,j])
+ExtFun: xor
+
+

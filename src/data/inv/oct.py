@@ -15,7 +15,12 @@ class Oct(data.inv.base.RelInv):
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)
         """
-        assert (myoct.operator() == operator.le or
-                myoct.operator() == operator.lt), myoct
+        assert myoct.operator() == operator.le or myoct.operator() == operator.lt, myoct
 
         super().__init__(myoct, stat)
+
+    @property
+    def is_simple(self):
+        ub = self.inv.rhs()
+        # need to convert to bool because ub.is_one() might return 1 == 1
+        return bool(ub.is_constant() and ub.is_one())
