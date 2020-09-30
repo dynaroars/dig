@@ -36,7 +36,7 @@ class PathCondition(NamedTuple):
     slocal: z3.ExprRef
 
     def __str__(self):
-        return f'loc: {self.loc}\npc: {self.pc}\nslocal: {self.slocal}'
+        return f"loc: {self.loc}\npc: {self.pc}\nslocal: {self.slocal}"
 
     @property
     def expr(self):
@@ -48,7 +48,6 @@ class PathCondition(NamedTuple):
 
         parts = cls.parse_parts(s.splitlines())
         if not parts:
-            mlog.error("Cannot obtain symstates")
             return None
 
         pcs = [cls.parse_part(p) for p in parts]
@@ -56,7 +55,6 @@ class PathCondition(NamedTuple):
 
 
 class PC_CIVL(PathCondition):
-
     @classmethod
     def parse_parts(cls, lines):
         """
@@ -72,9 +70,9 @@ class PC_CIVL(PathCondition):
         lines = [line.strip() for line in lines]
         lines = [line for line in lines if line]
         for line in lines:
-            if line.startswith('vtrace'):
+            if line.startswith("vtrace"):
                 slocals.append(line)
-            elif line.startswith('path condition'):
+            elif line.startswith("path condition"):
                 assert len(pcs) == len(slocals) - 1
                 pcs.append(line)
 
@@ -89,9 +87,9 @@ class PC_CIVL(PathCondition):
         """
         assert isinstance(ss, list) and len(ss) == 2, ss
         slocal, pc = ss
-        pc = pc.split(':')[1].strip()  # path condition: ...
-        pc = None if pc == 'true' else cls.replace_str(pc)
-        loc, slocal = slocal.split(':')
+        pc = pc.split(":")[1].strip()  # path condition: ...
+        pc = None if pc == "true" else cls.replace_str(pc)
+        loc, slocal = slocal.split(":")
         slocal = cls.replace_str(slocal)
 
         assert pc is None or len(pc) >= 1
@@ -100,18 +98,18 @@ class PC_CIVL(PathCondition):
 
     @staticmethod
     def replace_str(s):
-        return (s.
-                replace(' = ', ' == ').
-                replace(';', ' and ').
-                replace('&&', 'and').
-                replace('||', 'or').
-                replace('div ', '/ ').
-                replace('^', '**').
-                strip())
+        return (
+            s.replace(" = ", " == ")
+            .replace(";", " and ")
+            .replace("&&", "and")
+            .replace("||", "or")
+            .replace("div ", "/ ")
+            .replace("^", "**")
+            .strip()
+        )
 
 
 class PC_JPF(PathCondition):
-
     @classmethod
     def parse_parts(cls, lines, delim="**********"):
         """
@@ -166,11 +164,11 @@ class PC_JPF(PathCondition):
 
         curpart = []
         for s in ss:
-            if 'loc: ' in s:
+            if "loc: " in s:
                 loc = s.split()[1]  # e.g., vtrace30(I)V
-                loc = loc.split('(')[0]  # vtrace30
+                loc = loc.split("(")[0]  # vtrace30
                 continue
-            elif 'vars: ' in s:
+            elif "vars: " in s:
                 pcs = curpart[1:]  # ignore pc constraint #
                 curpart = []
                 continue
@@ -178,21 +176,20 @@ class PC_JPF(PathCondition):
         slocals = curpart[:]
         assert loc, loc
 
-        slocals = [cls.replace_str(p)
-                   for p in slocals if p and not cls.too_large(p)]
-        slocals = ' and '.join(slocals) if slocals else None
+        slocals = [cls.replace_str(p) for p in slocals if p and not cls.too_large(p)]
+        slocals = " and ".join(slocals) if slocals else None
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        pcs = ' and '.join(pcs) if pcs else None
+        pcs = " and ".join(pcs) if pcs else None
 
         return loc, pcs, slocals
 
     @staticmethod
     @cached_function
     def too_large(p):
-        if 'CON:' not in p:
+        if "CON:" not in p:
             return False
 
-        ps = p.split('=')
+        ps = p.split("=")
         assert len(ps) == 2
         v = sage_eval(ps[1])
         if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
@@ -204,14 +201,16 @@ class PC_JPF(PathCondition):
     @staticmethod
     @cached_function
     def replace_str(s):
-        return (s.replace('&&', '').
-                replace(' = ', '==').
-                replace('CONST_', '').
-                replace('REAL_', '').
-                replace('%NonLinInteger%', '').
-                replace('SYM:', '').
-                replace('CON:', '').
-                strip())
+        return (
+            s.replace("&&", "")
+            .replace(" = ", "==")
+            .replace("CONST_", "")
+            .replace("REAL_", "")
+            .replace("%NonLinInteger%", "")
+            .replace("SYM:", "")
+            .replace("CON:", "")
+            .strip()
+        )
 
 
 class PCs(set):
@@ -260,8 +259,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in
-                 range(self.mindepth, settings.SE_MAXDEPTH + 1)]
+        tasks = [depth for depth in range(self.mindepth, settings.SE_MAXDEPTH + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -282,8 +280,10 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         def f(tasks):
             rs = [symstates[loc][depth] for loc, depth in tasks]
-            rs = [(loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
-                  for pcs, (loc, depth) in zip(rs, tasks)]
+            rs = [
+                (loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
+                for pcs, (loc, depth) in zip(rs, tasks)
+            ]
             return rs
 
         wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
@@ -291,8 +291,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
-            mlog.debug(
-                f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
+            mlog.debug(f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
         return symstates
 
     def get_ss(self, depth):
@@ -300,19 +299,24 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         cmd = self.mk(depth)
         timeout = depth
-        mlog.debug(
-            f"Obtain symbolic states at depth {depth} (timeout {timeout}s)")
+        mlog.debug(f"Obtain symbolic states at depth {depth} (timeout {timeout}s)")
         mlog.debug(cmd)
 
         s = None
         try:
             cp = subprocess.run(
-                shlex.split(cmd), timeout=timeout,
-                capture_output=True, check=True, text=True)
+                shlex.split(cmd),
+                timeout=timeout,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
             s = cp.stdout
         except subprocess.TimeoutExpired as ex:
-            mlog.warning(f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
-                         f"time out after {ex.timeout}s")
+            mlog.debug(
+                f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
+                f"time out after {ex.timeout}s"
+            )
             s = ex.stdout
 
         except subprocess.CalledProcessError as ex:
@@ -346,8 +350,9 @@ class SymStatesMaker(metaclass=ABCMeta):
         Merge PC's info into symbolic states sd[loc][depth]
         """
         assert isinstance(depthss, list) and depthss, depthss
-        assert all(depth >= 1 and isinstance(ss, list)
-                   for depth, ss in depthss), depthss
+        assert all(
+            depth >= 1 and isinstance(ss, list) for depth, ss in depthss
+        ), depthss
 
         @cached_function
         def zpc(p):
@@ -380,8 +385,12 @@ class SymStatesMaker(metaclass=ABCMeta):
                             iss.remove(s)
 
         # clean up
-        empties = [(loc, depth) for loc in symstates
-                   for depth in symstates[loc] if not symstates[loc][depth]]
+        empties = [
+            (loc, depth)
+            for loc in symstates
+            for depth in symstates[loc]
+            if not symstates[loc][depth]
+        ]
         for loc, depth in empties:
             mlog.debug(f"{loc}: no new symbolic states at depth {depth}")
             symstates[loc].pop(depth)
@@ -434,8 +443,8 @@ class SymStatesMakerJava(SymStatesMaker):
     def mk_JPF_runfile(self, max_int, depth):
         assert max_int >= 0, max_int
 
-        symargs = ['sym'] * self.ninps
-        symargs = '#'.join(symargs)
+        symargs = ["sym"] * self.ninps
+        symargs = "#".join(symargs)
         stmts = [
             f"target={self.funname}",
             f"classpath={self.tmpdir}",
@@ -454,8 +463,9 @@ class SymStatesMakerJava(SymStatesMaker):
             f"symbolic.min_double={-max_int}.0",
             f"symbolic.max_double={max_int}.0",
             "symbolic.dp=z3bitvector",
-            f"search.depth_limit={depth}"]
-        contents = '\n'.join(stmts)
+            f"search.depth_limit={depth}",
+        ]
+        contents = "\n".join(stmts)
 
         filename = self.tmpdir / f"{self.funname}_{max_int}_{depth}.jpf"
 
@@ -483,8 +493,8 @@ class SymStates(dict):
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
-            filename, mainQName, funname,
-            len(self.inp_decls), tmpdir)
+            filename, mainQName, funname, len(self.inp_decls), tmpdir
+        )
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
@@ -499,15 +509,16 @@ class SymStates(dict):
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
-        mlog.debug(f"checking {dinvs.siz} invs:\n"
-                   f"{dinvs.__str__(print_first_n=20)}")
-        tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc]
-                 if inv.stat is None]
+        mlog.debug(f"checking {dinvs.siz} invs:\n" f"{dinvs.__str__(print_first_n=20)}")
+        tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc] if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
 
         def f(tasks):
-            return [(loc, str(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
-                    for loc, inv in tasks]
+            return [
+                (loc, str(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
+                for loc, inv in tasks
+            ]
+
         wrs = helpers.miscs.Miscs.run_mp("prove", tasks, f)
 
         mCexs = []
@@ -519,8 +530,9 @@ class SymStates(dict):
                 stat = data.inv.base.Inv.DISPROVED
                 mCexs.append({loc: {str(inv): cexs}})
             else:
-                stat = (data.inv.base.Inv.PROVED
-                        if is_succ else data.inv.base.Inv.UNKNOWN)
+                stat = (
+                    data.inv.base.Inv.PROVED if is_succ else data.inv.base.Inv.UNKNOWN
+                )
             inv.stat = stat
             mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
@@ -528,8 +540,7 @@ class SymStates(dict):
 
     def mcheck_d(self, loc, inv, inps, ncexs):
         assert isinstance(loc, str), loc
-        assert inv is None or isinstance(
-            inv, data.inv.base.Inv) or z3.is_expr(inv), inv
+        assert inv is None or isinstance(inv, data.inv.base.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
@@ -544,12 +555,11 @@ class SymStates(dict):
                 inv_expr = None
 
         if settings.DO_INCR_DEPTH:
-            cexs, is_succ = self.mcheck_depth(
-                self[loc], inv, inv_expr, inps, ncexs)
+            cexs, is_succ = self.mcheck_depth(self[loc], inv, inv_expr, inps, ncexs)
         else:
             cexs, is_succ, stat = self.mcheck(
-                self.get_ss_at_depth(self[loc], depth=None),
-                inv_expr, inps, ncexs)
+                self.get_ss_at_depth(self[loc], depth=None), inv_expr, inps, ncexs
+            )
 
         return cexs, is_succ
 
@@ -569,13 +579,18 @@ class SymStates(dict):
 
         cexs, is_succ, stat = f(depths[depth_idx])
         if stat != z3.unsat:  # if disprove (sat) or unknown first time
-            self.put_solver_stats(analysis.CheckDepthChanges(
-                str(inv), None, None, stat, depths[depth_idx]))
+            self.put_solver_stats(
+                analysis.CheckDepthChanges(
+                    str(inv), None, None, stat, depths[depth_idx]
+                )
+            )
 
         nochanges = 0
-        while(stat != z3.sat
-              and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
-              and depth_idx < len(depths) - 1):
+        while (
+            stat != z3.sat
+            and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+            and depth_idx < len(depths) - 1
+        ):
             depth_idx_ = depth_idx + 1
             cexs_, is_succ_, stat_ = f(depths[depth_idx_])
             if stat_ != stat:
@@ -583,10 +598,13 @@ class SymStates(dict):
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug(f"check depth diff {inv_expr}: "
-                           f"{stat} @depth {mydepth}, {stat_} @depth {mydepth_}")
+                mlog.debug(
+                    f"check depth diff {inv_expr}: "
+                    f"{stat} @depth {mydepth}, {stat_} @depth {mydepth_}"
+                )
                 self.put_solver_stats(
-                    analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_))
+                    analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_)
+                )
             else:
                 nochanges += 1
 
@@ -624,23 +642,20 @@ class SymStates(dict):
         maximize value of term
         """
         assert z3.is_expr(term_expr), term_expr
-        assert extra_constr is None or \
-            z3.is_expr(extra_constr), extra_constr
+        assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
 
         if settings.DO_INCR_DEPTH:
-            v, stat = self.mmaximize_depth(
-                self[loc], term_expr, iupper, extra_constr)
+            v, stat = self.mmaximize_depth(self[loc], term_expr, iupper, extra_constr)
         else:
             v, stat = self.mmaximize(
-                self.get_ss_at_depth(self[loc], depth=None),
-                term_expr, iupper)
+                self.get_ss_at_depth(self[loc], depth=None), term_expr, iupper
+            )
         return v
 
     def mmaximize_depth(self, ssd, term_expr, iupper, extra_constr):
         assert isinstance(ssd, SymStatesDepth), ssd
         assert z3.is_expr(term_expr), term_expr
-        assert extra_constr is None or \
-            z3.is_expr(extra_constr), extra_constr
+        assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
 
         def f(depth):
             ss = self.get_ss_at_depth(ssd, depth=depth)
@@ -657,14 +672,18 @@ class SymStates(dict):
         if maxv is not None:  # if changed
             self.put_solver_stats(
                 analysis.MaxDepthChanges(
-                    str(term_expr), None, None, maxv, depths[depth_idx]))
+                    str(term_expr), None, None, maxv, depths[depth_idx]
+                )
+            )
 
         nochanges = 0
         changes = 0
-        while(maxv is not None
-              and changes <= settings.SE_DEPTH_NOCHANGES_MAX
-              and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
-              and depth_idx < len(depths) - 1):
+        while (
+            maxv is not None
+            and changes <= settings.SE_DEPTH_NOCHANGES_MAX
+            and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+            and depth_idx < len(depths) - 1
+        ):
 
             depth_idx_ = depth_idx + 1
             maxv_, stat_ = f(depths[depth_idx_])
@@ -681,12 +700,16 @@ class SymStates(dict):
 
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
-                mlog.debug(f"max depth diff {term_expr}: "
-                           f"{maxv} {stat} @depth {mydepth}, "
-                           f"{maxv_} {stat_} @depth {mydepth_}")
+                mlog.debug(
+                    f"max depth diff {term_expr}: "
+                    f"{maxv} {stat} @depth {mydepth}, "
+                    f"{maxv_} {stat_} @depth {mydepth_}"
+                )
                 self.put_solver_stats(
                     analysis.MaxDepthChanges(
-                        str(term_expr), maxv, mydepth, maxv_, mydepth_))
+                        str(term_expr), maxv, mydepth, maxv_, mydepth_
+                    )
+                )
             else:
                 nochanges += 1
                 # changes = 0 # yes, this is intentional
@@ -711,17 +734,17 @@ class SymStates(dict):
         try:
             stat = opt.check()
         except Exception as ex:
-            mlog.error(f"maximize error: {ex}")
+            mlog.error(f"maximize: {ex} {term_expr}")
             stat = z3.unknown
 
         assert stat == z3.sat or stat == z3.unknown, stat
         v = None
         if stat == z3.sat:
             v = str(opt.upper(h))
-            if v != 'oo':  # no bound
+            if v != "oo":  # no bound
                 try:
                     v = int(v)
-                    if v <= iupper:
+                    if abs(v) <= iupper:
                         return v, stat
                 except ValueError:  # invalid literal for 3/4
                     pass
