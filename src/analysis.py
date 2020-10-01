@@ -10,6 +10,7 @@ from collections import Counter, defaultdict, namedtuple
 from statistics import mean, median_low
 from pathlib import Path
 import argparse
+import itertools
 
 import sage.all
 
@@ -140,17 +141,17 @@ class AResult(Result):
             mind = min(self.check_depthchanges, key=lambda x: x.d2).d2
             maxd = max(self.check_depthchanges, key=lambda x: x.d2).d2
             ddepths = dict()
+            ddepths[0] = 0
             for x in self.check_depthchanges:
                 d = x.d2
-                val = ddepths.get(d, 0)
                 assert str(x.v2) in set(['sat', 'unsat', 'unknown'])
-                if str(x.v2) == 'sat': # disproved
-                    if d > mind:
-                        ddepths[d] = val - 1
-                elif d == mind:
-                    ddepths[d] = val + 1
+                if d == mind:
+                    ddepths[0] += 1
+                if str(x.v2) == 'sat': # disproved, eliminated
+                    ddepths[d] = ddepths.get(d, 0) - 1
             #pprint(ddepths)
-            s = 0
+            s = ddepths[0]
+            self.check_invs_at_depth[0] = s
             for k in range(mind, maxd + 1):
                 s += ddepths[k] if k in ddepths else 0
                 # assert s >= 0 // TODO: uncomment this assert
@@ -162,15 +163,15 @@ class AResult(Result):
             mind = min(self.max_depthchanges, key=lambda x: x.d2).d2
             maxd = max(self.max_depthchanges, key=lambda x: x.d2).d2
             ddepths = dict()
+            ddepths[0] = 0
             for x in self.max_depthchanges:
                 d = x.d2
-                val = ddepths.get(d, 0)
-                if x.v2 is None:
-                    assert d > mind
-                    ddepths[d] = val - 1
-                elif d == mind:
-                    ddepths[d] = val + 1
-            s = 0
+                if d == mind:
+                    ddepths[0] += 1
+                if x.v2 is None: # eliminated
+                    ddepths[d] = ddepths.get(d, 0) - 1
+            s = ddepths[0]
+            self.max_invs_at_depth[0] = s
             for k in range(mind, maxd + 1):
                 s += ddepths[k] if k in ddepths else 0
                 assert s >= 0
@@ -312,19 +313,32 @@ class Results:
         SEL = settings.ANALYSIS_MODE
 
         if SEL > 0:
-            # Map name
-            self.prog = {
-                "KnuthNoSqrt": "Knuth",
-                "StrnCopy": "strncopy"
-            }.get(self.prog, self.prog)
-            self.prog = self.prog.replace("_Int", "")
-            self.prog = self.prog.replace("OddEven", "oddeven")
-            self.prog = self.prog.replace("PartialDecrement", "partd")
-            self.prog = self.prog.replace("PartialIncrement", "parti")
+            ALL_PROGS = [
+                "Bresenham", "CohenCu", "CohenDiv", "Dijkstra", "DivBin", "Egcd", "Egcd2", "Egcd3", 
+                "Fermat1", "Fermat2", "Freire1_Int", "Freire2_Int", "Geo1", "Geo2", "Geo3", "Hard", 
+                "KnuthNoSqrt", "Lcm1", "Lcm2", "MannaDiv", "Prod4br", "ProdBin", 
+                "Ps1", "Ps2", "Ps3", "Ps4", "Ps5", "Ps6", "Sqrt1"]
+
+            def _map_name(n):
+                n = {
+                    "KnuthNoSqrt": "Knuth",
+                    "StrnCopy": "strncpy"
+                }.get(n, n)
+                n = n.replace("_Int", "")
+                n = n.replace("OddEven", "oddeven")
+                n = n.replace("PartialDecrement", "partd")
+                n = n.replace("PartialIncrement", "parti")
+                return n
+            
+            self.prog = _map_name(self.prog)
+            ALL_PROGS = [_map_name(n) for n in ALL_PROGS]
+            LINE_STYLES = self.gen_graph_line_styles(ALL_PROGS)
 
             EIM = f'{invmap.get("Eqt", 0)},{invmap.get("Oct", 0)},{invmap.get("MP", 0)}'
             NL_D = f'{NL}({D})'
-            STAR_IF_FAIL = f"{'$^*$' if nruns < REAL_N_RUNS else ''}"
+
+            special_prog = self.prog in ["Freire1", "Freire2", "Knuth"]
+            STARED_PROG = f"{'$^*$' if special_prog or nruns < REAL_N_RUNS else ''}"
 
         if SEL == 0:
             #########
@@ -353,7 +367,7 @@ class Results:
             most_exp = max([(k,v,) for k, v in time_map.items() 
                                 if k != 'total' and k != 'symbolic_states' and k != 'simplify'], 
                             key=lambda x: x[1])
-            print(f"{self.prog}{STAR_IF_FAIL} & {nlocs} & "
+            print(f"{self.prog}{STARED_PROG} & {nlocs} & {V} & "
                     f'{invcnt} & {EIM} & '
                     f'{NL_D} & {time_map["total"]:.1f} & {most_exp[1]:.1f} {most_exp[0][0].upper()} & '
                     f'\\checkmark  \\\\')
@@ -362,7 +376,7 @@ class Results:
             # Table 2
             checksol_ukn = check_solvercall_map.get("unknown", 0)
             maxsol_unkn = max_solvercall_map.get("unknown", 0)
-            print(f"{self.prog}{STAR_IF_FAIL} & "
+            print(f"{self.prog}{STARED_PROG} & "
                     f'{time_map["symbolic_states"]:.1f} & '
                     f'{check_solvercall_map.get("sat",0)},{check_solvercall_map["unsat"]} '
                         f'{f"({checksol_ukn})" if checksol_ukn != 0 else ""} & '
@@ -371,7 +385,7 @@ class Results:
         elif SEL == 3:
             ##########
             ## Table 3
-            print(f"{self.prog}{STAR_IF_FAIL} & {nlocs} & {V} & "
+            print(f"{self.prog}{STARED_PROG} & {nlocs} & {V} & "
                     f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark  \\\\')
 
         elif SEL == 4:
@@ -385,27 +399,27 @@ class Results:
             }
             self.prog = self.prog.lower().replace('_', '\\_')
             markaux = dmark[self.prog] if self.prog in dmark else ''
-            print(f"{self.prog}{STAR_IF_FAIL} & {V} & "
+            print(f"{self.prog}{STARED_PROG} & {V} & "
                     f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark{markaux}  \\\\')
 
-        elif SEL == 10:
-            #########
-            # Graph
-            check_changedepth_map = dict([(k,v,) for k, v in check_changedepth_map.items() if v != 0])
-            if len(check_changedepth_map) > 1:
-                self.print_depthplot(self.prog, check_changedepth_map, divi=8000)
+        # elif SEL == 10:
+        #     #########
+        #     # Graph
+        #     check_changedepth_map = dict([(k,v,) for k, v in check_changedepth_map.items() if v != 0])
+        #     if len(check_changedepth_map) > 1:
+        #         self.print_depthplot(self.prog, check_changedepth_map, divi=8000)
 
-        elif SEL == 11:
-            max_changedepth_map = dict([(k,v,) for k, v in max_changedepth_map.items() if v != 0])
-            if len(max_changedepth_map) > 1:
-                self.print_depthplot(self.prog, max_changedepth_map, divi=1000)
+        # elif SEL == 11:
+        #     max_changedepth_map = dict([(k,v,) for k, v in max_changedepth_map.items() if v != 0])
+        #     if len(max_changedepth_map) > 1:
+        #         self.print_depthplot(self.prog, max_changedepth_map, divi=1000)
 
         elif SEL == 20:
             agg_check_invs_at_depth = [r.check_invs_at_depth for r in rs]
             _, agg_check_invs_at_depth = self.analyze_dicts(agg_check_invs_at_depth, f, '', ret_tuple=True)
             agg_check_invs_at_depth = self.filter_depthmap(agg_check_invs_at_depth)
-            if len(agg_check_invs_at_depth) > 1:
-                self.print_depthplot(self.prog, agg_check_invs_at_depth, divi=1000)
+            if len(agg_check_invs_at_depth) > 2:
+                self.print_depthplot(self.prog, agg_check_invs_at_depth, LINE_STYLES)
             #print(self.prog)
             #print(agg_check_invs_at_depth)
 
@@ -413,10 +427,25 @@ class Results:
             agg_max_invs_at_depth = [r.max_invs_at_depth for r in rs]
             _, agg_max_invs_at_depth = self.analyze_dicts(agg_max_invs_at_depth, f, '', ret_tuple=True)
             agg_max_invs_at_depth = self.filter_depthmap(agg_max_invs_at_depth)
-            if len(agg_max_invs_at_depth) > 1:
-                self.print_depthplot(self.prog, agg_max_invs_at_depth, divi=1000)
+            if len(agg_max_invs_at_depth) > 2:
+                self.print_depthplot(self.prog, agg_max_invs_at_depth, LINE_STYLES)
 
-    @ staticmethod
+    @staticmethod
+    def gen_graph_line_styles(progs):
+        d = dict()
+        LINES = ['solid', 'densely dashed']
+        COLORS = ['red', 'olive', 'blue', 'violet', 'darkgray']
+        MARKERS = ['*', 'oplus', 'square*', 'square', 'triangle*', 'triangle']
+        comb = [f'{l},color={c},mark={m},mark options={{solid,scale=0.75}}'
+                for l in LINES for c in COLORS for m in MARKERS]
+                
+        rnd = random.Random(6_9_1999)
+        random.shuffle(comb, rnd.random)
+        for i, p in enumerate(progs):
+            d[p] = comb[i]
+        return d
+
+    @staticmethod
     def filter_depthmap(inp):
         ret = [(int(k), int(v)) for k, v in inp.items()]
         ret.sort()
@@ -424,20 +453,28 @@ class Results:
             ret.pop()
         return dict(ret)
 
-    @ classmethod
-    def print_depthplot(cls, prog, depth_map, divi=8):
+    @classmethod
+    def print_depthplot(cls, prog, depth_map, LINE_STYLES=None, divi=None):
         #print(f"{self.prog:10} ---> Check {check_changedepth_map}")
         global PROG_ARR
-        if len(PROG_ARR) >= divi:
+        if divi is not None and len(PROG_ARR) >= divi:
             print(f"\n\legend{{{', '.join(PROG_ARR)}}}")
             print("")
             PROG_ARR = [prog]
         else:
             PROG_ARR.append(prog)
 
+        style = ''
+        if LINE_STYLES is not None:
+            style = f'[{LINE_STYLES[prog]}]'
+
         smap = [(int(k), v) for k, v in depth_map.items()]
-        plot = f"% {prog}\n\\addplot coordinates {{"
-        plot += ''.join([f"({k},{v}) " for k, v in sorted(smap)])
+        plot = f"% {prog}\n\\addplot{style} coordinates {{"
+        prev_v = None
+        for k, v in sorted(smap):
+            if v != prev_v:
+                plot += f"({k},{v}) "
+                prev_v = v
         plot += "};"
         print(plot)
 
