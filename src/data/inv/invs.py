@@ -190,12 +190,7 @@ class Invs(set):
             elif isinstance(inv, data.inv.oct.Oct):
                 octs.append(inv)
             elif isinstance(inv, data.inv.mp.MP):
-                if inv.is_eqt:
-                    eqts.append(inv)
-                else:
-                    assert inv.is_ieq is True, inv
-                    mps.append(inv)
-
+                mps.append(inv)
             elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
             else:
@@ -240,12 +235,14 @@ class DInvs(dict):
             )
             ss.append(f"{loc} ({len(self[loc])} invs):")
 
+            mylen = lambda x: len(str(x))
+
             invs = (
-                sorted(eqts + eqts_largecoefs, reverse=True, key=str)
-                + sorted(preposts, reverse=True, key=str)
-                + sorted(octs, reverse=True, key=str)
-                + sorted(mps, reverse=True, key=str)
-                + sorted(falseinvs, reverse=True, key=str)
+                sorted(eqts + eqts_largecoefs, key=mylen)
+                + sorted(preposts, key=mylen)
+                + sorted(octs, key=mylen)
+                + sorted(mps, key=mylen)
+                + sorted(falseinvs, key=mylen)
             )
 
             if print_first_n and print_first_n < len(invs):
