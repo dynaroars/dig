@@ -77,77 +77,57 @@ class Invs(set):
         assert not falseinvs, falseinvs
         assert not preposts, preposts
 
-        octs_simple = []
-        octs_ = []
+        octs_simple, octs_not_simple = [], []
         for oct in octs:
-            if oct.is_simple:
-                octs_simple.append(oct)
-            else:
-                octs_.append(oct)
-        octs = octs_
+            (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
         mps = data.inv.mp.MP.simplify(mps)  # find ==
-        mps_ = []
+        mps_eqt, mps_ieq = [], []
         for mp in mps:
-            if mp.is_eqt:
-                eqts.append(mp)
-            else:
-                assert mp.is_ieq is True, mp
-                mps_.append(mp)
-
-        mps = mps_
+            (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
 
         exprs_d = {}
 
         def my_get_expr(p):
             return self.get_expr(p, exprs_d)
 
-        octs_simple = self.simplify2(octs_simple, None, "octs_simple", my_get_expr)
-        print("octs_simple", octs_simple)
-        mps = self.simplify1(mps, eqts + octs + octs_simple, "mps", my_get_expr)
-        octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
+        done = eqts + mps_eqt  # don't simply these
+        mps_ieq = self.simplify1(mps_ieq, done + octs, "mps_ieq", my_get_expr)
+        octs_not_simple = self.simplify1(
+            octs_not_simple, done + octs_simple + mps_ieq, "octs", my_get_expr
+        )
+
+        done += eqts_largecoefs
+        octs_mps = octs_not_simple + mps_ieq
 
         # simplify both mps and octs (slow), remove as much as possible
-        if octs or mps:
+        if octs_not_simple or mps_ieq:
 
             def mysorted(ps):
                 return sorted(ps, key=lambda p: len(Miscs.get_vars(p.inv)))
 
-            octs = mysorted(octs)
-            mps = mysorted(mps)
+            octs_not_simple = mysorted(octs_not_simple)
+            mps_ieq = mysorted(mps_ieq)
 
             octs_mps = self.simplify2(
-                octs + mps,
-                eqts + eqts_largecoefs + octs_simple,
+                octs_mps,
+                done + octs_simple,
                 "octs+mps",
                 my_get_expr,
             )
 
-            # ps_exprs = [my_get_expr(p) for p in ps]
-            # eqt_exprs = [my_get_expr(p) for p in eqts + eqts_largecoefs]
-
-            # def _imply(js, i):
-            #     iexpr = ps_exprs[i]
-
-            #     assert iexpr.decl().kind() != z3.Z3_OP_EQ
-            #     jexprs = [ps_exprs[j] for j in js]
-            #     ret = Z3._imply(eqt_exprs + jexprs, iexpr, is_conj=True)
-            #     # print('{} => {}'.format(jexprs, iexpr))
-            #     return ret
-
-            # results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
-            # results = [ps[i] for i in results]
-            # Miscs.show_removed("simplify2", len(ps), len(results), time() - st)
-            results = eqts + eqts_largecoefs + octs_simple + octs_mps
-        else:
-            results = eqts + eqts_largecoefs + octs_simple + octs + mps
-
+        # don't use done to simplify octs_simple because nonlinear eqts will remove many useful octs
+        octs_simple = self.simplify2(
+            octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
+        )
+        results = done + octs_simple + octs_mps
         return self.__class__(results)
 
     @classmethod
     def simplify1(cls, ps, others, msg, get_expr):
         """
-        Simplify a class of invariants (e.g., oct or mps)
+        Simplify given properties ps (usually a class of invs such as octs or mps)
+        using the properties in others, e.g., remove p if others => p
         Relatively fast, using multiprocessing
         """
         if len(ps) < 2 or not others:
@@ -169,6 +149,12 @@ class Invs(set):
 
     @classmethod
     def simplify2(cls, ps, others, msg, get_expr):
+        """
+        Simplify given properties ps using properties in both ps and others
+        e.g., remove g if  ps_exclude_g & others => g
+        # not very fast
+        """
+
         if len(ps) < 2:
             return ps
 
