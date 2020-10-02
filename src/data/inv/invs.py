@@ -77,12 +77,6 @@ class Invs(set):
         assert not falseinvs, falseinvs
         assert not preposts, preposts
 
-        # # try to apply reduce here to see if we can remove anything else
-        # eqts_ = [eqt.inv for eqt in eqts]
-        # eqts_ = Miscs.reduce_with_timeout(eqts_)
-        # eqts_ = [data.inv.eqt.Eqt(eqt) for eqt in eqts_]
-        # eqts = eqts_
-
         octs_simple = []
         octs_ = []
         for oct in octs:
@@ -108,12 +102,13 @@ class Invs(set):
         def my_get_expr(p):
             return self.get_expr(p, exprs_d)
 
+        octs_simple = self.simplify2(octs_simple, None, "octs_simple", my_get_expr)
+        print("octs_simple", octs_simple)
         mps = self.simplify1(mps, eqts + octs + octs_simple, "mps", my_get_expr)
         octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
 
-        # simplify both mps and octs (slow)
+        # simplify both mps and octs (slow), remove as much as possible
         if octs or mps:
-            st = time()
 
             def mysorted(ps):
                 return sorted(ps, key=lambda p: len(Miscs.get_vars(p.inv)))
@@ -121,25 +116,31 @@ class Invs(set):
             octs = mysorted(octs)
             mps = mysorted(mps)
 
-            ps = octs + mps
-            ps_exprs = [my_get_expr(p) for p in ps]
-            eqt_exprs = [my_get_expr(p) for p in eqts + eqts_largecoefs]
+            octs_mps = self.simplify2(
+                octs + mps,
+                eqts + eqts_largecoefs + octs_simple,
+                "octs+mps",
+                my_get_expr,
+            )
 
-            def _imply(js, i):
-                iexpr = ps_exprs[i]
+            # ps_exprs = [my_get_expr(p) for p in ps]
+            # eqt_exprs = [my_get_expr(p) for p in eqts + eqts_largecoefs]
 
-                assert iexpr.decl().kind() != z3.Z3_OP_EQ
-                jexprs = [ps_exprs[j] for j in js]
-                ret = Z3._imply(eqt_exprs + jexprs, iexpr, is_conj=True)
-                # print('{} => {}'.format(jexprs, iexpr))
-                return ret
+            # def _imply(js, i):
+            #     iexpr = ps_exprs[i]
 
-            results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
-            results = [ps[i] for i in results]
-            Miscs.show_removed("simplify2", len(ps), len(results), time() - st)
-            results = eqts + eqts_largecoefs + octs_simple + results
+            #     assert iexpr.decl().kind() != z3.Z3_OP_EQ
+            #     jexprs = [ps_exprs[j] for j in js]
+            #     ret = Z3._imply(eqt_exprs + jexprs, iexpr, is_conj=True)
+            #     # print('{} => {}'.format(jexprs, iexpr))
+            #     return ret
+
+            # results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
+            # results = [ps[i] for i in results]
+            # Miscs.show_removed("simplify2", len(ps), len(results), time() - st)
+            results = eqts + eqts_largecoefs + octs_simple + octs_mps
         else:
-            results = eqts + eqts_largecoefs + mps + octs_simple + octs
+            results = eqts + eqts_largecoefs + octs_simple + octs + mps
 
         return self.__class__(results)
 
@@ -149,21 +150,46 @@ class Invs(set):
         Simplify a class of invariants (e.g., oct or mps)
         Relatively fast, using multiprocessing
         """
+        if len(ps) < 2 or not others:
+            return ps
 
-        if len(ps) >= 2 and others:
-            st = time()
-            conj = [get_expr(p) for p in others]
-            for p in ps:
-                _ = get_expr(p)
+        st = time()
+        conj = [get_expr(p) for p in others]
+        for p in ps:
+            _ = get_expr(p)
 
-            def f(ps):
-                return [p for p in ps if not Z3._imply(conj, get_expr(p))]
+        def f(ps):
+            return [p for p in ps if not Z3._imply(conj, get_expr(p))]
 
-            wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
+        wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
 
-            Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
-            ps = [p for p in wrs]
+        Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
+        ps = [p for p in wrs]
         return ps
+
+    @classmethod
+    def simplify2(cls, ps, others, msg, get_expr):
+        if len(ps) < 2:
+            return ps
+
+        st = time()
+        conj = [get_expr(p) for p in others] if others else []
+        ps_exprs = [get_expr(p) for p in ps]
+
+        def _imply(js, i):
+            iexpr = ps_exprs[i]
+
+            assert iexpr.decl().kind() != z3.Z3_OP_EQ
+            jexprs = [ps_exprs[j] for j in js]
+            ret = Z3._imply(conj + jexprs, iexpr, is_conj=True)
+            # print('{} => {}'.format(jexprs, iexpr))
+            return ret
+
+        results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
+        results = [ps[i] for i in results]
+        Miscs.show_removed(f"simplify2 {msg}", len(ps), len(results), time() - st)
+
+        return results
 
     @classmethod
     def classify(cls, invs):
