@@ -18,11 +18,16 @@ public class H36 {
 	int i2 = 0;
 	int i3 = 0;
 
+	int i = 0;
+	int k = 0;
+	int c = 0;
+	int d = 0;
+
 	while (i1 < u1) {
 	    i1++;
-	    int i = z;
+	    i = z;
 	    j = w;
-	    int k = 0;
+	    k = 0;
 
 	    while (i < j) {
 		k++;
@@ -53,8 +58,8 @@ public class H36 {
 	    w = x + y + 1;
 	}
 
-	int c = 0;
-	int d = 0;
+	c = 0;
+	d = 0;
 	i3 = 0;
 	while (i3 < u3) {
 	    i3++;
