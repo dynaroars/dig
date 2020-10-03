@@ -22,5 +22,5 @@ class Oct(data.inv.base.RelInv):
     @property
     def is_simple(self):
         ub = self.inv.rhs()
-        # need to convert to bool because ub.is_one() might return 1 == 1
-        return bool(ub.is_constant() and ub.is_one())
+        # need to convert to bool because ub.is_zero() might return 0 == 0
+        return bool(ub.is_constant() and ub.is_zero())
