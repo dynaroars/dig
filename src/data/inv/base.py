@@ -104,7 +104,7 @@ class RelInv(Inv, metaclass=ABCMeta):
 
         # temp fix: disable traces that wih extreme large values
         # (see geo1 e.g., 435848050)
-        if any(x > trace.max_val for x in trace.vs):
+        if any(x > settings.TRACE_MAX_VAL for x in trace.vs):
             mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
             return True
 
