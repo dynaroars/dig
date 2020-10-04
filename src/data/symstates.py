@@ -675,7 +675,6 @@ class SymStates(dict):
                     str(term_expr), None, None, maxv, depths[depth_idx]
                 )
             )
-
         nochanges = 0
         changes = 0
         while (
