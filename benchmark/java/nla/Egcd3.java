@@ -1,15 +1,15 @@
 public class Egcd3 {
 	
-	// public static void vtrace1(int x, int y, int a, int b,
-	// int p, int q,  int r, int s){}
+	public static void vtrace1(int x, int y, int a, int b,
+															int p, int q,  int r, int s){}
 	
-	// public static void vtrace2(int x, int y, int a, int b,
-	// int p, int q,  int r, int s,
-	// int c, int k){}
+	public static void vtrace2(int x, int y, int a, int b,
+														int p, int q,  int r, int s,
+														int c, int k){}
 	
 	public static void vtrace3( int x, int y, int a, int b,
-	int p, int q,  int r, int s,
-	int c, int k, int d, int v){}
+														int p, int q,  int r, int s,
+														int c, int k, int d, int v){}
 	
 	//public static void vtrace4(int x, int y, int a, 
 	//int p, int q,  int r, int s){}
@@ -37,7 +37,7 @@ public class Egcd3 {
 		//assert(a==y*r+x*p); 
 		//assert(b==x*q+y*s);
 		while(true) {
-			//vtrace1(x, y, a, b, p , q, r, s);
+			vtrace1(x, y, a, b, p , q, r, s);
 			
 			if(!(b!=0)) break;
 			
@@ -45,7 +45,7 @@ public class Egcd3 {
 			k=0;
 			
 			while(true){
-				//vtrace2(x, y, a, b,  p, q,  r, s, c, k);
+				vtrace2(x, y, a, b,  p, q,  r, s, c, k);
 				
 				if(!(c>=b)) break;
 				d=1;
