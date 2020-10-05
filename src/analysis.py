@@ -365,7 +365,7 @@ class Results:
             ##########
             ## Table 1
             most_exp = max([(k,v,) for k, v in time_map.items() 
-                                if k != 'total' and k != 'symbolic_states' and k != 'simplify'], 
+                                if k != 'total' and k != 'simplify'], 
                             key=lambda x: x[1])
             print(f"{self.prog}{STARED_PROG} & {nlocs} & {V} & "
                     f'{invcnt} & {EIM} & '
