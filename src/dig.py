@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
     ag("--analysis_mode", "-analysis_mode",
        type=int,
-       default=None,
+       default=0,
        help="analysis mode")
 
     args = aparser.parse_args()

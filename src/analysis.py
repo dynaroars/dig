@@ -418,7 +418,7 @@ class Results:
             agg_check_invs_at_depth = [r.check_invs_at_depth for r in rs]
             _, agg_check_invs_at_depth = self.analyze_dicts(agg_check_invs_at_depth, f, '', ret_tuple=True)
             agg_check_invs_at_depth = self.filter_depthmap(agg_check_invs_at_depth)
-            if len(agg_check_invs_at_depth) > 2:
+            if len(agg_check_invs_at_depth) > 1:
                 self.print_depthplot(self.prog, agg_check_invs_at_depth, LINE_STYLES)
             #print(self.prog)
             #print(agg_check_invs_at_depth)
@@ -427,7 +427,7 @@ class Results:
             agg_max_invs_at_depth = [r.max_invs_at_depth for r in rs]
             _, agg_max_invs_at_depth = self.analyze_dicts(agg_max_invs_at_depth, f, '', ret_tuple=True)
             agg_max_invs_at_depth = self.filter_depthmap(agg_max_invs_at_depth)
-            if len(agg_max_invs_at_depth) > 2:
+            if len(agg_max_invs_at_depth) > 1:
                 self.print_depthplot(self.prog, agg_max_invs_at_depth, LINE_STYLES)
 
     @staticmethod
