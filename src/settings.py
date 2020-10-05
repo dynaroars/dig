@@ -26,10 +26,11 @@ SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs
 EQT_REDUCE_TIMEOUT = 20  # secs
 EQT_RATE = 1.5
-MAX_LARGE_COEF = 20
+MAX_LARGE_COEF = 50
 MAX_TERM = 200
 
-LARGE_N = 200000  # powersum programs can go up to very large vals
+TRACE_MAX_VAL = 1_000_000_000
+LARGE_N = 200_000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"

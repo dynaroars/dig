@@ -53,8 +53,6 @@ class SymbsValsSet(set):
 
 
 class Trace(SymbsVals):
-    max_val = 100000000
-
     @property
     def mydict(self):
         # use for expression substitution

@@ -1,11 +1,13 @@
 # DIG
 
-**DIG** is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG can infer equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., $t = 2^x$, and have DIG infer invariants over terms.
+**DIG** is a tool for generating (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG infers equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., `t = 2^x`, and have DIG infer invariants over terms.
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
-DIG uses **Symbolic PathFinder** to collect symbolic states and uses the **Z3** SMT solver for constraint solving.
+DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
 
 The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also infers  invariants direclty from given concrete program execution traces.
+
+---
 
 ## Usage
 
@@ -20,13 +22,14 @@ Consider the following `CohenDiv.java` program
 // $ less ../test/nla/CohenDiv.java
 
 public class CohenDiv {
+     public static void vtrace0(int q, int r, int a, int b, int x, int y){}
      public static void vtrace1(int q, int r, int a, int b, int x, int y){}
      public static void vtrace2(int x, int y, int q, int r){}
 
      public static void main (String[] args) {}
-
-     public static int mainQ_cohendiv(int x, int y) {
-          assert(x>=0 && y>=1);
+     public static int mainQ(int x, int y) {
+          assert(x >= 0);
+          assert(y >= 1);
 
           int q=0;
           int r=x;
@@ -34,6 +37,7 @@ public class CohenDiv {
           int b=0;
 
           while(true) {
+               vtrace0(q,r,a,b,x,y);
                if(!(r>=y)) break;
                a=1;
                b=y;
@@ -48,61 +52,67 @@ public class CohenDiv {
                r=r-b;
                q=q+a;
           }
+
           vtrace2(x,y,q,r);
           return q;
      }
 }
+
 ```
 
-* To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at the desired location.
-  * For example, in `CohenDiv.java`,  we call `vtrace1` and `vtrace2` at the head of the inner while loop and before the function exit to find loop invariants and post conditions.
-  * Notice that `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
+* To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at that location.
+  * For example, in `CohenDiv.java`,  we call `vtrace0`, `vtrace1` at the head of the outter and inner while loops find loop invariants  and  `vtrace2` before the function exit to find post conditions.
+  * `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
-* Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following equality and inequality invariants at `vtracesX` locations:
+* Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following invariants at `vtracesX` locations:
 
-```bash
+```sh
 # in DIG's src directory
-tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3
-settings:INFO:2020-06-30 13:13:43.240386: dig.py ../tests/paper/CohenDiv.java -log 3
+tnguyen@origin ~/d/src (dev)> sage -python -O dig.py  ../tests/paper/CohenDiv.java -log 3
+settings:INFO:2020-10-03 21:39:01.995144: dig.py ../tests/paper/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/paper/CohenDiv.java'
-alg:INFO:compute symbolic states (6.03s)
-alg:INFO:infer invs at 2 locs: vtrace2, vtrace1
-alg:INFO:found 3 eqts (10.00s)
-alg:INFO:found 31 ieqs (0.41s)
-alg:INFO:test 34 invs using 223 traces (0.08s)
-alg:INFO:simplify 34 invs (0.58s)
-vtrace1 (7 invs):
-1. q*y + r - x == 0
-2. a*y - b == 0
-3. b - x <= 0
-4. -y <= -1
-5. -r + y <= 0
-6. -q <= 0
-7. -b <= -1
-vtrace2 (4 invs):
-1. q*y + r - x == 0
-2. r - y <= -1
+alg:INFO:compute symbolic states (18.65s)
+alg:INFO:infer invs at 3 locs: vtrace0, vtrace2, vtrace1
+alg:INFO:found 5 eqts (26.55s)
+alg:INFO:found 67 ieqs (1.10s)
+alg:INFO:found 377 minmax (2.55s)
+alg:INFO:test 449 invs using 699 traces (0.93s)
+alg:INFO:simplify 449 invs (1.79s)
+* prog CohenDiv locs 3;  invs 25 (Eqt: 5, MP: 1, Oct: 19) V 6 T 3 D 2;  NL 5 (2) ;
+-> time eqts 26.5s, ieqs 1.1s, minmax 2.5s, simplify 2.7s, symbolic_states 18.7s, total 51.9s
+-> checks  0 () change depths 0 () change vals 0 ()
+-> max  0 () change depths 0 ()
+runs 1
+rand seed 1601779141.99, test (6, 59)
+vtrace0 (11 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
 3. -r <= 0
-4. -q <= 0
-run time 17.44s, result dir: /var/tmp/dig_553402345795059927_3r_6gwkz
-*** prog CohenDiv, runs 1, locs 2, V 6, T 3, D 2, NL 3, traces 223, inps 72
-time eqts 10.00s, ieqs 0.41s, simplify 0.66s, symbolic_states 6.03s, total 17.44s
-invs 11 (Eqt: 3, Oct: 8), check solver calls 0 (), check change depths 0 (), check change vals 0 (), max solver calls 0 (), max change depths 0 (), max change vals 0 ()
-rand seed 1593540823.24, test (50, 75)
-vtrace1 (7 invs):
+4. -a <= 0
+5. a - b <= 0
+6. a - q <= 0
+7. q - x <= 0
+8. r - x <= 0
+9. b - x <= 0
+10. -a - y <= -1
+11. min(q, y) - b <= 0
+vtrace1 (8 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
+3. -q <= 0
+4. b - r <= 0
+5. a - b <= 0
+6. r - x <= 0
+7. -b + y <= 0
+8. -a - y <= -2
+vtrace2 (6 invs):
 1. q*y + r - x == 0
-2. a*y - b == 0
-3. b - x <= 0
-4. -y <= -1
-5. -r + y <= 0
-6. -q <= 0
-7. -b <= -1
-vtrace2 (4 invs):
-1. q*y + r - x == 0
-2. r - y <= -1
-3. -r <= 0
-4. -q <= 0
-alg:INFO:tmpdir: /var/tmp/dig_553402345795059927_3r_6gwkz
+2. -r <= 0
+3. -q <= 0
+4. q - x <= 0
+5. r - x <= 0
+6. r - y <= -1
+tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
 ```
 
 #### Other programs
@@ -113,7 +123,7 @@ alg:INFO:tmpdir: /var/tmp/dig_553402345795059927_3r_6gwkz
 
 DIG can infer invariants directly from a file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
-```bash
+```sh
 # in DIG's src directory
 $ less ../test/traces/CohenDiv.tcs
 vtrace1: I q, I r, I a, I b, I x, I y
@@ -132,7 +142,7 @@ vtrace2: 2, 287, 0, 2
 ...
 ```
 
-```bash
+```sh
 # in DIG's src directory
 tnguyen@debian ~/d/src> sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
@@ -140,56 +150,40 @@ alg:INFO:analyze '../tests/traces/CohenDiv.tcs'
 alg:INFO:test 30 invs using 181 traces (0.96s)
 alg:INFO:simplify 26 invs (0.42s)
 vtrace1 (6 invs):
+vtrace1 (8 invs):
 1. q*y + r - x == 0
-2. -y <= -1
-3. -x <= -1
-4. -x - y <= -10
-5. -r <= 0
-6. -q <= 0
-vtrace2 (5 invs):
+2. -q <= 0
+3. -r <= 0
+4. -y <= -1
+5. r - x <= 0
+6. q - x <= 0
+7. -r - x <= -2
+8. -x - y <= -10
+vtrace2 (8 invs):
 1. q*y + r - x == 0
-2. r - y <= -1
-3. -x <= -1
-4. -x - y <= -10
-5. -r <= 0
+2. -q <= 0
+3. -r <= 0
+4. r - x <= 0
+5. q - x <= 0
+6. r - y <= -1
+7. -r - x <= -2
+8. -x - y <= -10
+....
 ```
 
-Note that most of the inequality results here are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), then DIG can check and remove spurious results.
+Note that if we just run Dig over traces, then most of the generated inequality results are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), DIG can check and remove spurious results.
 
 ### Additional Options
 
-Most of DIG's behaviors can be controlled by the users.  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
+Most of DIG's behaviors can be controlled by the users (the `src\settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
 
 #### Specify max degree for equalities
 
 By default, DIG automatically to find equalities up to certain degree.  We can specify this degree directly with `-maxdeg X`
 
-```bash
+```sh
 tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
 ...
-```
-
-#### Infer Min/Max
-
-We can find *min/max* inqualities with the option `-dominmax`.  This typically will take some time depends on the program.  Also, DIG might not return any min/max results if they are not available or can be implied by other invariants in the program.
-
-```bash
-tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -maxdeg 2 -noieqs -dominmax  #find equalities up to degree 2, donot infer inequalities, infer min/max inequalities
-...
-vtrace1 (7 invs):
-1. q*y + r - x == 0
-2. a*y - b == 0
-3. min(r, x, 0) - (a - 1) <= 0
-4. min(q, r, y, 0) - (b - 1) <= 0
-5. min(b, y, 0) - q <= 0
-6. max(r, 0) - x <= 0
-7. max(a, b, y, 0) - r <= 0
-vtrace2 (5 invs):
-1. q*y + r - x == 0
-2. min(y, 0) - r <= 0
-3. min(r, y, 0) - q <= 0
-4. min(q, 0) - (y - 1) <= 0
-5. (r + 1) - max(y, 0) <= 0
 ```
 
 #### Customizing Inequalities
@@ -198,7 +192,7 @@ By default, DIG infers octagonal inequalities (i.e., linear inequalities among 2
 
 Below we use a different example `Sqrt1.java` to demonstrate
 
-```bash
+```sh
 tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
 ...
 1. a <= 10
@@ -235,11 +229,13 @@ tnguyen@debian ~/dig/src> timeout 900 sage -python -O dig.py  ../tests/paper/Sqr
 8. -2*n + s <= 2
 ```
 
+---
+
 ## Setup
 
 First, clone DIG
 
-```bash
+```sh
 git clone https://github.com/unsat/dig.git
 ```
 
@@ -248,7 +244,7 @@ To run DIG, you can either use the [provided  *docker* script](#using-docker) (e
 
 ### Using DOCKER
 
-```bash
+```sh
 # in DIG's directory
 
 # build the docker image,
@@ -264,11 +260,11 @@ $ docker run -it dig
 $ root@b53e0bd86c11:/dig/src#
 ```
 
-You are now ready to use DIG, see instructions in [USAGE](#usage) below
+You are now ready to use DIG, see instructions in the [USAGE](#usage) section
 
 ### Installing DIG
 
-You can install DIG yourself.  The tool has been tested using the following setup:
+You can also install DIG yourself.  The tool has been tested using the following setup:
 
 * Debian Linux 9 or 10 (64 bit)
 * SageMath `9.0` (64 bit)
@@ -284,7 +280,7 @@ You can install DIG yourself.  The tool has been tested using the following setu
 * Setup Z3: [download](https://github.com/Z3Prover/z3/releases) and build Z3 by following the instructions in its README file
 * To check that you have all needed stuff
 
-```bash
+```sh
 # in DIG's src directory
 $ cd src
 $ sage helpers/check_requirements.py
@@ -293,13 +289,13 @@ $ sage helpers/check_requirements.py
 Everything seems OK. Have fun with DIG!
 ```
 
-#### For Java files: installing Java and Symbolic PathFinder
+#### For Java files: install Java and Symbolic PathFinder
 
 * Install Java 8: either the JDK from Oracle 1.8.0_121 or the OpenJDK packaged in Debian (`apt-get install -y default-jdk`, besure the version is 1.8.0_121 or 1.8.0_122).
 
 * Install both Java PathFinder and the Symbolic Pathfinder extension
 
-```bash
+```sh
 $ mkdir /PATH/TO/JPF
 $ cd /PATH/TO/JPF
 $ git clone https://github.com/javapathfinder/jpf-core #JPF
@@ -330,7 +326,7 @@ extensions=${jpf-core},${jpf-symbc}
 
 * Compile Java files in `java` directory for instrumenting Java byte classes
 
-```bash
+```sh
 # in DIG's src directory
 $ cd src/java
 $ make
@@ -340,7 +336,7 @@ $ make
 
 * Build CIL
 
-```bash
+```sh
 # build CIL
 $ git clone https://github.com/cil-project/cil.git
 $ cd cil
@@ -349,7 +345,7 @@ $ ./configure ; make
 
 * Compile the Ocaml files in `ocaml` directory for instrumenting C files (to CIVL format)
 
-```bash
+```sh
 # in DIG's src directory
 $ cd src/ocaml
 $ edit Makefile  #point the OCAML_OPTIONS to where CIL is
@@ -358,7 +354,7 @@ $ make
 
 * Get CIVL
 
-```bash
+```sh
 $ wget --no-check-certificate https://vsl.cis.udel.edu/lib/sw/civl/1.20/r5259/release/CIVL-1.20_5259.tgz
 $ tar xf CIVL-1.20_5259.tgz
 $ ln -sf CIVL-1.20_5259 civl
@@ -388,10 +384,10 @@ path condition: (0<=(X_x-1))&&(0<=(X_y-1))
 
 #### Setup Paths
 
-* Put the following in your `~/.bash_profile`
+* Put the following in your `~/.sh_profile`
 
-```bash
-# ~/.bash_profile
+```sh
+# ~/.sh_profile
 export Z3=PATH/TO/z3   #Z3 dir
 export SAGE=PATH/TO/sage  #where your SAGE dir is
 export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
@@ -410,9 +406,11 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 
 To run doctests
 
-```bash
+```sh
 make test
 ```
+
+---
 
 ## Publications
 

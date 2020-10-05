@@ -77,93 +77,105 @@ class Invs(set):
         assert not falseinvs, falseinvs
         assert not preposts, preposts
 
-        # # try to apply reduce here to see if we can remove anything else
-        # eqts_ = [eqt.inv for eqt in eqts]
-        # eqts_ = Miscs.reduce_with_timeout(eqts_)
-        # eqts_ = [data.inv.eqt.Eqt(eqt) for eqt in eqts_]
-        # eqts = eqts_
-
-        octs_simple = []
-        octs_ = []
+        octs_simple, octs_not_simple = [], []
         for oct in octs:
-            if oct.is_simple:
-                octs_simple.append(oct)
-            else:
-                octs_.append(oct)
-        octs = octs_
+            (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
         mps = data.inv.mp.MP.simplify(mps)  # find ==
-        mps_ = []
+        mps_eqt, mps_ieq = [], []
         for mp in mps:
-            if mp.is_eqt:
-                eqts.append(mp)
-            else:
-                assert mp.is_ieq is True, mp
-                mps_.append(mp)
-
-        mps = mps_
+            (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
 
         exprs_d = {}
 
         def my_get_expr(p):
             return self.get_expr(p, exprs_d)
 
-        mps = self.simplify1(mps, eqts + octs + octs_simple, "mps", my_get_expr)
-        octs = self.simplify1(octs, eqts + mps, "octs", my_get_expr)
+        done = eqts + mps_eqt  # don't simply these
+        mps_ieq = self.simplify1(mps_ieq, done + octs, "mps_ieq", my_get_expr)
+        octs_not_simple = self.simplify1(
+            octs_not_simple, done + octs_simple + mps_ieq, "octs", my_get_expr
+        )
 
-        # simplify both mps and octs (slow)
-        if octs or mps:
-            st = time()
+        done += eqts_largecoefs
+        octs_mps = octs_not_simple + mps_ieq
+
+        # simplify both mps and octs (slow), remove as much as possible
+        if octs_not_simple or mps_ieq:
 
             def mysorted(ps):
                 return sorted(ps, key=lambda p: len(Miscs.get_vars(p.inv)))
 
-            octs = mysorted(octs)
-            mps = mysorted(mps)
+            octs_not_simple = mysorted(octs_not_simple)
+            mps_ieq = mysorted(mps_ieq)
 
-            ps = octs + mps
-            ps_exprs = [my_get_expr(p) for p in ps]
-            eqt_exprs = [my_get_expr(p) for p in eqts + eqts_largecoefs]
+            octs_mps = self.simplify2(
+                octs_mps,
+                done + octs_simple,
+                "octs+mps",
+                my_get_expr,
+            )
 
-            def _imply(js, i):
-                iexpr = ps_exprs[i]
-
-                assert iexpr.decl().kind() != z3.Z3_OP_EQ
-                jexprs = [ps_exprs[j] for j in js]
-                ret = Z3._imply(eqt_exprs + jexprs, iexpr, is_conj=True)
-                # print('{} => {}'.format(jexprs, iexpr))
-                return ret
-
-            results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
-            results = [ps[i] for i in results]
-            Miscs.show_removed("simplify2", len(ps), len(results), time() - st)
-            results = eqts + eqts_largecoefs + octs_simple + results
-        else:
-            results = eqts + eqts_largecoefs + mps + octs_simple + octs
-
+        # don't use done to simplify octs_simple because nonlinear eqts will remove many useful octs
+        octs_simple = self.simplify2(
+            octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
+        )
+        results = done + octs_simple + octs_mps
         return self.__class__(results)
 
     @classmethod
     def simplify1(cls, ps, others, msg, get_expr):
         """
-        Simplify a class of invariants (e.g., oct or mps)
+        Simplify given properties ps (usually a class of invs such as octs or mps)
+        using the properties in others, e.g., remove p if others => p
         Relatively fast, using multiprocessing
         """
+        if len(ps) < 2 or not others:
+            return ps
 
-        if len(ps) >= 2 and others:
-            st = time()
-            conj = [get_expr(p) for p in others]
-            for p in ps:
-                _ = get_expr(p)
+        st = time()
+        conj = [get_expr(p) for p in others]
+        for p in ps:
+            _ = get_expr(p)
 
-            def f(ps):
-                return [p for p in ps if not Z3._imply(conj, get_expr(p))]
+        def f(ps):
+            return [p for p in ps if not Z3._imply(conj, get_expr(p))]
 
-            wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
+        wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
 
-            Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
-            ps = [p for p in wrs]
+        Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
+        ps = [p for p in wrs]
         return ps
+
+    @classmethod
+    def simplify2(cls, ps, others, msg, get_expr):
+        """
+        Simplify given properties ps using properties in both ps and others
+        e.g., remove g if  ps_exclude_g & others => g
+        # not very fast
+        """
+
+        if len(ps) < 2:
+            return ps
+
+        st = time()
+        conj = [get_expr(p) for p in others] if others else []
+        ps_exprs = [get_expr(p) for p in ps]
+
+        def _imply(js, i):
+            iexpr = ps_exprs[i]
+
+            assert iexpr.decl().kind() != z3.Z3_OP_EQ
+            jexprs = [ps_exprs[j] for j in js]
+            ret = Z3._imply(conj + jexprs, iexpr, is_conj=True)
+            # print('{} => {}'.format(jexprs, iexpr))
+            return ret
+
+        results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
+        results = [ps[i] for i in results]
+        Miscs.show_removed(f"simplify2 {msg}", len(ps), len(results), time() - st)
+
+        return results
 
     @classmethod
     def classify(cls, invs):
@@ -178,12 +190,7 @@ class Invs(set):
             elif isinstance(inv, data.inv.oct.Oct):
                 octs.append(inv)
             elif isinstance(inv, data.inv.mp.MP):
-                if inv.is_eqt:
-                    eqts.append(inv)
-                else:
-                    assert inv.is_ieq is True, inv
-                    mps.append(inv)
-
+                mps.append(inv)
             elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
             else:
@@ -228,12 +235,14 @@ class DInvs(dict):
             )
             ss.append(f"{loc} ({len(self[loc])} invs):")
 
+            mylen = lambda x: len(str(x))
+
             invs = (
-                sorted(eqts + eqts_largecoefs, reverse=True, key=str)
-                + sorted(preposts, reverse=True, key=str)
-                + sorted(octs, reverse=True, key=str)
-                + sorted(mps, reverse=True, key=str)
-                + sorted(falseinvs, reverse=True, key=str)
+                sorted(eqts + eqts_largecoefs, key=mylen)
+                + sorted(preposts, key=mylen)
+                + sorted(octs, key=mylen)
+                + sorted(mps, key=mylen)
+                + sorted(falseinvs, key=mylen)
             )
 
             if print_first_n and print_first_n < len(invs):

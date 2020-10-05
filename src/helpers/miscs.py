@@ -431,8 +431,44 @@ class Miscs(object):
         eqts = cls.remove_ugly(eqts)
 
         eqts = cls.reduce_with_timeout(list(set(eqts + nice_eqts)))
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
 
         return eqts
+
+    @classmethod
+    def solve_linear_eqts(cls, eqts, ukns):
+        A = sage.all.matrix(sage.all.QQ, [[e.lhs().coefficient(v) for v in ukns] + [e.rhs()] for e in eqts])
+        A = A.echelon_form(algorithm='multimodular')
+        sols = dict()
+        for i in range(len(eqts)):
+            s = A[i, len(ukns)]
+            v = None
+            for j in range(len(ukns)):
+                if A[i, j] != 0:
+                    if v is None:
+                        v = ukns[j]
+                        assert A[i, j] == 1, A[i]
+                    else:
+                        s -= A[i, j] * ukns[j]
+            if v is not None:
+                sols[v] = s
+            elif s != 0:
+                return []
+
+        symvars = []
+        rcnt = 0
+        for v in ukns:
+            if v not in sols:
+                rcnt += 1
+                sols[v] = sage.all.SR.var(f'r{rcnt}')
+                symvars.append(v == sols[v])
+
+        for v in ukns:
+            sols[v] = sols[v].substitute(symvars)
+
+        return [sols]
+
 
     @classmethod
     def solve_eqts(cls, eqts, uks, template):
@@ -444,7 +480,8 @@ class Miscs(object):
         # print(eqts)
 
         def mysolve(eqts, uks):
-            return sage.all.solve(eqts, *uks, solution_dict=True)
+            #return sage.all.solve(eqts, *uks, solution_dict=True)
+            return cls.solve_linear_eqts(eqts, uks)
 
         rs = mysolve(eqts, uks)
         assert isinstance(rs, list), rs
