@@ -115,7 +115,7 @@ vtrace2 (6 invs):
 tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
 ```
 
-#### Other programs
+### Other programs
 
 * The directory `../benchmarks/java/nla` contains many programs having nonlinear invariants.
 
@@ -414,7 +414,7 @@ make test
 
 ## Publications
 
-Additional information on DIG can be found from these papers:
+Technical information about DIG can be found from these papers:
 
 * ThanhVu Nguyen, Matthew Dwyer, and William Visser. SymInfer: Inferring Program Invariants using Symbolic States. In Automated Software Engineering (ASE). IEEE, 2017.
 * ThanhVu Nguyen, Timos Antopoulos, Andrew Ruef, and Michael Hicks. A Counterexample-guided Approach to Finding Numerical Invariants. In 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE), pages 605--615. ACM, 2017.
