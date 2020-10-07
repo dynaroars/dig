@@ -186,17 +186,18 @@ class PC_JPF(PathCondition):
     @staticmethod
     @cached_function
     def too_large(p):
-        if "CON:" not in p:
-            return False
+        return False
+        # if "CON:" not in p:
+        #     return False
 
-        ps = p.split("=")
-        assert len(ps) == 2
-        v = sage_eval(ps[1])
-        if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
-            mlog.warning(f"ignore {p} (larger than {settings.LARGE_N})")
-            return True
-        else:
-            return False
+        # ps = p.split("=")
+        # assert len(ps) == 2
+        # v = sage_eval(ps[1])
+        # if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
+        #     mlog.warning(f"ignore {p} (larger than {settings.LARGE_N})")
+        #     return True
+        # else:
+        #     return False
 
     @staticmethod
     @cached_function

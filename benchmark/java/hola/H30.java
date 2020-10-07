@@ -1,6 +1,6 @@
 
 public class H30 {
-    public static void vtrace(int c){}
+    public static void vtrace(int n, int i, int c){}
     
     public static void main (String[] args) {}
 
@@ -13,7 +13,7 @@ public class H30 {
 	    i = i + 1;
 	}
 
-	vtrace(c);
+	vtrace(n, i, c);
 	//assert(c >= 0);
     }
 

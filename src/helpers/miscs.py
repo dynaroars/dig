@@ -443,8 +443,9 @@ class Miscs(object):
             sage.all.QQ,
             [[e.lhs().coefficient(v) for v in ukns] + [e.rhs()] for e in eqts],
         )
-        A = A.echelon_form(algorithm="multimodular")
+        A.echelonize(algorithm='multimodular')
         sols = dict()
+        used_vars = set()
         for i in range(len(eqts)):
             s = A[i, len(ukns)]
             v = None
@@ -455,7 +456,10 @@ class Miscs(object):
                         assert A[i, j] == 1, A[i]
                     else:
                         s -= A[i, j] * ukns[j]
+                        if __debug__: used_vars.add(ukns[j])
             if v is not None:
+                assert v not in sols
+                assert v not in used_vars
                 sols[v] = s
             elif s != 0:
                 return []
