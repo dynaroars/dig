@@ -113,7 +113,6 @@ class Miscs(object):
 
         Examples:
 
-        sage: from miscs import Miscs
         sage: assert Miscs.rat2str('.3333333') == 3333333/10000000
         sage: assert Miscs.rat2str('3/7') == 3/7
         sage: assert Miscs.rat2str('1.') == 1
@@ -233,12 +232,10 @@ class Miscs(object):
         sage: var('x y z t s u')
         (x, y, z, t, s, u)
 
-        sage: sorted(Miscs.get_terms_fixed_coefs(
-            [x,y], 2, 1), key=lambda x: str(x))
+        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
         [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
 
-        sage: sorted(Miscs.get_terms_fixed_coefs(
-            [x,y^2], 2, 1), key=lambda x: str(x))
+        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2, 1), key=lambda x: str(x))
         [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
 
         sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
@@ -278,14 +275,17 @@ class Miscs(object):
         sage: var('a y b q k')
         (a, y, b, q, k)
 
-        sage: rs =  Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
+        sage: rs = Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
+        helpers.miscs:DEBUG:Grobner basis: got 2 ps from 3 ps
         sage: assert set(rs) == set([a*y - b == 0, q*y + k - x == 0])
 
         sage: rs =  Miscs.reduce_eqts([x*y==6,y==2,x==3])
+        helpers.miscs:DEBUG:Grobner basis: got 2 ps from 3 ps
         sage: assert set(rs) == set([x - 3 == 0, y - 2 == 0])
 
         # Attribute error occurs when only 1 var, thus return as is
         sage: rs =  Miscs.reduce_eqts([x*x==4,x==2])
+        helpers.miscs:ERROR:'Ideal_1poly_field' object has no attribute 'radical'
         sage: assert set(rs) == set([x == 2, x^2 == 4])
         """
 
@@ -359,7 +359,8 @@ class Miscs(object):
 
     @staticmethod
     def is_repeating_rational(x):
-        "check if x is a repating rational"
+        """check if x is a repating rational"""
+
         assert isinstance(x, sage.rings.rational.Rational) and not x.is_integer(), x
 
         x1 = x.n(digits=50).str(skip_zeroes=True)
@@ -438,8 +439,11 @@ class Miscs(object):
 
     @classmethod
     def solve_linear_eqts(cls, eqts, ukns):
-        A = sage.all.matrix(sage.all.QQ, [[e.lhs().coefficient(v) for v in ukns] + [e.rhs()] for e in eqts])
-        A = A.echelon_form(algorithm='multimodular')
+        A = sage.all.matrix(
+            sage.all.QQ,
+            [[e.lhs().coefficient(v) for v in ukns] + [e.rhs()] for e in eqts],
+        )
+        A = A.echelon_form(algorithm="multimodular")
         sols = dict()
         for i in range(len(eqts)):
             s = A[i, len(ukns)]
@@ -461,14 +465,13 @@ class Miscs(object):
         for v in ukns:
             if v not in sols:
                 rcnt += 1
-                sols[v] = sage.all.SR.var(f'r{rcnt}')
+                sols[v] = sage.all.SR.var(f"r{rcnt}")
                 symvars.append(v == sols[v])
 
         for v in ukns:
             sols[v] = sols[v].substitute(symvars)
 
         return [sols]
-
 
     @classmethod
     def solve_eqts(cls, eqts, uks, template):
@@ -477,10 +480,9 @@ class Miscs(object):
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
-        # print(eqts)
 
         def mysolve(eqts, uks):
-            #return sage.all.solve(eqts, *uks, solution_dict=True)
+            # return sage.all.solve(eqts, *uks, solution_dict=True)
             return cls.solve_linear_eqts(eqts, uks)
 
         rs = mysolve(eqts, uks)
@@ -560,13 +562,10 @@ class Miscs(object):
 
         sage: sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: - \
             1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
-        sage: Miscs.instantiate_template(
-            uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
+        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
-
-        sage: Miscs.instantiate_template(
-            uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
+        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
         assert cls.is_expr(template), template
@@ -713,66 +712,6 @@ class Miscs(object):
                 results = others
 
         return sorted(results)
-
-    # @classmethod
-    # def guess_maxdeg(cls, ds):
-    #     """
-    #     ds = {'x':[1,2,3], 'y':[4,5,6]}
-    #     """
-    #     maxdeg = 0
-    #     pairs = itertools.combinations(ds.keys(), 2)
-    #     for x, y in pairs:
-    #         print(x, y)
-
-    #         cache = set()
-    #         dsx = []
-    #         dsy = []
-    #         for x, y in zip(ds[x], ds[y]):
-    #             if (x, y) in cache:
-    #                 continue
-    #             cache.add((x, y))
-    #             dsx.append(x)
-    #             dsy.append(y)
-
-    #         maxdeg_ = cls.deriv(dsx, dsy)
-    #         if maxdeg_ > maxdeg:
-    #             #print(x, y, maxdeg_)
-    #             maxdeg = maxdeg_
-    #         else:
-    #             maxdeg_ = cls.deriv(dsy, dsx)
-    #             if maxdeg_ > maxdeg:
-    #                 #print(y, x, maxdeg_)
-    #                 maxdeg = maxdeg_
-    #     return maxdeg
-
-    # @classmethod
-    # def deriv(cls, xs, ys):
-    #     assert len(xs), xs
-    #     assert len(xs) == len(ys), (xs, ys)
-    #     print(xs)
-    #     print(ys)
-    #     ys_ = list(ys)
-    #     i = 0
-    #     while ys_:
-    #         ys_change = [s-f for f, s in zip(ys_, ys_[1:])]
-    #         print('ys_change', ys_change)
-    #         if ys_ and all(y == 0 for y in ys_):
-    #             return i  # return max deg
-    #         i = i + 1
-    #         xs_change = [s-f for f, s in zip(xs, xs[i:])]
-    #         print('xs_change', xs_change)
-    #         # if xs_change and any(x == 0 for x in xs_change):
-    #         #    return -1  # div by 0
-    #         ys_ = [y/x for x, y in zip(xs_change, ys_change)]
-    #         print('ys_', ys_)
-    #     return -1
-
-    # @classmethod
-    # def deriv_test(cls):
-    #     ys = list(range(-3, 3))
-    #     xs = [y**2 for y in ys]
-
-    #     print(cls.deriv(xs, ys))
 
 
 class Z3(object):
@@ -922,30 +861,32 @@ class Z3(object):
 
         sage: var('x y')
         (x, y)
-        sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
-        sage: assert Z3.imply([x-6==0,x+6==0],x*x-36==0,use_reals=False)
-        sage: assert not Z3.imply([x*x-36==0],x-6==0,use_reals=False)
-        sage: assert not Z3.imply([x-6==0],x-36==0,use_reals=False)
-        sage: assert Z3.imply([x-7>=0], x>=6,use_reals=False)
-        sage: assert not Z3.imply([x-7>=0], x>=8,use_reals=False)
-        sage: assert not Z3.imply([x-6>=0], x-7>=0,use_reals=False)
-        sage: assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0,use_reals=False)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,use_reals=False)
-        sage: assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0,use_reals=False)
-        sage: assert not Z3.imply([],x-2>=0,use_reals=False)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,use_reals=False)
-        sage: assert Z3.imply([x^2-9>=0,x>=0],x-3>=0,use_reals=False)
-        sage: assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,use_reals=True)
-        sage: assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,use_reals=True)
-        sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0],x-8>=0,use_reals=False)
-        sage: assert Z3.imply([x+7>=0],x+8>=0,use_reals=False)
-        sage: assert Z3.imply([x+7>=0],x+8.9>=0,use_reals=True)
-        sage: assert Z3.imply([x>=7,y>=5],x*y>=35,use_reals=False)
-        sage: assert not Z3.imply([x>=-7,y>=-5],x*y>=35,use_reals=False)
+        sage: assert Z3.imply([x-6==0],x*x-36==0)
+        sage: assert Z3.imply([x-6==0,x+6==0],x*x-36==0)
+        sage: assert not Z3.imply([x*x-36==0],x-6==0)
+        sage: assert not Z3.imply([x-6==0],x-36==0)
+        sage: assert Z3.imply([x-7>=0], x>=6)
+        sage: assert not Z3.imply([x-7>=0], x>=8)
+        sage: assert not Z3.imply([x-6>=0], x-7>=0)
+        sage: assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0)
+        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0)
+        sage: assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0)
+        sage: assert not Z3.imply([],x-2>=0)
+        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0)
+        sage: assert Z3.imply([x^2-9>=0,x>=0],x-3>=0)
+        sage: assert Z3.imply([x-6==0],x*x-36==0)
+        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0)
+        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0)
+        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0)
+        sage: assert not Z3.imply([x+7>=0],x-8>=0)
+        sage: assert Z3.imply([x+7>=0],x+8>=0)
+        sage: assert Z3.imply([x>=7,y>=5],x*y>=35)
+        sage: assert not Z3.imply([x>=-7,y>=-5],x*y>=35)
+
+        # sage: assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,use_reals=True)
+        # sage: assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,use_reals=True)
+        # sage: assert Z3.imply([x+7>=0],x+8.9>=0,use_reals=True)
+
         """
 
         assert all(Miscs.is_expr(f) for f in fs), fs
@@ -978,29 +919,6 @@ class Z3(object):
 
         models, _ = cls.get_models(z3.Not(claim), k=1)
         return models is False
-
-    @classmethod
-    def _mycmp_(cls, f, g):
-        """
-        sage: from helpers.miscs import Z3
-        sage: import z3
-
-        sage: x,y = z3.Ints('x y')
-        sage: sorted([x>=z3.IntVal('0'), x>= z3.IntVal('3') ,  x>= z3.IntVal('3'), x>= z3.IntVal(
-            '1'), x>= z3.IntVal('10'), y - x >= z3.IntVal('20')], cmp=Z3._mycmp_)
-        [y - x >= 20, x >= 0, x >= 1, x >= 3, x >= 3, x >= 10]
-
-        """
-        claim = f == g
-        models, _ = cls.get_models(z3.Not(claim), k=1)
-        if models is False:
-            return 0  # ==
-        claim = z3.Implies(f, g)
-        models, _ = cls.get_models(z3.Not(claim), k=1)
-        if models is False:
-            return 1  # f > g
-        else:
-            return -1
 
     @classmethod
     def parse(cls, node):
