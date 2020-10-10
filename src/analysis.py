@@ -430,6 +430,12 @@ class Results:
             if len(agg_max_invs_at_depth) > 1:
                 self.print_depthplot(self.prog, agg_max_invs_at_depth, LINE_STYLES)
 
+        elif SEL == 5:
+            ##########
+            ## Table 5
+            print(f"{self.prog}{STARED_PROG} & {nlocs} & {V} & "
+                    f'{invcnt} & {EIM} & {NL_D} & {time_map["total"]:.1f} & \\checkmark  \\\\')
+
     @staticmethod
     def gen_graph_line_styles(progs):
         d = dict()
