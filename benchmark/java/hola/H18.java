@@ -8,10 +8,9 @@ public class H18 {
 	for (b = 0; b < 100; ++b) {
 	    if (flag != 0) j = j + 1;
 	}
-	if (flag != 0){
-	    vtrace(flag, j);
+	
+	vtrace(flag, j);
 	//if (flag != 0) assert(j == 100);
-	}
 
     }
 }
