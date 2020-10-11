@@ -366,7 +366,7 @@ prover {
  aliases = z3;
  kind = Z3;
  version = "4.8.7 - 64 bit";
- path = "/home/SHARED/Devel/Z3/z3/build/z3";
+ path = "/home/SHARED/Devel/Z3/z3/z3";
  timeout = 10.0;
  showQueries = false;
  showInconclusives = false;
@@ -401,14 +401,6 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
   * Make sure SAGE works, e.g., `sage` to run the SAGE interpreter or `sage --help`
   * Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
   * Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
-
-### Additional Info
-
-To run doctests
-
-```sh
-make test
-```
 
 ---
 
