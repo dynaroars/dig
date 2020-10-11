@@ -397,24 +397,29 @@ class Miscs(object):
         return ps
 
     @classmethod
-    def remove_ugly(cls, ps):
-        def okCoef(c):
-            try:
-                return (
-                    abs(c) <= settings.MAX_LARGE_COEF
-                    or sage.all.mod(c, 10) == 0
-                    or sage.all.mod(c, 5) == 0
-                )
-            except ZeroDivisionError:
-                return False
+    def is_nice_coef(cls, c, lim):
+        try:
+            return (
+                abs(c) <= lim
+                or sage.all.mod(c, 10) == 0
+                or sage.all.mod(c, 5) == 0
+            )
+        except ZeroDivisionError:
+            return False
 
+    @classmethod
+    def is_nice_eqt(cls, eqt, lim):
+        return all(cls.is_nice_coef(c, lim) for c in cls.get_coefs(eqt))
+
+    @classmethod
+    def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF_INTERMEDIATE):
         ps_ = []
         for p in ps:
-            if all(okCoef(c) for c in cls.get_coefs(p)):
+            if cls.is_nice_eqt(p, lim):
                 # print(f"append {p}")
                 ps_.append(p)
             else:
-                mlog.debug(f"ignore large coefs {str(p)[:settings.MAX_LARGE_COEF]} ..")
+                mlog.debug(f"ignore large coefs {str(p)[:50]} ..")
 
         return ps_
 

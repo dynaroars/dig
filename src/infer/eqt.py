@@ -225,4 +225,5 @@ class Infer(infer.base.Infer):
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
             exprs.extend(exprs_)
 
+        eqts = set([p for p in eqts if Miscs.is_nice_eqt(p.inv, settings.MAX_LARGE_COEF_FINAL)])
         return eqts, new_cexs
