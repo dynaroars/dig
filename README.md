@@ -366,7 +366,7 @@ prover {
  aliases = z3;
  kind = Z3;
  version = "4.8.7 - 64 bit";
- path = "/home/SHARED/Devel/Z3/z3/build/z3";
+ path = "/home/SHARED/Devel/Z3/z3/z3";
  timeout = 10.0;
  showQueries = false;
  showInconclusives = false;
