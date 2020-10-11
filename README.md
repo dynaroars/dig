@@ -402,14 +402,6 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
   * Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
   * Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
 
-### Additional Info
-
-To run doctests
-
-```sh
-make test
-```
-
 ---
 
 ## Publications
