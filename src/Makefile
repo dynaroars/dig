@@ -5,8 +5,7 @@ test_general_requirements:
 
 test_doctests:
 	$(info >>> Testing Python Doctests)
-	export SAGE_PATH=$Z3/src/api/python:.
-	sage -t helpers/miscs.py
+	PYTHONPATH=$PYTHONPATH:. sage -t helpers/miscs.py
 
 all: test_general_requirements test_doctests
 	$(info >>> All Done)
