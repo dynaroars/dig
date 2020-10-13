@@ -1,6 +1,6 @@
 # DIG
 
-**DIG** is a tool for generating invariants at arbitrary program locations (e.g., loop invariants, post conditions, etc). DIG infers (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG supports equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., `t = 2^x`, and have DIG infer invariants over terms.
+**DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions, etc). DIG infers (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG supports equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., `t = 2^x`, and have DIG infer invariants over terms.
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
