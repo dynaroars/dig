@@ -31,7 +31,7 @@ MAX_LARGE_COEF_FINAL = 50
 MAX_TERM = 200
 
 TRACE_MAX_VAL = 1_000_000_000
-#LARGE_N = 2_000_000  # powersum programs can go up to very large vals
+# LARGE_N = 2_000_000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
@@ -55,8 +55,8 @@ SYMEXE_DIR = "symexe"
 TRACE_INDICATOR = "vtrace"
 MAINQ_FUN = "mainQ"
 
-# Must be Java 8 because JPF requires Java 8
-JAVA_HOME = Path(os.path.expandvars("$JAVA_HOME"))
+# Must be Java 8 because JPF/SPF requires Java 8
+JAVA_HOME = Path(os.path.expandvars("$JAVA8_HOME"))
 JAVAC_CMD = JAVA_HOME / "bin/javac"
 JAVA_CMD = JAVA_HOME / "bin/java"
 assert JAVAC_CMD.is_file(), JAVAC_CMD
@@ -65,7 +65,6 @@ assert JAVA_CMD.is_file(), JAVA_CMD
 
 class Java:
     SE_MIN_DEPTH = 7
-    # SE_DEPTH_INCR = 20  # maxdepth = mindepth + depth_incr
 
     JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
     ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
