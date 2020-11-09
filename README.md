@@ -7,7 +7,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 - complexity analysis (e.g., providing program run time complexity such as `O(N^2)` or `O(NM)`,  `ASE17`, `FSE17`)
 - recurrence relations for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, `SEAD20`)
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
-- array analysis (finding invariant relations over array data structures, e.g., $A[i] = B[C[2i + 3]]$, `ICSE12`, `TOSEM13`)
+- array analysis (finding invariant relations over array data structures, e.g., `A[i] = B[C[2i + 3]]`, `ICSE12`, `TOSEM13`)
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
