@@ -661,7 +661,7 @@ class Miscs(object):
             try:
                 rs = f(mytasks)
             except BaseException as ex:
-                mlog.warning(f"Got exception in worker: {ex}")
+                mlog.exception(f"Got exception in worker: {ex}")
                 if myQ is None:
                     raise
                 else:
