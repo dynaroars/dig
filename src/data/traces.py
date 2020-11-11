@@ -16,17 +16,18 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
-    """"
+class SymbsVals(namedtuple("SymbsVals", ("ss", "vs"))):
+    """ "
     ((x, y), (3, 4))
     """
+
     def __new__(cls, ss, vs):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
         return super().__new__(cls, ss, vs)
 
     def __str__(self):
-        return ','.join(f'{s}={v}' for s, v in zip(self.ss, self.vs))
+        return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
 
     def mkExpr(self, ss):
         # create z3 expression
@@ -59,8 +60,9 @@ class Trace(SymbsVals):
         try:
             return self._mydict
         except AttributeError:
-            self._mydict = {sage.all.var(s): v for s, v
-                            in zip(self.ss, self.vs) if "!" not in s}
+            self._mydict = {
+                sage.all.var(s): v for s, v in zip(self.ss, self.vs) if "!" not in s
+            }
 
             return self._mydict
 
@@ -70,8 +72,7 @@ class Trace(SymbsVals):
         try:
             return self._mydict_str
         except AttributeError:
-            self._mydict_str = {s: v for s, v in zip(self.ss, self.vs)
-                                if "!" not in s}
+            self._mydict_str = {s: v for s, v in zip(self.ss, self.vs) if "!" not in s}
             return self._mydict_str
 
     @classmethod
@@ -96,16 +97,15 @@ class Trace(SymbsVals):
 
 
 class Traces(SymbsValsSet):
-
     def __str__(self, printDetails=False):
         if printDetails:
             return ", ".join(map(str, sorted(self)))
         else:
             return str(len(self))
 
-    @property
-    def maxdeg(self):
-        return Miscs.guess_maxdeg(self.mydicts2)
+    # @property
+    # def maxdeg(self):
+    #     return Miscs.guess_maxdeg(self.mydicts2)
 
     def myeval(self, expr, pred=None):
         assert Miscs.is_expr(expr), expr
@@ -189,11 +189,13 @@ class DTraces(dict):
     """
 
     @property
-    def siz(self): return sum(map(len, self.values()))
+    def siz(self):
+        return sum(map(len, self.values()))
 
     def __str__(self, printDetails=False):
-        return "\n".join(f"{loc}: {traces.__str__(printDetails)}"
-                         for loc, traces in self.items())
+        return "\n".join(
+            f"{loc}: {traces.__str__(printDetails)}" for loc, traces in self.items()
+        )
 
     def add(self, loc, trace):
         assert isinstance(loc, str) and loc, loc
@@ -235,21 +237,20 @@ class DTraces(dict):
         'vtrace1: 0 285 2 18 285 9 ',
         'vtrace1: 0 285 4 36 285 9 ']
         """
-        assert isinstance(inv_decls, data.prog.DSymbs)\
-            and inv_decls, inv_decls
+        assert isinstance(inv_decls, data.prog.DSymbs) and inv_decls, inv_decls
         lines = [l.strip() for l in trace_str]
         lines = [l for l in lines if l]
 
         dtraces = DTraces()
         for l in lines:
             # 22: 8460 16 0 1 16 8460
-            parts = l.split(':')
+            parts = l.split(":")
             assert len(parts) == 2, parts
             loc, tracevals = parts[0], parts[1]
             loc = loc.strip()  # 22
             if loc not in inv_decls:
                 """
-                No symbolic states for this loc, so will not 
+                No symbolic states for this loc, so will not
                 collect concrete states here
                 """
                 continue
@@ -269,18 +270,17 @@ class DTraces(dict):
         v1, v2, v2
         ...
         """
-        assert inv_decls and isinstance(
-            inv_decls, data.prog.DSymbs), inv_decls
+        assert inv_decls and isinstance(inv_decls, data.prog.DSymbs), inv_decls
         assert isinstance(tracefile, Path), tracefile
 
         ss = []
         for loc in self:
             traces = [inv_decls[loc]]
-            traces.extend([', '.join(map(str, t.vs)) for t in self[loc]])
-            traces = [f'{loc}: {trace}' for trace in traces]
+            traces.extend([", ".join(map(str, t.vs)) for t in self[loc]])
+            traces = [f"{loc}: {trace}" for trace in traces]
             ss.extend(traces)
 
-        tracefile.write_text('\n'.join(ss))
+        tracefile.write_text("\n".join(ss))
 
     @classmethod
     def vread(cls, tracefile):
@@ -293,12 +293,12 @@ class DTraces(dict):
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            loc, contents = line.split(':')
+            loc, contents = line.split(":")
 
             if loc not in inv_decls:
                 inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
             else:
-                trace_str.append(line.replace(',', ' '))
+                trace_str.append(line.replace(",", " "))
 
         dtraces = DTraces.parse(trace_str, inv_decls)
         return inv_decls, dtraces
@@ -336,15 +336,14 @@ class Inps(SymbsValsSet):
                             pass
             return inps
 
-        if (isinstance(ds, list) and all(isinstance(d, dict) for d in ds)):
+        if isinstance(ds, list) and all(isinstance(d, dict) for d in ds):
             new_inps = [inp for d in ds for inp in f(d)]
 
         elif isinstance(ds, dict):
             new_inps = f(ds)
 
         else:
-            assert isinstance(ds, set) and\
-                all(isinstance(d, tuple) for d in ds), ds
+            assert isinstance(ds, set) and all(isinstance(d, tuple) for d in ds), ds
             new_inps = [inp for inp in ds]
 
         new_inps = [Inp(ss, inp) for inp in new_inps]

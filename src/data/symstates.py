@@ -14,7 +14,7 @@ import subprocess
 import threading
 
 import z3
-from sage.all import cached_function, sage_eval
+from sage.all import cached_function
 from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
@@ -246,7 +246,6 @@ class PCs(set):
             return self._pc
 
 
-
 EXPR_MAPPER = {
     # For HOLA H32
     # TODO: Don't need this in Python 3.8
@@ -328,7 +327,7 @@ class SymStatesMaker(metaclass=ABCMeta):
                 f"time out after {ex.timeout}s"
             )
             s = ex.stdout
-
+            s = s if isinstance(s, str) else str(s)
         except subprocess.CalledProcessError as ex:
             mlog.warning(ex)
             return None

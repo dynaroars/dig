@@ -72,8 +72,7 @@ class Invs(set):
 
     def simplify(self):
 
-        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify(
-            self)
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify(self)
 
         assert not falseinvs, falseinvs
         assert not preposts, preposts
@@ -174,8 +173,7 @@ class Invs(set):
 
         results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
         results = [ps[i] for i in results]
-        Miscs.show_removed(f"simplify2 {msg}", len(
-            ps), len(results), time() - st)
+        Miscs.show_removed(f"simplify2 {msg}", len(ps), len(results), time() - st)
 
         return results
 
@@ -237,7 +235,8 @@ class DInvs(dict):
             )
             ss.append(f"{loc} ({len(self[loc])} invs):")
 
-            def mylen(x): return len(str(x))
+            def mylen(x):
+                return len(str(x))
 
             invs = (
                 sorted(eqts + eqts_largecoefs, key=mylen)

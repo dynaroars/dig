@@ -292,7 +292,6 @@ class Miscs(object):
         if len(ps) <= 1:
             return ps
         assert (p.operator() == sage.all.operator.eq for p in ps), ps
-
         try:
             Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.get_vars(ps))
             myIdeal = Q * ps
@@ -306,6 +305,7 @@ class Miscs(object):
             mlog.error(ex)
         except ValueError as ex:
             mlog.error(ex)
+
         return ps
 
     @staticmethod
@@ -399,11 +399,7 @@ class Miscs(object):
     @classmethod
     def is_nice_coef(cls, c, lim):
         try:
-            return (
-                abs(c) <= lim
-                or sage.all.mod(c, 10) == 0
-                or sage.all.mod(c, 5) == 0
-            )
+            return abs(c) <= lim or sage.all.mod(c, 10) == 0 or sage.all.mod(c, 5) == 0
         except ZeroDivisionError:
             return False
 
@@ -444,11 +440,12 @@ class Miscs(object):
 
     @classmethod
     def solve_linear_eqts(cls, eqts, ukns):
+
         A = sage.all.matrix(
             sage.all.QQ,
             [[e.lhs().coefficient(v) for v in ukns] + [e.rhs()] for e in eqts],
         )
-        A.echelonize(algorithm='multimodular')
+        A.echelonize(algorithm="multimodular")
         sols = dict()
         used_vars = set()
         for i in range(len(eqts)):
@@ -461,7 +458,8 @@ class Miscs(object):
                         assert A[i, j] == 1, A[i]
                     else:
                         s -= A[i, j] * ukns[j]
-                        if __debug__: used_vars.add(ukns[j])
+                        if __debug__:
+                            used_vars.add(ukns[j])
             if v is not None:
                 assert v not in sols
                 assert v not in used_vars
