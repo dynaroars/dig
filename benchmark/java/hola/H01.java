@@ -24,8 +24,8 @@ public class H01 {
 			y = t1 + t2;
 			j = j + 1;
 		}
-		// vtrace(x, y);
-		vtrace1(y);
+		vtrace(x, y);
+		// vtrace1(y);
 		// assert(y >= 1);
 
 	}
