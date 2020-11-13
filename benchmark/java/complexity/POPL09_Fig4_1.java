@@ -3,7 +3,7 @@ public class POPL09_Fig4_1 {
     public static void main (String[] args) {}
 
     public static int mainQ(int n, int m){
-	assert(m >= 0); 
+	//assert(m >= 0); 
 	int x = 0;
 	int y = 0;
 	int tCtr = 0;
