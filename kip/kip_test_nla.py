@@ -1,37 +1,37 @@
 from z3 import *
-from vu_common import pause
 from z3util import is_even, is_odd, get_z3_version
 from scr_miscs import pre_f
 from kip_test_common import verify, print_summary
 
+
 def divbin():
-    from invs_nla_dig import A,B,q,r,b, divbin_LI0, divbin_LI1
-    
-    #First loop LI0
-    I = And(A>0, B>0, q == 0, r == A, b == B, r >= b)
+    from invs_nla_dig import A, B, q, r, b, divbin_LI0, divbin_LI1
+
+    # First loop LI0
+    I = And(A > 0, B > 0, q == 0, r == A, b == B, r >= b)
     T = And(pre_f(r) >= pre_f(b),
             A == pre_f(A),
             B == pre_f(B),
             q == pre_f(q),
             r == pre_f(r),
             b == 2*pre_f(b))
-    
+
     LI0 = divbin_LI0
-    LI0_d = verify("divbin LI0",[],I,T,LI0)
-    
-    #Second while loop LI1
-    
-    #need the inv even(b) because b/2 uses int div
-    #also note that when the assignment statement b = b/2 occurs, b is 
-    #guarnteed to be even -- though we cannot automatically generate
-    #this invariant so has to manually provide
+    LI0_d = verify("divbin LI0", [], I, T, LI0)
+
+    # Second while loop LI1
+
+    # need the inv even(b) because b/2 uses int div
+    # also note that when the assignment statement b = b/2 occurs, b is
+    # guarnteed to be even -- though we cannot automatically generate
+    # this invariant so has to manually provide
     assumes = [is_even(b)]
-    #q == 0, A == r, #LI0
-    I = And(LI0_d['Ts'] + [Not(r>=b)])  #negation of 1st loop guard
-    
+    # q == 0, A == r, #LI0
+    I = And(LI0_d['Ts'] + [Not(r >= b)])  # negation of 1st loop guard
+
     T = And(pre_f(b != B),
             If(pre_f(r >= b/2),
-               And(q == pre_f(2 * q + 1), 
+               And(q == pre_f(2 * q + 1),
                    r == pre_f(r - b / 2),
                    b == pre_f(b / 2)),
                
@@ -55,7 +55,7 @@ def cohendiv():
     #inner loop
     I = And(x == r+q*y, r>=y,  #invs of outer loop & guard of outer loop 
             a==1, b==y)
-        
+    
     T =  And(pre_f(r >= 2*b),
              a == 2*pre_f(a), 
              b == 2*pre_f(b), 
@@ -135,7 +135,7 @@ def hard():
     #these assumptionscannot be automatically generated
     #When p#1, then d and p are even
     assumes = [is_even(d), is_even(p)]
-        
+    
     #q==0 , A - r == 0, B*p == d,  #LI0             
     I = And(LI0_d['Ts'] + [Not(r>=d)])
 
@@ -209,11 +209,11 @@ def dijkstra():
                    q == pre_f(q/4),
                    h == pre_f(p+q/4))),
             n == pre_f(n))
-                
+    
     #n*q == p*p + q*r,  #proved only when declare vars as reals, ow. long time
-           #h*h*p - 4*h*n*q + 4*h*q*r + 4*n*p*q - p*q*q - 4*p*q*r == 0, z3 long time
-           #h*h*h - 12*h*n*q - h*q*q + 12*h*q*r + 16*n*p*q - 4*p*q*q - 16*p*q*r == 0, z3 long time
-           #h*h*n - h*h*r - 4*h*n*p + 4*h*p*r + 4*n*n*q - n*q*q - 8*n*q*r + q*q*r + 4*q*r*r == 0, #z3 froze
+    #h*h*p - 4*h*n*q + 4*h*q*r + 4*n*p*q - p*q*q - 4*p*q*r == 0, z3 long time
+    #h*h*h - 12*h*n*q - h*q*q + 12*h*q*r + 16*n*p*q - 4*p*q*q - 16*p*q*r == 0, z3 long time
+    #h*h*n - h*h*r - 4*h*n*p + 4*h*p*r + 4*n*n*q - n*q*q - 8*n*q*r + q*q*r + 4*q*r*r == 0, #z3 froze
     LI1 = dijkstra_LI1
 
     LI1_d = verify('dijkstra LI1',assumes,I,T,LI1)
@@ -375,7 +375,7 @@ def euclidex3():
             v == pre_f(2*v),
             k == pre_f(k),
             c == pre_f(c))
-        
+    
 
     LI2 = euclidex3_LI2
     LI2_d = verify("euclidex3 LI2",[],I,T,LI2)
@@ -477,7 +477,7 @@ def lcm1():
             y == pre_f(y),
             u == pre_f(u),
             v == pre_f(v))
-            
+    
     LI0 = lcm1_LI0
     LI0_d = verify("lcm1 LI0", [],I,T,LI0)
     
@@ -637,7 +637,7 @@ def fermat2():
                    r == pre_f(r) + pre_f(u))))
 
     LI0 = fermat2_LI0
-     
+    
     LI0_d = verify("fermat2 LI0",[],I,T,LI0)
     print_summary([LI0_d])
 
@@ -757,7 +757,7 @@ def ps5():
     LI0 = ps5_LI0
     LI0_d = verify("ps5 LI0", [], I, T, LI0)
     print_summary([LI0_d])
-           
+    
 def ps6():
     from invs_nla_dig import x, y, c, k, ps6_LI0
 
@@ -863,5 +863,5 @@ def verify_nla():
 
 if __name__  == "__main__":
     verify_nla()
-    print 'z3 version ', '.'.join(map(str,get_z3_version()))
+    print('z3 version ', '.'.join(map(str,get_z3_version())))
     
