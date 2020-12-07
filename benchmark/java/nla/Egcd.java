@@ -19,7 +19,7 @@ public class Egcd {
 			//assert(1 == p*s - r*q);
 			//assert(a == y*r + x*p);
 			//assert(b == x*q + y*s);
-			
+			 	
 			vtrace1(x,y,a,b,p,q,r,s);
 			
 			if(!(a!=b)) break;
