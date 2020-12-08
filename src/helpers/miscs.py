@@ -25,7 +25,8 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Miscs(object):
     @staticmethod
     def msage_eval(s, d):
-        assert all(isinstance(k, str) and Miscs.is_expr(v) for k, v in d.items()), d
+        assert all(isinstance(k, str) and Miscs.is_expr(v)
+                   for k, v in d.items()), d
         while True:
             try:
                 return sage.all.sage_eval(s, d)
@@ -361,7 +362,8 @@ class Miscs(object):
     def is_repeating_rational(x):
         """check if x is a repating rational"""
 
-        assert isinstance(x, sage.rings.rational.Rational) and not x.is_integer(), x
+        assert isinstance(
+            x, sage.rings.rational.Rational) and not x.is_integer(), x
 
         x1 = x.n(digits=50).str(skip_zeroes=True)
         x2 = x.n(digits=100).str(skip_zeroes=True)
@@ -386,10 +388,12 @@ class Miscs(object):
         # mlog.debug(f"start reduce_eqts for {len(ps)} eqts")
         try:
             newps = Q.get(timeout=timeout)
-            mlog.debug(f"done reduce_eqts, got {len(newps)} ps from  {len(ps)} ps")
+            mlog.debug(
+                f"done reduce_eqts, got {len(newps)} ps from  {len(ps)} ps")
             ps = newps
         except queue.Empty:
-            mlog.warning(f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
+            mlog.warning(
+                f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
             w.terminate()
 
         w.join()
@@ -1042,3 +1046,5 @@ class Z3(object):
         expr = cls.zTrue if not assertions else assertions[0]
         assert z3.is_expr(expr), expr
         return expr
+
+
