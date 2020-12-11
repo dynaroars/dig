@@ -2,7 +2,6 @@
 Symbolic States
 """
 
-from time import time
 import sys
 import shlex
 from collections import defaultdict
@@ -11,15 +10,15 @@ import pdb
 from multiprocessing import Queue
 from queue import Empty
 import subprocess
-import threading
+
 
 import z3
-from sage.all import cached_function
+from sage.all import cached_function, sage_eval
 from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
 import helpers.miscs
-from helpers.miscs import Z3
+from helpers.z3utils import Z3
 import data.prog
 import data.traces
 import data.inv.base
@@ -176,7 +175,8 @@ class PC_JPF(PathCondition):
         slocals = curpart[:]
         assert loc, loc
 
-        slocals = [cls.replace_str(p) for p in slocals if p and not cls.too_large(p)]
+        slocals = [cls.replace_str(p)
+                   for p in slocals if p and not cls.too_large(p)]
         slocals = " and ".join(slocals) if slocals else None
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
         pcs = " and ".join(pcs) if pcs else None
@@ -268,7 +268,8 @@ class SymStatesMaker(metaclass=ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in range(self.mindepth, settings.SE_MAXDEPTH + 1)]
+        tasks = [depth for depth in range(
+            self.mindepth, settings.SE_MAXDEPTH + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -300,7 +301,8 @@ class SymStatesMaker(metaclass=ABCMeta):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
-            mlog.debug(f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
+            mlog.debug(
+                f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
         return symstates
 
     def get_ss(self, depth):
@@ -308,7 +310,8 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         cmd = self.mk(depth)
         timeout = depth
-        mlog.debug(f"Obtain symbolic states at depth {depth} (timeout {timeout}s)")
+        mlog.debug(
+            f"Obtain symbolic states at depth {depth} (timeout {timeout}s)")
         mlog.debug(cmd)
 
         s = None
@@ -519,8 +522,10 @@ class SymStates(dict):
         assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
-        mlog.debug(f"checking {dinvs.siz} invs:\n" f"{dinvs.__str__(print_first_n=20)}")
-        tasks = [(loc, inv) for loc in dinvs for inv in dinvs[loc] if inv.stat is None]
+        mlog.debug(
+            f"checking {dinvs.siz} invs:\n" f"{dinvs.__str__(print_first_n=20)}")
+        tasks = [(loc, inv)
+                 for loc in dinvs for inv in dinvs[loc] if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
 
         def f(tasks):
@@ -550,7 +555,8 @@ class SymStates(dict):
 
     def mcheck_d(self, loc, inv, inps, ncexs):
         assert isinstance(loc, str), loc
-        assert inv is None or isinstance(inv, data.inv.base.Inv) or z3.is_expr(inv), inv
+        assert inv is None or isinstance(
+            inv, data.inv.base.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
@@ -565,10 +571,12 @@ class SymStates(dict):
                 inv_expr = None
 
         if settings.DO_INCR_DEPTH:
-            cexs, is_succ = self.mcheck_depth(self[loc], inv, inv_expr, inps, ncexs)
+            cexs, is_succ = self.mcheck_depth(
+                self[loc], inv, inv_expr, inps, ncexs)
         else:
             cexs, is_succ, stat = self.mcheck(
-                self.get_ss_at_depth(self[loc], depth=None), inv_expr, inps, ncexs
+                self.get_ss_at_depth(
+                    self[loc], depth=None), inv_expr, inps, ncexs
             )
 
         return cexs, is_succ
@@ -613,7 +621,8 @@ class SymStates(dict):
                     f"{stat} @depth {mydepth}, {stat_} @depth {mydepth_}"
                 )
                 self.put_solver_stats(
-                    analysis.CheckDepthChanges(str(inv), stat, mydepth, stat_, mydepth_)
+                    analysis.CheckDepthChanges(
+                        str(inv), stat, mydepth, stat_, mydepth_)
                 )
             else:
                 nochanges += 1
@@ -643,7 +652,7 @@ class SymStates(dict):
             f = z3.Not(z3.Implies(f, expr))
 
         models, stat = Z3.get_models(f, ncexs)
-        cexs, is_succ = Z3.extract(models)
+        cexs, is_succ = Z3.extract(models, sage_eval)
         return cexs, is_succ, stat
 
     # Find maximal values for term using symbolic states
@@ -655,7 +664,8 @@ class SymStates(dict):
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
 
         if settings.DO_INCR_DEPTH:
-            v, stat = self.mmaximize_depth(self[loc], term_expr, iupper, extra_constr)
+            v, stat = self.mmaximize_depth(
+                self[loc], term_expr, iupper, extra_constr)
         else:
             v, stat = self.mmaximize(
                 self.get_ss_at_depth(self[loc], depth=None), term_expr, iupper

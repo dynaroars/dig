@@ -2,21 +2,19 @@
 # from vu_common import pause, vset, vflatten, get_logger, is_bool, is_list, is_dict, is_str
 # from scr_miscs import pre, cur, is_pre, is_state, is_trans, substitute_f
 # from z3 import is_expr, And, Solver, Not, sat, unsat, unknown
-# from z3util import fhash, model_str, get_vars, myAnd, is_expr_var, expr_member
+# from z3util import fhash, model_str, get_vars, myAnd, Z3.is_var, expr_member
 
 import pdb
 
 import z3
 import helpers.vcommon as CM
-from helpers.miscs import Z3
+from helpers.z3utils import Z3
 import settings
 
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
-# atstate_cache = OrderedDict()
 
 ##############################
 #
@@ -80,8 +78,10 @@ class Prog:
         self.assumes_trans = []
 
         for a in assumes:
-            (self.assumes_transf if Miscs.is_trans(
-                a) else self.assumes_states).append(f)
+            if Miscs.is_trans(a):
+                self.assumes_trans.append(a)
+            else:
+                self.assumes_state.append(a)
 
         # Known invariants (lemmas). Use add_inv() to add an inv as lemma
         self.invs_state = []
@@ -106,26 +106,28 @@ class Prog:
         s = '\n'.join(s)
         return s
 
+    def add_inv(self, inv):
+        """
+        Add an inv as a known lemma, which can be useful to prove
+        other properties. Note that invs and assumptions are treated
+        slightly differently by KIP because invs are *proved*
+        properties and thus can be exploited differently !
+        """
+        mlog.debug("Add as lemma the inv\n'{}'".format(inv))
 
-#     def add_inv(self, inv):
-#         """
-#         Add an inv as a known lemma, which can be useful to prove
-#         other properties. Note that invs and assumptions are treated
-#         slightly differently by KIP because invs are *proved*
-#         properties and thus can be exploited differently !
-#         """
-#         mlog.debug("Add as lemma the inv\n'{}'".format(inv))
-#         self.append_f(inv, self.invs_state, self.invs_trans)
+        if Miscs.is_trans(inv):
+            self.invs_trans.append(inv)
+        else:
+            self.invs_state.append(inv)
 
-
-#     def reset_invs(self):
-#         """
-#         Remove all known invs (lemmas)
-#         """
-#         mlog.debug("Remove all invs (lemmas) (state: {}, trans: {})"\
-#                      .format(len(self.invs_state),len(self.invs_trans)))
-#         self.invs_state = []
-#         self.invs_trans = []
+    def reset_invs(self):
+        """
+        Remove all known invs (lemmas)
+        """
+        mlog.debug("Remove all invs (lemmas) (state: {}, trans: {})"
+                   .format(len(self.invs_state), len(self.invs_trans)))
+        self.invs_state = []
+        self.invs_trans = []
 
     def prove(self, prop, k,
               do_trans=False,
@@ -151,7 +153,7 @@ class Prog:
         mlog.debug(f'Original program:{self}')
 
         if do_abstraction:
-            prog = self.gen_abstraction(self, prop)
+            prog = self.gen_abstraction(prop)
             mlog.info(f'Abstract program:{prog}')
         else:
             prog = self
@@ -164,14 +166,14 @@ class Prog:
                   do_pcompress=do_pcompress,
                   do_term_check=do_term_check)
 
-        # if do_trans:
-        #     raise AssertionError('trans: not implemented')
+        if do_trans:
+            raise AssertionError('trans: not implemented')
 
-        # r, m, k_ = kip.k_ind()
+        r, m, k_ = kip.k_ind()
 
-        # #time_elapsed = time.time() - stime
-        # #mlog.warn('Time elapsed: %.4f s'%time_elapsed)
-        # return r, m, k_
+        # time_elapsed = time.time() - stime
+        # mlog.warn('Time elapsed: %.4f s'%time_elapsed)
+        return r, m, k_
 
 #     def prove_props(self,
 #                     props,
@@ -344,19 +346,6 @@ class Prog:
 
 #     ### Helper methods
 
-    # @staticmethod
-    # def append_f(f, list_state, list_trans):
-    #     if __debug__:
-    #         assert is_expr(f), f
-    #         assert is_list(list_state), list_state
-    #         assert is_list(list_trans), list_trans
-
-    #     if is_trans(f):
-    #         list_trans.append(f)
-    #     else:
-    #         list_state.append(f)
-
-
     def gen_abstraction(self, prop):
         """
         Generate a simpler program containing information
@@ -374,22 +363,21 @@ class Prog:
 
         For example, False is proved under the contradicting assumption
         (x and not x).  But if we slice (x and not x), then 'False' is disproved.
-
         """
 
-        a_defs = self.slice_defs(
-            prop, prog.defs, prog.assumes_state, prog.assumes_trans)
+        assert z3.is_expr(prop), prop
 
-        a_init_conds = list(prog.init_conds)
-        a_input_vars = list(prog.input_vars)
-        a_assumes = list(prog.assumes_state + prog.assumes_trans)
+        defs_ = self.slice_defs(prop)
+        # prop, prog.defs, prog.assumes_state, prog.assumes_trans)
 
-        a_prog = Prog(a_init_conds, a_defs, a_input_vars, a_assumes)
+        prog_ = Prog(list(self.init_conds), defs_,
+                     list(self.input_vars),
+                     list(self.assumes_state + self.assumes_trans))
 
-        for inv in prog.invs_state + prog.invs_trans:
-            a_prog.add_inv(inv)
+        for inv in self.invs_state + self.invs_trans:
+            prog_.add_inv(inv)
 
-        return a_prog
+        return prog_
 
     def slice_defs(self, prop):
         """
@@ -400,88 +388,79 @@ class Prog:
         fs = [prop] + self.assumes_state + self.assumes_trans
         fs = [f for f in fs if z3.is_expr(f)]
 
-        vs = [get_vars(f) for f in fs]
-        vs = [cur(v_) if is_pre(v_) else v_ for v_ in vflatten(vs)]
-        vs = vset(vs, fhash)
+        vs = [Z3.get_vars(f) for f in fs]
+        vs = [Miscs.cur(v) if Miscs.is_pre(v) else v
+              for vs_ in vs for v in vs_]
+        vs = set(vs)
 
-        vs_ = [Prog.get_influence_vs(v, defs, []) for v in vs]
-        vs = vset(vflatten(vs + vs_), fhash)
+        vs_ = [Prog.get_influence_vs(v, self.defs, set()) for v in vs]
+        vs_ = [v for vs__ in vs_ for v in vs__]
+        vs = set.union(vs, vs_)
 
-        a_defs = OrderedDict()
-        for v in vs:
-            k = fhash(v)
-            if k in defs:
-                a_defs[k] = defs[k]
+        defs_ = {v: self.defs[v] for v in vs if v in self.defs}
+        return defs_
 
-        return a_defs
+    @staticmethod
+    def get_influence_vs(v, defs, rs):
+        """
+        Return a list of variables that influences v
+        (i.e. the definition of v depends on these variables)
 
+        >>> from z3 import Bools, BoolVal
+        >>> from scr_miscs import mk_OIA
 
-#     @staticmethod
-#     def get_influence_vs(v,defs,rs):
-#         """
-#         Return a list of variables that influences v
-#         (i.e. the definition of v depends on these variables)
+        >>> s,t = Bools('s t')
+        >>> x,y,z = Bools('x y z')
+        >>> vs = [x,y,z]
+        >>> o = mk_OIA(vs)
+        >>> vv = [o,o,And(o,s)]
+        >>> vs2 = [t]
+        >>> vv2 = [BoolVal(True)]
+        >>> vs_k = map(fhash,vs + vs2)
+        >>> vs_v =vv + vv2
+        >>> defs = OrderedDict(zip(vs_k,vs_v))
+        >>> print Prog.get_influence_vs(x,defs,rs=[])
+        [s, y, z]
 
-#         >>> from z3 import Bools, BoolVal
-#         >>> from scr_miscs import mk_OIA
+        # >>> print Prog.get_influence_vs(x,defs,assumes=[x==s],rs=[])
+        # [s, y, z]
 
-#         >>> s,t = Bools('s t')
-#         >>> x,y,z = Bools('x y z')
-#         >>> vs = [x,y,z]
-#         >>> o = mk_OIA(vs)
-#         >>> vv = [o,o,And(o,s)]
-#         >>> vs2 = [t]
-#         >>> vv2 = [BoolVal(True)]
-#         >>> vs_k = map(fhash,vs + vs2)
-#         >>> vs_v =vv + vv2
-#         >>> defs = OrderedDict(zip(vs_k,vs_v))
-#         >>> print Prog.get_influence_vs(x,defs,rs=[])
-#         [s, y, z]
-
-#         #>>> print Prog.get_influence_vs(x,defs,assumes=[x==s],rs=[])
-#         #[s, y, z]
-
-#         #>>> print Prog.get_influence_vs(x,defs,assumes=[y==t],rs=[])
-#         #[s, y, z, t]
+        # >>> print Prog.get_influence_vs(x,defs,assumes=[y==t],rs=[])
+        # [s, y, z, t]
 
 
-#         """
-#         if __debug__:
-#             assert is_expr_var(v), v
-#             assert is_dict(defs), defs
-#             assert is_list(rs), rs
+        """
+        assert Z3.is_var(v), v
+        assert isinstance(defs, dict), defs
+        assert isinstance(rs, set), rs
 
-#         if is_pre(v):
-#             v = cur(v)
+        if Miscs.is_pre(v):
+            v = Miscs.cur(v)
 
-#         #return if already in the result set
-#         if expr_member(v, rs):
-#             return rs
+        # return if already in the result set
+        if v in rs:
+            return rs
 
-#         try:
-#             vs = get_vars(defs[fhash(v)])
-#             #print vs
+        try:
+            vs = Z3.get_vars(defs[v])
+            # print vs
+        except KeyError:
+            return rs
 
-#         except KeyError:
-#             return rs
+        rs.add(v)
 
-#         rs = rs + [v]
+        # convert v_pre to v
+        vs = set(Miscs.cur(v_) if Miscs.is_pre(v_) else v_ for v_ in vs)
 
-#         #convert v_pre to v
-#         vs = [cur(v_) if is_pre(v_) else v_ for v_ in vs]
-#         vs = vset(vs, fhash)
+        for v_ in vs:
+            rs_ = Prog.get_influence_vs(v_, defs, rs)  # rec call
+            rs = set.union(rs, rs_)
 
-#         for v_ in vs:
-#             rs_ = Prog.get_influence_vs(v_,defs,rs)
-#             rs  = rs + rs_
+        rs = set.union(rs, vs)
 
-#         rs = rs + vs
-#         rs = vset(rs, fhash)
-
-#         #remove myself
-#         v_idx = map(fhash, rs).index(fhash(v))
-#         rs = rs[:v_idx] + rs[v_idx+1:]
-#         return sorted(rs,key=str)
+        # remove myself
+        rs.remove(v)
+        return sorted(rs, key=str)
 
 
 # ##############################
@@ -491,520 +470,487 @@ class Prog:
 # ##############################
 
 
-# class KIP(object):
-#     """
-#     The prover based on K-Induction to prove program properties.
-#     """
-
-#     def __init__(self,
-#                  prop,
-#                  prog,
-#                  k=100,
-#                  do_base_case=True,
-#                  do_induction=True,
-#                  do_pcompress=True,
-#                  do_term_check=True):
-
-#         if __debug__:
-#             assert is_expr(prop), prop
-#             assert isinstance(prog, Prog), prog
-#             assert k >= 0, k
-#             assert is_bool(do_base_case), do_base_case
-#             assert is_bool(do_induction), do_induction
-#             assert is_bool(do_pcompress), do_pcompress
-#             assert is_bool(do_term_check), do_term_check
-
-#         self.k = k
-
-#         self.prop = prop
-#         self.is_prop_state = is_state(self.prop)
-
-#         self.init_conds = prog.init_conds
-#         self.assumes_state = prog.assumes_state
-#         self.assumes_trans = prog.assumes_trans
-#         self.invs_state = prog.invs_state
-#         self.invs_trans = prog.invs_trans
-#         self.input_vars = prog.input_vars
-#         self.defs_vals = prog.defs.values()
-
-#         f = myAnd(self.defs_vals +
-#                   self.assumes_state + self.assumes_trans)
-#         self.state_vars = self.get_state_vars(f, self.input_vars)
-
-#         mlog.debug("KIP (k={})".format(k))
-#         mlog.debug("prop: '{}'".format(self.prop))
-#         mlog.debug("|state_vars|: {}".format(len(self.state_vars)))
-#         mlog.debug(self.state_vars)
-
-#         if len(self.state_vars) == 0:
-#             mlog.warn("No state vars")
-#             if do_pcompress:
-#                 mlog.warn("Disable path compression")
-#                 do_pcompress = False
-#             if do_term_check:
-#                 mlog.warn("Disable termination check")
-#                 do_term_check = False
-
-#         self.do_base_case = do_base_case
-#         self.do_induction = do_induction
-#         self.do_pcompress = do_pcompress
-#         self.do_term_check = do_term_check
-
-
-#     def k_ind(self):
-#         """
-#         Starts with k=0 instead of 2
+class KIP:
+    """
+    The prover based on K-Induction to prove program properties.
+    """
+    atstate_cache = {}
+
+    def __init__(self,
+                 prop,
+                 prog,
+                 k=100,
+                 do_base_case=True,
+                 do_induction=True,
+                 do_pcompress=True,
+                 do_term_check=True):
+
+        assert z3.is_expr(prop), prop
+        assert isinstance(prog, Prog), prog
+        assert k >= 0, k
+        assert isinstance(do_base_case, bool), do_base_case
+        assert isinstance(do_induction, bool), do_induction
+        assert isinstance(do_pcompress, bool), do_pcompress
+        assert isinstance(do_term_check, bool), do_term_check
+
+        self.k = k
+
+        self.prop = prop
+        self.is_prop_state = Miscs.is_state(self.prop)
+
+        self.init_conds = prog.init_conds
+        self.assumes_state = prog.assumes_state
+        self.assumes_trans = prog.assumes_trans
+        self.invs_state = prog.invs_state
+        self.invs_trans = prog.invs_trans
+        self.input_vars = prog.input_vars
+        self.defs_vals = list(prog.defs.values())
+
+        f = z3.And(self.defs_vals + self.assumes_state + self.assumes_trans)
+        self.state_vars = self.get_state_vars(f, set(self.input_vars))
+
+        mlog.debug("KIP (k={})".format(k))
+        mlog.debug("prop: '{}'".format(self.prop))
+        mlog.debug("|state_vars|: {}".format(len(self.state_vars)))
+        mlog.debug(self.state_vars)
+
+        if len(self.state_vars) == 0:
+            mlog.warn("No state vars")
+            if do_pcompress:
+                mlog.warn("Disable path compression")
+                do_pcompress = False
+            if do_term_check:
+                mlog.warn("Disable termination check")
+                do_term_check = False
+
+        self.do_base_case = do_base_case
+        self.do_induction = do_induction
+        self.do_pcompress = do_pcompress
+        self.do_term_check = do_term_check
+
+    def k_ind(self):
+        """
+        Starts with k=0 instead of 2
+
+        Proving property using k-induction.
+        Return a tuple (r, ce), where r represent the prover
+        result and ce is the counterexample (model).
+
+        r has 3 possible values True,False,None,unkonwn.
+        True: property is proved.
+        False: property is disproved.
+        None: property cannot be proven (e.g. exceed the number of k
+        iterations or that the theory is not supported by the SMT solver)
+        unknown: error from the SMT solver.
+
+        """
+        if not self.is_prop_state:
+            raise AssertionError('trans: not implemented')
+
+        P = self.P
+        I = self.I
+        T = self.T
+        A_S = self.A_S
+        A_T = self.A_T
+        I_S = self.I_S
+        I_T = self.I_T
+        D = self.D
+
+        solver_timeout = 1*1000  # timeout
+        S_base = z3.Solver()
+        S_base.set(timeout=solver_timeout)
+        S_step = z3.Solver()
+        S_step.set(timeout=solver_timeout)
+
+        def add_base(f):
+            if f is not None:
+                S_base.add(f)
+
+        def add_step(f):
+            if f is not None:
+                S_step.add(f)
+
+        _sbase = None
+        _sstep = 'n'
 
-#         Proving property using k-induction.
-#         Return a tuple (r, ce), where r represent the prover
-#         result and ce is the counterexample (model).
+        def _term_check(k):
+            c = [D(k_, _sbase) for k_ in range(2, k+1)]  # 2..k
+            c = z3.And(c)
 
-#         r has 3 possible values True,False,None,unkonwn.
-#         True: property is proved.
-#         False: property is disproved.
-#         None: property cannot be proven (e.g. exceed the number of k
-#         iterations or that the theory is not supported by the SMT solver)
-#         unknown: error from the SMT solver.
-
-#         """
-#         if not self.is_prop_state:
-#             raise AssertionError('trans: not implemented')
-
-#         P = self.P
-#         I = self.I
-#         T = self.T
-#         A_S = self.A_S
-#         A_T = self.A_T
-#         I_S = self.I_S
-#         I_T = self.I_T
-#         D = self.D
-
-#         solver_timeout = 1*1000  #timeout
-#         S_base   = Solver()
-#         S_base.set(timeout=solver_timeout)
-#         S_step   = Solver()
-#         S_step.set(timeout=solver_timeout)
-
-#         add_base = lambda f: None if f is None else S_base.add(f)
-#         add_step = lambda f: None if f is None else S_step.add(f)
-
-#         _sbase = None
-#         _sstep = 'n'
-
-#         def _term_check(k):
-#             c = [D(k_,_sbase) for k_ in range(2,k+1)] #2..k
-#             c = myAnd(c)
+            # Term check
+            mlog.debug('* Term Check ({})'.format(k))
+            if c is None:
+                mlog.warn('skipping term check')
+                return None, None
 
-#             #Term check
-#             mlog.debug('* Term Check ({})'.format(k))
-#             if c is None:
-#                 mlog.warn('skipping term check')
-#                 return None, None
+            r_t, cex_t = KIP.entails(S_base, z3.Not(c))
+            if r_t == True:
+                mlog.info(f"** proved (cycle found) ({k}): {self.prop}")
 
-#             r_t, cex_t = KIP.entails(S_base, Not(c))
-#             if r_t == True:
-#                 mlog.info('** proved (cycle found) ({}): {}'
-#                             .format(k,self.prop))
+            return r_t, cex_t
 
-#             return r_t, cex_t
+        def _base_case(k, f=None):
+            assert f is None or z3.is_expr(f), f
 
+            mlog.debug(f"* Base Case state ({k})")
 
-#         def _base_case(k, f=None):
-#             if __debug__:
-#                 assert f is None or is_expr(f),f
+            if f is None:
+                f = P(k, _sbase)
 
-#             mlog.debug('* Base Case state ({})'.format(k))
+            r_b, cex_b = KIP.entails(S_base, f)  # P(k,_sbase),
 
-#             if not f:
-#                 f = P(k,_sbase)
+            if r_b == False:
+                mlog.info(f"** disproved (Base case) ({k}): {self.prop}")
 
-#             r_b,cex_b = KIP.entails(S_base, f) #P(k,_sbase),
+                # mlog.trace3(model_str(cex_b))
+
+            return r_b, cex_b
 
-#             if r_b == False:
-#                 mlog.info('** disproved (Base case) ({}): {}'
-#                             .format(k,self.prop))
-#                 #mlog.trace3(model_str(cex_b))
+        def _induction(k):
+            # mlog.trace1('* Inductive Step state ({})'.format(k))
 
-#             return r_b, cex_b
+            if k >= 2 and self.do_pcompress:
+                if k == 2:  # first time
+                    add_step(I(0, _sbase))
+                    add_step(A_S(0, _sbase))
 
+                add_step(D(k, _sstep))
 
-#         def _induction(k):
-#             #mlog.trace1('* Inductive Step state ({})'.format(k))
+            r_s, cex_s = KIP.entails(S_step, P(k+1, _sstep))
 
-#             if k >= 2 and self.do_pcompress:
-#                 if k == 2: #first time
-#                     add_step(I(0,_sbase))
-#                     add_step(A_S(0,_sbase))
+            if r_s == True:
+                mlog.info('** proved (Induction step) ({}): {}'
+                          .format(k, self.prop))
+            else:
+                mlog.debug('IS {} cannot prove'.format(k))
+                # print(model_str(cex_s))
 
-#                 add_step(D(k,_sstep))
+            return r_s, cex_s
 
-
-#             r_s,cex_s = KIP.entails(S_step,P(k+1,_sstep))
-
-#             if r_s == True:
-#                 mlog.info('** proved (Induction step) ({}): {}'
-#                             .format(k,self.prop))
-#             else:
-#                 mlog.debug('IS {} cannot prove'.format(k))
-#                 #print(model_str(cex_s))
-
-
-#             return r_s, cex_s
-
-
-#         #Begin k-induction
-
-#         for k in range(0, self.k + 1):
-
-#             #Base case
-#             if k == 0:
-#                 add_base(  I(k, _sbase))
-#                 add_base(A_S(k, _sbase))
-#             else:
-#                 add_base(  T(k, _sbase))
-#                 add_base(A_S(k, _sbase))
-#                 add_base(A_T(k, _sbase))
-
-
-#             if k >= 2 and self.do_term_check:
-#                 r_t_s, cex_t_s = _term_check(k)
-#                 if r_t_s == True:
-#                     return True, cex_t_s, k
-#                 if r_t_s == unknown:
-#                     return unknown,None,k
-
-#             if self.do_base_case:
-#                 r_b, cex_b = _base_case(k, P(k,_sbase))
-#                 if r_b == False:
-#                     return False, cex_b, k
-
-#                 if r_b == unknown:
-#                     return unknown,None,k
-
-#             #Induction step
-#             add_step(P(  k, _sstep))
-#             add_step(T(k+1, _sstep))
-
-#             add_step(A_S(k+1, _sstep))
-#             add_step(I_S(k+1, _sstep))
-
-#             add_step(A_T(k+1,_sstep))
-#             add_step(I_T(k+1,_sstep))
-
-#             if self.do_induction:
-#                 r_s,cex_s = _induction(k)
-#                 if r_s == True:
-#                     return True, cex_s, k
-
-#                 if r_s == unknown:
-#                     return unknown,None,k
-
-
-#         #out of k-loop
-#         if self.do_induction:
-#             mlog.info('** Not able to prove with k={}: {}'
-#                         .format(self.k,self.prop))
-#             return None, None, k
-#         else:
-#             mlog.debug('** No induction performed, all base cases passed')
-#             return True, None, k
-
-
-#     ### Methods to obtain formulas at different state i
-
-#     def P(self,i,s):
-#         """
-#         Return the formula for prop at state i
-#         """
-#         if __debug__:
-#             assert is_expr(self.prop), self.prop
-#             if self.is_prop_state:
-#                 assert i >= 0, i
-#             else:
-#                 assert i >= 1, i
-
-#         return self._at_state(self.prop, i, s)
-
-
-#     def I(self,i,s):
-#         """
-#         Return the formula for init condition at state i
-#         """
-#         if __debug__:
-#             assert is_list(self.init_conds) and\
-#                 all(is_state(a) for a in self.init_conds), self.init_conds
-#             assert i >= 0, i
-
-#         init_cond = myAnd([self._at_state(a, i, s)
-#                           for a in self.init_conds])
-#         return init_cond
-
-
-#     def T(self,i,s):
-#         """
-#         Return the formula for trans at state i.
-#         I.e. the transaction from state i-1 to state i
-
-#         T(i=0) is by default initial state (condition)
-#         T(i=1) is the trans from state 0 to state 1, and so on
-
-#         """
-#         if __debug__:
-#             assert is_list(self.defs_vals) and\
-#                 all(is_expr(a) for a in self.defs_vals),\
-#                 self.defs_vals
-#             assert i >= 1, i
-
-#         trans = myAnd([self._at_state(a, i, s)
-#                        for a in self.defs_vals])
-#         return trans
-
-
-#     def I_S(self,i,s):
-#         """
-#         Return the formula for (state) invariant at state i.
-#         """
-#         if __debug__:
-#             assert is_list(self.invs_state) and\
-#                 all(is_state(a) for a in self.invs_state), self.invs_state
-#             assert i >= 0, i
-
-#         inv_state = myAnd([self._at_state(a, i, s)
-#                            for a in self.invs_state])
-#         return inv_state
-
-
-#     def I_T(self,i,s):
-#         """
-#         Return the formula for (trans) invariant at state i
-#         """
-#         if __debug__:
-#             assert is_list(self.invs_trans) and\
-#                 all(is_trans(a) for a in self.invs_trans), self.invs_trans
-#             assert i >= 1, i
-
-#         inv_trans = myAnd([self._at_state(a, i, s)
-#                            for a in self.invs_trans])
-#         return inv_trans
-
-
-#     def A_S(self,i,s):
-#         """
-#         Return the formula for (state) assume at state i
-#         """
-#         if __debug__:
-#             assert is_list(self.assumes_state) and\
-#                 all(is_state(a) for a in self.assumes_state),\
-#                 self.assumes_state
-#             assert i >= 0, i
-
-#         assume_state = myAnd([self._at_state(a, i, s)
-#                               for a in self.assumes_state])
-#         return assume_state
-
-
-#     def A_T(self,i,s):
-#         """
-#         Return the formula for (trans) assume at state i
-#         """
-
-#         if __debug__:
-#             assert is_list(self.assumes_trans) and\
-#                 all(is_trans(a) for a in self.assumes_trans),\
-#                 self.assumes_trans
-#             assert i >= 1, i
-
-#         assume_trans = myAnd([self._at_state(a, i, s)
-#                               for a in self.assumes_trans])
-#         return assume_trans
-
-
-#     def D(self,i,s):
-#         """
-#         Return a formula expressing state s_i is different
-#         than states [0, s_0, s_1, ..., s_(i-1)].
-
-#         If s is None then the returned formula expresses
-#         state i different than states [0 ... i-1]
-#         """
-#         if __debug__:
-#             assert i >= 2, 'i ({}) must start from 2!'.format(i)
-
-#         if len(self.state_vars) == 0:
-#             return None
-
-#         def S(i,s):
-#             """
-#             Return a set (list) consisting of the variables at state i.
-#             I.e. x_1i, x_2i, ...
-#             """
-#             return [self._at_state(v, i, s) for v in self.state_vars]
-
-#         cur_state = S(i,s)
-#         #states s_0 ... s_(j-1)
-#         pre_states = [S(i_,s) for i_ in range(i)]
-
-#         if s:
-#             #D(s,s+i) = s_i #  [0,s_0,s_1,..,s_(i-1)]
-#             pre_states = [S(0,None)] + pre_states
-
-#         f = [Not(self.state_eq(cur_state,pre_state))
-#              for pre_state in pre_states]
-
-#         return myAnd(f)
+        # Begin k-induction
+
+        for k in range(0, self.k + 1):
+
+            # Base case
+            if k == 0:
+                add_base(I(k, _sbase))
+                add_base(A_S(k, _sbase))
+            else:
+                add_base(T(k, _sbase))
+                add_base(A_S(k, _sbase))
+                add_base(A_T(k, _sbase))
+
+            if k >= 2 and self.do_term_check:
+                r_t_s, cex_t_s = _term_check(k)
+                if r_t_s == True:
+                    return True, cex_t_s, k
+                if r_t_s == z3.unknown:
+                    return z3.unknown, None, k
+
+            if self.do_base_case:
+                r_b, cex_b = _base_case(k, P(k, _sbase))
+                if r_b == False:
+                    return False, cex_b, k
+
+                if r_b == z3.unknown:
+                    return z3.unknown, None, k
+
+            # Induction step
+            add_step(P(k, _sstep))
+            add_step(T(k+1, _sstep))
+
+            add_step(A_S(k+1, _sstep))
+            add_step(I_S(k+1, _sstep))
+
+            add_step(A_T(k+1, _sstep))
+            add_step(I_T(k+1, _sstep))
+
+            if self.do_induction:
+                r_s, cex_s = _induction(k)
+                if r_s == True:
+                    return True, cex_s, k
+
+                if r_s == z3.unknown:
+                    return z3.unknown, None, k
+
+        # out of k-loop
+        if self.do_induction:
+            mlog.info('** Not able to prove with k={}: {}'
+                      .format(self.k, self.prop))
+            return None, None, k
+        else:
+            mlog.debug('** No induction performed, all base cases passed')
+            return True, None, k
+
+    # Methods to obtain formulas at different state i
+
+    def P(self, i, s):
+        """
+        Return the formula for prop at state i
+        """
+        assert z3.is_expr(self.prop), self.prop
+        if self.is_prop_state:
+            assert i >= 0, i
+        else:
+            assert i >= 1, i
+
+        return self._at_state(self.prop, i, s)
+
+    def I(self, i, s):
+        """
+        Return the formula for init condition at state i
+        """
+        assert (isinstance(self.init_conds, list) and
+                all(Miscs.is_state(a) for a in self.init_conds)), self.init_conds
+        assert i >= 0, i
+
+        init_cond = z3.And([self._at_state(a, i, s) for a in self.init_conds])
+        return init_cond
+
+    def T(self, i, s):
+        """
+        Return the formula for trans at state i.
+        I.e. the transaction from state i-1 to state i
+
+        T(i=0) is by default initial state (condition)
+        T(i=1) is the trans from state 0 to state 1, and so on
+
+        """
+        assert (isinstance(self.defs_vals, list) and
+                all(z3.is_expr(a) for a in self.defs_vals)), self.defs_vals
+        assert i >= 1, i
+
+        trans = z3.And([self._at_state(a, i, s) for a in self.defs_vals])
+        return trans
+
+    def I_S(self, i, s):
+        """
+        Return the formula for (state) invariant at state i.
+        """
+        assert (isinstance(self.invs_state, list) and
+                all(Miscs.is_state(a) for a in self.invs_state)), self.invs_state
+        assert i >= 0, i
+
+        inv_state = z3.And([self._at_state(a, i, s) for a in self.invs_state])
+        return inv_state
+
+    def I_T(self, i, s):
+        """
+        Return the formula for (trans) invariant at state i
+        """
+        assert (isinstance(self.invs_trans, list) and
+                all(Miscs.is_trans(a) for a in self.invs_trans)), self.invs_trans
+        assert i >= 1, i
+
+        inv_trans = z3.And([self._at_state(a, i, s) for a in self.invs_trans])
+        return inv_trans
+
+    def A_S(self, i, s):
+        """
+        Return the formula for (state) assume at state i
+        """
+        assert (isinstance(self.assumes_state, list) and
+                all(Miscs.is_state(a) for a in self.assumes_state)), self.assumes_state
+
+        assert i >= 0, i
+
+        assume_state = z3.And([self._at_state(a, i, s)
+                               for a in self.assumes_state])
+        return assume_state
+
+    def A_T(self, i, s):
+        """
+        Return the formula for (trans) assume at state i
+        """
+
+        assert (isinstance(self.assumes_trans, list) and
+                all(Miscs.is_trans(a) for a in self.assumes_trans)), \
+            self.assumes_trans
+        assert i >= 1, i
+
+        assume_trans = z3.And([self._at_state(a, i, s)
+                               for a in self.assumes_trans])
+        return assume_trans
+
+    def D(self, i, s):
+        """
+        Return a formula expressing state s_i is different
+        than states [0, s_0, s_1, ..., s_(i-1)].
+
+        If s is None then the returned formula expresses
+        state i different than states [0 ... i-1]
+        """
+        assert i >= 2, f"i ({i}) must start from 2!"
+
+        if not self.state_vars:
+            return None
+
+        def S(i, s):
+            """
+            Return a set (list) consisting of the variables at state i.
+            I.e. x_1i, x_2i, ...
+            """
+            return [self._at_state(v, i, s) for v in self.state_vars]
+
+        cur_state = S(i, s)
+        # states s_0 ... s_(j-1)
+        pre_states = [S(i_, s) for i_ in range(i)]
+
+        if s:
+            # D(s,s+i) = s_i #  [0,s_0,s_1,..,s_(i-1)]
+            pre_states = [S(0, None)] + pre_states
+
+        f = [z3.Not(self.state_eq(cur_state, pre_state))
+             for pre_state in pre_states]
+
+        return z3.And(f)
 
 
 #     ### Helper methods
 
-#     @staticmethod
-#     def _at_state(f,i,s):
-#         """
-#         Returns formula at state i
-#         """
-#         if __debug__:
-#             assert f is None or is_expr(f), f
 
-#         if f is None:
-#             return None
-#         else:
-#             k = fhash(f) + (i,s)
-#             try:
-#                 return atstate_cache[k]
-#             except KeyError:
-#                 atstate_cache[k] = substitute_f(f=f, i=i, s=s)
-#                 return atstate_cache[k]
+    @ classmethod
+    def _at_state(cls, f, i, s):
+        """
+        Returns formula at state i
+        """
+        assert f is None or z3.is_expr(f), f
 
+        if f is None:
+            return None
+        else:
+            k = (f, i, s)
+            try:
+                return cls.atstate_cache[k]
+            except KeyError:
+                cls.atstate_cache[k] = Miscs.substitute_f(f=f, i=i, s=s)
+                return cls.atstate_cache[k]
 
-#     @staticmethod
-#     def state_eq(vs1,vs2):
-#         """
-#         Generate a formula expressing the variables in vs1,vs2 are the same
-#         """
-#         if __debug__:
-#             assert is_list(vs1) and all(is_expr_var(v) for v in vs1),vs1
-#             assert is_list(vs2) and all(is_expr_var(v) for v in vs2),vs2
-#             assert len(vs1) == len(vs2)
+    @ staticmethod
+    def state_eq(vs1, vs2):
+        """
+        Generate a formula expressing the variables in vs1,vs2 are the same
+        """
+        assert isinstance(vs1, list) and all(Z3.is_var(v) for v in vs1), vs1
+        assert isinstance(vs2, list) and all(Z3.is_var(v) for v in vs2), vs2
+        assert len(vs1) == len(vs2)
 
+        eqts = [v1 == v2 for v1, v2 in zip(vs1, vs2)]
+        return z3.And(eqts)
 
-#         eqts = [v1 == v2 for v1,v2 in zip(vs1,vs2)]
-#         return myAnd(eqts)
+    @ staticmethod
+    def get_state_vars(f, exclude_vars):
+        """
+        f: a formula, e.g. the transition formula
+        exclude_vars: variables that are not considered as state vars,
+        e.g. independent variables
 
+        From Verifying Safety Property of Lustre Programs:
+        Temporal Induction
 
-#     @staticmethod
-#     def get_state_vars(f, exclude_vars):
-#         """
-#         f: a formula, e.g. the transition formula
-#         exclude_vars: variables that are not considered as state vars,
-#         e.g. independent variables
+        Let L be a Lustre program, S be the tuple of L's state
+        variables, non-input variables that occur within a pre.
 
-#         From Verifying Safety Property of Lustre Programs:
-#         Temporal Induction
+        Then only non-input variables that occur within a pre are considered
+        program states
 
-#         Let L be a Lustre program, S be the tuple of L's state
-#         variables, non-input variables that occur within a pre.
+        node test( X: bool ) returns ( P : bool );
+        var A, B, C : bool;
+        let
+        A = X -> pre A;
+        B = not (not X -> pre(C));
+        C = not B;
+        P = A = B;  #property to be proved, not important, not part of input
 
-#         Then only non-input variables that occur within a pre are considered
-#         program states
-
-#         node test( X: bool ) returns ( P : bool );
-#         var A, B, C : bool;
-#         let
-#         A = X -> pre A;
-#         B = not (not X -> pre(C));
-#         C = not B;
-#         P = A = B;  #property to be proved, not important, not part of input
-
-#         >>> from z3 import Bools, Implies, Ints, If, Or
+        >>> from z3 import Bools, Implies, Ints, If, Or
 
 
-#         #states variables = [A,C]
-#         >>> A,A_pre,B,B_pre,C,C_pre,X = Bools('A A_pre B B_pre C C_pre X')
-#         >>> af = A == A_pre
-#         >>> bf = B == Not(Not(Implies(X,C_pre)))
-#         >>> cf = C == Not(B)
-#         >>> trans = And(af,bf,cf)
-#         >>> exclude_vars = [X]
-#         >>> KIP.get_state_vars(trans, exclude_vars)
-#         [A, C]
+        # states variables = [A,C]
+        >>> A,A_pre,B,B_pre,C,C_pre,X = Bools('A A_pre B B_pre C C_pre X')
+        >>> af = A == A_pre
+        >>> bf = B == Not(Not(Implies(X,C_pre)))
+        >>> cf = C == Not(B)
+        >>> trans = And(af,bf,cf)
+        >>> exclude_vars = [X]
+        >>> KIP.get_state_vars(trans, exclude_vars)
+        [A, C]
 
-#         >>> af = A == Implies(X,A_pre)
-#         >>> bf = B == Not(Implies(Not(X),C_pre))
-#         >>> cf = C == Not(B)
-#         >>> trans = And(af,bf,cf)
-#         >>> exclude_vars = [X]
-#         >>> KIP.get_state_vars(trans, exclude_vars)
-#         [A, C]
+        >>> af = A == Implies(X,A_pre)
+        >>> bf = B == Not(Implies(Not(X),C_pre))
+        >>> cf = C == Not(B)
+        >>> trans = And(af,bf,cf)
+        >>> exclude_vars = [X]
+        >>> KIP.get_state_vars(trans, exclude_vars)
+        [A, C]
 
-#         #state variables = c , R is not included because R_pre is not used
-#         >>> R,c_pre,c = Ints('R c_pre c')
-#         >>> trans = If(Or(R == 100, c_pre == 2), c == 0, c == c_pre + 1)
-#         >>> KIP.get_state_vars(trans, exclude_vars=[])
-#         [c]
+        # state variables = c , R is not included because R_pre is not used
+        >>> R,c_pre,c = Ints('R c_pre c')
+        >>> trans = If(Or(R == 100, c_pre == 2), c == 0, c == c_pre + 1)
+        >>> KIP.get_state_vars(trans, exclude_vars=[])
+        [c]
 
-#         #this algorithm would return [], instead of [C]
-#         #this is by design because it doesn't make sense to have
-#         #C_pre without C in trans
-#         >>> KIP.get_state_vars(A == C_pre,[])
-#         []
-#         """
+        # this algorithm would return [], instead of [C]
+        # this is by design because it doesn't make sense to have
+        # C_pre without C in trans
+        >>> KIP.get_state_vars(A == C_pre,[])
+        []
+        """
 
-#         if __debug__:
-#             assert f is None or is_expr(f), f
-#             assert is_list(exclude_vars), exclude_vars
+        assert f is None or z3.is_expr(f), f
+        assert isinstance(exclude_vars, set), exclude_vars
 
-#         if f is None:
-#             return []
+        if f is None:
+            return []
 
-#         #start with state_vars being all vars in trans
-#         state_vars = get_vars(f)
+        # start with state_vars being all vars in trans
+        state_vars = Z3.get_vars(f)
 
-#         #keep those that not being excluded
-#         state_vars = [v for v in state_vars
-#                       if not expr_member(v, exclude_vars)]
+        # keep those that not being excluded
+        state_vars = set(v for v in state_vars if v not in exclude_vars)
 
-#         #keep those v that are not pre but v's pre is part of the f
-#         state_vars = [v for v in state_vars
-#                       if not is_pre(v) and expr_member(pre(v),state_vars)]
-#         if __debug__:
-#             assert all(not is_pre(v) for v in state_vars)
+        # keep those v that are not pre but v's pre is part of the f
+        state_vars = [v for v in state_vars
+                      if not Miscs.is_pre(v) and Miscs.pre(v) in state_vars]
 
-#         return state_vars
+        assert all(not Miscs.is_pre(v) for v in state_vars)
 
+        return state_vars
 
-#     @staticmethod
-#     def entails(S, claim):
-#         """
-#         Checking the validity of S => claim
-#         """
-#         if __debug__:
-#             assert isinstance(S, Solver), S
-#             assert is_expr(claim), claim
+    @ staticmethod
+    def entails(S, claim):
+        """
+        Checking the validity of S => claim
+        """
+        assert isinstance(S, z3.Solver), S
+        assert z3.is_expr(claim), claim
 
-#         mlog.debug('premise:\n{}\n'.format(S))
-#         mlog.debug('claim:\n{}\n'.format(claim))
-#         # print 'entail'
-#         # print S
-#         # print claim
-#         S.push()
-#         S.add(Not(claim))
+        mlog.debug(f"premise:\n{S}\n")
+        mlog.debug(f"claim:\n{claim}\n")
+        # print 'entail'
+        # print S
+        # print claim
+        S.push()
+        S.add(z3.Not(claim))
 
-#         check_rs = S.check()
-#         if check_rs == sat:
-#             r = False, S.model()
-#         elif check_rs == unsat:
-#             r = True, None  #unsat, no model
-#         elif check_rs == unknown:
-#             mlog.warn('unknown for {}'.format(S))
-#             r = unknown, None #unknown, error
-#         else:
-#             raise AssertionError('result: {} for\n{}'.format(check_rs,S))
+        check_rs = S.check()
+        if check_rs == z3.sat:
+            r = False, S.model()
+        elif check_rs == z3.unsat:
+            r = True, None  # unsat, no model
+        elif check_rs == z3.unknown:
+            mlog.warn(f"unknown for {s}")
+            r = z3.unknown, None  # unknown, error
+        else:
+            raise AssertionError(f"result: {check_rs} for\n{S}")
 
-#         S.pop()
-#         return r
+        S.pop()
+        return r
 
 
 class Miscs:
     pre_kw = '_pre'
+    pre_d = {}  # v -> pre_v
+    cur_d = {}  # pre_v -> v
 
     @ classmethod
     def is_trans(cls, f):
@@ -1028,9 +974,22 @@ class Miscs:
         x_pre
 
         """
+        try:
+            return cls.pre_d[v]
+        except KeyError:
+            name = str(v) + cls.pre_kw
+            pre_v = cls.mk_var(name, v.sort())
+            cls.pre_d[v] = pre_v
+            cls.cur_d[pre_v] = v
+            return pre_v
 
-        name = str(v) + cls.pre_kw
-        return cls.mk_var(name, v.sort())
+    @ classmethod
+    def is_pre(cls, v):
+        """
+        Return if the variable v is a pre variable,
+        i.e. if v ends with pre_kw
+        """
+        return str(v).endswith(cls.pre_kw)
 
     @ classmethod
     def mk_var(cls, name, vsort):
@@ -1062,6 +1021,129 @@ class Miscs:
 
         return v
 
+    @ classmethod
+    def cur(cls, pre_v):
+        """
+        Given a pre variable v, return the non-pre version of.
+        For example, if v  =  myvar_pre, then cur(v) gives myvar
+        """
+        assert Z3.is_var(pre_v) and cls.is_pre(pre_v), pre_v
+
+        return cls.cur_d[pre_v]
+
+    @classmethod
+    def substitute_f(cls, f, i, s=None):
+        """
+        Replaces all variables v in f with v_(i*_)
+
+        s = a symbol string, e.g. n (so we will have the variable
+        x_n_1 instead of x_1
+
+        Examples:
+
+        >>> from z3 import *
+        >>> x,x_pre,y,y_pre = Ints('x x_pre y y_pre')
+
+        >>> substitute_f(Implies(x==10,y==5),i=0)
+        Or(Not(x_0 == 10), y_0 == 5)
+
+        >>> substitute_f(Implies(x==10,y==5),i=1)
+        Or(Not(x_1 == 10), y_1 == 5)
+
+        >>> substitute_f(Implies(x==10,pre(y)==5),i=1)
+        Or(Not(x_1 == 10), y_0 == 5)
+
+        >>> substitute_f(Implies(x==10,pre(y)==5),1,s='m')
+        Or(Not(x_m_1 == 10), y_m_0 == 5)
+
+        >>> substitute_f(Implies(x==10,pre(y)==5),10,s='m')
+        Or(Not(x_m_10 == 10), y_m_9 == 5)
+
+        >>> substitute_f(BoolVal(False),i=10)
+        False
+
+        >>> substitute_f(IntVal(100),i=10)
+        100
+
+        """
+
+        assert z3.is_expr(f)
+        assert i >= 0, i
+        assert i != 0 or cls.is_state(f), (i, f)  # v_pre => i!=0
+        assert not s or isinstance(s, str) and len(s) >= 1, s
+
+        vs = Z3.get_vars(f)
+
+        if not vs:  # e.g. True, 5, etc  has no variables so return as is
+            return f
+        else:
+            vss = cls.gen_vars(vs, i, s)
+            f_ = f
+            for vs in vss:
+                f_ = z3.substitute(f_, vs)
+            return f_
+
+    @classmethod
+    def gen_vars(cls, vs, i, s):
+        """
+        Generates variables at state s_i. See examples for details.
+
+        v ->  v_i
+        v_pre -> v_(i-1)
+
+        Examples:
+
+        >>> from z3 import *
+        >>> x,y = Ints('x y')
+
+        >>> gen_vars([x,y],10,s=None)
+        [(y, y_10), (x, x_10)]
+
+        >>> gen_vars([x,pre(y)],10,s=None)
+        [(y_pre, y_9), (x, x_10)]
+
+        >>> gen_vars([x,pre(y)],1,s=None)
+        [(y_pre, y_0), (x, x_1)]
+
+        >>> gen_vars([x,pre(y)],0,s=None)
+        Traceback (most recent call last):
+        ...
+        AssertionError: cannot generate pre(var) with i=0
+
+        >>> gen_vars([x,pre(y)],9,s='i')
+        [(y_pre, y_i_8), (x, x_i_9)]
+
+        >>> gen_vars([x,pre(y)],1,s='n')
+        [(y_pre, y_n_0), (x, x_n_1)]
+
+        """
+        assert len(vs) > 0, vs
+        assert i >= 0, i
+        assert (not i == 0) or all(not cls.is_pre(v) for v in vs), \
+            'cannot generate pre(var) with i=0'
+
+        def mk_name(i, v):
+            s_ = '_'
+            if s is not None:
+                s_ = s_ + s + '_'
+
+            if str(v).endswith(cls.pre_kw):
+                d = i - 1
+                name = str(v)[:-len(cls.pre_kw)] + s_ + str(d)
+            else:
+                name = str(v) + s_ + str(i)
+            return name
+
+        # so that the longest one is replaced first
+        old_vars = sorted(vs, key=str, reverse=True)
+
+        new_names = [mk_name(i, v) for v in old_vars]
+        new_vars = [cls.mk_var(ns, v.sort())
+                    for ns, v in zip(new_names, old_vars)]
+
+        vss = zip(old_vars, new_vars)
+
+        return vss
 
 # ##############################
 # #
@@ -1099,43 +1181,37 @@ def example():
     # Now, we can call KIP to prove P
     max_k = 5  # this is the max k iteration
 
-    print(f"We can't prove {P} here yet")
+    mlog.info(f"We can't prove {P} here yet")
     r, m, k = prog.prove(P, k=max_k)
-#     mlog.debug('proved: {}, k: {}'.format(r,k))
-#     mlog.debug('cex: {}'.format(m))
-#     assert not r and not m, (r,m)
+    mlog.debug(f"proved: {r}, k: {k}")
+    mlog.debug(f"cex: {m}")
+    assert not r and not m, (r, m)
 
+    P_stronger = x > 1
+    mlog.info("But we can prove a stronger property '{}'".
+              format(P_stronger))
+    r, m, k = prog.prove(P_stronger, k=max_k)
+    mlog.debug(f"proved: {r}, k: {k}")
+    mlog.debug(f"cex: {m}")
+    assert r and not m, (r, m)
 
-#     P_stronger = x > 1
-#     mlog.info("But we can prove a stronger property '{}'".\
-#                 format(P_stronger))
-#     r, m, k = prog.prove(P_stronger,k=max_k)
-#     mlog.debug('proved: {}, k: {}'.format(r,k))
-#     mlog.debug('cex: {}'.format(m))
-#     assert r and not m, (r,m)
+    mlog.info("Adding the stronger prop '{}' as known inv "
+              "allows us to prove the orig prop '{}'"
+              .format(P_stronger, P))
+    prog.add_inv(P_stronger)
+    r, m, k = prog.prove(P, k=max_k)
+    mlog.debug(f"proved: {r}, k: {k}")
+    mlog.debug(f"cex: {m}")
+    assert r and not m, (r, m)
 
+    mlog.info(f"After removing the stronger prop '{P_stronger}',"
+              "we can't prove the orig 'P' anymore")
 
-#     mlog.info("Adding the stronger prop '{}' as known inv "\
-#                 "allows us to prove the orig prop '{}'"\
-#                 .format(P_stronger, P))
-#     prog.add_inv(P_stronger)
-#     r, m, k = prog.prove(P,k=max_k)
-
-#     mlog.debug('proved: {}, k: {}'.format(r,k))
-#     mlog.debug('cex: {}'.format(m))
-#     assert r and not m, (r,m)
-
-
-#     mlog.info("After removing the stronger prop '{}',"\
-#                 "we can't prove the orig '{}' anymore"\
-#                 .format(P_stronger, P))
-
-#     prog.reset_invs()
-#     r, m, k = prog.prove(P,k=max_k)
-
-#     mlog.debug('proved: {}, k: {}'.format(r,k))
-#     mlog.debug('cex: {}'.format(m))
-#     assert not r and not m, (r,m)
+    prog.reset_invs()
+    r, m, k = prog.prove(P, k=max_k)
+    mlog.debug(f"proved: {r}, k: {k}")
+    mlog.debug(f"cex: {m}")
+    assert not r and not m, (r, m)
 
 
 # #run this with using the command $python kip.py
