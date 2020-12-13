@@ -62,7 +62,8 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
         ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
-        mlog.debug(f"infer upperbounds for {len(tasks)} terms at {len(locs)} locs")
+        mlog.debug(
+            f"infer upperbounds for {len(tasks)} terms at {len(locs)} locs")
 
         def f(tasks):
             return [
@@ -70,7 +71,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
                 for loc, term in tasks
             ]
 
-        wrs = Miscs.run_mp("optimize upperbound", tasks, f)
+        wrs = CM.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:

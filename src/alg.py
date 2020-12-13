@@ -105,7 +105,8 @@ class DigSymStates(Dig):
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
-        self.prog = data.prog.Prog(self.exe_cmd, self.inp_decls, self.inv_decls)
+        self.prog = data.prog.Prog(
+            self.exe_cmd, self.inp_decls, self.inv_decls)
         self.use_rand_init = True
 
         self.symstates = None
@@ -313,7 +314,7 @@ class DigTraces(Dig):
             rs = [(loc, _f()) for loc, _f in tasks]
             return rs
 
-        wrs = Miscs.run_mp("(pure) dynamic inference", tasks, f)
+        wrs = CM.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
 
         dinvs = DInvs()
         for loc, invs in wrs:

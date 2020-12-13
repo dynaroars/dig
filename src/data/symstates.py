@@ -276,7 +276,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
-        wrs = helpers.miscs.Miscs.run_mp("get symstates", tasks, f)
+        wrs = CM.run_mp("get symstates", tasks, f, settings.DO_MP)
 
         if not wrs:
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
@@ -296,7 +296,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             ]
             return rs
 
-        wrs = helpers.miscs.Miscs.run_mp("symstates exprs", tasks, f)
+        wrs = CM.run_mp("symstates exprs", tasks, f, settings.DO_MP)
         for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
@@ -523,7 +523,8 @@ class SymStates(dict):
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
         mlog.debug(
-            f"checking {dinvs.siz} invs:\n" f"{dinvs.__str__(print_first_n=20)}")
+            f"checking {dinvs.siz} invs:\n"
+            f"{dinvs.__str__(print_first_n=20)}")
         tasks = [(loc, inv)
                  for loc in dinvs for inv in dinvs[loc] if inv.stat is None]
         refsD = {(loc, str(inv)): inv for loc, inv in tasks}
@@ -534,7 +535,7 @@ class SymStates(dict):
                 for loc, inv in tasks
             ]
 
-        wrs = helpers.miscs.Miscs.run_mp("prove", tasks, f)
+        wrs = CM.run_mp("prove", tasks, f, settings.DO_MP)
 
         mCexs = []
         mdinvs = data.inv.invs.DInvs()

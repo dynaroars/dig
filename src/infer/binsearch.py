@@ -64,7 +64,7 @@ class CegirBinSearch(cegir.base.Cegir):
         def f(tasks):
             return [(loc, self.gc(loc, term, minV, maxV, traces))
                     for loc, term in tasks]
-        wrs = Miscs.run_mp('guesscheck', tasks, f)
+        wrs = CM.run_mp('guesscheck', tasks, f, settings.DO_MP)
 
         dinvs = data.inv.invs.DInvs()
         for loc, (inv, stats) in wrs:

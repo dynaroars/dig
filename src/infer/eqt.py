@@ -41,13 +41,14 @@ class Infer(infer.base.Infer):
                 for loc, (template, uks, exprs) in tasks
             ]
 
-        wrs = Miscs.run_mp("find eqts", tasks, f)
+        wrs = CM.run_mp("find eqts", tasks, f, settings.DO_MP)
 
         # put results together
         dinvs = DInvs()
         for loc, (eqts, cexs) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
-            mlog.debug(f"{loc}: got {len(eqts)} eqts, {len(new_inps)} new inps")
+            mlog.debug(
+                f"{loc}: got {len(eqts)} eqts, {len(new_inps)} new inps")
             if eqts:
                 mlog.debug("\n".join(map(str, eqts)))
             dinvs[loc] = Invs(eqts)
@@ -91,7 +92,8 @@ class Infer(infer.base.Infer):
 
                 # cannot find new inputs
                 if loc not in cexs:
-                    mlog.debug(f"{loc}: cannot find new inps ({len(inps)} curr inps)")
+                    mlog.debug(
+                        f"{loc}: cannot find new inps ({len(inps)} curr inps)")
                     return
 
                 new_inps = inps.merge(cexs, self.inp_decls.names)

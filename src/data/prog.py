@@ -70,7 +70,8 @@ class Prog:
     def _get_traces(self, inp):
         assert isinstance(inp, data.traces.Inp), inp
 
-        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n() for v in inp.vs)
+        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
+                for v in inp.vs)
         inp_ = " ".join(map(str, inp_))
         cmd = f"{self.exe_cmd} {inp_}"
         mlog.debug(cmd)
@@ -92,7 +93,7 @@ class Prog:
         def f(tasks):
             return [(inp, self._get_traces(inp)) for inp in tasks]
 
-        wrs = Miscs.run_mp("get traces", tasks, f)
+        wrs = CM.run_mp("get traces", tasks, f, settings.DO_MP)
 
         for inp, traces in wrs:
             assert inp not in self._cache

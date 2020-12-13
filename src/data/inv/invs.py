@@ -52,7 +52,7 @@ class Invs(set):
         def f(tasks):
             return [(inv, inv.test(traces)) for inv in tasks]
 
-        wrs = Miscs.run_mp("test", list(self), f)
+        wrs = CM.run_mp("test", list(self), f, settings.DO_MP)
 
         myinvs = set()
         for inv, passed in wrs:
@@ -72,7 +72,8 @@ class Invs(set):
 
     def simplify(self):
 
-        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify(self)
+        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify(
+            self)
 
         assert not falseinvs, falseinvs
         assert not preposts, preposts
@@ -141,7 +142,7 @@ class Invs(set):
         def f(ps):
             return [p for p in ps if not Z3._imply(conj, get_expr(p))]
 
-        wrs = Miscs.run_mp(f"simplify1 {len(ps)} {msg}", ps, f)
+        wrs = CM.run_mp(f"simplify1 {len(ps)} {msg}", ps, f, settings.DO_MP)
 
         Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
         ps = [p for p in wrs]
@@ -173,7 +174,8 @@ class Invs(set):
 
         results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
         results = [ps[i] for i in results]
-        Miscs.show_removed(f"simplify2 {msg}", len(ps), len(results), time() - st)
+        Miscs.show_removed(f"simplify2 {msg}", len(
+            ps), len(results), time() - st)
 
         return results
 
@@ -287,7 +289,7 @@ class DInvs(dict):
         def f(tasks):
             return [(loc, self[loc].test(dtraces[loc])) for loc in tasks]
 
-        wrs = Miscs.run_mp("test_dinvs", tasks, f)
+        wrs = CM.run_mp("test_dinvs", tasks, f, settings.DO_MP)
         dinvs = DInvs([(loc, invs) for loc, invs in wrs if invs])
         Miscs.show_removed("test_dinvs", self.siz, dinvs.siz, time() - st)
         return dinvs
@@ -322,7 +324,7 @@ class DInvs(dict):
         def f(tasks):
             return [(loc, self[loc].simplify()) for loc in tasks]
 
-        wrs = Miscs.run_mp("simplify", list(self), f)
+        wrs = CM.run_mp("simplify", list(self), f, settings.DO_MP)
         mlog.debug("done simplifying , time {}".format(time() - st))
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
         Miscs.show_removed("simplify", self.siz, dinvs.siz, time() - st)
