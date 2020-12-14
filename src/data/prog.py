@@ -9,8 +9,8 @@ import subprocess
 import sage.all
 
 import settings
+from helpers.z3utils import Z3
 import helpers.vcommon as CM
-from helpers.miscs import Miscs, Z3
 
 import data.traces
 
@@ -247,8 +247,10 @@ class Src:
                 shlex.split(cmd), capture_output=True, check=True, text=True
             )
         except subprocess.CalledProcessError as ex:
-            mlog.error("cmd '{}' gives error\n{}".format(" ".join(ex.cmd), ex.stderr))
+            ex_cmd = " ".join(ex.cmd)
+            mlog.error(f"cmd '{ex_cmd}' gives error\n{ex.stderr}")
             raise
+
         inp_decls, inv_decls, mainQ_name = self.parse_type_info(cp.stdout)
 
         self.filename, self.basename, self.funname = filename, basename, funname
@@ -313,7 +315,8 @@ class Java(Src):
                 )
             except subprocess.CalledProcessError as ex:
                 mlog.error(
-                    "cmd '{}' gives error\n{}".format(" ".join(ex.cmd), ex.stderr)
+                    "cmd '{}' gives error\n{}".format(
+                        " ".join(ex.cmd), ex.stderr)
                 )
                 raise
             filename = (tmpdir / funname).with_suffix(".class")

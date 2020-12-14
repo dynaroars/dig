@@ -100,7 +100,8 @@ if __name__ == "__main__":
         help="don't use symbolic states, i.e., just dynamic analysis",
     )
 
-    ag("--noeqts", "-noeqts", action="store_true", help="don't compute eq invariants")
+    ag("--noeqts", "-noeqts", action="store_true",
+       help="don't compute eq invariants")
 
     ag(
         "--noieqs",
@@ -206,7 +207,11 @@ if __name__ == "__main__":
         Analysis(inp, args).start()
 
     else:  # benchmark_times is None, input is a file: normal, single run
-        assert args.benchmark_times is None and inp.is_file(), inp
+        assert args.benchmark_times is None, args.benchmark_times
+
+        if not inp.is_file():
+            raise AssertionError(f"{inp} is not valid")
+
         seed = round(time.time(), 2) if args.seed is None else float(args.seed)
         import settings
 
@@ -227,10 +232,10 @@ if __name__ == "__main__":
             dig = alg.DigSymStatesC(inp)
         else:
             # traces file(s)
-            test_tracefile = Path(args.test_tracefile) if args.test_tracefile else None
+            test_tracefile = Path(
+                args.test_tracefile) if args.test_tracefile else None
             dig = alg.DigTraces(inp, test_tracefile)
 
         dig.start(seed=seed, maxdeg=args.maxdeg)
-        # mlog.warning("End program")
 
     killchildren(os.getpid())
