@@ -16,6 +16,17 @@ class Z3:
     zFalse = z3.BoolVal(False)
 
     @classmethod
+    def _and(cls, fs):
+        assert isinstance(fs, list), fs
+
+        if not fs:
+            return None
+        if len(fs) == 1:
+            return fs[0]
+
+        return z3.And(fs)
+
+    @classmethod
     def is_var(cls, v):
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 
@@ -126,7 +137,7 @@ class Z3:
 
         stat = solver.check()
 
-        if stat == z3.unknown:
+        if stat == z3.unknown:  # for z3.unknown/unsat/sat, use == instead of is
             rs = None
         elif stat == z3.unsat and i == 0:
             rs = False
@@ -150,6 +161,11 @@ class Z3:
 
         assert not (isinstance(rs, list) and not rs), rs
         return rs, stat
+
+    @classmethod
+    def is_proved(cls, claim):
+        rs, stat = cls.get_models(claim, 1)
+        return stat == z3.unsat
 
     @classmethod
     def imply(cls, fs, g):

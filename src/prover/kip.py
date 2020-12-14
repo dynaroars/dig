@@ -1,26 +1,16 @@
-# from collections import OrderedDict
-# from vu_common import pause, vset, vflatten, get_logger, is_bool, is_list, is_dict, is_str
-# from scr_miscs import pre, cur, is_pre, is_state, is_trans, substitute_f
-# from z3 import is_expr, And, Solver, Not, sat, unsat, unknown
-# from z3util import fhash, model_str, get_vars, myAnd, Z3.is_var, expr_member
-
 import pdb
-
+import time
 import z3
-import helpers.vcommon as CM
-from helpers.z3utils import Z3
+
 import settings
 
+import helpers.vcommon as CM
+from helpers.z3utils import Z3
+
+from prover.miscs import Miscs
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
-
-
-##############################
-#
-# *General* Program Repr
-#
-##############################
 
 
 class Prog:
@@ -148,8 +138,6 @@ class Prog:
         assert isinstance(do_term_check, bool), do_term_check
         assert isinstance(do_abstraction, bool), do_abstraction
 
-        import time
-        stime = time.time()
         mlog.debug(f'Original program:{self}')
 
         if do_abstraction:
@@ -167,7 +155,7 @@ class Prog:
                   do_term_check=do_term_check)
 
         if do_trans:
-            raise AssertionError('trans: not implemented')
+            raise AssertionError("trans: not implemented")
 
         r, m, k_ = kip.k_ind()
 
@@ -175,176 +163,142 @@ class Prog:
         # mlog.warn('Time elapsed: %.4f s'%time_elapsed)
         return r, m, k_
 
-#     def prove_props(self,
-#                     props,
-#                     k,
-#                     do_trans,
-#                     do_base_case,
-#                     do_induction,
-#                     do_pcompress,
-#                     do_term_check,
-#                     do_abstraction,
-#                     nreprove,
-#                     do_parallel):
-#         """
-#         Proves the given properties.
-#         Attempt to re-prove unproven ones using lemmas.
+    def prove_props(self,
+                    props,
+                    k,
+                    do_trans,
+                    do_base_case,
+                    do_induction,
+                    do_pcompress,
+                    do_term_check,
+                    do_abstraction,
+                    nreprove,
+                    do_parallel):
+        """
+        Proves the given properties.
+        Attempt to re-prove unproven ones using lemmas.
 
-#         do_soft_reprove: checks if the proved properties imply the unknown ones.
-#         This does not add proved properties as lemmas and re-invoke prover
+        do_soft_reprove: checks if the proved properties imply the unknown ones.
+        This does not add proved properties as lemmas and re-invoke prover
 
-#         nreprove: times we attempt to fully reprove props
+        nreprove: times we attempt to fully reprove props
 
-#         do_parallel performs the task in parallel if
-#         multiprocessing is available
+        do_parallel performs the task in parallel if
+        multiprocessing is available
 
-#         """
+        """
 
-#         def wprocess(tasks,Q):
-#             rs =[]
-#             for (idx,p) in tasks:
-#                 mlog.info("{}. Checking '{}'".format(idx,p))
-#                 r, m, k_ = self.prove(p,
-#                                       k=k,
-#                                       do_base_case=do_base_case,
-#                                       do_abstraction=do_abstraction,
-#                                       do_pcompress=do_pcompress,
-#                                       do_term_check=do_term_check)
+        def f(tasks):
+            rs = []
+            for (idx, p) in tasks:
+                mlog.info(f"{idx}. Checking '{p}'")
+                r, m, k_ = self.prove(p,
+                                      k=k,
+                                      do_base_case=do_base_case,
+                                      do_abstraction=do_abstraction,
+                                      do_pcompress=do_pcompress,
+                                      do_term_check=do_term_check)
 
-#                 #cannot explicitly store p and m
-#                 #b/c they contain pointers and cannot be pickled
-#                 rs.append((idx,r,m if m is None else model_str(m),k_))
+                # cannot explicitly store p and m
+                # b/c they contain pointers and cannot be pickled
+                rs.append((idx, r, m if m is None else Z3.model_str(m), k_))
+            return rs
 
-#             if Q is None: #no multiprocessing
-#                 return rs
-#             else:
-#                 Q.put(rs)
+        nreprove_ = 0
+        unchecked_idxs = range(len(props))
+        rs = [None]*len(unchecked_idxs)
 
+        while True:
+            new_invs = []
+            unchecked_idxs_ = []
+            tasks = list(zip(unchecked_idxs,
+                             [props[idx] for idx in unchecked_idxs]))
+            wrs = CM.run_mp(
+                "checking {len(tasks)} ps", tasks, f, settings.DO_MP)
 
-#         if do_parallel:
-#             from vu_common import get_workloads
-#             from multiprocessing import (Process, Queue, cpu_count)
+            for idx, r, m, k_ in wrs:
+                p = props[idx]
+                # 9/10: bug if not make a list copy since these things change!
+                rs[idx] = (p, r, m, k_,
+                           list(self.invs_state),
+                           list(self.assumes_state + self.assumes_trans))
 
-#         nreprove_ = 0
-#         unchecked_idxs = range(len(props))
-#         rs = [None]*len(unchecked_idxs)
-#         while True:
+                if r is True:
+                    new_invs.append(p)
+                if r is None:
+                    unchecked_idxs_.append(idx)
 
-#             new_invs = []
-#             unchecked_idxs_ = []
+            if not (new_invs and unchecked_idxs_):
+                break
 
-#             tasks = zip(unchecked_idxs,
-#                         [props[idx] for idx in unchecked_idxs])
+            if nreprove_ >= nreprove:
+                break
 
-#             if do_parallel:
-#                 Q = Queue()
-#                 workloads = get_workloads(tasks,
-#                                           max_nprocesses=cpu_count(),
-#                                           chunksiz=2)
-#                 mlog.debug('workloads {}: {}'
-#                              .format(len(workloads),map(len,workloads)))
+            nreprove_ = nreprove_ + 1
 
-#                 workers = [Process(target=wprocess,args=(wl,Q))
-#                            for wl in workloads]
+            mlog.info(f"Re-prove {len(unchecked_idxs_)} prop(s) "
+                      "using {len(new_invs)} new invs "
+                      "(attempt {nreprove}/{nreprove})")
 
-#                 for w in workers: w.start()
-#                 wrs = []
-#                 for _ in workers: wrs.extend(Q.get())
+            for inv in new_invs:
+                self.add_inv(inv)
 
-#             else:
-#                 wrs = wprocess(tasks,Q=None)
+            unchecked_idxs = sorted(unchecked_idxs_)
 
-#             for idx,r,m,k_ in wrs:
-#                 p = props[idx]
-#                 #9/10: bug if not make a list copy since these things change!
-#                 rs[idx] = (p,r,m,k_,
-#                            list(self.invs_state),
-#                            list(self.assumes_state + self.assumes_trans))
+        return rs
 
-#                 if r == True:
-#                     new_invs.append(p)
-#                 if r is None:
-#                     unchecked_idxs_.append(idx)
+    def tprove(self, prop,
+               expected,
+               msg,
+               do_trans=False,
+               do_term_check=True,
+               do_pcompress=True,
+               do_induction=True,
+               do_base_case=True,
+               do_abstraction=True,
+               do_assert=True,
+               k=10):
+        """
+        Shortcut to prove properties.
+        Raise errors if the result of the proof is not as expected.
+        """
 
+        assert z3.is_expr(prop), prop
+        assert expected in set([True, False, None]), expected
+        assert isinstance(msg, str), msg
+        assert k >= 0, k
+        assert all(isinstance(c, bool) for c in
+                   [do_term_check, do_pcompress, do_induction,
+                    do_base_case, do_assert, do_abstraction])
 
-#             if not (new_invs and unchecked_idxs_):
-#                 break
+        mlog.info('*****')
 
-#             if nreprove_ >= nreprove:
-#                 break
+        (r, m, k_) = self.prove(prop, k=k,
+                                do_trans=do_trans,
+                                do_abstraction=do_abstraction,
+                                do_base_case=do_base_case,
+                                do_induction=do_induction,
+                                do_term_check=do_term_check,
+                                do_pcompress=do_pcompress)
 
-#             nreprove_ = nreprove_ + 1
+        mlog.info(msg)
 
-#             mlog.info("Re-prove {} prop(s) using {} new invs "
-#                         "(attempt {}/{})"
-#                         .format(len(unchecked_idxs_),
-#                                 len(new_invs),
-#                                 nreprove_,nreprove))
+        if r is True:
+            mlog.info('proved')
+        elif r is False:
+            mlog.info('disproved')
+            mlog.debug(Z3.model_str(m))
+        else:
+            mlog.info('unproved')
 
-#             for inv in new_invs:
-#                 self.add_inv(inv)
+        if r != expected:
+            mlog.warn(
+                f"*** UNEXPECTED RESULT: output={r}, expected={expected} ***")
 
-#             unchecked_idxs = sorted(unchecked_idxs_)
+            if do_assert:
+                raise AssertionError('unexpected result !!!')
 
-
-#         return rs
-
-
-#     def tprove(self, prop,
-#                expected,
-#                msg,
-#                do_trans=False,
-#                do_term_check=True,
-#                do_pcompress=True,
-#                do_induction=True,
-#                do_base_case=True,
-#                do_abstraction=True,
-#                do_assert=True,
-#                k=10):
-#         """
-#         Shortcut to prove properties.
-#         Raise errors if the result of the proof is not as expected.
-#         """
-#         if __debug__:
-#             assert is_expr(prop), prop
-#             assert expected in [True,False,None], expected
-#             assert is_str(msg), msg
-#             assert k >= 0, k
-#             assert all(is_bool(c) for c in
-#                        [do_term_check,do_pcompress,do_induction,
-#                         do_base_case, do_assert,do_abstraction])
-
-#         mlog.info('*****')
-
-#         (r,m,k_) = self.prove(prop,k=k,
-#                               do_trans=do_trans,
-#                               do_abstraction=do_abstraction,
-#                               do_base_case=do_base_case,
-#                               do_induction=do_induction,
-#                               do_term_check=do_term_check,
-#                               do_pcompress=do_pcompress)
-
-#         mlog.info(msg)
-
-#         if r == True:
-#             mlog.info('proved')
-#         elif r == False:
-#             mlog.info('disproved')
-#             mlog.debug(model_str(m))
-#         else:
-#             mlog.info('unproved')
-
-#         if  r != expected:
-#             msg = "***** UNEXPECTED RESULT: output={}, expected={} *****"
-#             mlog.warn(msg.format(r,expected))
-
-#             if do_assert:
-#                 raise AssertionError('unexpected result !!!')
-
-#         mlog.info('*****\n')
-
-
-#     ### Helper methods
+        mlog.info('*****\n')
 
     def gen_abstraction(self, prop):
         """
@@ -506,7 +460,7 @@ class KIP:
         self.input_vars = prog.input_vars
         self.defs_vals = list(prog.defs.values())
 
-        f = z3.And(self.defs_vals + self.assumes_state + self.assumes_trans)
+        f = Z3._and(self.defs_vals + self.assumes_state + self.assumes_trans)
         self.state_vars = self.get_state_vars(f, set(self.input_vars))
 
         mlog.debug("KIP (k={})".format(k))
@@ -575,7 +529,7 @@ class KIP:
 
         def _term_check(k):
             c = [D(k_, _sbase) for k_ in range(2, k+1)]  # 2..k
-            c = z3.And(c)
+            c = Z3._and(c)
 
             # Term check
             mlog.debug('* Term Check ({})'.format(k))
@@ -584,7 +538,7 @@ class KIP:
                 return None, None
 
             r_t, cex_t = KIP.entails(S_base, z3.Not(c))
-            if r_t == True:
+            if r_t is True:
                 mlog.info(f"** proved (cycle found) ({k}): {self.prop}")
 
             return r_t, cex_t
@@ -599,7 +553,7 @@ class KIP:
 
             r_b, cex_b = KIP.entails(S_base, f)  # P(k,_sbase),
 
-            if r_b == False:
+            if r_b is False:
                 mlog.info(f"** disproved (Base case) ({k}): {self.prop}")
 
                 # mlog.trace3(model_str(cex_b))
@@ -618,7 +572,7 @@ class KIP:
 
             r_s, cex_s = KIP.entails(S_step, P(k+1, _sstep))
 
-            if r_s == True:
+            if r_s is True:
                 mlog.info('** proved (Induction step) ({}): {}'
                           .format(k, self.prop))
             else:
@@ -642,14 +596,14 @@ class KIP:
 
             if k >= 2 and self.do_term_check:
                 r_t_s, cex_t_s = _term_check(k)
-                if r_t_s == True:
+                if r_t_s is True:
                     return True, cex_t_s, k
                 if r_t_s == z3.unknown:
                     return z3.unknown, None, k
 
             if self.do_base_case:
                 r_b, cex_b = _base_case(k, P(k, _sbase))
-                if r_b == False:
+                if r_b is False:
                     return False, cex_b, k
 
                 if r_b == z3.unknown:
@@ -667,7 +621,7 @@ class KIP:
 
             if self.do_induction:
                 r_s, cex_s = _induction(k)
-                if r_s == True:
+                if r_s is True:
                     return True, cex_s, k
 
                 if r_s == z3.unknown:
@@ -704,7 +658,7 @@ class KIP:
                 all(Miscs.is_state(a) for a in self.init_conds)), self.init_conds
         assert i >= 0, i
 
-        init_cond = z3.And([self._at_state(a, i, s) for a in self.init_conds])
+        init_cond = Z3._and([self._at_state(a, i, s) for a in self.init_conds])
         return init_cond
 
     def T(self, i, s):
@@ -720,7 +674,7 @@ class KIP:
                 all(z3.is_expr(a) for a in self.defs_vals)), self.defs_vals
         assert i >= 1, i
 
-        trans = z3.And([self._at_state(a, i, s) for a in self.defs_vals])
+        trans = Z3._and([self._at_state(a, i, s) for a in self.defs_vals])
         return trans
 
     def I_S(self, i, s):
@@ -728,10 +682,11 @@ class KIP:
         Return the formula for (state) invariant at state i.
         """
         assert (isinstance(self.invs_state, list) and
-                all(Miscs.is_state(a) for a in self.invs_state)), self.invs_state
+                all(Miscs.is_state(a) for a in self.invs_state)), \
+            self.invs_state
         assert i >= 0, i
 
-        inv_state = z3.And([self._at_state(a, i, s) for a in self.invs_state])
+        inv_state = Z3._and([self._at_state(a, i, s) for a in self.invs_state])
         return inv_state
 
     def I_T(self, i, s):
@@ -739,10 +694,11 @@ class KIP:
         Return the formula for (trans) invariant at state i
         """
         assert (isinstance(self.invs_trans, list) and
-                all(Miscs.is_trans(a) for a in self.invs_trans)), self.invs_trans
+                all(Miscs.is_trans(a) for a in self.invs_trans)), \
+            self.invs_trans
         assert i >= 1, i
 
-        inv_trans = z3.And([self._at_state(a, i, s) for a in self.invs_trans])
+        inv_trans = Z3._and([self._at_state(a, i, s) for a in self.invs_trans])
         return inv_trans
 
     def A_S(self, i, s):
@@ -750,12 +706,13 @@ class KIP:
         Return the formula for (state) assume at state i
         """
         assert (isinstance(self.assumes_state, list) and
-                all(Miscs.is_state(a) for a in self.assumes_state)), self.assumes_state
+                all(Miscs.is_state(a) for a in self.assumes_state)), \
+            self.assumes_state
 
         assert i >= 0, i
 
-        assume_state = z3.And([self._at_state(a, i, s)
-                               for a in self.assumes_state])
+        assume_state = Z3._and([self._at_state(a, i, s)
+                                for a in self.assumes_state])
         return assume_state
 
     def A_T(self, i, s):
@@ -766,10 +723,12 @@ class KIP:
         assert (isinstance(self.assumes_trans, list) and
                 all(Miscs.is_trans(a) for a in self.assumes_trans)), \
             self.assumes_trans
+
         assert i >= 1, i
 
-        assume_trans = z3.And([self._at_state(a, i, s)
-                               for a in self.assumes_trans])
+        assume_trans = Z3._and([self._at_state(a, i, s)
+                                for a in self.assumes_trans])
+
         return assume_trans
 
     def D(self, i, s):
@@ -800,16 +759,15 @@ class KIP:
             # D(s,s+i) = s_i #  [0,s_0,s_1,..,s_(i-1)]
             pre_states = [S(0, None)] + pre_states
 
-        f = [z3.Not(self.state_eq(cur_state, pre_state))
-             for pre_state in pre_states]
+        fs = [z3.Not(self.state_eq(cur_state, pre_state))
+              for pre_state in pre_states]
 
-        return z3.And(f)
+        return Z3._and(fs)
 
 
 #     ### Helper methods
 
-
-    @ classmethod
+    @classmethod
     def _at_state(cls, f, i, s):
         """
         Returns formula at state i
@@ -826,7 +784,7 @@ class KIP:
                 cls.atstate_cache[k] = Miscs.substitute_f(f=f, i=i, s=s)
                 return cls.atstate_cache[k]
 
-    @ staticmethod
+    @staticmethod
     def state_eq(vs1, vs2):
         """
         Generate a formula expressing the variables in vs1,vs2 are the same
@@ -836,9 +794,9 @@ class KIP:
         assert len(vs1) == len(vs2)
 
         eqts = [v1 == v2 for v1, v2 in zip(vs1, vs2)]
-        return z3.And(eqts)
+        return Z3._and(eqts)
 
-    @ staticmethod
+    @staticmethod
     def get_state_vars(f, exclude_vars):
         """
         f: a formula, e.g. the transition formula
@@ -916,7 +874,7 @@ class KIP:
 
         return state_vars
 
-    @ staticmethod
+    @staticmethod
     def entails(S, claim):
         """
         Checking the validity of S => claim
@@ -945,205 +903,6 @@ class KIP:
 
         S.pop()
         return r
-
-
-class Miscs:
-    pre_kw = '_pre'
-    pre_d = {}  # v -> pre_v
-    cur_d = {}  # pre_v -> v
-
-    @ classmethod
-    def is_trans(cls, f):
-        return cls.pre_kw in str(f)
-
-    @ classmethod
-    def is_state(cls, f):
-        """
-        Check if f has no pre variables
-        """
-        return not cls.is_trans(f)
-
-    @ classmethod
-    def pre(cls, v):
-        """
-        Return a new variable of the same sort as v called v_pre
-
-        >>> from z3 import *
-        >>> x = Bool('x')
-        >>> pre(x)
-        x_pre
-
-        """
-        try:
-            return cls.pre_d[v]
-        except KeyError:
-            name = str(v) + cls.pre_kw
-            pre_v = cls.mk_var(name, v.sort())
-            cls.pre_d[v] = pre_v
-            cls.cur_d[pre_v] = v
-            return pre_v
-
-    @ classmethod
-    def is_pre(cls, v):
-        """
-        Return if the variable v is a pre variable,
-        i.e. if v ends with pre_kw
-        """
-        return str(v).endswith(cls.pre_kw)
-
-    @ classmethod
-    def mk_var(cls, name, vsort):
-        """
-        Create a variable of type vsort.
-
-        Examples:
-
-        >>> from z3 import *
-        >>> v = mk_var('real_v', Real('x').sort())
-        >>> print v
-        real_v
-        """
-
-        assert isinstance(name, str) and name, name
-
-        if vsort.kind() == z3.Z3_INT_SORT:
-            v = z3.Int(name)
-        elif vsort.kind() == z3.Z3_REAL_SORT:
-            v = z3.Real(name)
-        elif vsort.kind() == z3.Z3_BOOL_SORT:
-            v = z3.Bool(name)
-        elif vsort.kind() == z3.Z3_DATATYPE_SORT:
-            v = z3.Const(name, vsort)
-
-        else:
-            raise AssertionError(
-                f'Cannot handle this sort (s: {vsort}, {vsort.kind()})')
-
-        return v
-
-    @ classmethod
-    def cur(cls, pre_v):
-        """
-        Given a pre variable v, return the non-pre version of.
-        For example, if v  =  myvar_pre, then cur(v) gives myvar
-        """
-        assert Z3.is_var(pre_v) and cls.is_pre(pre_v), pre_v
-
-        return cls.cur_d[pre_v]
-
-    @classmethod
-    def substitute_f(cls, f, i, s=None):
-        """
-        Replaces all variables v in f with v_(i*_)
-
-        s = a symbol string, e.g. n (so we will have the variable
-        x_n_1 instead of x_1
-
-        Examples:
-
-        >>> from z3 import *
-        >>> x,x_pre,y,y_pre = Ints('x x_pre y y_pre')
-
-        >>> substitute_f(Implies(x==10,y==5),i=0)
-        Or(Not(x_0 == 10), y_0 == 5)
-
-        >>> substitute_f(Implies(x==10,y==5),i=1)
-        Or(Not(x_1 == 10), y_1 == 5)
-
-        >>> substitute_f(Implies(x==10,pre(y)==5),i=1)
-        Or(Not(x_1 == 10), y_0 == 5)
-
-        >>> substitute_f(Implies(x==10,pre(y)==5),1,s='m')
-        Or(Not(x_m_1 == 10), y_m_0 == 5)
-
-        >>> substitute_f(Implies(x==10,pre(y)==5),10,s='m')
-        Or(Not(x_m_10 == 10), y_m_9 == 5)
-
-        >>> substitute_f(BoolVal(False),i=10)
-        False
-
-        >>> substitute_f(IntVal(100),i=10)
-        100
-
-        """
-
-        assert z3.is_expr(f)
-        assert i >= 0, i
-        assert i != 0 or cls.is_state(f), (i, f)  # v_pre => i!=0
-        assert not s or isinstance(s, str) and len(s) >= 1, s
-
-        vs = Z3.get_vars(f)
-
-        if not vs:  # e.g. True, 5, etc  has no variables so return as is
-            return f
-        else:
-            vss = cls.gen_vars(vs, i, s)
-            f_ = f
-            for vs in vss:
-                f_ = z3.substitute(f_, vs)
-            return f_
-
-    @classmethod
-    def gen_vars(cls, vs, i, s):
-        """
-        Generates variables at state s_i. See examples for details.
-
-        v ->  v_i
-        v_pre -> v_(i-1)
-
-        Examples:
-
-        >>> from z3 import *
-        >>> x,y = Ints('x y')
-
-        >>> gen_vars([x,y],10,s=None)
-        [(y, y_10), (x, x_10)]
-
-        >>> gen_vars([x,pre(y)],10,s=None)
-        [(y_pre, y_9), (x, x_10)]
-
-        >>> gen_vars([x,pre(y)],1,s=None)
-        [(y_pre, y_0), (x, x_1)]
-
-        >>> gen_vars([x,pre(y)],0,s=None)
-        Traceback (most recent call last):
-        ...
-        AssertionError: cannot generate pre(var) with i=0
-
-        >>> gen_vars([x,pre(y)],9,s='i')
-        [(y_pre, y_i_8), (x, x_i_9)]
-
-        >>> gen_vars([x,pre(y)],1,s='n')
-        [(y_pre, y_n_0), (x, x_n_1)]
-
-        """
-        assert len(vs) > 0, vs
-        assert i >= 0, i
-        assert (not i == 0) or all(not cls.is_pre(v) for v in vs), \
-            'cannot generate pre(var) with i=0'
-
-        def mk_name(i, v):
-            s_ = '_'
-            if s is not None:
-                s_ = s_ + s + '_'
-
-            if str(v).endswith(cls.pre_kw):
-                d = i - 1
-                name = str(v)[:-len(cls.pre_kw)] + s_ + str(d)
-            else:
-                name = str(v) + s_ + str(i)
-            return name
-
-        # so that the longest one is replaced first
-        old_vars = sorted(vs, key=str, reverse=True)
-
-        new_names = [mk_name(i, v) for v in old_vars]
-        new_vars = [cls.mk_var(ns, v.sort())
-                    for ns, v in zip(new_names, old_vars)]
-
-        vss = zip(old_vars, new_vars)
-
-        return vss
 
 # ##############################
 # #

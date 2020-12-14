@@ -3,6 +3,10 @@
 # from scr_miscs import pre_f
 # from kip_test_common import verify, print_summary
 
+import z3
+from prover.miscs import Miscs
+
+pre_f = Miscs.pre_f
 
 # def divbin():
 #     from invs_nla_dig import A, B, q, r, b, divbin_LI0, divbin_LI1
@@ -48,7 +52,6 @@
 #     print_summary([LI0_d,LI1_d])
 
 
-
 # def mannadiv():
 #     from invs_nla_dig import x1,x2,y1,y2,y3, mannadiv_LI0
 
@@ -56,16 +59,16 @@
 #     I = And(y1 == 0,y2 == 0, y3 == x1)
 #     T = And(pre_f(y3 != 0),
 #             If(pre_f(y1 + 1 == x2),
-#                And(x1 == pre_f(x1), 
+#                And(x1 == pre_f(x1),
 #                    x2 == pre_f(x2),
-#                    y1 == pre_f(y1+1), 
-#                    y2 == 0,           
+#                    y1 == pre_f(y1+1),
+#                    y2 == 0,
 #                    y3 == pre_f(y3 - 1)),
-               
-#                And(x1 == pre_f(x1), 
+
+#                And(x1 == pre_f(x1),
 #                    x2 == pre_f(x2),
-#                    y1 == pre_f(y1),   
-#                    y2 == pre_f(y2 + 1), 
+#                    y1 == pre_f(y1),
+#                    y2 == pre_f(y2 + 1),
 #                    y3 == pre_f(y3 - 1))))
 
 
@@ -78,9 +81,9 @@
 
 #     #first loop
 #     I = And(A >= 0, B >= 1,
-#             r == A, 
+#             r == A,
 #             d == B,
-#             p == 1, 
+#             p == 1,
 #             q == 0)
 
 #     T = And(pre_f(r >= d),
@@ -98,8 +101,8 @@
 #     #these assumptionscannot be automatically generated
 #     #When p#1, then d and p are even
 #     assumes = [is_even(d), is_even(p)]
-    
-#     #q==0 , A - r == 0, B*p == d,  #LI0             
+
+#     #q==0 , A - r == 0, B*p == d,  #LI0
 #     I = And(LI0_d['Ts'] + [Not(r>=d)])
 
 #     T = And(pre_f(p != 1),
@@ -108,15 +111,15 @@
 #                    d == pre_f(d / 2),
 #                    r == pre_f(r - d / 2),
 #                    q == pre_f(q + p  / 2)),
-               
+
 #                And(p == pre_f(p / 2),
 #                    d == pre_f(d / 2),
 #                    r == pre_f(r),
 #                    q == pre_f(q))),
 #             A  == pre_f(A),
 #             B  == pre_f(B))
-    
-    
+
+
 #     LI1 = hard_LI1
 #     LI1_d = verify("hard LI1",assumes,I,T,LI1)
 
@@ -155,7 +158,7 @@
 #     LI0 = dijkstra_LI0
 #     LI0_d = verify('dijkstra LI0',[],I,T,LI0)
 
-    
+
 #     #second loop
 #     assumes = [q%4==0]
 #     #h == 0 , n == r, p == 0, #LI0
@@ -166,13 +169,13 @@
 #                    p == pre_f(p/2 + q/4),
 #                    q == pre_f(q/4),
 #                    h == pre_f(p+q/4)),
-               
+
 #                And(r == pre_f(r),
 #                    p == pre_f(p/2),
 #                    q == pre_f(q/4),
 #                    h == pre_f(p+q/4))),
 #             n == pre_f(n))
-    
+
 #     #n*q == p*p + q*r,  #proved only when declare vars as reals, ow. long time
 #     #h*h*p - 4*h*n*q + 4*h*q*r + 4*n*p*q - p*q*q - 4*p*q*r == 0, z3 long time
 #     #h*h*h - 12*h*n*q - h*q*q + 12*h*q*r + 16*n*p*q - 4*p*q*q - 16*p*q*r == 0, z3 long time
@@ -180,7 +183,7 @@
 #     LI1 = dijkstra_LI1
 
 #     LI1_d = verify('dijkstra LI1',assumes,I,T,LI1)
-    
+
 #     print_summary([LI0_d, LI1_d])
 
 
@@ -197,7 +200,7 @@
 #     LI0 = freire1_LI0
 #     LI0_d = verify('freire1 LI0',[],I,T,LI0)
 #     print_summary([LI0_d])
-    
+
 
 # def freire2():
 #     #z3 has problem doing integer arith with int and real so
@@ -216,9 +219,9 @@
 #     LI0_d = verify('freire2 LI0', [], I, T, LI0)
 #     print_summary([LI0_d])
 
-    
+
 # def cohencu():
-#     #Good example to use in paper 
+#     #Good example to use in paper
 #     from invs_nla_dig import a, n, x , y, z, cohencu_LI0#, cohencu_LI0_annotated
 
 #     #loop
@@ -234,7 +237,6 @@
 #     LI0_d = verify('cohencu LI0',[],I,T,LI0)
 
 #     print_summary([LI0_d])
-
 
 
 # def euclidex1():
@@ -283,10 +285,10 @@
 #             x==pre_f(x),
 #             y==pre_f(y),
 #             k==pre_f(k+1))
-    
+
 #     LI1 = euclidex2_LI1
 #     LI1_d = verify('euclidex2 LI1',[],I,T,LI1)
-    
+
 #     #outer loop
 #     I = And(a == x,
 #             b == y,
@@ -338,7 +340,7 @@
 #             v == pre_f(2*v),
 #             k == pre_f(k),
 #             c == pre_f(c))
-    
+
 
 #     LI2 = euclidex3_LI2
 #     LI2_d = verify("euclidex3 LI2",[],I,T,LI2)
@@ -365,7 +367,7 @@
 #             v == pre_f(v),
 #             c == pre_f(c - v),
 #             k == pre_f(k + d))
-    
+
 #     LI1 = euclidex3_LI1
 #     LI1_d = verify("euclidex3 LI1",[],I,T,LI1)
 
@@ -413,9 +415,9 @@
 #             v == pre_f(v + u))
 
 #     LI1 = lcm1_LI1
-    
+
 #     LI1_d = verify("lcm1 LI1",[],I,T,LI1)
-    
+
 #     #inner loop 2
 #     I = And(a*b - u*x - v*y == 0, Not(x > y))
 #     T = And(pre_f(x < y),
@@ -432,7 +434,7 @@
 
 #     #outer loop
 #     I = And(x == a, y == b , u == b, v == 0)
-#     T = And(pre_f(a*b - u*x - v*y == 0), 
+#     T = And(pre_f(a*b - u*x - v*y == 0),
 #             pre_f(Not(x < y)),
 #             a == pre_f(a),
 #             b == pre_f(b),
@@ -440,13 +442,13 @@
 #             y == pre_f(y),
 #             u == pre_f(u),
 #             v == pre_f(v))
-    
+
 #     LI0 = lcm1_LI0
 #     LI0_d = verify("lcm1 LI0", [],I,T,LI0)
-    
+
 #     print_summary([LI0_d,LI1_d,LI2_d])
 
-    
+
 # def lcm2():
 #     from invs_nla_dig import a, b, x, y, u, v, lcm2_LI0
 
@@ -482,7 +484,7 @@
 #                    x == pre_f(2 *x),
 #                    y == pre_f((y - 1) / 2),
 #                    z == pre_f(z + x)),
-               
+
 #                And(a == pre_f(a),
 #                    b == pre_f(b),
 #                    x == pre_f(2 * x),
@@ -551,7 +553,7 @@
 
 #     LI1 = fermat1_LI1
 #     LI1_d = verify('fermat1 LI1',[],I,T,LI1)
-    
+
 #     #inner loop 2
 #     I = And(u*u - v*v - 4*A - 4*r - 2*u + 2*v == 0, Not(r > 0))
 #     T = And(pre_f(r < 0),
@@ -566,7 +568,7 @@
 
 #     #outer loop
 #     I = And(u == 2*R+1, v == 1, r == R*R-A)
-#     T = And(pre_f(u*u - v*v - 4*A - 4*r - 2*u + 2*v == 0), 
+#     T = And(pre_f(u*u - v*v - 4*A - 4*r - 2*u + 2*v == 0),
 #             pre_f(Not(r < 0)),
 #             A == pre_f(A),
 #             R == pre_f(R),
@@ -576,7 +578,7 @@
 
 #     LI0 = fermat1_LI0
 #     LI0_d = verify('fermat1 LI0',[],I,T,LI0)
-    
+
 #     print_summary([LI1_d,LI2_d,LI0_d])
 
 
@@ -592,7 +594,7 @@
 #                    u == pre_f(u),
 #                    v == pre_f(v + 2),
 #                    r == pre_f(r - v)),
-               
+
 #                And(A == pre_f(A),
 #                    R == pre_f(R),
 #                    u == pre_f(u + 2),
@@ -600,7 +602,7 @@
 #                    r == pre_f(r) + pre_f(u))))
 
 #     LI0 = fermat2_LI0
-    
+
 #     LI0_d = verify("fermat2 LI0",[],I,T,LI0)
 #     print_summary([LI0_d])
 
@@ -643,7 +645,7 @@
 # def geo3():
 
 #     from invs_nla_dig import x, y, z, a , c, k, geo3_LI0
-    
+
 #     #loop
 #     I = And(x == a, y == 1, c == 1)
 #     T = And(c < k,
@@ -720,7 +722,7 @@
 #     LI0 = ps5_LI0
 #     LI0_d = verify("ps5 LI0", [], I, T, LI0)
 #     print_summary([LI0_d])
-    
+
 # def ps6():
 #     from invs_nla_dig import x, y, c, k, ps6_LI0
 
@@ -737,9 +739,6 @@
 #     print_summary([LI0_d])
 
 
-
-    
-
 # def knuth():
 
 #     from invs_nla_dig import n,a,r,k,q,d,s,t, knuth_LI0#,knuth_LI0_annotated
@@ -747,8 +746,8 @@
 #     #note, since cannot encode s=sqrt(n),
 #     #still preserve soundness if can be proved (but if disproved, then
 #     #can be spurious)
-#     I = And(d == a, r == n % d, t == 0, d > 2, k == n % (d-2), 
-#             q == 4*(n/(d-2) - n/d)) 
+#     I = And(d == a, r == n % d, t == 0, d > 2, k == n % (d-2),
+#             q == 4*(n/(d-2) - n/d))
 
 #     T = And(pre_f(And(s>=d, r!=0)),
 #             If(pre_f(2*r-k+q<0),
@@ -758,7 +757,7 @@
 #                    k == pre_f(r),
 #                    q == pre_f(q + 4),
 #                    d == pre_f(d + 2),
-                   
+
 #                    s == pre_f(s),
 #                    t == pre_f(r)),
 #                If(pre_f(And(2*r-k+q>=0, 2*r-k+q<d+2)),
@@ -793,8 +792,46 @@
 #     print_summary([LI0_d])
 
 
-# def verify_nla():
-#     cohendiv()
+
+
+def cohendiv():
+    #TODO: LI0_d
+    from prover.tests.invs_nla_dig import (
+        q, x, r, y, a, b, cohendiv_LI0, cohendiv_LI1)
+
+    # inner loop
+    I = z3.And(x == r+q*y, r >= y,  # invs of outer loop & guard of outer loop
+               a == 1, b == y)
+
+    T = z3.And(pre_f(r >= 2*b),
+               a == 2*pre_f(a),
+               b == 2*pre_f(b),
+               r == pre_f(r),
+               y == pre_f(y),
+               x == pre_f(x),
+               q == pre_f(q))
+
+    LI1 = cohendiv_LI1
+    LI1_d = Miscs.verify("cohendiv LI1", [], I, T, LI1)
+
+    T = z3.And(pre_f(a*y == b),  # invs of inner loop
+               pre_f(q*y+r == x),
+               pre_f(z3.Not(r >= 2*b)),  # guard of inner loop
+               x == pre_f(x),
+               y == pre_f(y),
+               q == pre_f(q + a),
+               r == pre_f(r - b),
+               a == pre_f(a),
+               b == pre_f(b))
+
+    LI0 = cohendiv_LI0
+    LI0_d = Miscs.verify("cohendiv LI0", [], I, T, LI0)
+
+    Miscs.print_summary([LI0_d, LI1_d])
+
+
+def verify_all():
+    cohendiv()
 #     divbin()
 #     mannadiv()
 #     hard()
