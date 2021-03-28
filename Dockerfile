@@ -2,17 +2,19 @@ FROM debian:bullseye
 
 COPY . /dig
 
-#install sage and z3
+#install general setup tools
 RUN apt-get update -y
-RUN apt-get install -y build-essential
-RUN apt-get install -y sagemath
-RUN apt-get install -y z3
-RUN apt-get install -y git
-RUN apt-get install -y ant
-RUN pip install z3-solver
+RUN apt-get install -y build-essential git ant
+
+#download Eclipse Foundation's AdoptOpenJDK build of jdk 8
+RUN apt-get install wget apt-transport-https gnupg -y
+RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
+RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
+RUN apt-get update -y
+RUN apt-get install adoptopenjdk-8-hotspot -y
+RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
 
 #download java and jpf
-RUN apt-get install -y default-jdk
 RUN mkdir /usr/lib/JPF
 WORKDIR /usr/lib/JPF
 RUN git clone https://github.com/javapathfinder/jpf-core
@@ -32,6 +34,9 @@ RUN cp /dig/src/java/InvariantListenerVu.java /usr/lib/JPF/jpf-symbc/src/main/go
 WORKDIR /usr/lib/JPF/jpf-symbc
 RUN ant
 
+RUN apt-get install -y sagemath z3 
+RUN pip install z3-solver
+
 #build dig
 WORKDIR /dig/src/java
 RUN make
@@ -40,5 +45,6 @@ RUN make
 ENV JPF_HOME=/usr/lib/JPF
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib
+ENV JAVA8_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/
 
 WORKDIR /dig/src
