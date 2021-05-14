@@ -5,7 +5,7 @@ import pdb
 
 import settings
 import helpers.vcommon as CM
-from helpers.miscs import Miscs
+from helpers.miscs import Miscs, MP
 
 from data.traces import Inps, Traces, DTraces
 from data.inv.invs import Invs, DInvs
@@ -41,7 +41,7 @@ class Infer(infer.base.Infer):
                 for loc, (template, uks, exprs) in tasks
             ]
 
-        wrs = CM.run_mp("find eqts", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("find eqts", tasks, f, settings.DO_MP)
 
         # put results together
         dinvs = DInvs()

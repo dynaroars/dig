@@ -125,25 +125,30 @@ class DigSymStates(Dig):
 
         self.locs = self.inv_decls.keys()
 
-        mlog.info(f"infer invs at {len(self.locs)} locs: {', '.join(self.locs)}")
+        mlog.info(
+            f"infer invs at {len(self.locs)} locs: {', '.join(self.locs)}")
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
         inps = Inps()
 
         if settings.DO_EQTS:
-            self.infer(self.EQTS, dinvs, lambda: self.infer_eqts(maxdeg, dtraces, inps))
+            self.infer(self.EQTS, dinvs, lambda: self.infer_eqts(
+                maxdeg, dtraces, inps))
 
         if settings.DO_IEQS:
-            self.infer(self.IEQS, dinvs, lambda: self.infer_ieqs(dtraces, inps))
+            self.infer(self.IEQS, dinvs,
+                       lambda: self.infer_ieqs(dtraces, inps))
 
         if settings.DO_MINMAXPLUS:
-            self.infer(self.MINMAX, dinvs, lambda: self.infer_minmax(dtraces, inps))
+            self.infer(self.MINMAX, dinvs,
+                       lambda: self.infer_minmax(dtraces, inps))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
         if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer("preposts", dinvs, lambda: self.infer_preposts(dinvs, dtraces))
+            self.infer("preposts", dinvs,
+                       lambda: self.infer_preposts(dinvs, dtraces))
 
         et = time.time() - st
         self.time_d["total"] = et
@@ -201,7 +206,6 @@ class DigSymStates(Dig):
 
         # determine degree
         auto_deg = self.get_auto_deg(maxdeg)
-
         dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
 
@@ -214,7 +218,7 @@ class DigSymStates(Dig):
     def infer_minmax(self, dtraces, inps):
         import infer.opt
 
-        solver = infer.opt.MP(self.symstates, self.prog)
+        solver = infer.opt.MMP(self.symstates, self.prog)
         return solver.gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):

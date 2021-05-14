@@ -5,7 +5,7 @@ void vassume(int b){}
 void vtrace1(int x, int y, int k){}
 
 int mainQ(int k){
-    assert(k >=0);
+    vassume(k >=0);
     vassume(k<=30);
      
     int y = 0;
@@ -14,8 +14,7 @@ int mainQ(int k){
 
 
     while(1){
-	//%%%traces: int x, int y, int k
-	vtrace1(x,y,k);
+	vtrace1(x, y, k);
 	if (!(c < k)) break;
 	c = c +1 ;
 	y=y +1;

@@ -237,5 +237,5 @@ if __name__ == "__main__":
             dig = alg.DigTraces(inp, test_tracefile)
 
         dig.start(seed=seed, maxdeg=args.maxdeg)
-
+        
     killchildren(os.getpid())

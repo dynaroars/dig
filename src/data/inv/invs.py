@@ -5,7 +5,8 @@ from collections import Counter
 import z3
 
 import settings
-from helpers.miscs import Miscs, Z3
+from helpers.miscs import Miscs, MP
+from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
 import data.inv.base
@@ -52,7 +53,7 @@ class Invs(set):
         def f(tasks):
             return [(inv, inv.test(traces)) for inv in tasks]
 
-        wrs = CM.run_mp("test", list(self), f, settings.DO_MP)
+        wrs = MP.run_mp("test", list(self), f, settings.DO_MP)
 
         myinvs = set()
         for inv, passed in wrs:
@@ -82,7 +83,7 @@ class Invs(set):
         for oct in octs:
             (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
-        mps = data.inv.mp.MP.simplify(mps)  # find ==
+        mps = data.inv.mp.MMP.simplify(mps)  # find ==
         mps_eqt, mps_ieq = [], []
         for mp in mps:
             (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
@@ -142,7 +143,7 @@ class Invs(set):
         def f(ps):
             return [p for p in ps if not Z3._imply(conj, get_expr(p))]
 
-        wrs = CM.run_mp(f"simplify1 {len(ps)} {msg}", ps, f, settings.DO_MP)
+        wrs = MP.run_mp(f"simplify1 {len(ps)} {msg}", ps, f, settings.DO_MP)
 
         Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
         ps = [p for p in wrs]
@@ -191,7 +192,7 @@ class Invs(set):
                     eqts.append(inv)
             elif isinstance(inv, data.inv.oct.Oct):
                 octs.append(inv)
-            elif isinstance(inv, data.inv.mp.MP):
+            elif isinstance(inv, data.inv.mp.MMP):
                 mps.append(inv)
             elif isinstance(inv, data.inv.prepost.PrePost):
                 preposts.append(inv)
@@ -289,7 +290,7 @@ class DInvs(dict):
         def f(tasks):
             return [(loc, self[loc].test(dtraces[loc])) for loc in tasks]
 
-        wrs = CM.run_mp("test_dinvs", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("test_dinvs", tasks, f, settings.DO_MP)
         dinvs = DInvs([(loc, invs) for loc, invs in wrs if invs])
         Miscs.show_removed("test_dinvs", self.siz, dinvs.siz, time() - st)
         return dinvs
@@ -324,7 +325,7 @@ class DInvs(dict):
         def f(tasks):
             return [(loc, self[loc].simplify()) for loc in tasks]
 
-        wrs = CM.run_mp("simplify", list(self), f, settings.DO_MP)
+        wrs = MP.run_mp("simplify", list(self), f, settings.DO_MP)
         mlog.debug("done simplifying , time {}".format(time() - st))
         dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
         Miscs.show_removed("simplify", self.siz, dinvs.siz, time() - st)

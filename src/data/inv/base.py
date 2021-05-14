@@ -5,7 +5,8 @@ from typing import NamedTuple
 
 import sage.all
 
-from helpers.miscs import Z3, Miscs
+from helpers.miscs import Miscs
+from helpers.z3utils import Z3
 import helpers.vcommon as CM
 import settings
 import data.traces

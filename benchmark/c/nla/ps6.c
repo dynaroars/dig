@@ -6,7 +6,7 @@ void vtrace1(int x, int y, int k){}
 
 int mainQ(int k){
     vassume(k >= 0);
-    vassume(k< = 30); //if too large then overflow
+    vassume(k <= 30); //if too large then overflow
      
     int y = 0;
     int x = 0;

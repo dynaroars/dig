@@ -7,10 +7,11 @@ from time import time
 import operator
 
 import z3
-import helpers.vcommon as CM
-from helpers.miscs import Miscs, Z3
-
 import settings
+from helpers.miscs import Miscs, MP
+from helpers.z3utils import Z3
+import helpers.vcommon as CM
+
 import data.traces
 import data.inv.oct
 import data.inv.mp
@@ -71,7 +72,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
                 for loc, term in tasks
             ]
 
-        wrs = CM.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
 
         dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
@@ -119,7 +120,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
     @classmethod
     def get_iupper(cls, term):
         return (
-            settings.IUPPER_MP
+            settings.IUPPER_MMP
             if isinstance(term, data.inv.mp.Term)
             else settings.IUPPER
         )
@@ -206,7 +207,7 @@ class Ieq(Infer):
         return excludes
 
 
-class MP(Infer):
+class MMP(Infer):
     """
     Min-max plus invariants
     """
@@ -215,10 +216,10 @@ class MP(Infer):
         super().__init__(symstates, prog)
 
     def to_expr(self, term):
-        return data.inv.mp.MP(term, is_ieq=None).expr
+        return data.inv.mp.MMP(term, is_ieq=None).expr
 
     def inv_cls(self, term_ub):
-        return data.inv.mp.MP(term_ub)
+        return data.inv.mp.MMP(term_ub)
 
     def my_get_terms(self, symbols):
         terms = data.inv.mp.Term.get_terms(symbols)

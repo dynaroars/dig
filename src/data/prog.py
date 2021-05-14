@@ -9,6 +9,7 @@ import subprocess
 import sage.all
 
 import settings
+from helpers.miscs import MP
 from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
@@ -93,7 +94,7 @@ class Prog:
         def f(tasks):
             return [(inp, self._get_traces(inp)) for inp in tasks]
 
-        wrs = CM.run_mp("get traces", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("get traces", tasks, f, settings.DO_MP)
 
         for inp, traces in wrs:
             assert inp not in self._cache

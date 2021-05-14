@@ -165,7 +165,7 @@ class AResult(Result):
             vs = []
             degs = [1]
             nterms = 1
-        elif isinstance(inv, data.inv.mp.MP):
+        elif isinstance(inv, data.inv.mp.MMP):
             vs = inv.term.symbols
             degs = [1]
             nterms = 2

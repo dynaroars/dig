@@ -6,7 +6,7 @@ import settings
 
 import helpers.vcommon as CM
 from helpers.z3utils import Z3
-
+from helpers.miscs import MP
 from prover.miscs import Miscs
 
 DBG = pdb.set_trace
@@ -213,7 +213,7 @@ class Prog:
             unchecked_idxs_ = []
             tasks = list(zip(unchecked_idxs,
                              [props[idx] for idx in unchecked_idxs]))
-            wrs = CM.run_mp(
+            wrs = MP.run_mp(
                 "checking {len(tasks)} ps", tasks, f, settings.DO_MP)
 
             for idx, r, m, k_ in wrs:

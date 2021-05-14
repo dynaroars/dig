@@ -38,7 +38,7 @@ UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
 IUPPER = 20  # t <= iupper
-IUPPER_MP = 2  # for min/max ieqs
+IUPPER_MMP = 2  # for min/max ieqs
 IDEG = 1  # deg (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1

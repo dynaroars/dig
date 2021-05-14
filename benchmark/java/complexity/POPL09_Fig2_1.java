@@ -24,6 +24,13 @@ public class POPL09_Fig2_1 {
 		//NOTE: *** are these results correct, better, etc than the given bound of Max(0, n-a) + Max(0, m-b)
 		//Timos: I think they are better, because the bound Max(0, n-a) + Max(0, m-b) does not capture the case where a > n but y_0 < m.
 		//Notice that in such a case, we will never enter the loop, which is captured by t==0, but the given bound in the paper will still be m-b.
+
+		// (a >= n & b < m)  => t = m-b
+		
+		// n>a & m >b => t=n+m-a-b
+		// n>a & m <= => t=n-a
+		// ...
+		    
 		return 0;
 	}
 	

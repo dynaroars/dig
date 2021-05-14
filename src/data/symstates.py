@@ -17,7 +17,7 @@ from sage.all import cached_function, sage_eval
 from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
-import helpers.miscs
+from helpers.miscs import MP
 from helpers.z3utils import Z3
 import data.prog
 import data.traces
@@ -276,7 +276,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
-        wrs = CM.run_mp("get symstates", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("get symstates", tasks, f, settings.DO_MP)
 
         if not wrs:
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
@@ -296,7 +296,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             ]
             return rs
 
-        wrs = CM.run_mp("symstates exprs", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("symstates exprs", tasks, f, settings.DO_MP)
         for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
@@ -535,7 +535,7 @@ class SymStates(dict):
                 for loc, inv in tasks
             ]
 
-        wrs = CM.run_mp("prove", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("prove", tasks, f, settings.DO_MP)
 
         mCexs = []
         mdinvs = data.inv.invs.DInvs()

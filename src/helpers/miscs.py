@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-
 import pdb
 import itertools
 import operator
@@ -12,18 +11,17 @@ from collections import Iterable
 import sage.all
 from sage.all import cached_function
 
-
 import helpers.vcommon as CM
 import settings
 
-from helpers.z3utils import Z3
+# from helpers.z3utils import Z3
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Miscs(object):
+class Miscs:
     @staticmethod
     def msage_eval(s, d):
         assert all(isinstance(k, str) and Miscs.is_expr(v)
@@ -637,3 +635,93 @@ class Miscs(object):
                 results = others
 
         return sorted(results)
+
+class MP:
+    @staticmethod
+    def get_workload(tasks, n_cpus):
+        """
+        sage: from helpers.miscs import Miscs
+
+        >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
+        [1, 1, 2, 2, 2, 2, 2]
+
+        >>> wls = Miscs.get_workload(range(12),5); [len(wl) for wl in wls]
+        [2, 2, 2, 3, 3]
+
+        >>> wls = Miscs.get_workload(range(20),7); [len(wl) for wl in wls]
+        [2, 3, 3, 3, 3, 3, 3]
+
+        >>> wls = Miscs.get_workload(range(20),20); [len(wl) for wl in wls]
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+        >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
+        [1, 1, 2, 2, 2, 2, 2]
+
+        >>> wls = Miscs.get_workload(range(146), 20); [len(wl) for wl in wls]
+            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
+        """
+        assert len(tasks) >= 1, tasks
+        assert n_cpus >= 1, n_cpus
+
+        wloads = defaultdict(list)
+        for i, task in enumerate(tasks):
+            cpu_id = i % n_cpus
+            wloads[cpu_id].append(task)
+
+        wloads = [wl for wl in sorted(wloads.values(), key=lambda wl: len(wl))]
+
+        return wloads
+
+    @staticmethod
+    def run_mp(taskname, tasks, f, DO_MP):
+        """
+        Run wprocess on tasks in parallel
+        """
+
+        def wprocess(mytasks, myQ):
+            rs = None
+            try:
+                rs = f(mytasks)
+            except BaseException as ex:
+                mlog.debug(f"Got exception in worker: {ex}")
+                if myQ is None:
+                    raise
+                else:
+                    rs = ex
+
+            if myQ is None:
+                return rs
+            else:
+                myQ.put(rs)
+
+        n_cpus = multiprocessing.cpu_count()
+        if len(tasks) >= 2 and n_cpus >= 2:
+            Q = multiprocessing.Queue()
+            wloads = MP.get_workload(tasks, n_cpus=n_cpus)
+            mlog.debug(
+                f"{taskname}:running {len(tasks)} jobs "
+                f"using {len(wloads)} threads: {list(map(len, wloads))}"
+            )
+
+            workers = [
+                multiprocessing.Process(target=wprocess, args=(wl, Q)) for wl in wloads
+            ]
+
+            for w in workers:
+                w.start()
+
+            wrs = []
+            for _ in workers:
+                rs = Q.get()
+                if isinstance(rs, list):
+                    wrs.extend(rs)
+                else:
+                    mlog.debug(f"Got exception from worker: {rs}")
+                    raise rs
+
+        else:
+            wrs = wprocess(tasks, myQ=None)
+
+        return wrs
+
+
