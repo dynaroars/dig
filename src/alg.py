@@ -10,7 +10,7 @@ from threading import Thread
 import sage.all
 
 import settings
-from helpers.miscs import Miscs
+from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.prog
@@ -318,7 +318,7 @@ class DigTraces(Dig):
             rs = [(loc, _f()) for loc, _f in tasks]
             return rs
 
-        wrs = CM.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
 
         dinvs = DInvs()
         for loc, invs in wrs:
