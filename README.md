@@ -154,31 +154,29 @@ vtrace2: 2, 287, 0, 2
 tnguyen@debian ~/d/src> sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
 alg:INFO:analyze '../tests/traces/CohenDiv.tcs'
-alg:INFO:test 30 invs using 181 traces (0.96s)
-alg:INFO:simplify 26 invs (0.42s)
-vtrace1 (6 invs):
+alg:INFO:test 30 invs using 181 traces (0.44s)
+alg:INFO:simplify 26 invs (0.30s)
 vtrace1 (8 invs):
 1. q*y + r - x == 0
 2. -q <= 0
 3. -r <= 0
 4. -y <= -1
-5. r - x <= 0
-6. q - x <= 0
+5. q - x <= 0
+6. r - x <= 0
 7. -r - x <= -2
 8. -x - y <= -10
 vtrace2 (8 invs):
 1. q*y + r - x == 0
 2. -q <= 0
 3. -r <= 0
-4. r - x <= 0
-5. q - x <= 0
+4. q - x <= 0
+5. r - x <= 0
 6. r - y <= -1
 7. -r - x <= -2
 8. -x - y <= -10
-....
 ```
 
-Note that if we just run Dig over traces, then most of the generated inequality results are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), DIG can check and remove spurious results.
+Note that if we just run Dig over traces, then many generated inequality results would be spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), DIG can check and remove spurious results.
 
 ### Additional Options
 
