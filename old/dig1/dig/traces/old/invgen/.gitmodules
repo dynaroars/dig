@@ -1,0 +1,3 @@
+[submodule "common-python-vu"]
+	path = common-python-vu
+	url = https://code.google.com/p/common-python-vu
