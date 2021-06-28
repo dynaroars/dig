@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
     ag(
         "--tmpdir",
-        "-tmpdirdir",
+        "-tmpdir",
         type=str,
         default=None,
         help="store invariant results in this dir",

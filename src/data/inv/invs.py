@@ -123,12 +123,14 @@ class Invs(set):
                 my_get_expr,
             )
 
-        # don't use done to simplify octs_simple because nonlinear eqts will remove many useful octs
+        # don't use done to simplify octs_simple because
+        # nonlinear eqts will remove many useful octs
         octs_simple = self.simplify2(
             octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
         )
-        results = done + octs_simple + octs_mps
-        return self.__class__(results)
+        
+        done += octs_simple + octs_mps
+        return self.__class__(done)
 
     @classmethod
     def simplify1(cls, ps, others, msg, get_expr):
