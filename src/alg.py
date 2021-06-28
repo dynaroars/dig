@@ -22,7 +22,6 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
         mlog.info(f"analyze '{filename}'")

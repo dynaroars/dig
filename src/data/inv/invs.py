@@ -79,19 +79,24 @@ class Invs(set):
         assert not falseinvs, falseinvs
         assert not preposts, preposts
 
-        octs_simple, octs_not_simple = [], []
-        for oct in octs:
-            (octs_simple if oct.is_simple else octs_not_simple).append(oct)
-
-        mps = data.inv.mp.MMP.simplify(mps)  # find ==
-        mps_eqt, mps_ieq = [], []
-        for mp in mps:
-            (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
-
         exprs_d = {}
 
         def my_get_expr(p):
             return self.get_expr(p, exprs_d)
+
+        # simplify eqts, e.g., to remove x - y == 0  if -x + y == 0 exists
+        eqts = self.simplify2(eqts,None,"eqts", my_get_expr)
+
+        octs_simple, octs_not_simple = [], []
+        for oct in octs:
+            (octs_simple if oct.is_simple else octs_not_simple).append(oct)
+
+        # find equality invs (==) from min/max-plus            
+        mps = data.inv.mp.MMP.simplify(mps)  
+        mps_eqt, mps_ieq = [], []
+        for mp in mps:
+            (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
+
 
         done = eqts + mps_eqt  # don't simply these
         mps_ieq = self.simplify1(mps_ieq, done + octs, "mps_ieq", my_get_expr)
@@ -130,7 +135,7 @@ class Invs(set):
         """
         Simplify given properties ps (usually a class of invs such as octs or mps)
         using the properties in others, e.g., remove p if others => p
-        Relatively fast, using multiprocessing
+        Note: this task is relatively fast, using multiprocessing
         """
         if len(ps) < 2 or not others:
             return ps
@@ -154,7 +159,7 @@ class Invs(set):
         """
         Simplify given properties ps using properties in both ps and others
         e.g., remove g if  ps_exclude_g & others => g
-        # not very fast
+        Note: this task is slow
         """
 
         if len(ps) < 2:
