@@ -128,24 +128,24 @@ tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
 
 ### Generating Invariants From Traces
 
-DIG can infer invariants directly from a file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+DIG can infer invariants directly from an CSV file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
 ```sh
 # in DIG's src directory
-$ less ../test/traces/CohenDiv.tcs
-vtrace1: I q, I r, I a, I b, I x, I y
-vtrace1: 4, 8, 1, 4, 24, 4
-vtrace1: 16, 89, 1, 13, 297, 13
-vtrace1: 8, 138, 4, 76, 290, 19
-vtrace1: 0, 294, 8, 192, 294, 24
-vtrace1: 64, 36, 4, 16, 292, 4
+$ less ../test/traces/CohenDiv.csv
+vtrace1; I q; I r; I a; I b; I x; I y
+vtrace1; 4; 8; 1; 4; 24; 4
+vtrace1; 16; 89; 1; 13; 297; 13
+vtrace1; 8; 138; 4; 76; 290; 19
+vtrace1; 0; 294; 8; 192; 294; 24
+vtrace1; 64; 36; 4; 16; 292; 4
 ...
-vtrace2: I x, I y, I q, I r
-vtrace2: 280, 24, 11, 16
-vtrace2: 352, 11, 32, 0
-vtrace2: 22, 298, 0, 22
-vtrace2: 274, 275, 0, 274
-vtrace2: 2, 287, 0, 2
+vtrace2; I x; I y; I q; I r
+vtrace2; 280; 24; 11; 16
+vtrace2; 352; 11; 32; 0
+vtrace2; 22; 298; 0; 22
+vtrace2; 274; 275; 0; 274
+vtrace2; 2; 287; 0; 2
 ...
 ```
 
