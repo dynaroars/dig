@@ -128,24 +128,24 @@ tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
 
 ### Generating Invariants From Traces
 
-DIG can infer invariants directly from a file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+DIG can infer invariants directly from an CSV file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
 ```sh
 # in DIG's src directory
-$ less ../test/traces/CohenDiv.tcs
-vtrace1: I q, I r, I a, I b, I x, I y
-vtrace1: 4, 8, 1, 4, 24, 4
-vtrace1: 16, 89, 1, 13, 297, 13
-vtrace1: 8, 138, 4, 76, 290, 19
-vtrace1: 0, 294, 8, 192, 294, 24
-vtrace1: 64, 36, 4, 16, 292, 4
+$ less ../test/traces/CohenDiv.csv
+vtrace1; I q; I r; I a; I b; I x; I y
+vtrace1; 4; 8; 1; 4; 24; 4
+vtrace1; 16; 89; 1; 13; 297; 13
+vtrace1; 8; 138; 4; 76; 290; 19
+vtrace1; 0; 294; 8; 192; 294; 24
+vtrace1; 64; 36; 4; 16; 292; 4
 ...
-vtrace2: I x, I y, I q, I r
-vtrace2: 280, 24, 11, 16
-vtrace2: 352, 11, 32, 0
-vtrace2: 22, 298, 0, 22
-vtrace2: 274, 275, 0, 274
-vtrace2: 2, 287, 0, 2
+vtrace2; I x; I y; I q; I r
+vtrace2; 280; 24; 11; 16
+vtrace2; 352; 11; 32; 0
+vtrace2; 22; 298; 0; 22
+vtrace2; 274; 275; 0; 274
+vtrace2; 2; 287; 0; 2
 ...
 ```
 
@@ -154,31 +154,29 @@ vtrace2: 2, 287, 0, 2
 tnguyen@debian ~/d/src> sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
 alg:INFO:analyze '../tests/traces/CohenDiv.tcs'
-alg:INFO:test 30 invs using 181 traces (0.96s)
-alg:INFO:simplify 26 invs (0.42s)
-vtrace1 (6 invs):
+alg:INFO:test 30 invs using 181 traces (0.44s)
+alg:INFO:simplify 26 invs (0.30s)
 vtrace1 (8 invs):
 1. q*y + r - x == 0
 2. -q <= 0
 3. -r <= 0
 4. -y <= -1
-5. r - x <= 0
-6. q - x <= 0
+5. q - x <= 0
+6. r - x <= 0
 7. -r - x <= -2
 8. -x - y <= -10
 vtrace2 (8 invs):
 1. q*y + r - x == 0
 2. -q <= 0
 3. -r <= 0
-4. r - x <= 0
-5. q - x <= 0
+4. q - x <= 0
+5. r - x <= 0
 6. r - y <= -1
 7. -r - x <= -2
 8. -x - y <= -10
-....
 ```
 
-Note that if we just run Dig over traces, then most of the generated inequality results are spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), DIG can check and remove spurious results.
+Note that if we just run Dig over traces, then many generated inequality results would be spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), DIG can check and remove spurious results.
 
 ### Additional Options
 
