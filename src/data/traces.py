@@ -72,7 +72,8 @@ class Trace(SymbsVals):
         try:
             return self._mydict_str
         except AttributeError:
-            self._mydict_str = {s: v for s, v in zip(self.ss, self.vs) if "!" not in s}
+            self._mydict_str = {s: v for s, v in zip(
+                self.ss, self.vs) if "!" not in s}
             return self._mydict_str
 
     @classmethod
@@ -102,10 +103,6 @@ class Traces(SymbsValsSet):
             return ", ".join(map(str, sorted(self)))
         else:
             return str(len(self))
-
-    # @property
-    # def maxdeg(self):
-    #     return Miscs.guess_maxdeg(self.mydicts2)
 
     def myeval(self, expr, pred=None):
         assert Miscs.is_expr(expr), expr
@@ -284,21 +281,62 @@ class DTraces(dict):
 
     @classmethod
     def vread(cls, tracefile):
+        """
+        vtrace1: I q, I r, I a, I b, I x, I y
+        vtrace1: 4, 8, 1, 4, 24, 4
+        vtrace1: 16, 89, 1, 13, 297, 13
+        ...
+        vtrace2: I x, I y
+        vtrace2: 4, 2
+        vtrace2: 8, 4
+        """
         assert tracefile.is_file(), tracefile
 
         trace_str = []
         # determine variable declarations for different locations
         inv_decls = data.prog.DSymbs()
-        for line in tracefile.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            loc, contents = line.split(":")
 
-            if loc not in inv_decls:
-                inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
-            else:
-                trace_str.append(line.replace(",", " "))
+        if tracefile.suffix == ".csv":
+            """
+            Csv format
+
+            vtrace1; I q; I r; I a; I b; I x; I y
+            vtrace1; 4; 8; 1; 4; 24; 4
+            vtrace1; 16; 89; 1; 13; 297; 13
+            ...
+            vtrace2; I x; I y
+            vtrace2; 4; 2
+            vtrace2; 8; 4
+            ...
+            """
+            d = {}
+            import csv
+            with open(tracefile) as csvfile:
+
+                myreader = csv.reader(csvfile, delimiter=';')
+                for row in myreader:
+
+                    row = [field.strip() for field in row]
+                    if not row or row[0].startswith("#"):
+                        continue
+                    loc, contents = row[0], row[1:]
+                    if loc not in inv_decls:
+                        inv_decls[loc] = data.prog.Symbs.mk(
+                            ', '.join(contents))
+                    else:
+                        s = "{}: {}".format(loc, ' '.join(contents))
+                        trace_str.append(s)
+
+        else:
+            for line in tracefile.read_text().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                loc, contents = line.split(":")
+                if loc not in inv_decls:
+                    inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
+                else:
+                    trace_str.append(line.replace(",", " "))
 
         dtraces = DTraces.parse(trace_str, inv_decls)
         return inv_decls, dtraces
@@ -343,7 +381,8 @@ class Inps(SymbsValsSet):
             new_inps = f(ds)
 
         else:
-            assert isinstance(ds, set) and all(isinstance(d, tuple) for d in ds), ds
+            assert isinstance(ds, set) and all(
+                isinstance(d, tuple) for d in ds), ds
             new_inps = [inp for inp in ds]
 
         new_inps = [Inp(ss, inp) for inp in new_inps]

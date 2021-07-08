@@ -8,6 +8,7 @@ from pathlib import Path
 
 DBG = pdb.set_trace
 
+
 def killchildren(pid):
     parent = psutil.Process(pid)
     for child in parent.children(recursive=True):
@@ -24,6 +25,10 @@ Example runs:
 - sage -python -O dig.py ../benchmark/nla/Bresenham.java -benchmark_times 5  :  run this file 5 times
 - sage -python -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir /path/to/existing_dir/ :  run all files in this dir 5 times
 - sage -python -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir existing_dir/ :  run all files in this dir 5 times and store results in `existing_dir`. If existing_dir has results from previous runs, will only attempt to do incomplete runs.  
+
+
+Run on traces
+- sage -python -O dig.py ../tests/traces/CohenDiv1.csv -log 3
 """
 if __name__ == "__main__":
     import argparse
@@ -231,10 +236,10 @@ if __name__ == "__main__":
             dig = alg.DigSymStatesC(inp)
         else:
             # traces file(s)
-            test_tracefile = Path(
-                args.test_tracefile) if args.test_tracefile else None
+            test_tracefile = Path(args.test_tracefile) \
+                if args.test_tracefile else None
             dig = alg.DigTraces(inp, test_tracefile)
 
         dig.start(seed=seed, maxdeg=args.maxdeg)
-        
+
     killchildren(os.getpid())
