@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from pprint import pprint
-import multiprocessing as mp 
+import multiprocessing as mp
 
 from sage.all import (SR, srange, var, flatten)
 from sageutil import (get_vars, get_coefs_terms, is_sage_eq)
@@ -8,13 +8,14 @@ from sageutil import (get_vars, get_coefs_terms, is_sage_eq)
 from vu_common import (VLog, vall_uniq, is_empty, is_list, is_dict,
                        merge_dict, vpartition, list_str)
 from dig_miscs import (Miscs, get_traces, Tree, AEXP, ExtFun, adjust_arr_sizs)
-                       
+
 
 from dig import Solver
 from dig_inv import InvEqt, InvFlatArray, InvNestedArray
 
 logger = VLog('dig_arrays')
 logger.level = VLog.DEBUG
+
 
 class FlatArray(Solver):
     """
@@ -23,7 +24,7 @@ class FlatArray(Solver):
     using standard equation solving
 
     Examples:
- 
+
     ig = InvGen("Traces/AES/Flat/paper_multidim.tc",verbose=1)
     _ =  ig.getInvs(inv_typ='flat',seed=1)
     *** InvGen ***
@@ -111,11 +112,11 @@ class FlatArray(Solver):
         """
         TODO: pass in terms , so that terms = terms
         set aeterms = self.terms instead of ainfo.keys()
-        
+
         """
-        super(FlatArray,self).__init__(terms  = [],  #not important
-                                       tcs    = tcs,
-                                       xinfo  = xinfo)
+        super(FlatArray, self).__init__(terms=[],  # not important
+                                        tcs=tcs,
+                                        xinfo=xinfo)
 
     def mk_traces(self):
         """
@@ -125,36 +126,38 @@ class FlatArray(Solver):
         arr_sizs = 50
         tcs = [adjust_arr_sizs(tc, arr_sizs) for tc in self.tcs]
         tcs_extra = self.tcs
-        
+
         return tcs, tcs_extra
-    
+
     def get_rels_elems1(self, tcs):
         if __debug__:
             assert len(tcs) >= 1, tcs
 
         aeterms = tcs[0].keys()
 
-        #Find rels among array elements
+        # Find rels among array elements
         logger.debug('Find linear eqts over {} array elems'
                      .format(len(aeterms)))
         aeterms = [SR(1)] + aeterms
 
         from dig_polynomials import Eqt
         solverE = Eqt(aeterms, tcs, self.xinfo)
-        
-        logger.info('Select traces (note: |tcs|=|terms|={})'.format(len(aeterms)))
-        
-        ntcs_extra = 200
-        solverE.tcs, solverE.tcs_extra = get_traces(tcs,len(aeterms),ntcs_extra=200)
 
-        solverE.do_refine=False
+        logger.info(
+            'Select traces (note: |tcs|=|terms|={})'.format(len(aeterms)))
+
+        ntcs_extra = 200
+        solverE.tcs, solverE.tcs_extra = get_traces(
+            tcs, len(aeterms), ntcs_extra=200)
+
+        solverE.do_refine = False
         solverE._go()
-        
+
         from dig_refine import Refine
         rf = Refine(solverE.sols)
         rf.rfilter(tcs=solverE.tcs_extra)
         ps = [p.p for p in rf.ps]
-        
+
         return ps
 
     def get_rels_elems2(self, tcs, tsinfo):
@@ -168,70 +171,70 @@ class FlatArray(Solver):
         Doesn't work really well in practice (even when M=2) because 
         the large number of invocations to the equation solver.
         """
-        
+
         from dig_polynomials import Eqt
         from itertools import product
 
         ps = []
-        for i,aeterms in enumerate(product(*tsinfo.values())):
-            #Find rels among array elements
+        for i, aeterms in enumerate(product(*tsinfo.values())):
+            # Find rels among array elements
             logger.debug('{}. Find linear eqts over {} array elems {}'
                          .format(i, len(aeterms), aeterms))
             aeterms = [SR(1)] + list(aeterms)
             solverE = Eqt(aeterms, tcs, self.xinfo)
-        
+
             logger.info('Select traces (note: |tcs|=|terms|={})'
                         .format(len(aeterms)))
 
             ntcs_extra = 200
-            solverE.tcs, solverE.tcs_extra = get_traces(tcs,len(aeterms),ntcs_extra=200)
+            solverE.tcs, solverE.tcs_extra = get_traces(
+                tcs, len(aeterms), ntcs_extra=200)
             solverE.do_refine = False
             solverE._go()
             ps.extend(solverE.sols)
-        
+
         from dig_refine import Refine
         rf = Refine(ps)
         rf.rfilter(tcs=tcs)
         ps = rf.ps
         ps = [p.p for p in ps]
-        return ps            
+        return ps
 
-    def solve(self): #FlatArray
-        
-        #Create new variables and traces
+    def solve(self):  # FlatArray
+
+        # Create new variables and traces
         logger.info('Compute new traces (treating array elems as new vars)')
-        ainfo  = {}  #{A_0_0=[0,0],B_1_2_3=[1,2,3]}
-        tsinfo = {} #{A: [A_0,A_1, ..], B:[B_0_0,B_0_1,..]}
-        print self.tcs
-        
-        tcs = [FlatArray.compute_new_trace(tc, ainfo, tsinfo) 
+        ainfo = {}  # {A_0_0=[0,0],B_1_2_3=[1,2,3]}
+        tsinfo = {}  # {A: [A_0,A_1, ..], B:[B_0_0,B_0_1,..]}
+        print(self.tcs)
+
+        tcs = [FlatArray.compute_new_trace(tc, ainfo, tsinfo)
                for tc in self.tcs]
 
         ps = self.get_rels_elems1(tcs)
         #ps = self.get_rels_elems2(tcs,tsinfo)
-        
-        #Group arrays and in each group, find rels among array idxs 
+
+        # Group arrays and in each group, find rels among array idxs
         gs = FlatArray.group_arr_eqts(ps, ainfo)
         logger.info('Partition {} eqts into {} groups'
                     .format(len(ps), len(gs)))
-        
+
         sols = []
-        for i,(gns,gps) in enumerate(gs.iteritems()):
+        for i, (gns, gps) in enumerate(gs.iteritems()):
             if __debug__:
                 assert not is_empty(gps)
-                
-            # Modify/reformat if necessary        
+
+            # Modify/reformat if necessary
             gps = FlatArray.modify_arr_eqts(gps, ainfo)
-           
-            #Find rels over array indices
+
+            # Find rels over array indices
             logger.debug("{}. Find rels over idx from {} eqts (group {})"
-                         .format(i,len(gps),gns))
-            gps = [FlatArray.parse_arr_eqt(p,ainfo) for p in gps]
+                         .format(i, len(gps), gns))
+            gps = [FlatArray.parse_arr_eqt(p, ainfo) for p in gps]
             gsols = FlatArray.find_rels(gps)
-            
+
             sols.extend(gsols)
 
-        
         if is_empty(sols):
             logger.warn('No rels found over arr idxs, use orig results')
             sols = flatten(ps)
@@ -242,15 +245,13 @@ class FlatArray(Solver):
 
         self.print_sols()
 
-
     def refine(self):
-        #No inferrence for array invs
-        #Don't do ranking either since array equations is very long 
+        # No inferrence for array invs
+        # Don't do ranking either since array equations is very long
         from dig_refine import Refine
         rf = Refine(ps=self.sols)
         rf.rfilter(tcs=self.tcs_extra)
         self.sols = rf.ps
-
 
     @staticmethod
     def compute_new_trace(d, ainfo, tsinfo):
@@ -273,7 +274,7 @@ class FlatArray(Solver):
          (B_1_0, {'idx_': [(B0, 1), (B1, 0)], 'name': 'B'}),
          (B_1_1, {'idx_': [(B0, 1), (B1, 1)], 'name': 'B'})]
 
-        
+
         sage: ainfo = {}
         sage: tc = FlatArray.compute_new_trace({'A':[['a','b'],['c','d'],['e','f',['z','w']]], \
         'B':[1,2,[7,8]],'C':[100]}, ainfo, {})

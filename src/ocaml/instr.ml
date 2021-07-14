@@ -190,25 +190,6 @@ let () = begin
 end
 
 
-
-    (* visitCilFileSameGlobals (new CM.everyVisitor) ast;
-     * visitCilFileSameGlobals (new CM.breakCondVisitor :> cilVisitor) ast;
-     * 
-     * let correctQ_fd:fundec = CM.findFun ast correctQ_name in    
-     * 
-     * let ignoreFuns:CM.SS.t =
-     *   L.fold_right CM.SS.add ["main" ; mainQ_name; correctQ_name] CM.SS.empty in
-     * 
-     * (\*add stmt id*\)
-     * let stmtHt = H.create 1024 in
-     * visitCilFileSameGlobals (new CM.numVisitor stmtHt ignoreFuns :> cilVisitor) ast;
-     * 
-     * CM.write_file_bin ast_file (ast, main_fd, mainQ_fd, correctQ_fd, stmtHt) *)
-
-           
-
-
-
 (* let stderrVi = CM.mkVi ~ftype:(TPtr(TVoid [], [])) "_coverage_fout"*)
 (*
   walks over AST and preceeds each stmt with a printf that writes out its sid

@@ -1,5 +1,5 @@
 public class CohenDiv {
-	public static void vtrace0(int q, int r, int a, int b, int x, int y){}
+    public static void vtrace0(int q, int r, int a, int b, int x, int y){}
     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
     public static void vtrace2(int x, int y, int q, int r){}
 
@@ -14,7 +14,7 @@ public class CohenDiv {
 	int b=0;
 	  
 	while(true) {
-		vtrace0(q,r,a,b,x,y);
+	    vtrace0(q,r,a,b,x,y);
 	    if(!(r>=y)) break;
 	    a=1;
 	    b=y;

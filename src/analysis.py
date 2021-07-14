@@ -224,18 +224,6 @@ class Results:
         max_changevalss = [r.max_changevals_ctr for r in rs]
         max_changevalss = self.analyze_dicts(
             max_changevalss, f, 'change vals')
-        # ss = [
-        #     "prog {}".format(self.prog),
-        #     "locs {}".format(nlocs),
-        #     "V {}".format(V),
-        #     "T {}".format(T),
-        #     "D {}".format(D),
-        #     "NL {}".format(NL),
-        #     "runs {}".format(nruns),
-        #     "traces {}".format(f(r.dtraces.siz for r in rs)),
-        #     "inps {}".format(
-        #         f(len(r.inps) if r.inps else 0 for r in rs))
-        # ]
 
         time_d = defaultdict(list)
         for r in rs:

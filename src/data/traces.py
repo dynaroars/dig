@@ -309,7 +309,6 @@ class DTraces(dict):
             vtrace2; 8; 4
             ...
             """
-            d = {}
             import csv
             with open(tracefile) as csvfile:
 
