@@ -147,7 +147,7 @@ class Miscs:
 
         terms = cls.get_terms([sage.all.var(v) for v in vs], deg)
 
-        template, uks = cls.mk_template(terms, 0, retCoefVars=True)
+        template, uks = cls.mk_template(terms, 0, ret_coef_vs=True)
         n_eqts_needed = int(rate * len(uks))
         return terms, template, uks, n_eqts_needed
 
@@ -512,9 +512,7 @@ class Miscs:
         return reqts
 
     @classmethod
-    def mk_template(
-        cls, terms, rhsVal, op=sage.all.operator.eq, prefix=None, retCoefVars=False
-    ):
+    def mk_template(cls, terms, rv, op=sage.all.operator.eq, prefix=None, ret_coef_vs=False):
         """
         get a template from terms.
 
@@ -529,7 +527,7 @@ class Miscs:
         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
 
         sage: Miscs.mk_template([1, x, y],0,\
-        op=operator.gt,prefix=None,retCoefVars=True)
+        op=operator.gt,prefix=None,ret_coef_vs=True)
         (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
 
         sage: Miscs.mk_template([1, a, b, x, y],None,prefix=None)
@@ -556,10 +554,10 @@ class Miscs:
 
         template = sum(map(sage.all.prod, zip(uks, terms)))
 
-        if rhsVal is not None:  # note, not None because rhsVal can be 0
-            template = op(template, rhsVal)
+        if rv is not None:  # note, not None because rv can be 0
+            template = op(template, rv)
 
-        return template, uks if retCoefVars else template
+        return template, uks if ret_coef_vs else template
 
     @classmethod
     def instantiate_template(cls, template, sols):
@@ -635,6 +633,7 @@ class Miscs:
                 results = others
 
         return sorted(results)
+
 
 class MP:
     @staticmethod
@@ -723,5 +722,3 @@ class MP:
             wrs = wprocess(tasks, myQ=None)
 
         return wrs
-
-

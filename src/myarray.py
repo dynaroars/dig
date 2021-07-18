@@ -17,8 +17,10 @@ from collections import OrderedDict, namedtuple
 from sage.all import cached_function
 import sage.all
 
-# import settings
-# import helpers.vcommon as CM
+import settings
+import helpers.vcommon as CM
+
+from helpers.miscs import Miscs as HM
 
 DBG = pdb.set_trace
 
@@ -26,10 +28,6 @@ DBG = pdb.set_trace
 
 
 def myprod(l): return functools.reduce(operator.mul, l, 1)
-
-
-def is_sage_expr(x):
-    return isinstance(x, sage.symbolic.expression.Expression)
 
 
 class NestedArray:
@@ -344,7 +342,9 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
     def __new__(cls, root=None, children=[], commute=False):
 
-        if root is None:  # leaf
+        assert isinstance(root, str) or not isinstance(root, Iterable), root
+
+        if root is None or HM.is_expr(root):  # leaf
             assert not children, children
             assert not commute, commute
         else:
@@ -360,7 +360,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
     @property
     def is_leaf(self):
-        return self.root is None
+        return not self.children
 
     def __str__(self, leaf_content=None):
         """
@@ -552,14 +552,19 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
         Examples:
 
-        ### sage: Tree.leaf_tree().get_leaves()
+        sage: (Tree(None).get_leaves())
         [(None, None, [])]
 
-        ### sage: rs = Tree({'root':'A','children': [ \
+        sage: rs = Tree('A', [Tree('C', [None, None]), Tree('D', [None])]).get_leaves()
+        sage: print([(str(p), idx, tid) for p, idx, tid in rs])
+        [('C[None][None]', 0, ['A', 0, 'C', 0]), 
+        ('C[None][None]', 1, ['A', 0, 'C', 1]), 
+        ('D[None]', 0, ['A', 1, 'D', 0])]
+
+        sage: rs = Tree({'root':'A','children': [ \
         {'root':'C','children':[None,None]}, \
         {'root':'D','children':[None]}]}).get_leaves()
-
-        ### sage: [(str(p),idx,tid) for p,idx,tid in rs]
+        sage: [(str(p),idx,tid) for p,idx,tid in rs]
         [('C[None][None]', 0, ['A', 0, 'C', 0]),
         ('C[None][None]', 1, ['A', 0, 'C', 1]),
         ('D[None]', 0, ['A', 1, 'D', 0])]
@@ -567,7 +572,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
         def _get_leaves(t, p, idx, tid):
 
-            assert isinstance(t, Tree)
+            assert isinstance(t, Tree), t
 
             if t.is_leaf:  # leaf
                 return [(p, idx, tid)]
@@ -575,8 +580,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                 results = [_get_leaves(child, t, idx_, tid + [t.root, idx_])
                            for idx_, child in enumerate(t.children)]
 
-                results = CM.vflatten(results, list)
-                return results
+                return itertools.chain(*results)
 
         return _get_leaves(self, p=None, idx=None, tid=[])
 
@@ -616,7 +620,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
         """
 
-        if is_sage_expr(self.root):
+        if HM.is_expr(self.root):
             return self.root == v
 
         elif isinstance(self.root, dict) and 'first_idx' in self.root:
@@ -810,7 +814,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 #                 return str(self.root)
 #             else:
 #                 if isinstance(leaf_content, dict):
-#                     if is_sage_expr(self.root):
+#                     if HM.is_expr(self.root):
 #                         return str(self.root(leaf_content))
 #                     else:
 #                         str(self.root)
@@ -1053,7 +1057,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
 #         """
 
-#         if is_sage_expr(self.root):
+#         if HM.is_expr(self.root):
 #             return self.root == v
 
 #         elif isinstance(self.root, dict) and 'first_idx' in self.root:
@@ -1208,7 +1212,7 @@ class AEXP(object):
             assert isinstance(leaf_content, dict), leaf_content
             rt = self.rt.__str__(leaf_content=leaf_content)
 
-        rs = '{}{} == {}'.format(self.lt.root, l_iformat, rt)
+        rs = f"{self.lt.root}{l_iformat} == {rt}"
 
         if do_lambda_format:
             l_idxs_ = ','.join([f'i{li}' for li in l_idxs])
@@ -1274,12 +1278,13 @@ class AEXP(object):
         R[None][None]
         add(_add_0__i0,_add_1__i0)
         """
-        assert not special or all(x == 0 for x in idxs_vals)
-        assert idxs_vals is not None or not special
+        assert not special or all(
+            x == 0 for x in idxs_vals), (special, idxs_vals)
+        assert idxs_vals is not None or not special, (idxs_vals, special)
 
         if idxs_vals is None:
-            ts = [1] + [sage.all.var('i{}'.format(i+1))
-                        for i in range(self.lt.get_nchildren())]
+            ts = [1] + [sage.all.var(f'i{i+1}')
+                        for i in range(len(self.lt.children))]
         else:
             ts = [1] + list(idxs_vals)
 
@@ -1289,15 +1294,15 @@ class AEXP(object):
         leaves = [(p, idx, tid) for p, idx, tid in leaves if p is not None]
 
         for p, idx, tid in leaves:
-            prefix = '_{}__i'.format('_'.join(map(str, tid)))
+            prefix = f"_{'_'.join(map(str, tid))}__i"
             if special:
                 c = {'first_idx': sage.all.var(prefix+str(1)),
                      'coef': sage.all.var(prefix+str(0))}
             else:
-                c = Miscs.gen_template(ts, rv=None, prefix=prefix)
+                c = HM.mk_template(ts, rv=None, prefix=prefix)[0]
 
             p.children[idx] = Tree(c)
-            assert isinstance(p, Tree)
+            assert isinstance(p, Tree), p
 
         #rt.replace_leaf(tid=[], special=special, ts=ts, verbose=verbose)
 
@@ -2323,7 +2328,7 @@ def _gen_terms_mpp(ts, blacklist):
 #     """
 
 #     if __debug__:
-#         assert vall_uniq(ts) and all(is_sage_expr(t) for t in ts), ts
+#         assert vall_uniq(ts) and all(HM.is_expr(t) for t in ts), ts
 
 
 #         if subset_siz > len(ts):
@@ -2617,7 +2622,7 @@ class Miscs(object):
         ### sage: Miscs.get_sols([],uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0)
         []
         """
-        assert is_sage_expr(sol_format), sol_format
+        assert HM.is_expr(sol_format), sol_format
 
         if sols is None or is_empty(sols):
             return []
@@ -2666,7 +2671,7 @@ class Miscs(object):
         import z3
         from smt_z3py import SMT_Z3
 
-        rs = [SMT_Z3.to_z3exp(l, is_real=is_real) if is_sage_expr(l) else l
+        rs = [SMT_Z3.to_z3exp(l, is_real=is_real) if HM.is_expr(l) else l
               for l in ls]
 
         if len(rs) == 1:
@@ -2922,3 +2927,10 @@ na.solve()
 #                    (2, [(4,)]), (1, [(5,)]), (4, [(6,)])])), ('B', OrderedDict([(1, [(0,), (3,), (6,)]), (-3, [(1,)]), (5, [(2,)]), (0, [(4,)]), (7, [(5,)])]))])
 
 # print(list(map(str, C.gen_root_trees([], vss, {}, data))))
+
+
+# lt = Tree('R', [None, None, None])
+# rt = Tree('add', [Tree('C', [None]), Tree('D', [None])])
+# rs = AEXP(lt, rt).gen_template()
+# print(rs.lt)
+# print(rs.rt)
