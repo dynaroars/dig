@@ -10,6 +10,7 @@ import itertools
 import os
 import functools
 
+
 from pathlib import Path
 from collections.abc import Iterable
 from collections import OrderedDict, namedtuple
@@ -21,6 +22,8 @@ import settings
 import helpers.vcommon as CM
 
 from helpers.miscs import Miscs as HM
+from helpers.z3utils import Z3
+import z3
 
 DBG = pdb.set_trace
 
@@ -36,19 +39,19 @@ class NestedArray:
 
     Examples:
 
-    ###sage: logger.set_level(VLog.DEBUG)
+    # sage: logger.set_level(VLog.DEBUG)
 
 
     # paper_nested
 
-    ### sage: var('A B C')
+    # sage: var('A B C')
     (A, B, C)
 
-    ### sage: tcs = [OrderedDict(
+    # sage: tcs = [OrderedDict(
         [(A, [7, 1, -3]), (C, [8, 5, 6, 6, 2, 1, 4]), (B, [1, -3, 5, 1, 0, 7, 1])])]
-    ### sage: xinfo = {'All': ['A', 'B', 'C'], 'Assume': [], 'Const': [], 'Expect': [
+    # sage: xinfo = {'All': ['A', 'B', 'C'], 'Assume': [], 'Const': [], 'Expect': [
         'A[i]=B[C[2i+1]]'], 'ExtFun': [], 'ExtVar': [], 'Global': [], 'Input': [], 'Output': []}
-    ### sage: na = NestedArray(terms=[],tcs=tcs,xinfo=xinfo)
+    # sage: na = NestedArray(terms=[],tcs=tcs,xinfo=xinfo)
     dig:Info:*** NestedArray ***
     ### sage: na.go()
     dig:Info:Select traces
@@ -283,8 +286,10 @@ class NestedArray:
         print(
             f"Apply reachability to {len(aexps)} nestings to find invs")
 
+        sols = []
         for a in aexps:
-            a.peelme(self.tcs[0])
+            sol = a.peelme(self.tcs[0])
+            sols.append(sols)
 
         # def wprocess(ae, Q):
         #     r = ae.peelme(data=self.tcs[0])
@@ -304,8 +309,9 @@ class NestedArray:
         # for _ in workers:
         #     wrs.extend(Q.get())
 
-        # print('Potential rels: {}'.format(len(wrs)))
-        # self.sols = map(InvNestedArray, wrs)
+        print('Potential rels: {}'.format(len(sols)))
+        print('\n'.join(map(str, sols)))
+        # self.sols = map(InvNestedArray, sols)
 
     def refine(self):
         # No inferrence for array invs
@@ -590,7 +596,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         input value v and data.
 
 
-        ### sage: var('_B_0_C_0__i0 _B_0_C_0__i1')
+        sage: var('_B_0_C_0__i0 _B_0_C_0__i1')
         (_B_0_C_0__i0, _B_0_C_0__i1)
 
 
@@ -624,6 +630,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             return self.root == v
 
         elif isinstance(self.root, dict) and 'first_idx' in self.root:
+            assert False
             # special case {'first_idx':i,'coef':z}
             if v == 0:
                 t0 = self.root['coef'] == 0
@@ -637,24 +644,23 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             except KeyError:  # not reachable, no rel
                 return None
 
-            orRs = []
+            ors = []
             for idx in idxs:
-                andRs = []
-                for v_, a_ in zip(idx, self.children):
-                    p_ = a_.gen_formula(v_, data)
-
+                ands = []
+                for v_, t in zip(idx, self.children):
+                    p_ = t.gen_formula(v_, data)
                     if p_ is None:
-                        andRs = None
+                        ands = None
                         break
-                    andRs.append(p_)
+                    ands.append(p_)
 
-                if andRs is not None:
-                    assert len(andRs) > 0
-                    andRs = Miscs._f(andRs, 'and', is_real=False)
-                    orRs.append(andRs)
+                if ands is not None:
+                    assert len(ands) > 0
+                    ands = z3.simplify(Z3._and(
+                        [f if z3.is_expr(f) else Z3.parse(str(f)) for f in ands]))
+                    ors.append(ands)
 
-            orRs = Miscs._f(orRs, 'or', is_real=False)
-            return orRs
+            return z3.simplify(Z3._or(ors))
 
     ##### Static methods for Tree #####
 
@@ -1216,7 +1222,7 @@ class AEXP(object):
 
         if do_lambda_format:
             l_idxs_ = ','.join([f'i{li}' for li in l_idxs])
-            nodes = [self.lt.root] + vset(self.rt.get_non_leaf_nodes())
+            nodes = [self.lt.root] + list(set(self.rt.get_non_leaf_nodes()))
             lambda_ = 'lambda {},{}'.format(','.join(nodes), l_aformat)
             rs = f"{lambda_}: {rs}"
 
@@ -1296,6 +1302,7 @@ class AEXP(object):
         for p, idx, tid in leaves:
             prefix = f"_{'_'.join(map(str, tid))}__i"
             if special:
+                assert False
                 c = {'first_idx': sage.all.var(prefix+str(1)),
                      'coef': sage.all.var(prefix+str(0))}
             else:
@@ -1346,41 +1353,33 @@ class AEXP(object):
 
         """
 
-        def _gen_template(iv, sp):
-            return self.gen_template(iv, sp)
-
-        vi = [[(v, ids) for ids in idxs]
+        vi = [[(v, i) for i in idxs]
               for v, idxs in data[self.lt.root].items()]
-        vi = CM.vflatten(vi, list)
-
-        sts = [_gen_template(ids, sp=len(vi) == 1).rt for _, ids in vi]
-
-        formula = [rh.gen_formula(v, data) for (v, _), rh in zip(vi, sts)]
-
-        formula = Miscs._f(formula, 'and', is_real=False)
+        vi = list(itertools.chain(*vi))
+        sts = [self.gen_template(i, len(vi) == 1).rt for _, i in vi]
+        formula = Z3._and([rh.gen_formula(v, data)
+                           for (v, _), rh in zip(vi, sts)])
 
         if formula is None:
             return []
 
+        print('formula', formula)
         #from common_z3 import get_models
-        from z3util import get_models
-        ms = get_models(formula, k=10)
-        if not isinstance(ms, list):  # no model, formula is unsat, i.e. no relation
+        models, stat = Z3.get_models(formula, k=10)
+        if models is False:  # no model, formula is unsat, i.e. no relation
             return []
 
-        assert ms
-
-        from smt_z3py import SMT_Z3
-        ds = [SMT_Z3.get_constraints(m, result_as_dict=True) for m in ms]
-
+        ds = [get_constraints(m, result_as_dict=True) for m in models]
+        print('ds', ds)
         # generate the full expression
-        template = _gen_template(None, False)
+        template = self.gen_template(None, False)
+        print('template', template)
 
         rs = [template.__str__(leaf_content=d, do_lambda_format=True)
               for d in ds]
 
-        assert all(is_str(x) for x in rs)
-
+        assert all(isinstance(x, str) for x in rs)
+        print('rs', rs)
         return rs
 
     ##### Static methods for AEXP #####
@@ -2660,26 +2659,26 @@ class Miscs(object):
 
     #############################
 
-    @staticmethod
-    def _f(ls, op, is_real):
-        """
+    # @staticmethod
+    # def _f(ls, op, is_real):
+    #     """
 
-        """
-        if any(l is None for l in ls) or not ls:
-            return None
+    #     """
+    #     if any(l is None for l in ls) or not ls:
+    #         return None
 
-        import z3
-        from smt_z3py import SMT_Z3
+    #     import z3
+    #     from smt_z3py import SMT_Z3
 
-        rs = [SMT_Z3.to_z3exp(l, is_real=is_real) if HM.is_expr(l) else l
-              for l in ls]
+    #     rs = [SMT_Z3.to_z3exp(l, is_real=is_real) if HM.is_expr(l) else l
+    #           for l in ls]
 
-        if len(rs) == 1:
-            rs = rs[0]
-        else:
-            rs = z3.And(rs) if op == 'and' else z3.Or(rs)
+    #     if len(rs) == 1:
+    #         rs = rs[0]
+    #     else:
+    #         rs = z3.And(rs) if op == 'and' else z3.Or(rs)
 
-        return rs
+    #     return rs
 
     @staticmethod
     def travel(A):
@@ -2864,6 +2863,44 @@ class CM:
         return ltype(l)
 
 
+def get_constraints(m, result_as_dict=False):
+    """
+    Input a model m, returns its set of constraints in either 
+    1) sage dict {x:7,y:10}  
+    1) z3 expr [x==7,y==0]
+
+
+    sage: S = z3.Solver()
+    sage: S.add(z3.Int('x') + z3.Int('y') == z3.IntVal('7'))
+    sage: S.check()
+    sat
+    sage: M = S.model()
+    sage: SMT_Z3.get_constraints(M,result_as_dict=True)
+    {y: 0, x: 7}
+    sage: SMT_Z3.get_constraints(M)
+    [y == 0, x == 7]
+    sage: S.reset()
+
+    """
+
+    assert m is not None
+
+    if result_as_dict:  # sage format
+        rs = [(sage.all.var(str(v())), sage.all.sage_eval(str(m[v])))
+              for v in m]
+        rs = dict(rs)
+
+        # assert all(isinstance(x, Miscs.sage_expr) for x in rs.keys())
+        # assert all(isinstance(x, Miscs.sage_real)
+        #            or isinstance(x, Miscs.sage_int)
+        #            for x in rs.values())
+
+    else:  # z3 format
+        rs = [v() == m[v] for v in m]
+        assert all(z3.is_expr(x) for x in rs)
+
+    return rs
+
 # print('TEST 0')
 # t = Tree('a', [None, None])
 # print(t)
@@ -2915,8 +2952,8 @@ tcs = [{'A': [7, 1, -3], 'C': [8, 5, 6, 6, 2, 1, 4], 'B': [1, -3, 5, 1, 0, 7, 1]
 xinfo = {'All': ['A', 'B', 'C'], 'Assume': [], 'Const': [], 'Expect': [
     'A[i]=B[C[2i+1]]'], 'ExtFun': [], 'ExtVar': [], 'Global': [], 'Input': [], 'Output': []}
 na = NestedArray(tcs=tcs, xinfo=xinfo)
-na.solve()
-
+rs = na.solve()
+print(rs)
 
 # print('TEST 4')
 # C = Tree('C', [None])
@@ -2934,3 +2971,15 @@ na.solve()
 # rs = AEXP(lt, rt).gen_template()
 # print(rs.lt)
 # print(rs.rt)
+
+
+# sage.all.var('_B_0_C_0__i0 _B_0_C_0__i1')
+# # Tree('B', [Tree('C', [Tree(_B_0_C_0__i0 + 2*_B_0_C_0__i1)])]).gen_formula(
+# #     v=81, data={'C': {0: [(0,), (3,)], 1: [(4,)], 7: [(2,), (5,)], 8: [(6,)], 9: [(1,), (8,)], 17: [(7,)]},
+# #                 'B': {81: [(17,)], 74: [(6,), (8,)], 71: [(5,), (7,)]}})
+
+
+# rs = Tree('B', [Tree('C', [Tree(_B_0_C_0__i0 + 2*_B_0_C_0__i1)])]).gen_formula(
+#     v=81, data={'C': {0: [(0,), (3,)], 1: [(4,)], 7: [(2,), (5,)], 8: [(6,)], 9: [(1,), (8,)], 17: [(7,)]},
+#                 'B': {81: [(17,), (9,)], 74: [(6,), (8,)], 71: [(5,), (7,)]}})
+# print(rs)

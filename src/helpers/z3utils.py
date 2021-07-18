@@ -27,6 +27,17 @@ class Z3:
         return z3.And(fs)
 
     @classmethod
+    def _or(cls, fs):
+        assert isinstance(fs, list), fs
+
+        if not fs:
+            return None
+        if len(fs) == 1:
+            return fs[0]
+
+        return z3.Or(fs)
+
+    @classmethod
     def is_var(cls, v):
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 

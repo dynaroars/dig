@@ -14,8 +14,6 @@ from sage.all import cached_function
 import helpers.vcommon as CM
 import settings
 
-# from helpers.z3utils import Z3
-
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
