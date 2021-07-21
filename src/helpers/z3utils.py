@@ -59,8 +59,6 @@ class Z3:
     # @cached_function
     def get_vars(cls, f):
         """
-        sage: from helpers.miscs import Z3
-        sage: import z3
         sage: x,y,z = z3.Ints("x y z")
         sage: assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
@@ -181,8 +179,6 @@ class Z3:
     @classmethod
     def imply(cls, fs, g):
         """
-        sage: from helpers.miscs import Z3
-
         sage: var('x y')
         (x, y)
         sage: assert Z3.imply([x-6==0],x*x-36==0)

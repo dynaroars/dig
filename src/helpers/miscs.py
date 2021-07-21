@@ -639,22 +639,22 @@ class MP:
         """
         sage: from helpers.miscs import Miscs
 
-        >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
-        >>> wls = Miscs.get_workload(range(12),5); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(12),5); [len(wl) for wl in wls]
         [2, 2, 2, 3, 3]
 
-        >>> wls = Miscs.get_workload(range(20),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(20),7); [len(wl) for wl in wls]
         [2, 3, 3, 3, 3, 3, 3]
 
-        >>> wls = Miscs.get_workload(range(20),20); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(20),20); [len(wl) for wl in wls]
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-        >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
-        >>> wls = Miscs.get_workload(range(146), 20); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(146), 20); [len(wl) for wl in wls]
             [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
         """
         assert len(tasks) >= 1, tasks
