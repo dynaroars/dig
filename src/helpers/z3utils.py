@@ -59,8 +59,8 @@ class Z3:
     # @cached_function
     def get_vars(cls, f):
         """
-        sage: x,y,z = z3.Ints("x y z")
-        sage: assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
+        >>> x,y,z = z3.Ints("x y z")
+        >>> assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
         assert z3.is_expr(f), f
 
@@ -179,43 +179,38 @@ class Z3:
     @classmethod
     def imply(cls, fs, g):
         """
-        sage: var('x y')
+        >>> var('x y')
         (x, y)
-        sage: assert Z3.imply([x-6==0],x*x-36==0)
-        sage: assert Z3.imply([x-6==0,x+6==0],x*x-36==0)
-        sage: assert not Z3.imply([x*x-36==0],x-6==0)
-        sage: assert not Z3.imply([x-6==0],x-36==0)
-        sage: assert Z3.imply([x-7>=0], x>=6)
-        sage: assert not Z3.imply([x-7>=0], x>=8)
-        sage: assert not Z3.imply([x-6>=0], x-7>=0)
-        sage: assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0)
-        sage: assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0)
-        sage: assert not Z3.imply([],x-2>=0)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0)
-        sage: assert Z3.imply([x^2-9>=0,x>=0],x-3>=0)
-        sage: assert Z3.imply([x-6==0],x*x-36==0)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0)
-        sage: assert not Z3.imply([x+7>=0],x-8>=0)
-        sage: assert Z3.imply([x+7>=0],x+8>=0)
-        sage: assert Z3.imply([x>=7,y>=5],x*y>=35)
-        sage: assert not Z3.imply([x>=-7,y>=-5],x*y>=35)
+        >>> assert Z3.imply([x-6==0],x*x-36==0)
+        >>> assert Z3.imply([x-6==0,x+6==0],x*x-36==0)
+        >>> assert not Z3.imply([x*x-36==0],x-6==0)
+        >>> assert not Z3.imply([x-6==0],x-36==0)
+        >>> assert Z3.imply([x-7>=0], x>=6)
+        >>> assert not Z3.imply([x-7>=0], x>=8)
+        >>> assert not Z3.imply([x-6>=0], x-7>=0)
+        >>> assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0)
+        >>> assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0)
+        >>> assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0)
+        >>> assert not Z3.imply([],x-2>=0)
+        >>> assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0)
+        >>> assert Z3.imply([x**2-9>=0,x>=0],x-3>=0)
+        >>> assert Z3.imply([x-6==0],x*x-36==0)
+        >>> assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0)
+        >>> assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0)
+        >>> assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0)
+        >>> assert not Z3.imply([x+7>=0],x-8>=0)
+        >>> assert Z3.imply([x+7>=0],x+8>=0)
+        >>> assert Z3.imply([x>=7,y>=5],x*y>=35)
+        >>> assert not Z3.imply([x>=-7,y>=-5],x*y>=35)
 
-        # sage: assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,use_reals=True)
-        # sage: assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,use_reals=True)
-        # sage: assert Z3.imply([x+7>=0],x+8.9>=0,use_reals=True)
+        # >>> assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,use_reals=True)
+        # >>> assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,use_reals=True)
+        # >>> assert Z3.imply([x+7>=0],x+8.9>=0,use_reals=True)
 
         """
 
-        # assert all(Miscs.is_expr(f) for f in fs), fs
-        # assert Miscs.is_expr(g), g
-
         if not fs:
             return False  # conservative approach
-        # fs = [cls.toZ3(f, use_reals, use_mod=False) for f in fs]
-        # g = cls.toZ3(g, use_reals, use_mod=False)
 
         fs = [Z3.parse(str(f)) for f in fs]
         g = Z3.parse(str(g))

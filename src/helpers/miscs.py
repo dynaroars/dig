@@ -47,18 +47,17 @@ class Miscs:
     @staticmethod
     def is_rel(f, rel=None):
         """
-        # sage: from miscs import Miscs
-        sage: assert not Miscs.is_rel(7.2)
-        sage: assert not Miscs.is_rel(x)
-        sage: assert not Miscs.is_rel(x+7)
-        sage: assert Miscs.is_rel(x==3,operator.eq)
+        >>> assert not Miscs.is_rel(7.2)
+        >>> assert not Miscs.is_rel(x)
+        >>> assert not Miscs.is_rel(x+7)
+        >>> assert Miscs.is_rel(x==3,operator.eq)
 
-        sage: assert Miscs.is_rel(x<=3,operator.le)
-        sage: assert not Miscs.is_rel(x<=3,operator.lt)
-        sage: assert not Miscs.is_rel(x+3,operator.lt)
+        >>> assert Miscs.is_rel(x<=3,operator.le)
+        >>> assert not Miscs.is_rel(x<=3,operator.lt)
+        >>> assert not Miscs.is_rel(x+3,operator.lt)
 
-        sage: y = var('y')
-        sage: assert Miscs.is_rel(x+y<=3)
+        >>> y = var('y')
+        >>> assert Miscs.is_rel(x+y<=3)
         """
         try:
             if not f.is_relational():
@@ -87,15 +86,14 @@ class Miscs:
 
         Examples:
 
-        sage: var('a b c x')
+        >>> var('a b c x')
         (a, b, c, x)
 
-        sage: from helpers.miscs import Miscs
-        sage: assert [a, b, c, x] == Miscs.get_vars([x^(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
-        sage: assert Miscs.get_vars(a**2+b+5*c+2==0) == [a, b, c]
-        sage: assert Miscs.get_vars(x+x^2) == [x]
-        sage: assert Miscs.get_vars([3]) == []
-        sage: assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
+        >>> assert [a, b, c, x] == Miscs.get_vars([x**(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
+        >>> assert Miscs.get_vars(a**2+b+5*c+2==0) == [a, b, c]
+        >>> assert Miscs.get_vars(x+x**2) == [x]
+        >>> assert Miscs.get_vars([3]) == []
+        >>> assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
         """
 
         ps = ps if isinstance(ps, Iterable) else [ps]
@@ -111,16 +109,16 @@ class Miscs:
 
         Examples:
 
-        sage: assert Miscs.rat2str('.3333333') == 3333333/10000000
-        sage: assert Miscs.rat2str('3/7') == 3/7
-        sage: assert Miscs.rat2str('1.') == 1
-        sage: assert Miscs.rat2str('1.2') == 6/5
-        sage: assert Miscs.rat2str('.333') == 333/1000
-        sage: assert Miscs.rat2str('-.333') == -333/1000
-        sage: assert Miscs.rat2str('-12.13') == -1213/100
+        >>> assert Miscs.rat2str('.3333333') == 3333333/10000000
+        >>> assert Miscs.rat2str('3/7') == 3/7
+        >>> assert Miscs.rat2str('1.') == 1
+        >>> assert Miscs.rat2str('1.2') == 6/5
+        >>> assert Miscs.rat2str('.333') == 333/1000
+        >>> assert Miscs.rat2str('-.333') == -333/1000
+        >>> assert Miscs.rat2str('-12.13') == -1213/100
 
         # Returns None because cannot convert this str
-        sage: Miscs.rat2str('333333333333333s')
+        >>> Miscs.rat2str('333333333333333s')
         Traceback (most recent call last):
         ...
         TypeError: unable to convert '333333333333333s' to a real number
@@ -157,13 +155,10 @@ class Miscs:
 
         Note: itertools is faster than Sage's MultichooseNK(len(ss)+1,deg)
 
-        sage: from helpers.miscs import Miscs
+        >>> ts = Miscs.get_terms(list(var('a b')), 3)
+        >>> assert ts == [1, a, b, a**2, a*b, b**2, a**3, a**2*b, a*b**2, b**3]
 
-        sage: ts = Miscs.get_terms(list(var('a b')), 3)
-        sage: assert ts == [1, a, b, a^2, a*b, b^2, a^3, a^2*b, a*b^2, b^3]
-
-        sage: ts = Miscs.get_terms(list(var('a b c d e f')), 3)
-        sage: ts
+        >>> Miscs.get_terms(list(var('a b c d e f')), 3)
         [1, a, b, c, d, e, f,
         a^2, a*b, a*c, a*d, a*e, a*f,
         b^2, b*c, b*d, b*e, b*f, c^2, c*d, c*e, c*f,
@@ -188,10 +183,8 @@ class Miscs:
         """
         Generates a degree wrt to a (maximum) number of terms (nss)
 
-        sage: from helpers.miscs import Miscs
-
-        sage: assert Miscs.get_deg(3, 4, 5) == 1
-        sage: Miscs.get_deg(3, 1, 5)
+        >>> assert Miscs.get_deg(3, 4, 5) == 1
+        >>> Miscs.get_deg(3, 1, 5)
         Traceback (most recent call last):
         ...
         AssertionError: (1, 3)
@@ -223,22 +216,17 @@ class Miscs:
     @staticmethod
     def get_terms_fixed_coefs(ss, subset_siz, icoef, do_create_terms=True):
         """
-        sage: from helpers.miscs import Miscs
-
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
-        sage: var('x y z t s u')
+        >>> var('x y z t s u')
         (x, y, z, t, s, u)
-
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
+        >>> sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
         [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
-
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2, 1), key=lambda x: str(x))
+        >>> sorted(Miscs.get_terms_fixed_coefs([x,y**2], 2, 1), key=lambda x: str(x))
         [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
-
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
         """
         assert icoef >= 1, icoef
         if len(ss) < subset_siz:
@@ -268,23 +256,21 @@ class Miscs:
         in which case we return the original set of eqts.
         Warning 2: seems to get stuck often.  So had to give it "nice" polynomials
 
-        sage: from helpers.miscs import Miscs
-
-        sage: var('a y b q k')
+        >>> var('a y b q k')
         (a, y, b, q, k)
 
-        sage: rs = Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
-        helpers.miscs:DEBUG:Grobner basis: got 2 ps from 3 ps
-        sage: assert set(rs) == set([a*y - b == 0, q*y + k - x == 0])
+        >>> rs = Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
+        __main__:DEBUG:Grobner basis: got 2 ps from 3 ps
+        >>> assert set(rs) == set([a*y - b == 0, q*y + k - x == 0])
 
-        sage: rs =  Miscs.reduce_eqts([x*y==6,y==2,x==3])
-        helpers.miscs:DEBUG:Grobner basis: got 2 ps from 3 ps
-        sage: assert set(rs) == set([x - 3 == 0, y - 2 == 0])
+        >>> rs =  Miscs.reduce_eqts([x*y==6,y==2,x==3])
+        __main__:DEBUG:Grobner basis: got 2 ps from 3 ps
+        >>> assert set(rs) == set([x - 3 == 0, y - 2 == 0])
 
         # Attribute error occurs when only 1 var, thus return as is
-        sage: rs =  Miscs.reduce_eqts([x*x==4,x==2])
-        helpers.miscs:ERROR:'Ideal_1poly_field' object has no attribute 'radical'
-        sage: assert set(rs) == set([x == 2, x^2 == 4])
+        >>> rs =  Miscs.reduce_eqts([x*x==4,x==2])
+        __main__:ERROR:'Ideal_1poly_field' object has no attribute 'radical'
+        >>> assert set(rs) == set([x == 2, x**2 == 4])
         """
 
         if len(ps) <= 1:
@@ -313,7 +299,8 @@ class Miscs:
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
 
         Examples:
-        sage: from helpers.miscs import Miscs
+        for these doctests, use sage, because >>> (Python) doesn't show fractions well
+
         sage: var('x y z')
         (x, y, z)
 
@@ -345,11 +332,10 @@ class Miscs:
         """
         Return coefficients of an expression
 
-        sage: from helpers.miscs import Miscs
-        sage: var('y')
+        >>> from helpers.miscs import Miscs
+        >>> var('y')
         y
-        sage: Miscs.get_coefs(3*x+5*y^2 == 9)
-        [5, 3]
+        >>> assert Miscs.get_coefs(3*x+5*y**2 == 9) == [5, 3]
         """
         Q = sage.all.PolynomialRing(sage.all.QQ, cls.get_vars(p))
         rs = Q(p.lhs()).coefficients()
@@ -516,29 +502,24 @@ class Miscs:
 
         Examples:
 
-        sage: from helpers.miscs import Miscs
-        sage: var('a,b,x,y')
+        >>> var('a,b,x,y')
         (a, b, x, y)
 
-        sage: Miscs.mk_template([1, a, b, x, y],0,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
-        a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
+        >>> Miscs.mk_template([1, a, b, x, y],0,prefix=None)
+        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0, a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
 
-        sage: Miscs.mk_template([1, x, y],0,\
-        op=operator.gt,prefix=None,ret_coef_vs=True)
+        >>> Miscs.mk_template([1, x, y],0, op=operator.gt,prefix=None,ret_coef_vs=True)
         (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
 
-        sage: Miscs.mk_template([1, a, b, x, y],None,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
-        a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
+        >>> Miscs.mk_template([1, a, b, x, y],None,prefix=None)
+        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0, a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
 
-        sage: Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
-        (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
-        a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
+        >>> Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
+        (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0, a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
 
-        sage: var('x1')
+        >>> var('x1')
         x1
-        sage: Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
+        >>> Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
         Traceback (most recent call last):
         ...
         AssertionError: name conflict
@@ -562,7 +543,6 @@ class Miscs:
         """
         Instantiate a template with solved coefficient values
 
-        sage: from helpers.miscs import Miscs
         sage: var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
         (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
 
@@ -637,8 +617,6 @@ class MP:
     @staticmethod
     def get_workload(tasks, n_cpus):
         """
-        sage: from helpers.miscs import Miscs
-
         >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
