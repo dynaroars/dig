@@ -1,3 +1,4 @@
+import settings
 from abc import ABCMeta, abstractmethod
 import operator
 import copy
@@ -14,7 +15,7 @@ import functools
 
 from pathlib import Path
 from collections.abc import Iterable
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple, defaultdict
 
 import sage.all
 
@@ -27,8 +28,7 @@ import z3
 
 DBG = pdb.set_trace
 
-# import settings
-# mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 def myprod(l): return functools.reduce(operator.mul, l, 1)
@@ -476,6 +476,7 @@ class NestedArray:
 
             # convert normal arr format to new format
             arrs = {k: Miscs.get_idxs(v) for k, v in tc.items()}
+            # print('myarrs', arrs)
             # arrs = OrderedDict(arrs)
 
             d = CM.merge_dict(efs + [arrs])
@@ -584,7 +585,7 @@ class Refine:
         #     wrs = wprocess(tasks, Q=None)
 
         self.ps = ps_
-        #Refine.print_diff('rfilter', len(tasks), len(self.ps))
+        # Refine.print_diff('rfilter', len(tasks), len(self.ps))
 
 # tracefile = Path("../tests/traces/paper_nested.csv")
 # ss = {}
@@ -655,17 +656,11 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         {'root':'b','children':[None]}, {'root':x,'children':[None]}]})
         xor(None,b[None],x[None]))
 
-        # >>> print(str(Tree(x**2 + 7)))
-        # 'x**2 + 7'
-
-
-        # sage: print Tree(x).__str__(leaf_content='hi')
-        hi
-
-        # sage: var('y')
+        >>> assert str(Tree(x**2 + 7)) == 'x^2 + 7'
+        >>> assert Tree(x).__str__(leaf_content='hi') == 'hi'
+        >>> var('y')
         y
-        # sage: print Tree(x).__str__(leaf_content={x:y+7})
-        y + 7
+        >>> assert Tree(x).__str__(leaf_content={x:y+7}) == 'y + 7'
         """
         if self.is_leaf:
             if isinstance(leaf_content, dict):  # {x: y+5}
@@ -674,9 +669,13 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                 else:
                     ret = self.root
             else:
-                assert(leaf_content is None or
-                       isinstance(leaf_content, str)), leaf_content
-                ret = leaf_content
+                if leaf_content:
+                    assert isinstance(leaf_content, str), leaf_content
+                    ret = leaf_content
+                else:
+                    assert(leaf_content is None), (type(
+                        leaf_content), leaf_content)
+                    ret = self.root
             return str(ret)
         else:
             children = ''.join(f"[{c.__str__(leaf_content)}]"
@@ -757,8 +756,6 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                         c.root not in blacklist[self.root]]
 
             # recursive call
-            # print('children', ', '.join(map(str, children)))
-
             def gt(t, nodes_, vss_):
                 if t.is_leaf:
                     return [t]
@@ -795,8 +792,8 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
     @property
     def is_node(self):
         """
-        # >>> assert Tree('a',[None,None]).is_node is True
-        # >>> assert not Tree('a',[Tree('b',[None]), None]).is_node
+        >>> assert Tree('a',[None,None]).is_node is True
+        >>> assert not Tree('a',[Tree('b',[None]), None]).is_node
         """
         return all(c.is_leaf for c in self.children)
 
@@ -929,7 +926,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                     ands = z3.simplify(Z3._and(
                         [f if z3.is_expr(f) else Z3.parse(str(f)) for f in ands]))
                     ors.append(ands)
-
+            # print(ors)
             return z3.simplify(Z3._or(ors))
 
     ##### Static methods for Tree #####
@@ -970,446 +967,6 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         trees = list(itertools.chain(*trees))
         assert all(isinstance(t, Tree) for t in trees), trees
         return trees
-
-# class MyTree:
-
-#     def __init__(self, args):
-#         """
-#         Tree is a leaf (None or Expression)  or a dict {'root':, 'children':[..]}
-
-#         ### sage: Tree({'root':None,'children':[None,None]})
-#         Traceback (most recent call last):
-#         ...
-#         AssertionError: args['roots'] cannot be None
-
-#         ### sage: var('y')
-#         y
-#         ### sage: print Tree({'root':'B', 'children':[{'root':'C','children':[x + 2*y]}]})
-#         B[C[x + 2*y]]
-
-#         """
-
-#         if isinstance(args, dict) and 'coef' not in args and 'first_idx' not in args:
-
-#             assert 'root' in args and 'children' in args, 'improper tree format: {}'.format(
-#                 map(str, args))
-#             assert args.get('root') is not None, "args['roots'] cannot be None"
-#             assert isinstance(args.get('children'), list), args
-#             assert args.get('children'), args.get('children')
-
-#             self.root = args.get('root')
-#             self.children = [c if isinstance(c, Tree) else Tree(c)
-#                              for c in args.get('children')]
-
-#             if 'commute' not in args or len(self.children) == 1:
-#                 self.commute = False
-#             else:
-#                 self.commute = args.get('commute')
-
-#         else:  # leaf
-#             self.root = args
-#             self.children = None
-#             self.commute = False
-#             # self.data = {}
-
-#     def __eq__(self, other):
-#         """
-#         ### sage: var('y')
-#         y
-#         ### sage: Tree(x+y+7) == Tree(7+x+y)
-#         True
-#         ### sage: Tree(
-#             {'root':x+y+7,'children':[None]}) == Tree({'root':x+y+7,'children':[None,None]})
-#         False
-#         ### sage: Tree({'root':x+y+7,'children':[None]}
-#                    ) == Tree({'root':x+y+7,'children':[None]})
-#         True
-#         """
-#         return type(other) is type(self) and self.__dict__ == other.__dict__
-
-#     def __ne__(self, other):
-#         """
-#         ### sage: var('y')
-#         y
-#         ### sage: Tree(x+y+7) != Tree(7+x+y)
-#         False
-#         ### sage: Tree(x+y+7) != Tree(x+y)
-#         True
-#         """
-#         return not self.__eq__(other)
-
-#     def __hash__(self):
-#         return hash(self.__str__())
-
-#     def __str__(self, leaf_content=None):
-#         """
-#         Examples:
-#         ### sage: print Tree(None)
-#         None
-
-#         ### sage: print Tree({'root':'a','children':[None,None]})
-#         a[None][None]
-
-#         ### sage: print Tree({'root':'a','children':[None,{'root':'b','children':[None]}]})
-#         a[None][b[None]]
-
-#         ### sage: print Tree({'root':'xor','children':[None, \
-#         {'root':'b','children':[None]}, {'root':x,'children':[None]}]})
-#         xor(None,b[None],x[None])
-
-#         ### sage: print Tree(x^2 + 7)
-#         x^2 + 7
-
-#         ### sage: print Tree(x).__str__(leaf_content='hi')
-#         hi
-
-#         ### sage: var('y')
-#         y
-#         ### sage: print Tree(x).__str__(leaf_content={x:y+7})
-#         y + 7
-
-#         ### sage: print Tree({'root':'x','children':[None]})
-#         x[None]
-#         ### sage: print Tree({'root':x,'children':[None]})
-#         x[None]
-#         """
-#         try:
-#             children = [c.__str__(leaf_content=leaf_content)
-#                         for c in self.children]
-
-#             if self.root in ExtFun.efdict:
-#                 rs = '({})'.format(','.join(children))
-#             else:
-#                 rs = ''.join(['[{}]'.format(c) for c in children])
-
-#             rs = str(self.root) + rs
-#             return rs
-
-#         except Exception:
-#             if leaf_content is None:
-#                 return str(self.root)
-#             else:
-#                 if isinstance(leaf_content, dict):
-#                     if HM.is_expr(self.root):
-#                         return str(self.root(leaf_content))
-#                     else:
-#                         str(self.root)
-#                 else:
-#                     return str(leaf_content)
-
-#     # def get_nchildren(self):
-#     #     return len(self.children)
-
-#     # def get_children(self):
-#     #     return self.children
-
-#     def commute(self):
-#         return self.commute
-
-#     @property
-#     def leaf_tree(self):
-#         return Tree(None)
-
-#     @property
-#     def is_node(self):
-#         """
-#         ### sage: Tree({'root':'a','children':[None,None]}).is_node()
-#         True
-#         """
-#         return all(c.is_leaf for c in self.children)
-
-#     @property
-#     def is_leaf(self):
-#         """
-#         ### sage: Tree({'root':'a','children':[None,None]}).is_leaf()
-#         False
-#         """
-#         return self.children is None
-
-#     ###
-
-#     def get_non_leaf_nodes(self, nl_nodes=[]):
-#         """
-#         Returns the *names* of the non-leaves nodes
-
-#         ### sage: print Tree({'root':'a','children':[None,None]}).get_non_leaf_nodes()
-#         ['a']
-
-#         ### sage: Tree({'root':'a','children':[None, \
-#         {'root':'b','children':[None,None]}, \
-#         {'root':'c','children':[None]}, \
-#         {'root':'d','children':[None,None]}]}).get_non_leaf_nodes()
-#         ['a', 'b', 'c', 'd']
-#         """
-#         if self.is_leaf:
-#             return nl_nodes
-#         else:
-#             nl_nodes_ = [c.get_non_leaf_nodes(nl_nodes)
-#                          for c in self.children]
-#             nl_nodes = [self.root] + CM.vflatten(nl_nodes_)
-#             return nl_nodes
-
-#     def get_leaves(self):
-#         """
-#         TOCHECK
-
-#         Examples:
-
-#         ### sage: Tree.leaf_tree().get_leaves()
-#         [(None, None, [])]
-
-#         ### sage: rs = Tree({'root':'A','children': [ \
-#         {'root':'C','children':[None,None]}, \
-#         {'root':'D','children':[None]}]}).get_leaves()
-
-#         ### sage: [(str(p),idx,tid) for p,idx,tid in rs]
-#         [('C[None][None]', 0, ['A', 0, 'C', 0]),
-#         ('C[None][None]', 1, ['A', 0, 'C', 1]),
-#         ('D[None]', 0, ['A', 1, 'D', 0])]
-#         """
-
-#         def _get_leaves(t, p, idx, tid):
-
-#             assert isinstance(t, Tree)
-
-#             if t.is_leaf:  # leaf
-#                 return [(p, idx, tid)]
-#             else:
-#                 results = [_get_leaves(child, t, idx_, tid + [t.root, idx_])
-#                            for idx_, child in enumerate(t.children)]
-
-#                 results = CM.vflatten(results, list)
-#                 return results
-
-#         return _get_leaves(self, p=None, idx=None, tid=[])
-
-#     def gen_root_trees(self, nodes, vss, blacklist, data):
-#         """
-#         Generates trees from nodes whose root is self.root
-
-#         blacklist {a: L} disallows a[b[..]] and a[[c..]]
-#         where {b,c} in L and only allows
-#         [a[x[..]]] where x is not in L
-
-#         so for example if we want to force a to be a Leaf then {a:L}
-#         where L is all variables (except None).
-#         This allows the removal of an extra whitelist
-
-#         also if we have {a: L} where L is all variablles (except a) then basically
-#         we disallow the tree with root 'a' since this says 'a' cannot have
-#         any children (including) leaf.
-
-
-#         Examples
-
-#         ### sage: t = Tree({'root':'a','children':[None,None]})
-#         ### sage: nodes = [Tree({'root':'b','children':[None,None]})]
-#         ### sage: map(str,t.gen_root_trees(
-#             nodes, vss=None, blacklist = {}, data={}))
-#         ['a[b[None][None]][b[None][None]]',
-#         'a[b[None][None]][None]',
-#         'a[None][b[None][None]]',
-#         'a[None][None]']
-
-#         ### sage: t = Tree({'root':'B','children':[None]})
-
-#         ### sage: nodes = [ \
-#         Tree({'root':'C','children':[None,None]}), \
-#         Tree({'root':'D','children':[None]})]
-
-#         ### sage: vss=[(8,),(15,),(7,)]
-#         ### sage: data = {'C':{8: [(2, 6)], 10: [(3, 7), (8, 2)], 3: [(1, 2)], 4: [(0, 4)], 2: [(2, 0), (1, 7)]},\
-#         'D':{8: [(7,)], 1: [(9,)], 2: [(8,)], 3: [(5,)]}, 'B':{8: [(10,), (4,)], 7: [(2,)], 15: [(8,), (3,)]}}
-
-#         ### sage: map(str,t.gen_root_trees(nodes,vss=vss, blacklist={}, data=data))
-#         ['B[C[D[None]][None]]', 'B[C[None][None]]', 'B[None]']
-
-#         """
-#         assert (isinstance(nodes, list) and
-#                 all(isinstance(x, Tree) and x.is_node for x in nodes)), nodes
-
-#         assert vss is None or \
-#             (isinstance(vss, list) and all(isinstance(v, tuple)
-#                                            for v in vss)), vss
-#         assert isinstance(blacklist, dict), blacklist
-
-#         print('START!!')
-#         print('self', self, len(self.children))
-#         print('nodes', ';'.join(map(str, nodes)))
-#         print('vss', vss)
-#         print('data', data)
-
-#         if vss:
-#             children_vss = Miscs.reach(vss, data[self.root])
-#             if not children_vss:
-#                 print('no children_vss')
-#                 return []
-#         else:
-#             children_vss = [None] * len(self.children)
-#         print('children_vss', children_vss)
-
-#         if nodes:
-#             children = nodes + [self.leaf_tree]
-
-#             children = [c for c in children
-#                         if self.root not in blacklist or
-#                         c.root not in blacklist[self.root]]
-
-#             # recursive call
-#             print('children', ', '.join(map(str, children)))
-
-#             def _gt(r_, nodes_, vss_):
-#                 if r_.is_leaf:
-#                     return [r_]
-#                 else:
-#                     return r_.gen_root_trees(nodes=nodes_, vss=vss_,
-#                                              blacklist=blacklist,
-#                                              data=data)
-#             print('0', children, children_vss)
-#             children = [[_gt(c, [node for node in nodes if node != c], vs) for c in children]
-#                         for vs in children_vss]
-#             print('1', children)
-#             children = [list(itertools.chain(*c)) for c in children]
-#             print('2',  children)
-#             # DBG()
-#             # assert len(children) == len(
-#             #     self.children), (len(children), len(self.children))
-
-#             combs = list(itertools.product(*children))
-#             print('combs', combs)
-
-#             if self.commute():
-#                 """
-#                 (T1, T2, T3) is equiv to (T1, T3, T2)
-#                 """
-#                 combs = vset(combs, idfun=Set)
-
-#             rs = [Tree({'root': self.root,
-#                         'children': list(c),
-#                         'commute': self.commute()})
-#                   for c in combs]
-
-#         else:
-#             rs = [Tree({'root': self.root,
-#                         'children': [self.leaf_tree] * len(self.children),
-#                         'commute': self.commute()})]
-
-#         print('rs',  ';'.join(map(str, rs)))
-#         return rs
-
-#     def gen_formula(self, v, data):
-#         """
-#         Generate a formula recursively to represent the data structure of tree based on
-#         input value v and data.
-
-
-#         ### sage: var('_B_0_C_0__i0 _B_0_C_0__i1')
-#         (_B_0_C_0__i0, _B_0_C_0__i1)
-
-
-#         ### sage: Tree({'root':'B','children':[\
-#         {'root':'C', 'children':[_B_0_C_0__i0 + 2*_B_0_C_0__i1]}]}).gen_formula(v=81,\
-#         data = {'C':{0: [(0,), (3,)], 1: [(4,)], 7: [(2,), (5,)], 8: [(6,)], 9: [(1,), (8,)], 17: [(7,)]},\
-#         'B':{81: [(17,)], 74: [(6,), (8,)], 71: [(5,), (7,)]}})
-#         _B_0_C_0__i0 + _B_0_C_0__i1*2 == 7
-
-
-#         ### sage: Tree({'root':'B','children':[\
-#         {'root':'C', 'children':[_B_0_C_0__i0 + 2*_B_0_C_0__i1]}]}).gen_formula(v=81, \
-#         data = {'C':{0: [(0,), (3,)], 1: [(4,)], 7: [(2,), (5,)], 8: [(6,)], 9: [(1,), (8,)], 17: [(7,)]},\
-#         'B':{81: [(17,), (9,)], 74: [(6,), (8,)], 71: [(5,), (7,)]}})
-#         Or(_B_0_C_0__i0 + _B_0_C_0__i1*2 == 7,
-#         Or(_B_0_C_0__i0 + _B_0_C_0__i1*2 == 1,
-#         _B_0_C_0__i0 + _B_0_C_0__i1*2 == 8))
-
-
-#         ### sage: Tree({'root':'add','children':[\
-#         {'root':'C', 'children':[{'root':'_add_0_C_','children':[100,200]}]},\
-#         {'root':'D', 'children':[{'root':'_add_1_D_','children':[100,200]}]}]}).gen_formula(v=17, \
-#         data = {'C':{0:[(0,)],17:[(1,)],8:[(2,)],3:[(3,),(4,)]},\
-#         'D':{1:[(0,)],9:[(1,),(3,)],0:[(2,)]},\
-#         'add':{17:[(8,9),(17,0)],8:[(8,0)],12:[(3,9),(0,12)],3:[(3,0)]}})
-
-
-#         """
-
-#         if HM.is_expr(self.root):
-#             return self.root == v
-
-#         elif isinstance(self.root, dict) and 'first_idx' in self.root:
-#             # special case {'first_idx':i,'coef':z}
-#             if v == 0:
-#                 t0 = self.root['coef'] == 0
-#                 t1 = self.root['first_idx'] == 1
-#                 return Miscs._f([t0, t1], 'and', is_real=False)
-#             else:
-#                 return self.root['coef'] == v
-#         else:
-#             try:
-#                 idxs = data[self.root][v]
-#             except KeyError:  # not reachable, no rel
-#                 return None
-
-#             orRs = []
-#             for idx in idxs:
-#                 andRs = []
-#                 for v_, a_ in zip(idx, self.children):
-#                     p_ = a_.gen_formula(v_, data)
-
-#                     if p_ is None:
-#                         andRs = None
-#                         break
-#                     andRs.append(p_)
-
-#                 if andRs is not None:
-#                     assert len(andRs) > 0
-#                     andRs = Miscs._f(andRs, 'and', is_real=False)
-#                     orRs.append(andRs)
-
-#             orRs = Miscs._f(orRs, 'or', is_real=False)
-#             return orRs
-
-#     ##### Static methods for Tree #####
-
-#     @ staticmethod
-#     def gen_trees(nodes, vss, blacklist, data):
-#         """
-#         Generates nestings from a set of nodes. E.g., given nodes [a,b,c],
-#         returns all nestings, e.g. [{a,[b,c],{a,[c,b]}},{b,[a,c]} ..
-
-#         Examples:
-
-#         ### sage: nodes = [\
-#         Tree({'root':'A','children':[None]}), \
-#         Tree({'root':'B','children':[None,None]}), \
-#         Tree({'root':'C','children':[None,None,None]})]
-#         ### sage: len(Tree.gen_trees(nodes=nodes,vss=None,blacklist={},data={}))
-#         477
-
-#         """
-
-#         assert isinstance(nodes, list) and \
-#             all(isinstance(x, Tree) and x.is_node for x in nodes)
-
-#         assert vss is None or \
-#             (isinstance(vss, list) and all(isinstance(v, tuple)
-#                                            for v in vss)), vss
-
-#         assert isinstance(blacklist, dict), blacklist
-
-#         def _gt(t):
-#             ts = t.gen_root_trees(nodes=CM.vsetdiff(nodes, [t]),
-#                                   vss=vss,
-#                                   blacklist=blacklist,
-#                                   data=data)
-#             return ts
-
-#         trees = [_gt(node) for node in nodes]
-#         trees = CM.vflatten(trees)
-
-#         assert all(isinstance(t, Tree) for t in trees)
-
-#         return trees
 
 
 class AEXP(object):
@@ -1630,17 +1187,14 @@ class AEXP(object):
             return []
 
         ds = [get_constraints(m, result_as_dict=True) for m in models]
-        print('ds', ds)
         # generate the full expression
         template = self.gen_template(None, False)
         assert(isinstance(template, AEXP)), template
-        print('template', template)
 
         rs = [template.__str__(leaf_content=d, do_lambda=True)
               for d in ds]
 
         assert all(isinstance(x, str) for x in rs)
-        print('rs', rs)
         return rs
 
     ##### Static methods for AEXP #####
@@ -2847,108 +2401,22 @@ class Miscs(object):
 
         Examples:
 
-        ### sage: Miscs.keys_to_str([{var('a'):5},{var('b'):7},5])
-        [OrderedDict([('a', 5)]), OrderedDict([('b', 7)]), 5]
+        >>> Miscs.keys_to_str([{var('a'):5},{var('b'):7},5])
+        [{'a': 5}, {'b': 7}, 5]          
 
         """
-        return [(OrderedDict([(str(k), c) for k, c in l.items()]))
-                if isinstance(l, dict) else l
+        return [{str(k): l[k] for k in l} if isinstance(l, dict) else l
                 for l in ls]
-
-    @staticmethod
-    def get_sols(sols, sol_format):
-        """
-        Construct a list of properties from the inputs sols and sol_format
-
-
-        Examples:
-
-        #when sols are in dict form
-        ### sage: var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
-        (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
-
-        ### sage: Miscs.get_sols([{uk_0: -2*r14 + 7/3*r15, uk_1: -1/3*r15, \
-        uk_4: r14, uk_2: r15, uk_3: -2*r14}],\
-        uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0)
-        [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
-
-        #when sols are not in dict form
-        ### sage: Miscs.get_sols([[uk_0== -2*r14 + 7/3*r15, \
-        uk_1== -1/3*r15, uk_4== r14, uk_2== r15, uk_3== -2*r14]],\
-        uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0)
-        [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
-
-        ### sage: Miscs.get_sols([],uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0)
-        []
-        """
-        assert HM.is_expr(sol_format), sol_format
-
-        if sols is None or is_empty(sols):
-            return []
-
-        if len(sols) > 1:
-            print('get_sols: len(sols) = {}'.format(len(sols)))
-            print(sols)
-
-        def f_eq(d):
-            if isinstance(d, list):
-                f_ = sol_format
-                for d_ in d:
-                    f_ = f_.subs(d_)
-                rhsVals = vset([d_.rhs() for d_ in d])
-                uk_vars = get_vars(rhsVals)
-            else:
-                f_ = sol_format(d)
-                uk_vars = get_vars(d.values())  # e.g., r15,r16 ...
-
-            if is_empty(uk_vars):
-                return f_
-
-            iM = identity_matrix(len(uk_vars))  # standard basis
-            rs = [dict(zip(uk_vars, l)) for l in iM.rows()]
-            rs = [f_(r) for r in rs]
-            return rs
-
-        sols = CM.vflatten([f_eq(s) for s in sols])
-
-        # remove trivial (tautology) str(x) <=> str(x)
-        sols = [s for s in sols
-                if not (s.is_relational() and str(s.lhs()) == str(s.rhs()))]
-
-        return sols
-
-    #############################
-
-    # @staticmethod
-    # def _f(ls, op, is_real):
-    #     """
-
-    #     """
-    #     if any(l is None for l in ls) or not ls:
-    #         return None
-
-    #     import z3
-    #     from smt_z3py import SMT_Z3
-
-    #     rs = [SMT_Z3.to_z3exp(l, is_real=is_real) if HM.is_expr(l) else l
-    #           for l in ls]
-
-    #     if len(rs) == 1:
-    #         rs = rs[0]
-    #     else:
-    #         rs = z3.And(rs) if op == 'and' else z3.Or(rs)
-
-    #     return rs
 
     @staticmethod
     def travel(A):
         """
         Examples:
 
-        ### sage: Miscs.travel([1,[0,[5]],8,[8]])
+        >>> Miscs.travel([1,[0,[5]],8,[8]])
         [([0], 1), ([1, 0], 0), ([1, 1, 0], 5), ([2], 8), ([3, 0], 8)]
         """
-        assert isinstance(A, list) and A, A
+        assert isinstance(A, list), A
 
         def _travel(A, idx, rs):
             for i, c in enumerate(A):
@@ -2969,14 +2437,14 @@ class Miscs(object):
 
         Examples:
 
-        ### sage: assert Miscs.get_idxs([1,[0,[5]],8,[8]]) == \
-        OrderedDict([(1, [(0,)]), (0, [(1, 0)]), (5, [(1, 1, 0)]), (8, [(2,), (3, 0)])])
-        ### sage: assert Miscs.get_idxs([]) == OrderedDict()
+        >>> Miscs.get_idxs([1,[0,[5]],8,[8]])
+        {0: [(1, 0)], 1: [(0,)], 5: [(1, 1, 0)], 8: [(2,), (3, 0)]}
+
+        >>> assert Miscs.get_idxs([]) == OrderedDict()
         """
 
-        vals_idxs = [(v, tuple(idx)) for idx, v in Miscs.travel(A)]
-        rs = CM.create_dict(vals_idxs)
-        return rs
+        rs = [(v, tuple(idx)) for idx, v in Miscs.travel(A)]
+        return CM.create_dict(rs)
 
     @staticmethod
     def reach(vss, rdata):
@@ -2988,72 +2456,61 @@ class Miscs(object):
 
         Examples:
 
-        ### sage: Miscs.reach([(8,), (15,), (7,)], \
-        rdata = {8:[(10,), (4,)], 15:[(8,), (3,)], 7:[(2,)]})
+        >>> Miscs.reach([(8,), (15,), (7,)], rdata = {8:[(10,), (4,)], 15:[(8,), (3,)], 7:[(2,)]})
         [[(10, 4), (8, 3), (2,)]]
 
-        #10 is found at either (3,) or (8,), written as (3,8)
-        #The output is a list of size 1 since the dim of rdata is 1
-        ### sage: Miscs.reach([(10,)], rdata = {10:[(3,), (8,)]})
+        10 is found at either (3,) or (8,), written as (3,8)
+        The output is a list of size 1 since the dim of rdata is 1
+        >>> Miscs.reach([(10,)], rdata = {10:[(3,), (8,)]})
         [[(3, 8)]]
 
-        #10 is found at either (3,7) or (8,2), written as [(3,8)],[(7,2)]
-        ### sage: Miscs.reach([(10,)], rdata = {10:[(3,7),(8,2)]})
+        10 is found at either (3,7) or (8,2), written as [(3,8)],[(7,2)]
+        >>> Miscs.reach([(10,)], rdata = {10:[(3,7),(8,2)]})
         [[(3, 8)], [(7, 2)]]
 
-        #10 or 4 is found at either (3,7),(8,2) or (0,4), written as [(3,8,0)],[(7,2,4)]
-        ### sage: Miscs.reach([(10,4)], \
-        rdata = {4:[(0,4)], 10:[(3,7),(8,2)]})
+        10 or 4 is found at either (3,7),(8,2) or (0,4), written as [(3,8,0)],[(7,2,4)]
+        >>> Miscs.reach([(10,4)], rdata = {4:[(0,4)], 10:[(3,7),(8,2)]})
         [[(3, 8, 0)], [(7, 2, 4)]]
 
-        #10 or 4 is found at either (3,7),(8,2) or (0,4), written as [(3,8,0)],[(7,2,4)]
-        #8 or 3 is found at either (2,6) or (1,2), written as [(2,1)],[(6,2)]
-        #2 is found at either (2,0) or (1,7),  written as [(2,1)],[(0,7)]
-        #all together, written as [[(3,8,0),(2,1),(2,1)], [(7,2,4),(6,2),(0,7)]]
-        #The output is 2 lists. Each list has 3 (# of inputs) tuples.
+        10 or 4 is found at either (3,7),(8,2) or (0,4), written as [(3,8,0)],[(7,2,4)]
+        8 or 3 is found at either (2,6) or (1,2), written as [(2,1)],[(6,2)]
+        2 is found at either (2,0) or (1,7),  written as [(2,1)],[(0,7)]
+        all together, written as [[(3,8,0),(2,1),(2,1)], [(7,2,4),(6,2),(0,7)]]
+        The output is 2 lists. Each list has 3 (# of inputs) tuples.
 
-        ### sage: Miscs.reach([(10,4),(8,3),(2,)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> Miscs.reach([(10,4),(8,3),(2,)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         [[(3, 8, 0), (2, 1), (2, 1)], [(7, 2, 4), (6, 2), (0, 7)]]
 
-        ### sage: Miscs.reach([(10,4),(8,3),(8,3)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> sage: Miscs.reach([(10,4),(8,3),(8,3)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         [[(3, 8, 0), (2, 1), (2, 1)], [(7, 2, 4), (6, 2), (6, 2)]]
 
-        ### sage: Miscs.reach([(10,5),(8,3),(2,)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> Miscs.reach([(10,5),(8,3),(2,)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         [[(3, 8), (2, 1), (2, 1)], [(7, 2), (6, 2), (0, 7)]]
 
-        ### sage: Miscs.reach([(10,4),(8,13),(2,)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> sage: Miscs.reach([(10,4),(8,13),(2,)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         [[(3, 8, 0), (2,), (2, 1)], [(7, 2, 4), (6,), (0, 7)]]
 
-        ### sage: Miscs.reach([(100,14),(8,13),(2,)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> Miscs.reach([(100,14),(8,13),(2,)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         []
 
-        ### sage: Miscs.reach([(100,4),(8,13),(2,)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> Miscs.reach([(100,4),(8,13),(2,)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         [[(0,), (2,), (2, 1)], [(4,), (6,), (0, 7)]]
 
-        ### sage: Miscs.reach([(100,4),(8,13),(100,)], \
-        rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
+        >>> Miscs.reach([(100,4),(8,13),(100,)], rdata = {4:[(0,4)], 8:[(2,6)], 10:[(3,7),(8,2)], 3:[(1,2)], 2:[(2,0),(1,7)]})
         []
 
         """
-        assert isinstance(vss, list) and all(
-            isinstance(vs, tuple) for vs in vss), vss
+        assert(isinstance(vss, list) and
+               all(isinstance(vs, tuple) for vs in vss)), vss
 
-        def _getIdxs(vs): return [rdata[v] for v in vs if v in rdata]
-        rs = [_getIdxs(vs) for vs in vss]
-
-        if any(not r_ for r_ in rs):
+        rs = [[rdata[v] for v in vs if v in rdata] for vs in vss]
+        if any(not r for r in rs):
             return []
         else:
-            rs = [CM.vflatten(r_, list) for r_ in rs]
-            rs = [zip(*r_) for r_ in rs]
+            rs = [itertools.chain(*r) for r in rs]
+            rs = [zip(*r) for r in rs]
             rs = zip(*rs)
-            rs = [list(r_) for r_ in rs]
+            rs = [list(r) for r in rs]
             assert len(rs) == len(rdata[list(rdata.keys())[0]][0])
             return rs
 
