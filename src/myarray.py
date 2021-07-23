@@ -1,7 +1,6 @@
 import settings
 from abc import ABCMeta, abstractmethod
 import operator
-import copy
 import multiprocessing as mp
 import csv
 import pdb
@@ -29,6 +28,8 @@ import z3
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
+special_str = "_special"
 
 
 def myprod(l): return functools.reduce(operator.mul, l, 1)
@@ -138,42 +139,34 @@ class InvArray(Inv):
         the first array in lambda is the pivot
         lambda A,B,i,j,k: ...  =>  i,j,k  belong to A
 
-
-
         inv = 'lambda B,C,D,i,j: B[i][j]=C[D[2i+3]]'
         returns true if inv is true on tc
 
         Examples:
 
-        # sage: var('a,b,c,i,j')
+        >>> var('a,b,c,i,j')
         (a, b, c, i, j)
 
-        # sage: InvArray.eval_lambda(
-            'lambda a,b,c,i,j: a[i][j]==2*b[i]+c[j]', None, {'a':[[4,-5],[20,11]],'b':[1,9],'c':[2,-7]})
+        >>> InvArray.eval_lambda('lambda a,b,c,i,j: a[i][j]==2*b[i]+c[j]', None, {'a':[[4,-5],[20,11]],'b':[1,9],'c':[2,-7]})
         True
 
-        # sage: InvArray.eval_lambda('lambda c,a,b,xor,i: c[i] == xor(a[i],b[i])', None, {
-                                   'a': [147, 156, 184, 76], 'b': [51, 26, 247, 189], 'c': [160, 334, 79, 281]})
+        >>> InvArray.eval_lambda('lambda c,a,b,xor,i: c[i] == xor(a[i],b[i])', None, {'a': [147, 156, 184, 76], 'b': [51, 26, 247, 189], 'c': [160, 334, 79, 281]})
         False
 
-        # sage: InvArray.eval_lambda('lambda c,a,b,xor,i1: c[i1] == xor(a[i1],b[i1])', None, {
-                                   'a': [147, 156, 184, 76], 'b': [51, 26, 247, 189], 'c': [160, 134, 79, 241]})
+        >>> InvArray.eval_lambda('lambda c,a,b,xor,i1: c[i1] == xor(a[i1],b[i1])', None, {'a': [147, 156, 184, 76], 'b': [51, 26, 247, 189], 'c': [160, 134, 79, 241]})
         True
 
 
-        # sage: InvArray.eval_lambda('lambda rvu, t, rvu1, rvu0: (rvu[rvu0][rvu1]) + (-t[4*rvu0 + rvu1]) == 0', None, {'t': [
-                                   28, 131, 11, 85, 133, 46, 179, 20, 227, 148, 225, 197, 38, 221, 221, 126], 'rvu': [[28, 131, 11, 85], [133, 46, 179, 20], [227, 148, 225, 197], [38, 221, 221, 126]]})
+        >>> InvArray.eval_lambda('lambda rvu, t, rvu1, rvu0: (rvu[rvu0][rvu1]) + (-t[4*rvu0 + rvu1]) == 0', None, {'t': [28, 131, 11, 85, 133, 46, 179, 20, 227, 148, 225, 197, 38, 221, 221, 126], 'rvu': [[28, 131, 11, 85], [133, 46, 179, 20], [227, 148, 225, 197], [38, 221, 221, 126]]})
         True
 
         # The following illustrate the use of idxVals,
         # i.e. p is only true under certain array rages
 
-        # sage: InvArray.eval_lambda('lambda st, rvu, st0, st1: (-st[st0][st1]) + (rvu[4*st0 + st1]) == 0', None, tc = {'rvu': [28, 131, 11, 85, 193, 124, 103, 215, 66, 26, 68, 54, 176, 102, 15, 237], 'st': [[28, 131, 11, 85, 133, 46, 179, 20, 227, 148, 225, 197, 38, 221, 221, 126], [
-                                   193, 124, 103, 215, 106, 229, 162, 168, 166, 78, 144, 234, 199, 254, 152, 250], [66, 26, 68, 54, 206, 16, 155, 248, 231, 198, 240, 43, 208, 205, 213, 26], [176, 102, 15, 237, 49, 141, 213, 97, 137, 155, 50, 243, 112, 51, 124, 107]]})
+        >>> InvArray.eval_lambda('lambda st, rvu, st0, st1: (-st[st0][st1]) + (rvu[4*st0 + st1]) == 0', None, tc = {'rvu': [28, 131, 11, 85, 193, 124, 103, 215, 66, 26, 68, 54, 176, 102, 15, 237], 'st': [[28, 131, 11, 85, 133, 46, 179, 20, 227, 148, 225, 197, 38, 221, 221, 126], [193, 124, 103, 215, 106, 229, 162, 168, 166, 78, 144, 234, 199, 254, 152, 250], [66, 26, 68, 54, 206, 16, 155, 248, 231, 198, 240, 43, 208, 205, 213, 26], [176, 102, 15, 237, 49, 141, 213, 97, 137, 155, 50, 243, 112, 51, 124, 107]]})
         False
 
-        # sage: InvArray.eval_lambda('lambda st, rvu, st0, st1: (-st[st0][st1]) + (rvu[4*st0 + st1]) == 0', idx_info = [{'st0': 0, 'st1': 0}, {'st0': 0, 'st1': 1}, {'st0': 2, 'st1': 2}, {'st0': 2, 'st1': 3}, {'st0': 3, 'st1': 0}, {'st0': 3, 'st1': 1}, {'st0': 3, 'st1': 2}, {'st0': 3, 'st1': 3}, {'st0': 0, 'st1': 2}, {'st0': 0, 'st1': 3}, {'st0': 1, 'st1': 0}, {'st0': 1, 'st1': 1}, {'st0': 1, 'st1': 2}, {'st0': 1, 'st1': 3}, {'st0': 2, 'st1': 0}, {
-                                   'st0': 2, 'st1': 1}], tc = {'rvu': [28, 131, 11, 85, 193, 124, 103, 215, 66, 26, 68, 54, 176, 102, 15, 237], 'st': [[28, 131, 11, 85, 133, 46, 179, 20, 227, 148, 225, 197, 38, 221, 221, 126], [193, 124, 103, 215, 106, 229, 162, 168, 166, 78, 144, 234, 199, 254, 152, 250], [66, 26, 68, 54, 206, 16, 155, 248, 231, 198, 240, 43, 208, 205, 213, 26], [176, 102, 15, 237, 49, 141, 213, 97, 137, 155, 50, 243, 112, 51, 124, 107]]})
+        >>> InvArray.eval_lambda('lambda st, rvu, st0, st1: (-st[st0][st1]) + (rvu[4*st0 + st1]) == 0', idx_info = [{'st0': 0, 'st1': 0}, {'st0': 0, 'st1': 1}, {'st0': 2, 'st1': 2}, {'st0': 2, 'st1': 3}, {'st0': 3, 'st1': 0}, {'st0': 3, 'st1': 1}, {'st0': 3, 'st1': 2}, {'st0': 3, 'st1': 3}, {'st0': 0, 'st1': 2}, {'st0': 0, 'st1': 3}, {'st0': 1, 'st1': 0}, {'st0': 1, 'st1': 1}, {'st0': 1, 'st1': 2}, {'st0': 1, 'st1': 3}, {'st0': 2, 'st1': 0}, {'st0': 2, 'st1': 1}], tc = {'rvu': [28, 131, 11, 85, 193, 124, 103, 215, 66, 26, 68, 54, 176, 102, 15, 237], 'st': [[28, 131, 11, 85, 133, 46, 179, 20, 227, 148, 225, 197, 38, 221, 221, 126], [193, 124, 103, 215, 106, 229, 162, 168, 166, 78, 144, 234, 199, 254, 152, 250], [66, 26, 68, 54, 206, 16, 155, 248, 231, 198, 240, 43, 208, 205, 213, 26], [176, 102, 15, 237, 49, 141, 213, 97, 137, 155, 50, 243, 112, 51, 124, 107]]})
         True
 
         """
@@ -191,7 +184,7 @@ class InvArray(Inv):
         assert isinstance(f, str) and 'lambda' in f, f
         assert (idx_info is None or
                 isinstance(idx_info, list) and
-                all(is_dict(v) for v in idx_info)), indx_info
+                all(isinstance(v, dict) for v in idx_info)), indx_info
         assert isinstance(tc, dict), tc
         assert all(isinstance(k, str) for k in tc), tc.keys()
 
@@ -202,8 +195,8 @@ class InvArray(Inv):
         extfuns = [v for v in vs if v in ExtFun.efdict]
         idxStr = [v for v in vs if v not in arrs+extfuns]  # i,j,k
 
-        d_tc = dict([(v, tc[v]) for v in arrs])
-        d_extfun = dict([(v, ExtFun(v).get_fun()) for v in extfuns])
+        d_tc = {v: tc[v] for v in arrs}
+        d_extfun = {v: ExtFun(v).fun for v in extfuns}
         d_ = CM.merge_dict([d_tc, d_extfun])
 
         if idx_info is None:  # obtain idxsVals from the pivot array
@@ -476,14 +469,10 @@ class NestedArray:
 
             # convert normal arr format to new format
             arrs = {k: Miscs.get_idxs(v) for k, v in tc.items()}
-            # print('myarrs', arrs)
-            # arrs = OrderedDict(arrs)
-
             d = CM.merge_dict(efs + [arrs])
             mytcs.append(d)
 
         self.tcs = mytcs
-        # print('preprocess', self.tcs)
         self.trees = [Tree(k, [None] * len(list(c.items())[0][1]), ExtFun(k).commute)
                       for k, c in self.tcs[0].items()]
 
@@ -491,15 +480,14 @@ class NestedArray:
 
         self.tcs, self.tcs_extra = self.mk_traces()
 
-        print('Preprocessing arrays')
+        mlog.debug('Preprocessing arrays')
 
         # add ext funs, generate nodes, modify tcs
         self.preprocess()
 
-        print("Generate arr exps (nestings)")
+        mlog.debug("Generate arr exps (nestings)")
         aexps = AEXP.gen_aexps(self.trees, self.xinfo, self.tcs[0])
-        print(
-            f"Apply reachability to {len(aexps)} nestings to find invs")
+        mlog.debug(f"Apply reachability to {len(aexps)} nestings")
 
         sols = []
         for a in aexps:
@@ -525,7 +513,7 @@ class NestedArray:
         #     wrs.extend(Q.get())
 
         print(f"Potential rels: {len(sols)}")
-        print("sols", sols)
+        # print("sols", sols)
         self.sols = [InvNestedArray(s) for s in sols]
         Inv.print_invs(self.sols)
 
@@ -615,17 +603,22 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
     """
 
     def __new__(cls, root=None, children=[], commute=False):
-        assert(isinstance(root, str) or
-               not isinstance(root, Iterable)), root
+        assert(root is None or
+               isinstance(root, str) or
+               (HM.is_expr(root))
+               ), root
         assert isinstance(children, Iterable), children
         assert isinstance(commute, bool), commute
 
-        if root is None or HM.is_expr(root):  # leaf
+        if (root is None or HM.is_expr(root) or
+                (isinstance(root, str) and special_str in root)):  # leaf
             assert not children, children
             assert not commute, commute
         else:
             assert isinstance(children, Iterable) and children, children
-            assert all(isinstance(c, Tree) or c is None or HM.is_expr(c)
+            assert all(isinstance(c, Tree) or
+                       c is None or
+                       (HM.is_expr(c) and not c.is_symbol())
                        for c in children), children
             assert isinstance(commute, bool), commute
 
@@ -678,8 +671,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                     assert isinstance(leaf_content, str), leaf_content
                     ret = leaf_content
                 else:
-                    assert(leaf_content is None), (type(
-                        leaf_content), leaf_content)
+                    assert(leaf_content is None), leaf_content
                     ret = self.root
             return str(ret)
         else:
@@ -827,28 +819,6 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             nodes = [self.root] + list(itertools.chain(*nodes_))
             return nodes
 
-    # @property
-    # def leaves(self):
-    #     """
-    #     Examples:
-
-    #     >>> Tree().leaves
-    #     [(None, None, [])]
-
-    #     >>> rs = Tree('A', [Tree('C', [None, None]), Tree('D', [None])]).leaves
-    #     >>> print([(str(p), idx, tid) for p, idx, tid in rs])
-    #     [('C[None][None]', 0, ['A', 0, 'C', 0]), ('C[None][None]', 1, ['A', 0, 'C', 1]), ('D[None]', 0, ['A', 1, 'D', 0])]
-
-    #     """
-    #     def gl(t, p, idx, tid):
-    #         if t.is_leaf:  # leaf
-    #             return [(p, idx, tid)]
-    #         else:
-    #             results = [gl(child, t, idx_, tid + [t.root, idx_])
-    #                        for idx_, child in enumerate(t.children)]
-    #             return itertools.chain(*results)
-    #     return gl(self, p=None, idx=None, tid=[])
-
     def gen_formula(self, v, data):
         """
         Generate a formula recursively to represent the data structure of tree based on
@@ -884,19 +854,20 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
 
         """
-
         if HM.is_expr(self.root):
             return self.root == v
 
-        elif isinstance(self.root, dict) and 'first_idx' in self.root:
-            assert False
+        elif isinstance(self.root, str) and special_str in self.root:
             # special case {'first_idx':i,'coef':z}
+            myroot = self.root.replace(special_str, "")
+            mycoef = f"{myroot}0"
             if v == 0:
-                t0 = self.root['coef'] == 0
-                t1 = self.root['first_idx'] == 1
-                return Miscs._f([t0, t1], 'and', is_real=False)
+                t0 = f"{mycoef} == 0"  # coef
+                t1 = f"{myroot}1 == 1"  # first_idx
+                ret = z3.And([Z3.parse(t0), Z3.parse(t1)])
+                return ret
             else:
-                return self.root['coef'] == v
+                return sage.all.var(mycoef) == v
         else:
             try:
                 idxs = data[self.root][v]
@@ -909,7 +880,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                 for v_, t in zip(idx, self.children):
                     p_ = t.gen_formula(v_, data)
                     if p_ is None:
-                        ands = None
+                        ands = []
                         break
                     ands.append(p_)
 
@@ -918,8 +889,8 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                     ands = z3.simplify(Z3._and(
                         [f if z3.is_expr(f) else Z3.parse(str(f)) for f in ands]))
                     ors.append(ands)
-            # print(ors)
-            return z3.simplify(Z3._or(ors))
+
+            return z3.simplify(Z3._or(ors)) if ors else None
 
     ##### Static methods for Tree #####
 
@@ -1053,14 +1024,6 @@ class AEXP(object):
         rs = all(iv in roots for iv in xinfo['Input'])
         return rs
 
-    def gen_smt_formula(self, data):
-        """
-        todo: combine both gen_template & gen_formula
-
-        returns a SMT formula from the aex wrt to data
-        """
-        pass
-
     def gen_template(self, idxs_vals=None, special=False):
         """
         special = True then it means we only have 1 data to compare against
@@ -1077,20 +1040,20 @@ class AEXP(object):
         >>> str(a.rt)
         'add(C[_add_0_C_0__i1*i1 + _add_0_C_0__i2*i2 + _add_0_C_0__i3*i3 + _add_0_C_0__i0],D[_add_1_D_0__i1*i1 + _add_1_D_0__i2*i2 + _add_1_D_0__i3*i3 + _add_1_D_0__i0])'
 
+        >>> lt = Tree('R', [None,None])
+        >>> rt = Tree('add', [Tree('C',[None]), Tree('D', [None])])
+        >>> a = AEXP(lt,rt).gen_template()
+        >>> assert str(a.lt) == 'R[None][None]'
+        >>> str(a.rt)
+        'add(C[_add_0_C_0__i1*i1 + _add_0_C_0__i2*i2 + _add_0_C_0__i0],D[_add_1_D_0__i1*i1 + _add_1_D_0__i2*i2 + _add_1_D_0__i0])'
 
-        # sage: rs = AEXP({'root':'R','children':[None,None]}, \
-        {'root':'add', 'children':[{'root':'C','children':[None]}, \
-        {'root':'D','children':[None]}]}).gen_template()
-        # sage: print rs.lt; print rs.rt
-        R[None][None]
-        add(C[_add_0_C_0__i1*i1 + _add_0_C_0__i2*i2 + _add_0_C_0__i0],
-            D[_add_1_D_0__i1*i1 + _add_1_D_0__i2*i2 + _add_1_D_0__i0])
 
-        # sage: rs = AEXP({'root':'R','children':[None,None]}, \
-        {'root':'add', 'children':[None,None]}).gen_template(idxs_vals=[0,0],special=False)
-        # sage: print rs.lt; print rs.rt
-        R[None][None]
-        add(_add_0__i0,_add_1__i0)
+        >>> lt = Tree('R', [None,None])
+        >>> rt = Tree('add', [None, None])
+        >>> a = AEXP(lt,rt).gen_template(idxs_vals=[0,0],special=False)
+        >>> assert str(a.lt) == "R[None][None]"
+        >>> str(a.rt)
+        'add(_add_0__i0,_add_1__i0)'
         """
         assert(not special or
                all(x == 0 for x in idxs_vals)), (special, idxs_vals)
@@ -1105,35 +1068,18 @@ class AEXP(object):
 
         def rpl(t, tid):
             if t.is_leaf:
+                prefix = f"_{'_'.join(map(str, tid))}__i"
                 if special:
-                    assert False
-                    c = {'first_idx': sage.all.var(prefix+str(1)),
-                         'coef': sage.all.var(prefix+str(0))}
+                    c = f"{prefix}{special_str}"
                 else:
                     c = HM.mk_template(
-                        ts, rv=None, prefix=f"_{'_'.join(map(str, tid))}__i")[0]
+                        ts, rv=None, prefix=prefix)[0]
                 return Tree(c)
             else:
                 children = [rpl(c, tid + [t.root, i])
                             for i, c in enumerate(t.children)]
                 return Tree(t.root, children, t.commute)
 
-        # rt = copy.deepcopy(self.rt)  # make a copy
-
-        # leaves = rt.leaves
-        # leaves = [(p, idx, tid) for p, idx, tid in leaves if p is not None]
-
-        # for p, idx, tid in leaves:
-        #     prefix = f"_{'_'.join(map(str, tid))}__i"
-        #     if special:
-        #         assert False
-        #     else:
-        #         c = HM.mk_template(ts, rv=None, prefix=prefix)[0]
-
-        #     p.children[idx] = Tree(c)
-        #     assert isinstance(p, Tree), p
-
-        # # rt.replace_leaf(tid=[], special=special, ts=ts, verbose=verbose)
         rt = rpl(self.rt, tid=[])
         return AEXP(lt=self.lt, rt=rt)
 
@@ -1176,10 +1122,11 @@ class AEXP(object):
         vi = [[(v, i) for i in idxs]
               for v, idxs in data[self.lt.root].items()]
         vi = list(itertools.chain(*vi))
+        # print(data[self.lt.root])
+        # print(vi)
         sts = [self.gen_template(i, len(vi) == 1).rt for _, i in vi]
         formula = Z3._and([rh.gen_formula(v, data)
                            for (v, _), rh in zip(vi, sts)])
-
         if formula is None:
             return []
 
@@ -1201,7 +1148,7 @@ class AEXP(object):
 
     ##### Static methods for AEXP #####
 
-    @staticmethod
+    @ staticmethod
     def gen_aexps(nodes, xinfo, data):
         """
         arrs = [a,b,c]
@@ -1258,8 +1205,8 @@ class AEXP(object):
         3. C[i1] == B[(i1)_]
 
         """
-        assert isinstance(nodes, list) and \
-            all(isinstance(x, Tree) and x.is_node for x in nodes)
+        assert(isinstance(nodes, list) and
+               all(isinstance(x, Tree) and x.is_node for x in nodes)), nodes
         assert isinstance(xinfo, dict)
 
         blacklist = AEXP.gen_blacklist(xinfo)
@@ -1292,8 +1239,6 @@ class AEXP(object):
             for i, node in enumerate(nodes):
                 lt = Tree(node.root, [None] * len(node.children), node.commute)
                 others = Tree.uniq(nodes[:i] + nodes[i+1:], node)
-                # print(node)
-                # print(others)
                 nestings = _gt(others, node)
                 for nesting in nestings:
                     aexp = AEXP(lt, nesting)
@@ -1305,8 +1250,8 @@ class AEXP(object):
         # filter out unlikely array expressions
         aexps = [a for a in aexps if a.is_ok(xinfo)]
 
-        print('* gen_aexps [{}]: {} expressions generated'
-              .format(','.join(map(lambda x: str(x.root), nodes)), len(aexps)))
+        mlog.debug('* gen_aexps [{}]: {} expressions generated'
+                   .format(','.join(map(lambda x: str(x.root), nodes)), len(aexps)))
         print('\n'.join(f'{i}. {a}' for i, a in enumerate(aexps)))
         return aexps
 
@@ -1362,14 +1307,14 @@ class AEXP(object):
 class ExtFun(str):
 
     efdict = {
-        'add': (lambda x, y: QQ(ZZ(x) + ZZ(y)), 2, True),
-        'sub': (lambda x, y: QQ(ZZ(x) - ZZ(y)), 2, False),  # not commute
-        'xor': (lambda x, y: QQ(ZZ(x).__xor__(ZZ(y))), 2, True),
-        'xor_xor': (lambda x, y, z: QQ(ZZ(x).__xor__(ZZ(y)).__xor__(ZZ(z))), 3, True),
-        'mod4': (lambda x: QQ(ZZ(x) % 4),   1, True),
-        'mod255': (lambda x: QQ(ZZ(x) % 255), 1, True),
-        'mul4': (lambda x: QQ(ZZ(x) * 4),   1, True),
-        'div4': (lambda x: QQ(ZZ(x) // 4),  1, True)  # commute ??
+        'add': (lambda x, y: QQ(ZZ(x) + ZZ(y)), True),
+        'sub': (lambda x, y: QQ(ZZ(x) - ZZ(y)), False),  # not commute
+        'xor': (lambda x, y: QQ(ZZ(x).__xor__(ZZ(y))), True),
+        'xor_xor': (lambda x, y, z: QQ(ZZ(x).__xor__(ZZ(y)).__xor__(ZZ(z))), True),
+        'mod4': (lambda x: QQ(ZZ(x) % 4), True),
+        'mod255': (lambda x: QQ(ZZ(x) % 255), True),
+        'mul4': (lambda x: QQ(ZZ(x) * 4),  True),
+        'div4': (lambda x: QQ(ZZ(x) // 4), True)   # commute ??
     }
 
     def __new__(cls, fn):
@@ -1379,37 +1324,34 @@ class ExtFun(str):
     @property
     def fun(self):
         """
-        # sage: ExtFun('xor').fun(*[7,15])
-        8
-        # sage: ExtFun('xor').fun(8,9)
-        1
-        # sage: ExtFun('xor').fun(18,-9)
-        -27
-        # sage: ExtFun('sub').fun(128,1)
-        127
-        # sage: ExtFun('sub').fun(0,1)
+        >>> assert ExtFun('xor').fun(*[7,15]) == 8
+        >>> assert ExtFun('xor').fun(8,9) == 1
+        >>> assert ExtFun('xor').fun(18,-9) == -27
+        >>> assert ExtFun('sub').fun(128,1) == 127
+
+        >>> ExtFun('sub').fun(0,1)
         -1
-        # sage: ExtFun('xor').fun(10,128)
+        >>> ExtFun('xor').fun(10,128)
         138
-        # sage: ExtFun('xor').fun(128,10)
+        >>> ExtFun('xor').fun(128,10)
         138
-        # sage: ExtFun('mod4').fun(128)
+        >>> ExtFun('mod4').fun(128)
         0
-        # sage: ExtFun('mod4').fun(127)
+        >>> ExtFun('mod4').fun(127)
         3
-        # sage: ExtFun('mod4').fun(1377)
+        >>> ExtFun('mod4').fun(1377)
         1
-        # sage: ExtFun('mod4').fun(1378)
+        >>> ExtFun('mod4').fun(1378)
         2
-        # sage: ExtFun('mod4').fun(1379)
+        >>> ExtFun('mod4').fun(1379)
         3
-        ### sage: ExtFun('mod4').fun(1380)
+        >>> ExtFun('mod4').fun(1380)
         0
-        ### sage: ExtFun('div4').fun(127)
+        >>> ExtFun('div4').fun(127)
         31
-        ### sage: ExtFun('div4').fun(128)
+        >>> ExtFun('div4').fun(128)
         32
-        ### sage: ExtFun('div4').fun(126)
+        >>> ExtFun('div4').fun(126)
         31
         """
         return ExtFun.efdict[self][0]
@@ -1420,15 +1362,15 @@ class ExtFun(str):
         Returns the number of function arguments
 
         Examples:
-        ### sage: ExtFun('sub').nargs
+        >>> ExtFun('sub').nargs
         2
-        ### sage: ExtFun('something').nargs
+        >>> ExtFun('something').nargs
         Traceback (most recent call last):
         ...
         KeyError: 'something'
 
         """
-        return ExtFun.efdict[self][1]
+        return len(self.fun.__code__.co_varnames)
 
     @property
     def commute(self):
@@ -1443,7 +1385,7 @@ class ExtFun(str):
         False
         """
         try:
-            return ExtFun.efdict[self][2]
+            return ExtFun.efdict[self][1]
         except KeyError:
             """
             If we don't know anything about the function, then
@@ -1497,7 +1439,7 @@ class ExtFun(str):
 
             if self.commute:
                 # [(1,2),(2,1),(2,2)] => [(1,2),(2,2)]
-                print(d)
+                # print(d)
                 d = OrderedDict((k, list(set(v))) for k, v in d.items())
 
             rs = OrderedDict()
@@ -1732,7 +1674,7 @@ class ExtFun(str):
         print(
             f"gen_extvar: {len(extvars)} ext funs found in xinfo['ExtVar']")
 
-        print(', '.join(extvars))
+        # print(', '.join(extvars))
         extvars = map(ExtFun.parse_extvar, extvars)
         return extvars
 
@@ -1857,104 +1799,6 @@ def adjust_arr_sizs(arrs, max_num_elems):
     return arrs_new
 
 
-# def is_growing_quickly(xs, ys, min_d):
-#     """
-#     Obtain growth rate of ys with respect to the counter xs
-
-#     # sage: get_growth_rate([1,2,3,4],[1,2,3,4])
-#     # [1.00000000000000, 1.00000000000000, 1.00000000000000]
-#     # sage: get_growth_rate([1,2,3,4],[1,2,3,5])
-#     # [1.00000000000000, 1.00000000000000, 1.16096404744368]
-#     # sage: get_growth_rate([4,1,2,3],[5,1,2,3])
-#     # [1.00000000000000, 1.00000000000000, 1.16096404744368]
-
-#     # sage: xs = range(10); get_grow_rate(xs,[x**3 for x in xs])
-#     # [3.00000000000000,
-#     # 3.00000000000000,
-#     # 3.00000000000000,
-#     # 3.00000000000000,
-#     # 3.00000000000000,
-#     # 3.00000000000000,
-#     # 3.00000000000000,
-#     # 3.00000000000000]
-#     # sage: xs = range(2); get_grow_rate(xs,[x**3 for x in xs])
-#     # []
-
-#     """
-#     if __debug__:
-#         assert (is_list(xs) and is_list(ys) and
-#                 len(xs) >= 10 and len(xs) == len(ys)), (xs,ys)
-#         assert all(x>=2 for x in xs), xs # ctr values are non-neg (2+ for log)
-
-#     zip_xs_ys = itertools.izip(xs,ys)
-#     zip_xs_ys = sorted(zip_xs_ys, key = lambda (x,y): x)
-#     ds = [log(y,x).n() for x,y in zip_xs_ys]
-
-#     #if it's not increasing, then return false
-#     if any(a > b for a,b in zip(ds,ds[1:])):
-#         return False
-
-#     #if not increasing quickly, return false
-#     if any(d < min_d for d in ds):
-#         return False
-
-#     return True
-
-# def elim_ss(ss, tcs, min_d):
-#     """
-#     ss = monomials
-#     """
-
-#     ctr_ss = [s for s in tcs[0] if 'dummy_ctr' in str(s)]
-#     if is_empty(ctr_ss):
-#         return ss
-
-#     if len(ctr_ss) >= 2:
-#         mlog.warn("more than 2 ctr symbols, use the 1st one '{}'"
-#                     .format(ctr_ss[0]))
-
-#     ctr_s = ctr_ss[0]
-
-#     best_ctr_idxs = []
-#     ctr_idxs = []
-#     n_reset = 0
-#     for i,t in enumerate(tcs):
-#         if len(best_ctr_idxs) > 50:
-#             break
-
-#         cur_ctr_v = tcs[i][ctr_s]
-#         assert cur_ctr_v >= 0 #ctr values are non-neg
-
-#         if i>=1 and tcs[i-1][ctr_s] > cur_ctr_v:
-#             if len(ctr_idxs) > len(best_ctr_idxs):
-#                 best_ctr_idxs = ctr_idxs
-
-#             ctr_idxs = []
-
-#             n_reset = n_reset + 1
-#             if n_reset >= 10:
-#                 break
-
-#         if cur_ctr_v >= 2: #only interested in value 2+
-#             ctr_idxs.append(i)
-
-#     if len(best_ctr_idxs) < 10:  #not enough data
-#         return ss
-
-#     tcs = [tcs[i] for i in best_ctr_idxs]
-#     s_tcs = dict([(s,[s.subs(t) for t in tcs]) for s in ss + [ctr_s]])
-
-#     xs = s_tcs[ctr_s]
-#     blacklist = [s for s in ss
-#                  if is_growing_quickly(xs,s_tcs[s],min_d)]
-
-#     if not is_empty(blacklist):
-#         print('Remove {} fast-growing terms {}'
-#                      .format(len(blacklist),blacklist))
-
-#     return [s for s in ss if s not in blacklist]
-
-
 class Miscs(object):
 
     @staticmethod
@@ -1995,8 +1839,8 @@ class Miscs(object):
 
         return _travel(A, [], [])
 
-    @staticmethod
-    def get_idxs(A):
+    @classmethod
+    def get_idxs(cls, A):
         """
         Return the (nested) order of A in dict format where dkey is value v
         of A and the dvalue is the list of indices I of A containing v
@@ -2009,7 +1853,7 @@ class Miscs(object):
         >>> assert Miscs.get_idxs([]) == OrderedDict()
         """
 
-        rs = [(v, tuple(idx)) for idx, v in Miscs.travel(A)]
+        rs = [(v, tuple(idx)) for idx, v in cls.travel(A)]
         return CM.create_dict(rs)
 
     @staticmethod
@@ -2089,12 +1933,8 @@ class CM:
         generates a dict where keys are k's and values are [v's]
         e.g.,
 
-        # >>> ###d = create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]); 
+        >>> d = create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]) 
         OrderedDict([('a', [1, 3]), ('b', [2, 10]), ('c', [4])])
-        # >>> ###d['x']
-        Traceback (most recent call last):
-        ...
-        KeyError: 'x'
         """
         return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
 
@@ -2240,18 +2080,18 @@ na.refine()
 
 
 print('TEST 3')
-sage.all.var('a b r Alogtable Logtable')
-(a, b, r, Alogtable, Logtable)
-xinfo = {'All': ['Alogtable', 'Logtable', 'a', 'b', 'r'], 'Assume': [], 'Const': [], 'Expect': [
+sage.all.var('a b r AL LT')
+(a, b, r, AL, LT)
+xinfo = {'All': ['AL', 'LT', 'a', 'b', 'r'], 'Assume': [], 'Const': [], 'Expect': [
     'r[i] = Alogtable(mod255(add(Logtable(a[i]),Logtable(b[i]))))'], 'ExtFun': ['add', 'mod255'], 'ExtVar': [], 'Global': [], 'Input': ['a', 'b'], 'Output': []}
 
-tcs1 = [OrderedDict([(r, [118]), (a, [29]), (b, [132]), (Alogtable, [1, 3, 5, 15, 17, 51, 85, 255, 26, 46, 114, 150, 161, 248, 19, 53, 95, 225, 56, 72, 216, 115, 149, 164, 247, 2, 6, 10, 30, 34, 102, 170, 229, 52, 92, 228, 55, 89, 235, 38, 106, 190, 217, 112, 144, 171, 230, 49, 83, 245, 4, 12, 20, 60, 68, 204, 79, 209, 104, 184, 211, 110, 178, 205, 76, 212, 103, 169, 224, 59, 77, 215, 98, 166, 241, 8, 24, 40, 120, 136, 131, 158, 185, 208, 107, 189, 220, 127, 129, 152, 179, 206, 73, 219, 118, 154, 181, 196, 87, 249, 16, 48, 80, 240, 11, 29, 39, 105, 187, 214, 97, 163, 254, 25, 43, 125, 135, 146, 173, 236, 47, 113, 147, 174, 233, 32, 96, 160, 251, 22, 58, 78, 210, 109, 183, 194, 93, 231, 50, 86, 250, 21, 63, 65, 195, 94, 226, 61, 71, 201, 64, 192, 91, 237, 44, 116, 156, 191, 218, 117, 159, 186, 213, 100, 172, 239, 42, 126, 130, 157, 188, 223, 122, 142, 137, 128, 155, 182, 193, 88, 232, 35, 101, 175, 234, 37, 111, 177, 200, 67, 197, 84, 252, 31, 33, 99, 165, 244, 7, 9, 27, 45, 119, 153, 176, 203, 70, 202, 69, 207, 74, 222, 121, 139, 134, 145, 168, 227, 62, 66, 198, 81, 243, 14, 18, 54, 90, 238, 41, 123, 141, 140, 143, 138, 133, 148, 167, 242, 13, 23, 57, 75, 221, 124, 132, 151, 162, 253, 28, 36,
-                    108, 180, 199, 82, 246, 1]), (Logtable, [0, 0, 25, 1, 50, 2, 26, 198, 75, 199, 27, 104, 51, 238, 223, 3, 100, 4, 224, 14, 52, 141, 129, 239, 76, 113, 8, 200, 248, 105, 28, 193, 125, 194, 29, 181, 249, 185, 39, 106, 77, 228, 166, 114, 154, 201, 9, 120, 101, 47, 138, 5, 33, 15, 225, 36, 18, 240, 130, 69, 53, 147, 218, 142, 150, 143, 219, 189, 54, 208, 206, 148, 19, 92, 210, 241, 64, 70, 131, 56, 102, 221, 253, 48, 191, 6, 139, 98, 179, 37, 226, 152, 34, 136, 145, 16, 126, 110, 72, 195, 163, 182, 30, 66, 58, 107, 40, 84, 250, 133, 61, 186, 43, 121, 10, 21, 155, 159, 94, 202, 78, 212, 172, 229, 243, 115, 167, 87, 175, 88, 168, 80, 244, 234, 214, 116, 79, 174, 233, 213, 231, 230, 173, 232, 44, 215, 117, 122, 235, 22, 11, 245, 89, 203, 95, 176, 156, 169, 81, 160, 127, 12, 246, 111, 23, 196, 73, 236, 216, 67, 31, 45, 164, 118, 123, 183, 204, 187, 62, 90, 251, 96, 177, 134, 59, 82, 161, 108, 170, 85, 41, 157, 151, 178, 135, 144, 97, 190, 220, 252, 188, 149, 207, 205, 55, 63, 91, 209, 83, 57, 132, 60, 65, 162, 109, 71, 20, 42, 158, 93, 86, 242, 211, 171, 68, 17, 146, 217, 35, 32, 46, 137, 180, 124, 184, 38, 119, 153, 227, 165, 103, 74, 237, 222, 197, 49, 254, 24, 13, 99, 140, 128, 192, 247, 112, 7])])]
+tcs1 = [OrderedDict([(r, [118]), (a, [29]), (b, [132]), (AL, [1, 3, 5, 15, 17, 51, 85, 255, 26, 46, 114, 150, 161, 248, 19, 53, 95, 225, 56, 72, 216, 115, 149, 164, 247, 2, 6, 10, 30, 34, 102, 170, 229, 52, 92, 228, 55, 89, 235, 38, 106, 190, 217, 112, 144, 171, 230, 49, 83, 245, 4, 12, 20, 60, 68, 204, 79, 209, 104, 184, 211, 110, 178, 205, 76, 212, 103, 169, 224, 59, 77, 215, 98, 166, 241, 8, 24, 40, 120, 136, 131, 158, 185, 208, 107, 189, 220, 127, 129, 152, 179, 206, 73, 219, 118, 154, 181, 196, 87, 249, 16, 48, 80, 240, 11, 29, 39, 105, 187, 214, 97, 163, 254, 25, 43, 125, 135, 146, 173, 236, 47, 113, 147, 174, 233, 32, 96, 160, 251, 22, 58, 78, 210, 109, 183, 194, 93, 231, 50, 86, 250, 21, 63, 65, 195, 94, 226, 61, 71, 201, 64, 192, 91, 237, 44, 116, 156, 191, 218, 117, 159, 186, 213, 100, 172, 239, 42, 126, 130, 157, 188, 223, 122, 142, 137, 128, 155, 182, 193, 88, 232, 35, 101, 175, 234, 37, 111, 177, 200, 67, 197, 84, 252, 31, 33, 99, 165, 244, 7, 9, 27, 45, 119, 153, 176, 203, 70, 202, 69, 207, 74, 222, 121, 139, 134, 145, 168, 227, 62, 66, 198, 81, 243, 14, 18, 54, 90, 238, 41, 123, 141, 140, 143, 138, 133, 148, 167, 242, 13, 23, 57, 75, 221, 124, 132, 151, 162, 253, 28, 36,
+                    108, 180, 199, 82, 246, 1]), (LT, [0, 0, 25, 1, 50, 2, 26, 198, 75, 199, 27, 104, 51, 238, 223, 3, 100, 4, 224, 14, 52, 141, 129, 239, 76, 113, 8, 200, 248, 105, 28, 193, 125, 194, 29, 181, 249, 185, 39, 106, 77, 228, 166, 114, 154, 201, 9, 120, 101, 47, 138, 5, 33, 15, 225, 36, 18, 240, 130, 69, 53, 147, 218, 142, 150, 143, 219, 189, 54, 208, 206, 148, 19, 92, 210, 241, 64, 70, 131, 56, 102, 221, 253, 48, 191, 6, 139, 98, 179, 37, 226, 152, 34, 136, 145, 16, 126, 110, 72, 195, 163, 182, 30, 66, 58, 107, 40, 84, 250, 133, 61, 186, 43, 121, 10, 21, 155, 159, 94, 202, 78, 212, 172, 229, 243, 115, 167, 87, 175, 88, 168, 80, 244, 234, 214, 116, 79, 174, 233, 213, 231, 230, 173, 232, 44, 215, 117, 122, 235, 22, 11, 245, 89, 203, 95, 176, 156, 169, 81, 160, 127, 12, 246, 111, 23, 196, 73, 236, 216, 67, 31, 45, 164, 118, 123, 183, 204, 187, 62, 90, 251, 96, 177, 134, 59, 82, 161, 108, 170, 85, 41, 157, 151, 178, 135, 144, 97, 190, 220, 252, 188, 149, 207, 205, 55, 63, 91, 209, 83, 57, 132, 60, 65, 162, 109, 71, 20, 42, 158, 93, 86, 242, 211, 171, 68, 17, 146, 217, 35, 32, 46, 137, 180, 124, 184, 38, 119, 153, 227, 165, 103, 74, 237, 222, 197, 49, 254, 24, 13, 99, 140, 128, 192, 247, 112, 7])])]
 
 
-#na = NestedArray(tcs=tcs1, xinfo=xinfo)
-# na.solve()
-
+na = NestedArray(tcs=tcs1, xinfo=xinfo)
+na.solve()
+# na.refine()
 
 # print('TEST 4')
 # C = Tree('C', [None])
