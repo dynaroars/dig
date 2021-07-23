@@ -16,26 +16,25 @@ class Z3:
     zFalse = z3.BoolVal(False)
 
     @classmethod
-    def _and(cls, fs):
-        assert isinstance(fs, list), fs
+    def _process_fs(cls, fs, and_or_or_f):
+        assert (isinstance(fs, list) and
+                all(z3.is_expr(f) or f is None for f in fs)), fs
 
+        fs = [f for f in fs if f is not None]
         if not fs:
             return None
         if len(fs) == 1:
             return fs[0]
 
-        return z3.And(fs)
+        return and_or_or_f(fs)
+
+    @classmethod
+    def _and(cls, fs):
+        return cls._process_fs(fs, z3.And)
 
     @classmethod
     def _or(cls, fs):
-        assert isinstance(fs, list), fs
-
-        if not fs:
-            return None
-        if len(fs) == 1:
-            return fs[0]
-
-        return z3.Or(fs)
+        return cls._process_fs(fs, z3.Or)
 
     @classmethod
     def is_var(cls, v):
