@@ -2,11 +2,12 @@ from collections import defaultdict
 
 import pdb
 import itertools
+import functools
 import operator
 
 import multiprocessing
 import queue
-from collections import Iterable
+from collections import Iterable, OrderedDict
 
 import sage.all
 from sage.all import cached_function
@@ -611,6 +612,22 @@ class Miscs:
                 results = others
 
         return sorted(results)
+
+    @staticmethod
+    def create_dict(l):
+        """
+        given a list of set of type [(k1,v1),..,(kn,vn)]
+        generates a dict where keys are k's and values are [v's]
+        e.g.,
+
+        >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]) 
+        {'a': [1, 3], 'b': [2, 10], 'c': [4]}
+        """
+        return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
+
+    @staticmethod
+    def merge_dict(l):
+        return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
 
 
 class MP:
