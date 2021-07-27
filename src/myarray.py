@@ -295,7 +295,7 @@ class NestedArray:
     dig:Info:Detected 1 invs for NestedArray:
     0: r[i1] == Alogtable[mod255(add(Logtable[a[i1]],Logtable[b[i1]]))]
 
-    # sage: tcs2 = [OrderedDict([(r, [209]), (a, [12]), (b, [85]), (Alogtable, [1, 3, 5, 15, 17, 51, 85, 255, 26, 46, 114, 150, 161, 248, 19, 53, 95, 225, 56, 72, 216, 115, 149, 164, 247, 2, 6, 10, 30, 34, 102, 170, 229, 52, 92, 228, 55, 89, 235, 38, 106, 190, 217, 112, 144, 171, 230, 49, 83, 245, 4, 12, 20, 60, 68, 204, 79, 209, 104, 184, 211, 110, 178, 205, 76, 212, 103, 169, 224, 59, 77, 215, 98, 166, 241, 8, 24, 40, 120, 136, 131, 158, 185, 208, 107, 189, 220, 127, 129, 152, 179, 206, 73, 219, 118, 154, 181, 196, 87, 249, 16, 48, 80, 240, 11, 29, 39, 105, 187, 214, 97, 163, 254, 25, 43, 125, 135, 146, 173, 236, 47, 113, 147, 174, 233, 32, 96, 160, 251, 22, 58, 78, 210, 109, 183, 194, 93, 231, 50, 86, 250, 21, 63, 65, 195, 94, 226, 61, 71, 201, 64, 192, 91, 237, 44, 116, 156, 191, 218, 117, 159, 186, 213, 100, 172, 239, 42, 126, 130, 157, 188, 223, 122, 142, 137, 128, 155, 182, 193, 88, 232, 35, 101, 175, 234, 37, 111, 177, 200, 67, 197, 84, 252, 31, 33, 99, 165, 244, 7, 9, 27, 45, 119, 153, 176, 203, 70, 202, 69, 207, 74, 222, 121, 139, 134, 145, 168, 227, 62, 66, 198, 81, 243, 14, 18, 54, 90, 238, 41, 123, 141, 140, 143, 138, 133, 148, 167, 242, 13, 23, 57, 75, 221, 124, 132, 151, 162, 253, 28, 36,
+    # sage: tcs2 = [OrderedDict([(r, [209]), (a, [12]), (b, [85]), (Alogtable, [1, 3, 5, 15, 17, 51, 85, 255, 26, 46, 114, 150, 161, 248, 19, 53, 95, 225, 56, 72, 216, 115, 149, 164, 247, 2, 6, 10, 30, 34, 102, 170, 229, 52, 92, 228, 55, 89, 235, 38, 106, 190, 217, 112, 144, 171, 230, 49, 83, 245, 4, 12, 20, 60, 68, 204, 79, 209, 104, 184, 211, 110, 178, 205, 76, 212, 103, 169, 224, 59, 77, 215, 98, 166, 241, 8, 24, 40, 120, 136, 131, 158, 185, 208, 107, 189, 220, 127, 129, 152, 179, 206, 73, 219, 118, 154, 181, 196, 87, 249, 16, 48, 80, 240, 11, 29, 39, 105, 187, 214, 97, 163, 254, 25, 43, 125, 135, 146, 173, 236, 47, 113, 147, 174, 233, 32, 96, 160, 251, 22, 58, 78, 210, 109, 183, 194, 93, 231, 50, 86, 250, 21, 63, 65, 195, 94, 226, 61, 71, 201, 64, 192, 91, 237, 44, 116, 156, 191, 218, 117, 159, 186, 213, 100, 172, 239, 42, 126, 130, 157, 188, 223, 122, 142, 137, 128, 155, 182, 193, 88, 232, 35, 101, 175, 234, 37, 111, 177, 200, 67, 197, 84, 252, 31, 33, 99, 165, 244, 7, 9, 27, 45, 119, 153, 176, 203, 70, 202, 69, 207, 74, 222, 121, 139, 134, 145, 168, 227, 62, 66, 198, 81, 243, 14, 18, 54, 90, 238, 41, 123, 141, 140, 143, 138, 133, 148, 167, 242, 13, 23, 57, 75, 221, 124, 132, 151, 162, 253, 28, 36
                               108, 180, 199, 82, 246, 1]), (Logtable, [0, 0, 25, 1, 50, 2, 26, 198, 75, 199, 27, 104, 51, 238, 223, 3, 100, 4, 224, 14, 52, 141, 129, 239, 76, 113, 8, 200, 248, 105, 28, 193, 125, 194, 29, 181, 249, 185, 39, 106, 77, 228, 166, 114, 154, 201, 9, 120, 101, 47, 138, 5, 33, 15, 225, 36, 18, 240, 130, 69, 53, 147, 218, 142, 150, 143, 219, 189, 54, 208, 206, 148, 19, 92, 210, 241, 64, 70, 131, 56, 102, 221, 253, 48, 191, 6, 139, 98, 179, 37, 226, 152, 34, 136, 145, 16, 126, 110, 72, 195, 163, 182, 30, 66, 58, 107, 40, 84, 250, 133, 61, 186, 43, 121, 10, 21, 155, 159, 94, 202, 78, 212, 172, 229, 243, 115, 167, 87, 175, 88, 168, 80, 244, 234, 214, 116, 79, 174, 233, 213, 231, 230, 173, 232, 44, 215, 117, 122, 235, 22, 11, 245, 89, 203, 95, 176, 156, 169, 81, 160, 127, 12, 246, 111, 23, 196, 73, 236, 216, 67, 31, 45, 164, 118, 123, 183, 204, 187, 62, 90, 251, 96, 177, 134, 59, 82, 161, 108, 170, 85, 41, 157, 151, 178, 135, 144, 97, 190, 220, 252, 188, 149, 207, 205, 55, 63, 91, 209, 83, 57, 132, 60, 65, 162, 109, 71, 20, 42, 158, 93, 86, 242, 211, 171, 68, 17, 146, 217, 35, 32, 46, 137, 180, 124, 184, 38, 119, 153, 227, 165, 103, 74, 237, 222, 197, 49, 254, 24, 13, 99, 140, 128, 192, 247, 112, 7])])]
     # sage: na = NestedArray(terms=[],tcs=tcs2,xinfo=xinfo)
     dig:Info:*** NestedArray ***
@@ -597,6 +597,10 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         return super().__new__(cls, root, tuple(children), commute)
 
     @property
+    def nchildren(self):
+        return len(self.children)
+
+    @property
     def is_leaf(self):
         return not self.children
 
@@ -707,7 +711,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
                 # print('no children_vss')
                 return []
         else:
-            children_vss = [None] * len(self.children)
+            children_vss = [None] * self.nchildren
         # print('children_vss', children_vss)
 
         if nodes:
@@ -746,7 +750,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
             rs = [Tree(self.root, list(c), self.commute) for c in combs]
         else:
-            rs = [Tree(self.root, [Tree()] * len(self.children), self.commute)]
+            rs = [Tree(self.root, [Tree()] * self.nchildren, self.commute)]
 
         # print('rs',  ';'.join(map(str, rs)))
         return rs
@@ -948,7 +952,7 @@ class AEXP(namedtuple("AEXP", ("lt", "rt"))):
         'v[i1] == a[x3[None][c[-2][None]][12]]'
 
         """
-        l_idxs = [i+1 for i in range(len(self.lt.children))]
+        l_idxs = [i+1 for i in range(self.lt.nchildren)]
         l_iformat = ''.join(f'[i{i}]' for i in l_idxs)  # [i][j]
         l_aformat = ','.join(f'i{i}' for i in l_idxs)  # i,j
 
@@ -1021,7 +1025,7 @@ class AEXP(namedtuple("AEXP", ("lt", "rt"))):
 
         if idxs_vals is None:
             ts = [1] + [sage.all.var(f'i{i+1}')
-                        for i in range(len(self.lt.children))]
+                        for i in range(self.lt.nchildren)]
         else:
             ts = [1] + list(idxs_vals)
 
@@ -1163,7 +1167,7 @@ class AEXP(namedtuple("AEXP", ("lt", "rt"))):
         def _loop(mynodes, get_others):
             aexps = []
             for i, node in enumerate(mynodes):
-                lt = Tree(node.root, [None] * len(node.children), node.commute)
+                lt = Tree(node.root, [None] * node.nchildren, node.commute)
                 others = get_others(node, i)
                 nestings = _gt(others, node)
                 for nesting in nestings:
@@ -1237,8 +1241,8 @@ class XInfo(namedtuple("XInfo", ("assumes", "consts", "expects", "extfuns", "ext
         outputs_not_in_tree = [{oup: self.myall + [None]}
                                for oup in self.outputs]
 
-        ds = inpleaveseaves+constleaves + extfuns_not_leaves + \
-            globals_not_leaves + outputs_not_in_tree
+        ds = (inpleaveseaves+constleaves + extfuns_not_leaves +
+              globals_not_leaves + outputs_not_in_tree)
         rs = HM.merge_dict(ds)
 
         return rs
@@ -1317,12 +1321,9 @@ class ExtFun(str):
         """
         Returns true if the function is commutative
 
-        >>> ExtFun('sub').commute
-        False
-        >>> ExtFun('add').commute
-        True
-        >>> ExtFun('something').commute
-        False
+        >>> assert not ExtFun('sub').commute
+        >>> assert ExtFun('add').commute
+        >>> assert not ExtFun('something').commute
         """
         try:
             return ExtFun.d[self][1]
@@ -1333,36 +1334,34 @@ class ExtFun(str):
             """
             return False
 
-    def gen_data(self, avals, doDict):
+    def gen_data(self, avals, do_dict):
         """
         Note: did not use caching because caching makes it slower.
         Probably because these functions are too simple that
         doesn't worth the caching overhead
         Examples:
 
-        >>> assert ExtFun('add').gen_data([1,7,9,-1], doDict=False) == set([2, 8, 10, 0, 14, 16, 6, 18, -2, 1, 7, 9, -1])
+        >>> assert ExtFun('add').gen_data([1,7,9,-1], do_dict=False) == set([2, 8, 10, 0, 14, 16, 6, 18, -2, 1, 7, 9, -1])
 
-        >>> assert ExtFun('add').gen_data([[1,7,9,-1]], doDict=False) == set([2, 8, 10, 0, 14, 16, 6, 18, -2, 1, 7, 9, -1])
+        >>> assert ExtFun('add').gen_data([[1,7,9,-1]], do_dict=False) == set([2, 8, 10, 0, 14, 16, 6, 18, -2, 1, 7, 9, -1])
 
-        >>> ExtFun('add').gen_data([[1,7,9,-1]],doDict=True)
-        OrderedDict([('add', OrderedDict([(2, [(1, 1)]), (8, [(1, 7), (9, -1)]), (10, [(1, 9)]), (0, [(1, -1)]),
-                    (14, [(7, 7)]), (16, [(7, 9)]), (6, [(7, -1)]), (18, [(9, 9)]), (-2, [(-1, -1)])]))])
+        >>> ExtFun('add').gen_data([[1,7,9,-1]],do_dict=True)
+        OrderedDict([('add', OrderedDict([(2, [(1, 1)]), (0, [(-1, 1)]), (10, [(1, 9)]), (8, [(-1, 9), (1, 7)]), (-2, [(-1, -1)]), (6, [(-1, 7)]), (18, [(9, 9)]), (16, [(7, 9)]), (14, [(7, 7)])]))])
 
-        # sage: ExtFun('sub').gen_data([[1,2],[5,6]], doDict=False)
-        [0, -1, -4, -5, 1, -3, 4, 3, 5, 2, 6]
-        # sage: ExtFun('sub').gen_data([[1,2,5,6]], doDict=False)
-        [0, -1, -4, -5, 1, -3, 4, 3, 5, 2, 6]
-        # sage: ExtFun('sub').gen_data([1,2,5,6], doDict=False)
-        [0, -1, -4, -5, 1, -3, 4, 3, 5, 2, 6]
+        >>> assert ExtFun('sub').gen_data([[1,2],[5,6]], do_dict=False) == set([0, -1, -4, -5, 1, -3, 4, 3, 5, 2, 6])
 
-        # sage: ExtFun('sub').gen_data([[1,2],[5,6]],doDict=True)
-        OrderedDict([('sub', OrderedDict([(0, [(1, 1), (2, 2), (5, 5), (6, 6)]), (-1, [(1, 2), (5, 6)]), (-4, [(1, 5), (2, 6)]),
-                    (-5, [(1, 6)]), (1, [(2, 1), (6, 5)]), (-3, [(2, 5)]), (4, [(5, 1), (6, 2)]), (3, [(5, 2)]), (5, [(6, 1)])]))])
 
-        # sage: ExtFun('add').gen_data([[1,2,3,4],[5,6],[7,8,9]], doDict=False)
+        >>> assert ExtFun('sub').gen_data([[1,2,5,6]], do_dict=False) == set([0, -1, -4, -5, 1, -3, 4, 3, 5, 2, 6])
+
+        >>> assert ExtFun('sub').gen_data([1,2,5,6], do_dict=False) == set([0, -1, -4, -5, 1, -3, 4, 3, 5, 2, 6])
+
+        >>> ExtFun('sub').gen_data([[1,2],[5,6]],do_dict=True)
+        OrderedDict([('sub', {0: [(1, 1), (2, 2), (5, 5), (6, 6)], -1: [(1, 2), (5, 6)], -4: [(1, 5), (2, 6)], -5: [(1, 6)], 1: [(2, 1), (6, 5)], -3: [(2, 5)], 4: [(5, 1), (6, 2)], 3: [(5, 2)], 5: [(6, 1)]})])
+
+        # sage: ExtFun('add').gen_data([[1,2,3,4],[5,6],[7,8,9]], do_dict=False)
         [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1]
 
-        # sage: ExtFun('add').gen_data([[1,2,3,4],[5,6],[7,8,9]], doDict=True)
+        # sage: ExtFun('add').gen_data([[1,2,3,4],[5,6],[7,8,9]], do_dict=True)
         OrderedDict([('add', OrderedDict([(2, [(1, 1)]), (3, [(1, 2)]), (4, [(1, 3), (2, 2)]), (5, [(1, 4), (2, 3)]), (6, [(1, 5), (2, 4), (3, 3)]), (7, [(1, 6), (2, 5), (3, 4)]), (8, [(1, 7), (2, 6), (3, 5), (4, 4)]), (9, [(1, 8), (2, 7), (3, 6), (4, 5)]), (10, [
                     (1, 9), (2, 8), (3, 7), (4, 6), (5, 5)]), (11, [(2, 9), (3, 8), (4, 7), (5, 6)]), (12, [(3, 9), (4, 8), (5, 7), (6, 6)]), (13, [(4, 9), (5, 8), (6, 7)]), (14, [(5, 9), (6, 8), (7, 7)]), (15, [(6, 9), (7, 8)]), (16, [(7, 9), (8, 8)]), (17, [(8, 9)]), (18, [(9, 9)])]))])
         """
@@ -1377,7 +1376,7 @@ class ExtFun(str):
         idxs = list(itertools.product(*alists))
         fun_vals = [self.fun(*idx) for idx in idxs]
 
-        if doDict:  # create dict
+        if do_dict:  # create dict
             cs = zip(fun_vals, idxs)
             cs = [(fv, tuple(idx)) for (fv, idx) in cs]
 
@@ -1450,12 +1449,13 @@ class ExtFun(str):
             # F_avals = [ExtFun.get_outvals(tuple(fs), tuple(avals))
             #            for fs in F_rest]
 
-        F_d = [fn.gen_data(f_aval, doDict=True)
+        F_d = [fn.gen_data(f_aval, do_dict=True)
                for fn, f_aval in zip(extfuns, F_avals)]
 
         return F_d
 
-    def get_outvals(extfuns, avals):
+    @classmethod
+    def get_outvals(cls, extfuns, avals):
         """
         Recursive function that returns the all possible input values
 
@@ -1473,13 +1473,13 @@ class ExtFun(str):
         [1, 2, 256, 259]
         """
 
-        assert len(extfuns) >= 1
+        assert extfuns, extfuns
         assert all(isinstance(f, ExtFun) for f in extfuns)
 
         if len(extfuns) > 1:
-            avals = ExtFun.get_outvals(extfuns[1:], avals)
+            avals = cls.get_outvals(extfuns[1:], avals)
         else:
-            avals = extfuns[0].gen_data(avals, doDict=False)
+            avals = extfuns[0].gen_data(avals, do_dict=False)
 
         return avals
 
@@ -1581,6 +1581,9 @@ class ExtFun(str):
         ...
         AssertionError: 0wrongvarname
         """
+
+        assert False, "Not implemented/checked"
+
         ev = ev.strip()
 
         assert ev.count(' ') >= 1, ev
@@ -1595,31 +1598,30 @@ class ExtFun(str):
         vval = ReadFile.strToRatOrList(vval, is_num_val=None)
         return OrderedDict([(vname, vval)])
 
-    @ classmethod
+    @classmethod
     def gen_extvars(cls, xinfo):
         """
         Returns a list of dicts representing extvars
 
         [{v1: 3.14},  {v2: [1,2,3]}]
 
-        # sage: ExtFun.gen_extvars({'ExtVar' : ['mpi 3.1415', ' t 20.5 ',  'arr [1,[2,3,4]]']})
+        # >>> ExtFun.gen_extvars(XInfo(extvars=['mpi 3.1415', ' t 20.5 ',  'arr [1,[2,3,4]]']))
         dig_miscs:Debug:gen_extvar: 3 ext funs found in xinfo['ExtVar']
         dig_miscs:Detail:mpi 3.1415,  t 20.5 , arr [1,[2,3,4]]
         [OrderedDict([(mpi, 6283/2000)]), OrderedDict([(t, 41/2)]),
                      OrderedDict([(arr, [1, [2, 3, 4]])])]
 
-        # sage: ExtFun.gen_extvars({'ExtVar' : []})
+        >>> ExtFun.gen_extvars(XInfo())
         []
-
-
         """
+
         assert isinstance(xinfo, XInfo), xinfo
         if not xinfo.extvars:
             return []
 
-        mlog.debug(
-            f"gen_extvar: {len(extvars)} ext funs from {xinfo.extvars}")
-        return list(map(cls.parse_extvar, extvars))
+        extvars = [cls.parse_extvar(e) for e in xinfo.extvars]
+        mlog.debug(f"generate {len(extvars)} ext vars: {extvars}")
+        return extvars
 
 
 def get_traces(tcs, ntcs, ntcs_extra):
@@ -1814,36 +1816,6 @@ class Miscs(object):
             return rs
 
 
-class CM:
-    @staticmethod
-    def vsetdiff(seq1, seq2):
-        """
-        Set diff operation that preserves order, return seq1 - seq2
-
-        EXAMPLES:
-
-        ### sage: var('y')
-        y
-        ### sage: vsetdiff([x^2>=1,x-y==3,x+y==9,x-y==3],[2])
-        [x^2 >= 1, x - y == 3, x + y == 9, x - y == 3]
-        ### sage: vsetdiff([x^2>=1,x-y==3,x+y==9,x-y==3],[x-y==3])
-        [x^2 >= 1, x + y == 9]
-        ### sage: vsetdiff([x^2>=1],[x-y==3])
-        [x^2 >= 1]
-        ### sage: vsetdiff([],[x-y==3])
-        []
-        ### sage: vsetdiff([1,2,3],[2])
-        [1, 3]
-
-        """
-        assert isinstance(seq1, list)
-        assert isinstance(seq2, list)
-
-        seq2 = set(seq2)  # since  membership testing in set is quick
-
-        return [s for s in seq1 if s not in seq2]
-
-
 def get_constraints(m, result_as_dict=False):
     """
     Input a model m, returns its set of constraints in either 
@@ -1994,16 +1966,20 @@ if __name__ == "__main__":
 
     # sage.all.var('x')
     # print(Tree(7, [None, None]))
-    print('TEST 5')
-    na = NestedArray(tcs=[{'R': [128, 127, 126, 125], 'N':[128]}], xinfo=XInfo(
-        myall=['R'], expects=['R[i]=sub(N,i)'], extfuns=['sub'], outputs=['R']))
+    # print('TEST 5')
+    # na = NestedArray(tcs=[{'R': [128, 127, 126, 125], 'N':[128]}], xinfo=XInfo(
+    #     myall=['R'], expects=['R[i]=sub(N,i)'], extfuns=['sub'], outputs=['R']))
+    # na.solve()
+
+    # nodes = [Tree('A', [None]), Tree('C', [None]), Tree('B', [None])]
+    # xinfo = XInfo(myall=['A', 'B', 'C'], outputs=['C'])
+    # aexps = AEXP.gen_aexps(nodes, xinfo, data={})
+
+    # print(ExtFun('add').gen_data([[1, 7, 9, -1]], do_dict=True))
+    # ExtFun('add').gen_data([1, 7, 9, -1], do_dict=False)
+
+    print('TEST 6')
+    tcs2 = [OrderedDict([(r, [209]), (a, [12]), (b, [85]), (AL, [1, 3, 5, 15, 17, 51, 85, 255, 26, 46, 114, 150, 161, 248, 19, 53, 95, 225, 56, 72, 216, 115, 149, 164, 247, 2, 6, 10, 30, 34, 102, 170, 229, 52, 92, 228, 55, 89, 235, 38, 106, 190, 217, 112, 144, 171, 230, 49, 83, 245, 4, 12, 20, 60, 68, 204, 79, 209, 104, 184, 211, 110, 178, 205, 76, 212, 103, 169, 224, 59, 77, 215, 98, 166, 241, 8, 24, 40, 120, 136, 131, 158, 185, 208, 107, 189, 220, 127, 129, 152, 179, 206, 73, 219, 118, 154, 181, 196, 87, 249, 16, 48, 80, 240, 11, 29, 39, 105, 187, 214, 97, 163, 254, 25, 43, 125, 135, 146, 173, 236, 47, 113, 147, 174, 233, 32, 96, 160, 251, 22, 58, 78, 210, 109, 183, 194, 93, 231, 50, 86, 250, 21, 63, 65, 195, 94, 226, 61, 71, 201, 64, 192, 91, 237, 44, 116, 156, 191, 218, 117, 159, 186, 213, 100, 172, 239, 42, 126, 130, 157, 188, 223, 122, 142, 137, 128, 155, 182, 193, 88, 232, 35, 101, 175, 234, 37, 111, 177, 200, 67, 197, 84, 252, 31, 33, 99, 165, 244, 7, 9, 27, 45, 119, 153, 176, 203, 70, 202, 69, 207, 74, 222, 121, 139, 134, 145, 168, 227, 62, 66, 198, 81, 243, 14, 18, 54, 90, 238, 41, 123, 141, 140, 143, 138, 133, 148, 167, 242, 13, 23, 57, 75, 221, 124, 132, 151, 162, 253, 28, 36, 108,
+                        180, 199, 82, 246, 1]), (LT, [0, 0, 25, 1, 50, 2, 26, 198, 75, 199, 27, 104, 51, 238, 223, 3, 100, 4, 224, 14, 52, 141, 129, 239, 76, 113, 8, 200, 248, 105, 28, 193, 125, 194, 29, 181, 249, 185, 39, 106, 77, 228, 166, 114, 154, 201, 9, 120, 101, 47, 138, 5, 33, 15, 225, 36, 18, 240, 130, 69, 53, 147, 218, 142, 150, 143, 219, 189, 54, 208, 206, 148, 19, 92, 210, 241, 64, 70, 131, 56, 102, 221, 253, 48, 191, 6, 139, 98, 179, 37, 226, 152, 34, 136, 145, 16, 126, 110, 72, 195, 163, 182, 30, 66, 58, 107, 40, 84, 250, 133, 61, 186, 43, 121, 10, 21, 155, 159, 94, 202, 78, 212, 172, 229, 243, 115, 167, 87, 175, 88, 168, 80, 244, 234, 214, 116, 79, 174, 233, 213, 231, 230, 173, 232, 44, 215, 117, 122, 235, 22, 11, 245, 89, 203, 95, 176, 156, 169, 81, 160, 127, 12, 246, 111, 23, 196, 73, 236, 216, 67, 31, 45, 164, 118, 123, 183, 204, 187, 62, 90, 251, 96, 177, 134, 59, 82, 161, 108, 170, 85, 41, 157, 151, 178, 135, 144, 97, 190, 220, 252, 188, 149, 207, 205, 55, 63, 91, 209, 83, 57, 132, 60, 65, 162, 109, 71, 20, 42, 158, 93, 86, 242, 211, 171, 68, 17, 146, 217, 35, 32, 46, 137, 180, 124, 184, 38, 119, 153, 227, 165, 103, 74, 237, 222, 197, 49, 254, 24, 13, 99, 140, 128, 192, 247, 112, 7])])]
+    na = NestedArray(tcs=tcs2, xinfo=xinfo)
     na.solve()
-
-
-nodes = [Tree('A', [None]), Tree('C', [None]), Tree('B', [None])]
-xinfo = XInfo(myall=['A', 'B', 'C'], outputs=['C'])
-aexps = AEXP.gen_aexps(nodes, xinfo, data={})
-
-
-print(ExtFun('add').gen_data([[1, 7, 9, -1]], doDict=True))
-# ExtFun('add').gen_data([1, 7, 9, -1], doDict=False)
