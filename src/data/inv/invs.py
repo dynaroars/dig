@@ -73,8 +73,8 @@ class Invs(set):
 
     def simplify(self):
 
-        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self.classify(
-            self)
+        eqts, eqts_largecoefs, octs, mps, preposts, \
+            arr_rels, falseinvs = self.classify(self)
 
         assert not falseinvs, falseinvs
         assert not preposts, preposts
@@ -128,7 +128,7 @@ class Invs(set):
             octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
         )
 
-        done += octs_simple + octs_mps
+        done += octs_simple + octs_mps + arr_rels
         return self.__class__(done)
 
     @classmethod
@@ -189,7 +189,7 @@ class Invs(set):
     @classmethod
     def classify(cls, invs):
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
-        arels = []
+        arr_rels = []
         for inv in invs:
             mylist = None
             if isinstance(inv, data.inv.eqt.Eqt):
@@ -204,13 +204,13 @@ class Invs(set):
             elif isinstance(inv, data.inv.prepost.PrePost):
                 mylist = preposts
             elif isinstance(inv, data.inv.nested_array.NestedArray):
-                mylist = arels
+                mylist = arr_rels
             else:
                 assert isinstance(inv, data.inv.invs.FalseInv), inv
                 mylist = falseinvs
 
             mylist.append(inv)
-        return eqts, eqts_largecoefs, octs, mps, preposts, falseinvs
+        return eqts, eqts_largecoefs, octs, mps, preposts, arr_rels, falseinvs
 
 
 class DInvs(dict):
@@ -244,9 +244,9 @@ class DInvs(dict):
         ss = []
 
         for loc in sorted(self):
-            eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = self[loc].classify(
-                self[loc]
-            )
+            eqts, eqts_largecoefs, octs, mps, preposts, \
+                arr_rels, falseinvs = self[loc].classify(self[loc])
+
             ss.append(f"{loc} ({len(self[loc])} invs):")
 
             def mylen(x):
@@ -257,6 +257,7 @@ class DInvs(dict):
                 + sorted(preposts, key=mylen)
                 + sorted(octs, key=mylen)
                 + sorted(mps, key=mylen)
+                + sorted(arr_rels, key=mylen)
                 + sorted(falseinvs, key=mylen)
             )
 

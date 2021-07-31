@@ -1,6 +1,7 @@
 import pdb
 from collections import namedtuple
 from pathlib import Path
+from collections.abc import Iterable
 
 import z3
 import sage.all
@@ -59,10 +60,15 @@ class Trace(SymbsVals):
         try:
             return self._mydict
         except AttributeError:
-            self._mydict = {
-                sage.all.var(s): v for s, v in zip(self.ss, self.vs) if "!" not in s
-            }
+            d = {}
+            for s, v in zip(self.ss, self.vs):
+                if "!" in s:
+                    continue
+                k = str(s) if isinstance(v, Iterable) else sage.all.var(s)
+                assert k not in d
+                d[k] = v
 
+            self._mydict = d
             return self._mydict
 
     @property
