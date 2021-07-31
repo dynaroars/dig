@@ -792,7 +792,7 @@ class SymStates(dict):
     def get_inp_constrs(self, inps):
         cstrs = []
         if isinstance(inps, data.traces.Inps) and inps:
-            inpCstrs = [inp.mkExpr(self.inp_exprs) for inp in inps]
+            inpCstrs = [inp.mk_expr(self.inp_exprs) for inp in inps]
             inpCstrs = [z3.Not(expr) for expr in inpCstrs if expr is not None]
             cstrs.extend(inpCstrs)
 

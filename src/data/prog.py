@@ -213,11 +213,21 @@ class Symbs(tuple):
     def mk(cls, s):
         """
         I x , D y .. ->  {x: int, y: double}
+
+        x , y .. ->  {x: int, y: double}
         """
         assert isinstance(s, str), s
-
-        cs = (x.split() for x in s.split(",") if x.strip())
-        symbs = [Symb(k.strip(), t.strip()) for t, k in cs]
+        symbs = []
+        for x in s.split(","):
+            x = x.strip()
+            vs = x.split()
+            if len(vs) == 2:  # I, x
+                t, k = vs[0], vs[1]
+            else:
+                assert len(vs) == 1  # x
+                t, k = 'I', vs[0]  # default is int
+                mlog.warning(f"no type for {k}, assuming int")
+            symbs.append(Symb(k, t))
         return cls(symbs)
 
 

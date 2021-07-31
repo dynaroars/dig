@@ -85,18 +85,17 @@ class Invs(set):
             return self.get_expr(p, exprs_d)
 
         # simplify eqts, e.g., to remove x - y == 0  if -x + y == 0 exists
-        eqts = self.simplify2(eqts,None,"eqts", my_get_expr)
+        eqts = self.simplify2(eqts, None, "eqts", my_get_expr)
 
         octs_simple, octs_not_simple = [], []
         for oct in octs:
             (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
-        # find equality invs (==) from min/max-plus            
-        mps = data.inv.mp.MMP.simplify(mps)  
+        # find equality invs (==) from min/max-plus
+        mps = data.inv.mp.MMP.simplify(mps)
         mps_eqt, mps_ieq = [], []
         for mp in mps:
             (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
-
 
         done = eqts + mps_eqt  # don't simply these
         mps_ieq = self.simplify1(mps_ieq, done + octs, "mps_ieq", my_get_expr)
@@ -128,7 +127,7 @@ class Invs(set):
         octs_simple = self.simplify2(
             octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
         )
-        
+
         done += octs_simple + octs_mps
         return self.__class__(done)
 
@@ -190,22 +189,27 @@ class Invs(set):
     @classmethod
     def classify(cls, invs):
         eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
-
+        arels = []
         for inv in invs:
+            mylist = None
             if isinstance(inv, data.inv.eqt.Eqt):
                 if len(Miscs.get_coefs(inv.inv)) > 10:
-                    eqts_largecoefs.append(inv)
+                    mylist = eqts_largecoefs
                 else:
-                    eqts.append(inv)
+                    mylist = eqts
             elif isinstance(inv, data.inv.oct.Oct):
-                octs.append(inv)
+                mylist = octs
             elif isinstance(inv, data.inv.mp.MMP):
-                mps.append(inv)
+                mylist = mps
             elif isinstance(inv, data.inv.prepost.PrePost):
-                preposts.append(inv)
+                mylist = preposts
+            elif isinstance(inv, data.inv.nested_array.NestedArray):
+                mylist = arels
             else:
                 assert isinstance(inv, data.inv.invs.FalseInv), inv
-                falseinvs.append(inv)
+                mylist = falseinvs
+
+            mylist.append(inv)
         return eqts, eqts_largecoefs, octs, mps, preposts, falseinvs
 
 

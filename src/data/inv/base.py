@@ -26,13 +26,11 @@ class Inv(metaclass=ABCMeta):
         """
         stat = None means never been checked
         """
-        assert (
-            inv == 0  # FalseInv
-            or (
-                isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)  # PrePost
-            )  # Max/MinPlus
-            or inv.is_relational()
-        ), inv
+        assert (inv == 0 or  # FalseInv
+                # PrePost and Max/MinPlus
+                (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
+                isinstance(inv, str) or   # Array relation
+                inv.is_relational()), inv
 
         assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
 

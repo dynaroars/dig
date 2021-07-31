@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import itertools
 import pdb
 import random
 import time
@@ -10,6 +11,8 @@ from threading import Thread
 import sage.all
 
 import settings
+# import myarray
+
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
@@ -21,6 +24,7 @@ import data.symstates
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
 
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
@@ -132,8 +136,8 @@ class DigSymStates(Dig):
         inps = Inps()
 
         if settings.DO_EQTS:
-            self.infer(self.EQTS, dinvs, lambda: self.infer_eqts(
-                maxdeg, dtraces, inps))
+            self.infer(self.EQTS, dinvs,
+                       lambda: self.infer_eqts(maxdeg, dtraces, inps))
 
         if settings.DO_IEQS:
             self.infer(self.IEQS, dinvs,
@@ -283,10 +287,7 @@ class DigTraces(Dig):
 
         super().__init__(tracefile)
         self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-        # for t in self.dtraces.values():
-        #     print(type(t))
-        #     print(t.maxdeg)
-        # DBG()
+
         if test_tracefile:
             _, self.test_dtraces = DTraces.vread(test_tracefile)
 
@@ -299,18 +300,20 @@ class DigTraces(Dig):
         for loc in self.dtraces:
             symbols = self.inv_decls[loc]
             traces = self.dtraces[loc]
+
             if settings.DO_EQTS:
-
                 def _f():
-                    return self.infer_eqts(maxdeg, symbols, traces)
-
+                    return self.infer_eqts(maxdeg, traces, symbols)
                 tasks.append((loc, _f))
 
             if settings.DO_IEQS:
-
                 def _f():
-                    return self.infer_ieqs(symbols, traces)
+                    return self.infer_ieqs(traces, symbols)
+                tasks.append((loc, _f))
 
+            if settings.DO_ARRAYS:
+                def _f():
+                    return self.infer_nested_arrays(traces, symbols)
                 tasks.append((loc, _f))
 
         def f(tasks):
@@ -328,13 +331,12 @@ class DigTraces(Dig):
             new_traces = self.dtraces.merge(self.test_dtraces)
             mlog.debug(f"added {new_traces.siz} test traces")
         except AttributeError:
-            # no test traces
-            pass
+            pass  # no test traces
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         print(dinvs)
 
-    def infer_eqts(self, maxdeg, symbols, traces):
+    def infer_eqts(self, maxdeg, traces, symbols):
         auto_deg = self.get_auto_deg(maxdeg)
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
             symbols.names, auto_deg, settings.EQT_RATE
@@ -345,7 +347,7 @@ class DigTraces(Dig):
 
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
 
-    def infer_ieqs(self, symbols, traces):
+    def infer_ieqs(self, traces, symbols):
         maxV = settings.IUPPER
         minV = -1 * maxV
 
@@ -365,3 +367,28 @@ class DigTraces(Dig):
 
         ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
         return ieqs
+
+    def infer_nested_arrays(self, traces, symbols):
+
+        import data.inv.nested_array
+
+        tc = list(traces)[0]  # just use 1 trace for inference
+        tc = {k: data.inv.nested_array.MyMiscs.get_idxs(l) for k, l in zip(
+            tc.ss, tc.vs)}  # convert to idx format
+
+        trees = [data.inv.nested_array.Tree(a, [None] * len(list(d.items())[0][1]), data.inv.nested_array.ExtFun(a).commute)
+                 for a, d in tc.items()]
+        tasks = data.inv.nested_array.AEXP.gen_aexps(
+            trees, data.inv.nested_array.XInfo(), tc)
+
+        def f(tasks):
+            rs = [a.peelme(tc) for a in tasks]
+            return rs
+
+        wrs = MP.run_mp("Apply reachability", tasks, f, settings.DO_MP)
+
+        rels = [data.inv.nested_array.NestedArray(ar)
+                for ar in itertools.chain(*wrs)]
+        mlog.debug(f"Potential rels: {len(rels)}")
+        print(rels)
+        return rels

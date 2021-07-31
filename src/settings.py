@@ -13,6 +13,7 @@ DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
+DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
@@ -156,6 +157,12 @@ def setup(settings, args):
         else:
             opts.append("-noieqs")
 
+    if args.noarrays:
+        if settings:
+            settings.DO_ARRAYS = not args.noarrays
+        else:
+            opts.append("-noarrays")
+
     if args.nominmaxplus:
         if settings:
             settings.DO_MINMAXPLUS = not args.nominmaxplus
@@ -183,7 +190,8 @@ def setup(settings, args):
     if 0 <= args.log_level <= 4:
         if settings:
             settings.logger_level = args.log_level
-            settings.logger_level = helpers.vcommon.getLogLevel(settings.logger_level)
+            settings.logger_level = helpers.vcommon.getLogLevel(
+                settings.logger_level)
             mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
         else:
             opts.append(f"-log_level {args.log_level}")

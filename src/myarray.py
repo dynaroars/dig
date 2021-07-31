@@ -474,6 +474,7 @@ class NestedArray:
             mytcs.append(d)
 
         self.tcs = mytcs
+
         self.trees = [Tree(k, [None] * len(list(c.items())[0][1]), ExtFun(k).commute)
                       for k, c in self.tcs[0].items()]
 
@@ -485,7 +486,6 @@ class NestedArray:
 
         # add ext funs, generate nodes, modify tcs
         self.preprocess()
-
         mlog.debug("Generate arr exps (nestings)")
         aexps = AEXP.gen_aexps(self.trees, self.xinfo, self.tcs[0])
 
@@ -497,6 +497,7 @@ class NestedArray:
         sols = list(itertools.chain(*wrs))
 
         mlog.debug(f"Potential rels: {len(sols)}")
+
         self.sols = [InvNestedArray(s) for s in sols]
         Inv.print_invs(self.sols)
 
@@ -1717,7 +1718,7 @@ class Miscs(object):
         >>> Miscs.travel([1,[0,[5]],8,[8]])
         [([0], 1), ([1, 0], 0), ([1, 1, 0], 5), ([2], 8), ([3, 0], 8)]
         """
-        assert isinstance(A, list), A
+        assert isinstance(A, Iterable), A
 
         def _travel(A, idx, rs):
             for i, c in enumerate(A):

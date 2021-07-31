@@ -11,7 +11,6 @@ from helpers.miscs import Miscs
 import data.prog
 import settings
 
-
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -29,7 +28,7 @@ class SymbsVals(namedtuple("SymbsVals", ("ss", "vs"))):
     def __str__(self):
         return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
 
-    def mkExpr(self, ss):
+    def mk_expr(self, ss):
         # create z3 expression
         assert len(ss) == len(self.vs), (ss, self.vs)
         try:
@@ -81,7 +80,9 @@ class Trace(SymbsVals):
         assert isinstance(ss, (tuple, list)), ss
         assert isinstance(vs, (tuple, list)), vs
 
-        vs = tuple(Miscs.rat2str(t) for t in vs)
+        vs = tuple(Miscs.str2list(t) if '[' in t else Miscs.str2rat(t)
+                   for t in vs)
+
         return Trace(ss, vs)
 
     @classmethod
@@ -255,6 +256,7 @@ class DTraces(dict):
             vs = tracevals.strip().split()
             mytrace = Trace.parse(ss, vs)
             dtraces.add(loc, mytrace)
+
         return dtraces
 
     def vwrite(self, inv_decls, tracefile):
@@ -314,16 +316,15 @@ class DTraces(dict):
 
                 myreader = csv.reader(csvfile, delimiter=';')
                 for row in myreader:
-
                     row = [field.strip() for field in row]
                     if not row or row[0].startswith("#"):
                         continue
                     loc, contents = row[0], row[1:]
                     if loc not in inv_decls:
-                        inv_decls[loc] = data.prog.Symbs.mk(
-                            ', '.join(contents))
+                        contents = ', '.join(contents)
+                        inv_decls[loc] = data.prog.Symbs.mk(contents)
                     else:
-                        s = "{}: {}".format(loc, ' '.join(contents))
+                        s = f"{loc}: {' '.join(contents)}"
                         trace_str.append(s)
 
         else:
@@ -338,6 +339,7 @@ class DTraces(dict):
                     trace_str.append(line.replace(",", " "))
 
         dtraces = DTraces.parse(trace_str, inv_decls)
+        mlog.debug(f"{dtraces} traces")
         return inv_decls, dtraces
 
 

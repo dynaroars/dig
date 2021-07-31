@@ -17,6 +17,8 @@ def killchildren(pid):
             child.terminate()
         except:
             mlog.exception(f"Can't terminate child {child}")
+
+
 """
 Example runs:
 - sage -python -O dig.py ../benchmark/nla/Bresenham.java
@@ -110,6 +112,13 @@ if __name__ == "__main__":
         "-noieqs",
         action="store_true",
         help="don't compute ieq/oct invariants",
+    )
+
+    ag(
+        "--noarrays",
+        "-nonoarrays",
+        action="store_true",
+        help="don't compute array relations",
     )
 
     ag(

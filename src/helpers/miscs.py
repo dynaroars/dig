@@ -104,22 +104,22 @@ class Miscs:
 
     @staticmethod
     @cached_function
-    def rat2str(s):
+    def str2rat(s):
         """
         Convert the input 's' to a rational number if possible.
 
         Examples:
 
-        >>> assert Miscs.rat2str('.3333333') == 3333333/10000000
-        >>> assert Miscs.rat2str('3/7') == 3/7
-        >>> assert Miscs.rat2str('1.') == 1
-        >>> assert Miscs.rat2str('1.2') == 6/5
-        >>> assert Miscs.rat2str('.333') == 333/1000
-        >>> assert Miscs.rat2str('-.333') == -333/1000
-        >>> assert Miscs.rat2str('-12.13') == -1213/100
+        >>> assert Miscs.str2rat('.3333333') == 3333333/10000000
+        >>> assert Miscs.str2rat('3/7') == 3/7
+        >>> assert Miscs.str2rat('1.') == 1
+        >>> assert Miscs.str2rat('1.2') == 6/5
+        >>> assert Miscs.str2rat('.333') == 333/1000
+        >>> assert Miscs.str2rat('-.333') == -333/1000
+        >>> assert Miscs.str2rat('-12.13') == -1213/100
 
         # Returns None because cannot convert this str
-        >>> Miscs.rat2str('333333333333333s')
+        >>> Miscs.str2rat('333333333333333s')
         Traceback (most recent call last):
         ...
         TypeError: unable to convert '333333333333333s' to a real number
@@ -127,7 +127,7 @@ class Miscs:
 
         Note: this version seems to be the *fastest*
         among several ones I've tried
-        %timeit rat2str('322')
+        %timeit str2rat('322')
         """
         try:
             return sage.all.QQ(s)
@@ -135,6 +135,11 @@ class Miscs:
             pass
 
         return sage.all.QQ(sage.all.RR(s))
+
+    @staticmethod
+    def str2list(s):
+        assert isinstance(s, str), s
+        return tuple(sage.all.sage_eval(s))
 
     @classmethod
     def init_terms(cls, vs, deg, rate):
