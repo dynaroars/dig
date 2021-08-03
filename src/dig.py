@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     ag(
         "--noarrays",
-        "-nonoarrays",
+        "-noarrays",
         action="store_true",
         help="don't compute array relations",
     )

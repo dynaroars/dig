@@ -301,20 +301,21 @@ class DigTraces(Dig):
             symbols = self.inv_decls[loc]
             traces = self.dtraces[loc]
 
-            if settings.DO_EQTS:
-                def _f():
-                    return self.infer_eqts(maxdeg, traces, symbols)
-                tasks.append((loc, _f))
+            if symbols.array_only:
+                if settings.DO_ARRAYS:
+                    def _f():
+                        return self.infer_nested_arrays(traces, symbols)
+                    tasks.append((loc, _f))
+            else:
+                if settings.DO_EQTS:
+                    def _f():
+                        return self.infer_eqts(maxdeg, traces, symbols)
+                    tasks.append((loc, _f))
 
-            if settings.DO_IEQS:
-                def _f():
-                    return self.infer_ieqs(traces, symbols)
-                tasks.append((loc, _f))
-
-            if settings.DO_ARRAYS:
-                def _f():
-                    return self.infer_nested_arrays(traces, symbols)
-                tasks.append((loc, _f))
+                if settings.DO_IEQS:
+                    def _f():
+                        return self.infer_ieqs(traces, symbols)
+                    tasks.append((loc, _f))
 
         def f(tasks):
             rs = [(loc, _f()) for loc, _f in tasks]
@@ -370,16 +371,15 @@ class DigTraces(Dig):
 
     def infer_nested_arrays(self, traces, symbols):
 
-        import data.inv.nested_array
+        import data.inv.nested_array as NA
 
         tc = list(traces)[0]  # just use 1 trace for inference
-        tc = {k: data.inv.nested_array.MyMiscs.get_idxs(l) for k, l in zip(
+        tc = {k: NA.MyMiscs.get_idxs(l) for k, l in zip(
             tc.ss, tc.vs)}  # convert to idx format
 
-        trees = [data.inv.nested_array.Tree(a, [None] * len(list(d.items())[0][1]), data.inv.nested_array.ExtFun(a).commute)
+        trees = [NA.Tree(a, [None] * len(list(d.items())[0][1]), NA.ExtFun(a).commute)
                  for a, d in tc.items()]
-        tasks = data.inv.nested_array.AEXP.gen_aexps(
-            trees, data.inv.nested_array.XInfo(), tc)
+        tasks = NA.AEXP.gen_aexps(trees, NA.XInfo(), tc)
 
         def f(tasks):
             rs = [a.peelme(tc) for a in tasks]
@@ -387,8 +387,6 @@ class DigTraces(Dig):
 
         wrs = MP.run_mp("Apply reachability", tasks, f, settings.DO_MP)
 
-        rels = [data.inv.nested_array.NestedArray(ar)
-                for ar in itertools.chain(*wrs)]
+        rels = [NA.NestedArray(ar) for ar in itertools.chain(*wrs)]
         mlog.debug(f"Potential rels: {len(rels)}")
-        print(rels)
         return rels

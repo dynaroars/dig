@@ -153,6 +153,14 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
     """
 
     @property
+    def is_array(self):
+        try:
+            return self._is_array
+        except AttributeError:
+            self._is_array = self.typ == "array"
+            return self._is_array
+
+    @property
     def is_real(self):
         try:
             return self._is_real
@@ -190,6 +198,10 @@ class Symbs(tuple):
         return ", ".join(map(str, self))
 
     @property
+    def array_only(self):
+        return all(s.is_array for s in self)
+
+    @property
     def names(self):
         return tuple(s.name for s in self)
 
@@ -220,13 +232,11 @@ class Symbs(tuple):
         symbs = []
         for x in s.split(","):
             x = x.strip()
+            if not x:
+                continue
             vs = x.split()
-            if len(vs) == 2:  # I, x
-                t, k = vs[0], vs[1]
-            else:
-                assert len(vs) == 1  # x
-                t, k = 'I', vs[0]  # default is int
-                mlog.warning(f"no type for {k}, assuming int")
+            assert len(vs) == 2, vs  # I, x
+            t, k = vs[0], vs[1]
             symbs.append(Symb(k, t))
         return cls(symbs)
 
