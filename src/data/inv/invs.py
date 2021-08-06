@@ -173,7 +173,7 @@ class Invs(set):
         def _imply(js, i):
             iexpr = ps_exprs[i]
 
-            assert iexpr.decl().kind() != z3.Z3_OP_EQ
+            #assert iexpr.decl().kind() != z3.Z3_OP_EQ, iexpr
             jexprs = [ps_exprs[j] for j in js]
             ret = Z3._imply(conj + jexprs, iexpr, is_conj=True)
             # print('{} => {}'.format(jexprs, iexpr))

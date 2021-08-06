@@ -226,7 +226,7 @@ if __name__ == "__main__":
         seed = round(time.time(), 2) if args.seed is None else float(args.seed)
         import settings
 
-        mlog, se_mindepth = settings.setup(settings, args)
+        mlog = settings.setup(settings, args)
         mlog.info(f"{datetime.datetime.now()}: {' '.join(sys.argv)}")
 
         if __debug__:
@@ -234,12 +234,8 @@ if __name__ == "__main__":
         import alg
 
         if inp.suffix == ".java" or inp.suffix == ".class":
-            if se_mindepth:
-                settings.Java.SE_MIN_DEPTH = args.se_mindepth
             dig = alg.DigSymStatesJava(inp)
         elif inp.suffix == ".c":
-            if se_mindepth:
-                settings.C.SE_MIN_DEPTH = args.se_mindepth
             dig = alg.DigSymStatesC(inp)
         else:
             # traces file(s)

@@ -692,7 +692,7 @@ class MP:
                 myQ.put(rs)
 
         n_cpus = multiprocessing.cpu_count()
-        if len(tasks) >= 2 and n_cpus >= 2:
+        if DO_MP and len(tasks) >= 2 and n_cpus >= 2:
             Q = multiprocessing.Queue()
             wloads = MP.get_workload(tasks, n_cpus=n_cpus)
             mlog.debug(

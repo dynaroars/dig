@@ -15,12 +15,14 @@ class add_printf_visitor vtrace = object(self)
   inherit nopCilVisitor
 
   method private create_printf_stmt fd : stmt =
-    (*Create printf statement, e.g., printf("%d %d %g", x, y, z)*)
+    (*
+      Create printf statement, e.g., printf("vtrace1; %d; %d; %g", x, y, z)
+     *)
     let s = L.map (
                 fun vi -> if vi.vtype = intType then "%d" else "%g"
               ) fd.sformals in
                 
-    let s = fd.svar.vname ^ ": " ^ S.concat " " s  ^ "\n" in
+    let s = fd.svar.vname ^ "; " ^ (S.concat "; " s)  ^ "\n" in
     let myprintf:instr = CM.mkCall "printf"
                          (Const (CStr(s))::(L.map CM.exp_of_vi fd.sformals)) in
     mkStmt (Instr([myprintf]))
@@ -35,13 +37,11 @@ class add_printf_visitor vtrace = object(self)
 end
 
 
-
-
 class print_type_visitor vtrace mainQ = object(self)
   (*
-    vtrace1: I x, I y, I r, I q
-    vtrace2: I x, I y, I r, I q, I a, I b
-    vtrace3: I x, I y, I r, I q
+    vtrace1; I x; I y; I r; I q
+    vtrace2; I x; I y; I r; I q;, I a; I b
+    vtrace3; I x; I y; I r; I q
    *)
                                       
   inherit nopCilVisitor
@@ -52,7 +52,7 @@ class print_type_visitor vtrace mainQ = object(self)
                   (if vi.vtype = intType then "I" else "D") ^ " " ^ vi.vname
                 ) f.sformals
       in
-      P.printf "%s: %s\n" f.svar.vname (S.concat ", " s)
+      P.printf "%s; %s\n" f.svar.vname (S.concat "; " s)
     );    
     SkipChildren
 end

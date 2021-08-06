@@ -61,21 +61,21 @@ class CollectClassVisitor extends ClassVisitor implements Opcodes{
 		    String methodName = e2.getKey();
 		    MethodNode mn = e2.getValue();
 		    if(methodName.startsWith("vtrace")){
-			 String s = methodName + ": ";
+			 String s = methodName + "; ";
 			 for(Object v: mn.localVariables){
 			      LocalVariableNode v_ = (LocalVariableNode)v;
-			      s += v_.desc + " " + v_.name + ", ";
+			      s += v_.desc + " " + v_.name + "; ";
 			 }
 			 System.out.println(s);
 		    }
 		    else if (methodName.contains("mainQ")){
 			 //hackish way to get the param names of mainQ
-			 String s = methodName + ": ";
+			 String s = methodName + "; ";
 			 Type[] typs = Type.getArgumentTypes(mn.desc);
 			 List<LocalVariableNode> vs = mn.localVariables;
 			 assert(typs.length <= vs.size());
 			 for(int i = 0; i < typs.length; ++i){
-			      s += vs.get(i).desc + " " + vs.get(i).name + ", ";
+			      s += vs.get(i).desc + " " + vs.get(i).name + "; ";
 			 }
 			 System.out.println(s);
 		    }

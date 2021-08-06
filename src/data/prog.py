@@ -222,15 +222,15 @@ class Symbs(tuple):
             return self._exprs
 
     @classmethod
-    def mk(cls, s):
+    def mk(cls, ls):
         """
         I x , D y .. ->  {x: int, y: double}
 
         x , y .. ->  {x: int, y: double}
         """
-        assert isinstance(s, str), s
+        assert isinstance(ls, list), ls
         symbs = []
-        for x in s.split(","):
+        for x in ls:
             x = x.strip()
             if not x:
                 continue
@@ -283,39 +283,30 @@ class Src:
             mainQ_name,
         )
 
-    def parse_type_info(self, msg):
-        # vtrace2: I x, I y, I q, I r,
-        # vtrace1: I q, I r, I a, I b, I x, I y,
-        # mainQ_cohendiv: I x, I y,
-        lines = [
-            l.split(":")
-            for l in msg.split("\n")
-            if settings.MAINQ_FUN in l or settings.TRACE_INDICATOR in l
-        ]
+    @classmethod
+    def parse_type_info(cls, msg):
+        # vtrace2; I x; I y; I q; I r
+        # vtrace1; I q; I r; I a; I b; I x; I y
+        # mainQ_cohendiv; I x; I y,
 
-        lines = [(fun.strip(), Symbs.mk(sstyps)) for fun, sstyps in lines]
+        inv_decls = []
 
-        # mainQ
-        inp_decls = [
-            (fun, symbs) for fun, symbs in lines if fun.startswith(settings.MAINQ_FUN)
-        ]
-        assert len(inp_decls) == 1
+        for l in msg.split("\n"):
+            if not (settings.MAINQ_FUN in l or settings.TRACE_INDICATOR in l):
+                continue
+            contents = l.split(';')  # ['vtraceX', 'I x', 'I y']
 
-        inp_decls = inp_decls[0]
-        mainQ_name, inp_decls = inp_decls[0], inp_decls[1]
-        inv_decls = DSymbs(
-            [
-                (fun, symbs)
-                for fun, symbs in lines
-                if fun.startswith(settings.TRACE_INDICATOR)
-            ]
-        )
+            symbs = Symbs.mk(contents[1:])
+            if contents[0].startswith(settings.MAINQ_FUN):
+                mainQ_name = contents[0]
+                inp_decls = symbs
+            else:
+                assert contents[0].startswith(
+                    settings.TRACE_INDICATOR), contents
+                inv_decls.append((contents[0], symbs))
+        inv_decls = DSymbs(inv_decls)
 
-        return (
-            inp_decls,
-            inv_decls,
-            mainQ_name,
-        )
+        return inp_decls, inv_decls, mainQ_name,
 
     def mkdir(self, d):
         assert not d.exists(), d

@@ -238,10 +238,10 @@ def setup(settings, args):
         else:
             opts.append(f'-uterms "{args.uterms}"')  # not tested
 
-    se_mindepth = None
     if args.se_mindepth and args.se_mindepth >= 1:
         if settings:
-            se_mindepth = args.se_mindepth
+            settings.Java.SE_MIN_DEPTH = args.se_mindepth
+            settings.C.SE_MIN_DEPTH = args.se_mindepth
         else:
             opts.append(f"-se_mindepth {args.se_mindepth}")
 
@@ -252,4 +252,4 @@ def setup(settings, args):
         else:
             opts.append(f"-tmpdir {args.tmpdir}")
 
-    return (mlog, se_mindepth) if settings else " ".join(opts)
+    return mlog if settings else " ".join(opts)

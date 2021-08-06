@@ -233,25 +233,22 @@ class DTraces(dict):
         return cls({loc: Traces() for loc in locs})
 
     @staticmethod
-    def parse(trace_str, inv_decls):
+    def parse(traces, inv_decls):
         """
         parse trace for new traces
-
-        trace_str = ['vtrace1: 0 285 1 9 285 9 ',
-        'vtrace1: 0 285 2 18 285 9 ',
-        'vtrace1: 0 285 4 36 285 9 ']
+        # >>> traces = ['vtrace1; 0; 285; 1; 9; 285; 9 ', 'vtrace1; 0; 285; 2; 18; 285; 9; ', 'vtrace1; 0; 285; 4; 36; 285; 9; ']
+        # >>> DTraces.parse(traces)
         """
         assert isinstance(inv_decls, data.prog.DSymbs) and inv_decls, inv_decls
-        lines = [l.strip() for l in trace_str]
+        lines = [l.strip() for l in traces]
         lines = [l for l in lines if l]
 
         dtraces = DTraces()
         for l in lines:
-            # 22: 8460 16 0 1 16 8460
-            parts = l.split(":")
-            assert len(parts) == 2, parts
-            loc, tracevals = parts[0], parts[1]
-            loc = loc.strip()  # 22
+            # 22; 8460; 16; 0; 1; 16; 8460;
+            contents = [x.strip() for x in l.split(';')]
+            contents = [x for x in contents if x]
+            loc, vs = contents[0].strip(), contents[1:]
             if loc not in inv_decls:
                 """
                 No symbolic states for this loc, so will not
@@ -259,7 +256,6 @@ class DTraces(dict):
                 """
                 continue
             ss = inv_decls[loc].names
-            vs = tracevals.strip().split()
             mytrace = Trace.parse(ss, vs)
             dtraces.add(loc, mytrace)
 
@@ -290,61 +286,38 @@ class DTraces(dict):
     @classmethod
     def vread(cls, tracefile):
         """
-        vtrace1: I q, I r, I a, I b, I x, I y
-        vtrace1: 4, 8, 1, 4, 24, 4
-        vtrace1: 16, 89, 1, 13, 297, 13
+        Csv format
+
+        vtrace1; I q; I r; I a; I b; I x; I y
+        vtrace1; 4; 8; 1; 4; 24; 4
+        vtrace1; 16; 89; 1; 13; 297; 13
         ...
-        vtrace2: I x, I y
-        vtrace2: 4, 2
-        vtrace2: 8, 4
+        vtrace2; I x; I y
+        vtrace2; 4; 2
+        vtrace2; 8; 4
+        ...
         """
-        assert tracefile.is_file(), tracefile
+        assert tracefile.is_file() and tracefile.suffix == ".csv", tracefile
 
-        trace_str = []
-        # determine variable declarations for different locations
-        inv_decls = data.prog.DSymbs()
+        import csv
+        with open(tracefile) as csvfile:
+            traces = []
+            # determine variable declarations for different locations
+            inv_decls = data.prog.DSymbs()
 
-        if tracefile.suffix == ".csv":
-            """
-            Csv format
-
-            vtrace1; I q; I r; I a; I b; I x; I y
-            vtrace1; 4; 8; 1; 4; 24; 4
-            vtrace1; 16; 89; 1; 13; 297; 13
-            ...
-            vtrace2; I x; I y
-            vtrace2; 4; 2
-            vtrace2; 8; 4
-            ...
-            """
-            import csv
-            with open(tracefile) as csvfile:
-
-                myreader = csv.reader(csvfile, delimiter=';')
-                for row in myreader:
-                    row = [field.strip() for field in row]
-                    if not row or row[0].startswith("#"):
-                        continue
-                    loc, contents = row[0], row[1:]
-                    if loc not in inv_decls:
-                        contents = ', '.join(contents)
-                        inv_decls[loc] = data.prog.Symbs.mk(contents)
-                    else:
-                        s = f"{loc}: {' '.join(contents)}"
-                        trace_str.append(s)
-
-        else:
-            for line in tracefile.read_text().splitlines():
-                line = line.strip()
-                if not line or line.startswith("#"):
+            myreader = csv.reader(csvfile, delimiter=';')
+            for row in myreader:
+                row = [field.strip() for field in row]
+                if not row or row[0].startswith("#"):
                     continue
-                loc, contents = line.split(":")
+                loc, contents = row[0], row[1:]
                 if loc not in inv_decls:
-                    inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
+                    inv_decls[loc] = data.prog.Symbs.mk(contents)
                 else:
-                    trace_str.append(line.replace(",", " "))
+                    s = f"{loc}; {';'.join(contents)}"
+                    traces.append(s)
 
-        dtraces = DTraces.parse(trace_str, inv_decls)
+        dtraces = DTraces.parse(traces, inv_decls)
         mlog.debug(f"{dtraces} traces")
         return inv_decls, dtraces
 

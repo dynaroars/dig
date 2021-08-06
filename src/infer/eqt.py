@@ -152,10 +152,9 @@ class Infer(infer.base.Infer):
             f"{loc}: gen init inps using {whileFName} "
             f"(curr inps {len(inps)}, traces {len(traces)})"
         )
-
         terms, template, uks, n_eqts_needed = Miscs.init_terms(
-            self.inv_decls[loc].names, deg, rate
-        )
+            self.inv_decls[loc].names, deg, rate)
+
         exprs = whileF(loc, template, n_eqts_needed, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
@@ -227,5 +226,6 @@ class Infer(infer.base.Infer):
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
             exprs.extend(exprs_)
 
-        eqts = set([p for p in eqts if Miscs.is_nice_eqt(p.inv, settings.MAX_LARGE_COEF_FINAL)])
+        eqts = set([p for p in eqts if Miscs.is_nice_eqt(
+            p.inv, settings.MAX_LARGE_COEF_FINAL)])
         return eqts, new_cexs

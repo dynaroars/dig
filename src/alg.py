@@ -295,7 +295,7 @@ class DigTraces(Dig):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
-
+        mlog.debug(f"got {self.dtraces.siz} traces\n{self.dtraces}")
         tasks = []
         for loc in self.dtraces:
             symbols = self.inv_decls[loc]
@@ -370,7 +370,9 @@ class DigTraces(Dig):
         return ieqs
 
     def infer_nested_arrays(self, traces, symbols):
-
+        """
+        return nested arrays such as `lambda A,B,i1: A[i1] == B[-2*i1 + 5]`
+        """
         import data.inv.nested_array as NA
 
         tc = list(traces)[0]  # just use 1 trace for inference
