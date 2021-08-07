@@ -129,7 +129,7 @@ class DigSymStates(Dig):
         self.locs = self.inv_decls.keys()
 
         mlog.info(
-            f"infer invs at {len(self.locs)} locs: {', '.join(self.locs)}")
+            f"infer invs at {len(self.locs)} locs: {', '.join(sorted(self.locs))}")
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
@@ -159,6 +159,12 @@ class DigSymStates(Dig):
         # print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
 
         self.cleanup(dinvs, dtraces, inps)
+
+        if settings.WRITE_VTRACES:
+            tracefile = self.tmpdir/"alltraces.csv"
+            dtraces.vwrite(self.inv_decls, tracefile)
+            mlog.info(f"traces written to {tracefile}")
+
         print(f"tmpdir: {self.tmpdir}")
 
     def cleanup(self, dinvs, dtraces, inps):

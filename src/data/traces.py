@@ -263,22 +263,24 @@ class DTraces(dict):
 
     def vwrite(self, inv_decls, tracefile):
         """
-        write traces to file
-        each loc will have its own file
-
-        file 'traces_loc.csv'
-        var1, var2, var3
-        v1, v2, v2
+        write traces to tracefile
+        vtrace1; I q; I r; I a; I b; I x; I y
+        vtrace1; 4; 8; 1; 4; 24; 4
+        vtrace1; 16; 89; 1; 13; 297; 13
+        ...
+        vtrace2; I x; I y
+        vtrace2; 4; 2
+        vtrace2; 8; 4
         ...
         """
         assert inv_decls and isinstance(inv_decls, data.prog.DSymbs), inv_decls
-        assert isinstance(tracefile, Path), tracefile
+        assert isinstance(tracefile, Path) and tracefile.suffix == ".csv", tracefile
 
         ss = []
         for loc in self:
             traces = [inv_decls[loc]]
-            traces.extend([", ".join(map(str, t.vs)) for t in self[loc]])
-            traces = [f"{loc}: {trace}" for trace in traces]
+            traces.extend(["; ".join(map(str, t.vs)) for t in self[loc]])
+            traces = [f"{loc}; {trace}" for trace in traces]
             ss.extend(traces)
 
         tracefile.write_text("\n".join(ss))

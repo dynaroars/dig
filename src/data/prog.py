@@ -195,7 +195,7 @@ class Symbs(tuple):
         return super(Symbs, cls).__new__(cls, ss)
 
     def __str__(self):
-        return ", ".join(map(str, self))
+        return "; ".join(map(str, self))
 
     @property
     def array_only(self):

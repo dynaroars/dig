@@ -18,7 +18,7 @@ DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
-
+WRITE_VTRACES = False # write vtraces to csv
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
@@ -186,6 +186,12 @@ def setup(settings, args):
             settings.DO_SOLVER_STATS = args.dosolverstats
         else:
             opts.append("-dosolverstats")
+
+    if args.writevtraces:
+        if settings:
+            settings.WRITE_VTRACES = args.writevtraces
+        else:
+            opts.append("-writevtraces")
 
     if 0 <= args.log_level <= 4:
         if settings:
