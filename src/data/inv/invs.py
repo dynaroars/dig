@@ -14,6 +14,7 @@ import data.inv.eqt
 import data.inv.oct
 import data.inv.mp
 import data.inv.prepost
+import data.inv.nested_array
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)

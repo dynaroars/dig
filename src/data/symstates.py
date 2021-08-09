@@ -283,7 +283,6 @@ class SymStatesMaker(metaclass=ABCMeta):
             sys.exit(0)
 
         symstates = self.merge(wrs, self.pc_cls)
-        # symstates = self.merge2(wrs)
 
         # precompute all z3 exprs
         tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
@@ -754,7 +753,7 @@ class SymStates(dict):
         try:
             stat = opt.check()
         except Exception as ex:
-            mlog.error(f"maximize: {ex} {term_expr}")
+            mlog.warning(f"maximize: {ex} {term_expr}")
             stat = z3.unknown
 
         assert stat == z3.sat or stat == z3.unknown, stat
