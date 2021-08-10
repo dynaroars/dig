@@ -11,7 +11,6 @@ from threading import Thread
 import sage.all
 
 import settings
-# import myarray
 
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
@@ -112,12 +111,17 @@ class DigSymStates(Dig):
             self.exe_cmd, self.inp_decls, self.inv_decls)
         self.use_rand_init = True
 
+        self.locs = self.inv_decls.keys()
+
         self.symstates = None
         if settings.DO_SS:
             st = time.time()
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
-            mlog.info(f"compute symbolic states ({et:.2f}s)")
+            mlog.info(
+                f"got symbolic states at {len(self.locs)} locs: ({et:.2f}s)"
+            )
+
             self.time_d["symbolic_states"] = et
 
             # remove locations with no symbolic states
@@ -125,11 +129,6 @@ class DigSymStates(Dig):
                 if loc not in self.symstates:
                     mlog.warning(f"{loc}: no symbolic states. Skip")
                     self.inv_decls.pop(loc)
-
-        self.locs = self.inv_decls.keys()
-
-        mlog.info(
-            f"infer invs at {len(self.locs)} locs: {', '.join(sorted(self.locs))}")
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
