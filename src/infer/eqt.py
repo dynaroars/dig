@@ -51,6 +51,7 @@ class Infer(infer.base.Infer):
                 f"{loc}: got {len(eqts)} eqts, {len(new_inps)} new inps")
             if eqts:
                 mlog.debug("\n".join(map(str, eqts)))
+
             dinvs[loc] = Invs(eqts)
 
         return dinvs
@@ -229,3 +230,12 @@ class Infer(infer.base.Infer):
         eqts = set([p for p in eqts if Miscs.is_nice_eqt(
             p.inv, settings.MAX_LARGE_COEF_FINAL)])
         return eqts, new_cexs
+
+    @classmethod
+    def gen_from_traces(cls, autodeg, traces, symbols):
+        terms, template, uks, n_eqts_needed = Miscs.init_terms(
+            symbols.names, autodeg, settings.EQT_RATE
+        )
+        exprs = list(traces.instantiate(template, n_eqts_needed))
+        eqts = Miscs.solve_eqts(exprs, uks, template)
+        return [data.inv.eqt.Eqt(eqt) for eqt in eqts]

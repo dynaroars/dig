@@ -1,6 +1,3 @@
-"""
-"""
-
 import operator
 import pdb
 import settings

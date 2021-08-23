@@ -212,28 +212,21 @@ class DigSymStates(Dig):
         solver = infer.eqt.Infer(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
-        # determine degree
-        auto_deg = self.get_auto_deg(maxdeg)
+        auto_deg = self.get_auto_deg(maxdeg)  # determine degree
         dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
         import infer.opt
-
-        solver = infer.opt.Ieq(self.symstates, self.prog)
-        return solver.gen(dtraces)
+        return infer.opt.Ieq(self.symstates, self.prog).gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
         import infer.opt
-
-        solver = infer.opt.MMP(self.symstates, self.prog)
-        return solver.gen(dtraces)
+        return infer.opt.MMP(self.symstates, self.prog).gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):
         import infer.prepost
-
-        solver = infer.prepost.Infer(self.symstates, self.prog)
-        return solver.gen(dinvs, dtraces)
+        return infer.prepost.Infer(self.symstates, self.prog).gen(dinvs, dtraces)
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
@@ -308,18 +301,28 @@ class DigTraces(Dig):
 
             if symbols.array_only:
                 if settings.DO_ARRAYS:
+                    import infer.nested_array
+
                     def _f():
-                        return self.infer_nested_arrays(traces, symbols)
+                        return infer.nested_array.Infer.gen_from_traces(traces)
                     tasks.append((loc, _f))
             else:
                 if settings.DO_EQTS:
+                    import infer.eqt
+                    try:
+                        autodeg
+                    except NameError:
+                        autodeg = self.get_auto_deg(maxdeg)
+
                     def _f():
-                        return self.infer_eqts(maxdeg, traces, symbols)
+                        return infer.eqt.Infer.gen_from_traces(autodeg, traces, symbols)
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
+                    import infer.opt
+
                     def _f():
-                        return self.infer_ieqs(traces, symbols)
+                        return infer.opt.Ieq.gen_from_traces(traces, symbols)
                     tasks.append((loc, _f))
 
         def f(tasks):
@@ -342,58 +345,4 @@ class DigTraces(Dig):
         dinvs = self.sanitize(dinvs, self.dtraces)
         print(dinvs)
 
-    def infer_eqts(self, maxdeg, traces, symbols):
-        auto_deg = self.get_auto_deg(maxdeg)
-        terms, template, uks, n_eqts_needed = Miscs.init_terms(
-            symbols.names, auto_deg, settings.EQT_RATE
-        )
-        exprs = list(traces.instantiate(template, n_eqts_needed))
-        eqts = Miscs.solve_eqts(exprs, uks, template)
-        import data.inv.eqt
 
-        return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
-
-    def infer_ieqs(self, traces, symbols):
-        maxV = settings.IUPPER
-        minV = -1 * maxV
-
-        terms = Miscs.get_terms_fixed_coefs(
-            symbols.sageExprs,
-            settings.ITERMS,
-            settings.ICOEFS,
-        )
-        ieqs = []
-        for t in terms:
-            upperbound = max(traces.myeval(t))
-            if upperbound > maxV or upperbound < minV:
-                continue
-            ieqs.append(t <= upperbound)
-
-        import data.inv.oct
-
-        ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
-        return ieqs
-
-    def infer_nested_arrays(self, traces, symbols):
-        """
-        return nested arrays such as `lambda A,B,i1: A[i1] == B[-2*i1 + 5]`
-        """
-        import data.inv.nested_array as NA
-
-        tc = list(traces)[0]  # just use 1 trace for inference
-        tc = {k: NA.MyMiscs.get_idxs(l) for k, l in zip(
-            tc.ss, tc.vs)}  # convert to idx format
-
-        trees = [NA.Tree(a, [None] * len(list(d.items())[0][1]), NA.ExtFun(a).commute)
-                 for a, d in tc.items()]
-        tasks = NA.AEXP.gen_aexps(trees, NA.XInfo(), tc)
-
-        def f(tasks):
-            rs = [a.peelme(tc) for a in tasks]
-            return rs
-
-        wrs = MP.run_mp("Apply reachability", tasks, f, settings.DO_MP)
-
-        rels = [NA.NestedArray(ar) for ar in itertools.chain(*wrs)]
-        mlog.debug(f"Potential rels: {len(rels)}")
-        return rels

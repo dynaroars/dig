@@ -21,7 +21,6 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
 class Infer(infer.base.Infer, metaclass=ABCMeta):
     def __init__(self, symstates, prog):
         # need prog because symstates could be None
@@ -125,7 +124,6 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             else settings.IUPPER
         )
 
-
 class Ieq(Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
@@ -206,6 +204,28 @@ class Ieq(Infer):
                 excludes.add(term)
         return excludes
 
+    @classmethod
+    def gen_from_traces(cls, traces, symbols):
+        """
+        Generate invariants directly from concrete traces
+        """
+        maxV = settings.IUPPER
+        minV = -1 * maxV
+
+        terms = Miscs.get_terms_fixed_coefs(
+            symbols.sageExprs,
+            settings.ITERMS,
+            settings.ICOEFS,
+        )
+        ieqs = []
+        for t in terms:
+            upperbound = max(traces.myeval(t))
+            if minV <= upperbound <= maxV:
+                ieqs.append(t <= upperbound)
+        
+        ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
+        return ieqs
+
 
 class MMP(Infer):
     """
@@ -275,3 +295,4 @@ class MMP(Infer):
                 excludes.add(term)
 
         return excludes
+
