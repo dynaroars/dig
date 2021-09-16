@@ -14,11 +14,6 @@ from eqfun import EqFun
 from alg_lang import Python, Java
 
 
-#
-import logging
-logger = logging.getLogger("__file__")
-#
-
 class Infer(object):
     clses = {Python.__name__.lower(): Python,
              Java.__name__.lower(): Java}
@@ -47,7 +42,7 @@ class Infer(object):
                     is_implied = f.iimplies(qfs_f, g, qfs_g)
 
                 if is_implied:
-                    logger.info("{} => {}".format(f, g))
+                    logger.detail("{} => {}".format(f, g))
                     weaks.add(g)
 
         strongs = [a for a in axioms if a not in weaks]
@@ -68,7 +63,7 @@ class Infer(object):
             test_funs.extend(test_funs_)
 
         logger.info("{} instantiated candidates".format(len(iaxioms)))
-        logger.info("\n" + Term.str_of_terms(iaxioms))
+        logger.detail("\n" + Term.str_of_terms(iaxioms))
 
         logger.info("test against random inputs")
         code = lang_cls.mk_fun_main(test_funs)
@@ -96,7 +91,7 @@ class Infer(object):
         lang_cls = Infer.clses[lang.lower()]        
         axioms = self.terms
         logger.info("{} terms".format(len(axioms)))
-        logger.info("\n" + Term.str_of_terms(axioms))
+        logger.detail("\n" + Term.str_of_terms(axioms))
 
         logger.info("test for exceptions")
         test_funs = []
@@ -110,12 +105,12 @@ class Infer(object):
         ignores = set([axiom for axiom, stat in zip(axioms, stats) if not stat])
         logger.info("{}/{} ignores".format(len(ignores), len(axioms)))
         if ignores:
-            logger.info("\n" + Term.str_of_terms(ignores))
+            logger.detail("\n" + Term.str_of_terms(ignores))
         axioms = EqFun.gen_eqts(axioms, ignores, max_nfuns)
         assert axioms
 
         logger.info("{} eqt templates".format(len(axioms)))
-        logger.info("\n" + Term.str_of_terms(axioms))
+        logger.detail("\n" + Term.str_of_terms(axioms))
         
         part_siz = 50
         axioms = list(set(axioms)) #shuffle axioms
@@ -140,7 +135,7 @@ class Infer(object):
         logger.info("after 1st pruning {} candidate(s)".format(len(axioms)))
         if not axioms:
             return
-        logger.info("\n" + Term.str_of_terms(axioms))
+        logger.detail("\n" + Term.str_of_terms(axioms))
         
         axioms = self.prune(axioms, pure_imply=False)
         logger.info("after 2nd pruning, {} candidate(s)".format(len(axioms)))
