@@ -8,6 +8,11 @@ from collections import Counter
 
 import mytyp
 
+#
+import logging
+logger = logging.getLogger("__file__")
+#
+
 
 class Lang(object):
     __metaclass__ = abc.ABCMeta
