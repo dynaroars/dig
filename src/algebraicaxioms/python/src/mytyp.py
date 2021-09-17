@@ -67,7 +67,7 @@ class MyTyp:
         return (typ is None or
                 issubclass(typ, cls) or
                 typ.__name__ in set(
-                    ["int", "bool", "str", "Any", "List"]))
+                    ["int", "bool", "str", "Any", "List", "NoneType"]))
 
     @classmethod
     def name(cls, t: str):
