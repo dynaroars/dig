@@ -103,7 +103,7 @@ class Lang(object):
         if cls.cmd_compile:
             cmd = cls.cmd_compile.format(filename_ext)
             logger.debug("cmd {}".format(cmd))
-            logger.detail(cmd)
+            logger.debug(cmd)
             rs, rs_err = CM.vcmd(cmd)
 
             assert not rs_err, rs_err.decode('ascii')
