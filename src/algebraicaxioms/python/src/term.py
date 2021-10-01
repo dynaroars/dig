@@ -228,7 +228,7 @@ class Arg(Term):
     >>> assert str(a1) == "int_0"
     >>> assert str(Arg((None, int))) == "int"
     >>> assert str(repr(a1)) == "Arg((0, int))"
-    >>> assert str(Arg((1, typing.List[typing.Any]))) == "Any_List_1"
+    >>> assert str(Arg((1, typing.List[typing.Any]))) == "Any_list_1"
     """
     def __init__(self, term):
         (val, typ) = term
@@ -257,7 +257,8 @@ class Arg(Term):
             self.val, mytyp.MyTyp.reprname(self.outp_typ))
 
     @classmethod
-    def mk(cls, typ): return cls((None, typ))
+    def mk(cls, typ): 
+        return cls((None, typ))
 
     @property
     def is_instantiated(self):
@@ -315,7 +316,7 @@ class Fun(Term):
     >>> linsert = Fun(('linsert', 'list.insert', children, inp_typs, None, frozenset({0}), False))
     
     >>> print(linsert)
-    linsert(Any_List, int, Any)
+    linsert(Any_list, int, Any)
 
     >>> print(repr(linsert))
     Fun(('linsert', 'list.insert', (Arg((None, typing.List[typing.Any])), Arg((None, int)), Arg((None, typing.Any))), (typing.List[typing.Any], int, typing.Any), None, frozenset({0}), False))

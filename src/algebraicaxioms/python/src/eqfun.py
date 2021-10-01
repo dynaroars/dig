@@ -115,6 +115,21 @@ class EqFun(Fun):
         """
         Enumerate eqts of the form  x = y[...]  where x, y are terms
         """
+        assert all(isinstance(t, Term) for t in terms), terms
+        assert isinstance(ignores, set), ignores
+        assert isinstance(max_nfuns, int) and max_nfuns > 0, max_nfuns
+        
+        tfilters = cls.mk_term_filters(ignores, max_nfuns)
+        cache = dict()
+        my_gen_trees_all = lambda ts: cls.gen_trees_all(ts, tfilters, cache)
+        
+        eterms = my_gen_trees_all(terms)
+        logger.info("{} enumerated terms".format(len(eterms)))
+        logger.debug("\n" + Term.str_of_terms(eterms))
+
+        ceqts = cls.gen_const_eqts(eterms)
+        teqts = cls.gen_term_eqts(terms, eterms, my_gen_trees_all)
+        return ceqts + teqts
 
     def is_redundant(self, others):
         """

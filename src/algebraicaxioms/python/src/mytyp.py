@@ -62,30 +62,37 @@ def createNew_copy(cls, vname: str, vadd: str, vkey: str, d: dict):
 class MyTyp:
     @classmethod
     def is_valid_typ(cls, typ):
-        print(type(typ))
-        print(typ, typ.__name__)
-        return (typ is None or
+        generic_type = typing.get_origin(typ)
+        if generic_type:
+            return generic_type.__name__ == "list"
+
+        return (typ == type(None) or
+                typ == typing.Any or
                 issubclass(typ, cls) or
                 typ.__name__ in set(
-                    ["int", "bool", "str", "Any", "List", "NoneType"]))
+                    ["int", "bool", "str"]))
 
     @classmethod
     def name(cls, t: str):
         """
-        >>> assert MyTyp.name(typing.List[typing.Any]) == "Any_List"
+        >>> assert MyTyp.name(typing.List[typing.Any]) == "Any_list"
+        >>> assert MyTyp.name(typing.List[int]) == "int_list"
         """
 
-        if t is None:
-            return str(None)
-
-        tname = t.__name__
-        assert '.' not in tname
-
-        if tname == "List":
-            params = t.__parameters__
+        
+        generic_type = typing.get_origin(t)
+        if generic_type:
+            tname = generic_type.__name__  # this can be list/tuple/union/dict
+            params = typing.get_args(t)
             assert len(params) == 1
             subtyp = cls.name(params[0])
             tname = "{}_{}".format(subtyp, tname)
+        else:
+            if t == typing.Any: 
+                tname = "Any"
+            else:
+                tname = t.__name__
+        assert '.' not in tname
 
         return tname
 
@@ -174,6 +181,7 @@ def is_valid_def(d):
         
 
 if __name__ == "__main__":
+    MyTyp.name(typing.List[typing.Any])
     import doctest
     doctest.testmod()
 
