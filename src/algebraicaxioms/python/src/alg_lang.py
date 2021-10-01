@@ -80,7 +80,6 @@ class Lang(object):
             ecall = cls.ecall_body(call, exceptions)
             fbody = cls.fun_template(fname, ecall, code, "boolean")
 
-            fname = fname + "()"
             return fname, fbody
 
     @classmethod
@@ -114,7 +113,6 @@ class Lang(object):
         rs, rs_err = CM.vcmd(cmd)
         assert not rs_err, rs_err.decode('ascii')
         rs = rs.decode('ascii').strip()
-        stats = [cls.get_stat(stat.strip()) for stat in rs.split()]
         return stats        
     
     @classmethod
