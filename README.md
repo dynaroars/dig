@@ -12,7 +12,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
 DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
 
-The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also infers  invariants direclty from given concrete program execution traces.
+The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also infers  invariants direclty from given  program execution traces.
 
 ---
 
