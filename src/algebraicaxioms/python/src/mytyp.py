@@ -68,6 +68,7 @@ class MyTyp:
 
         return (typ == type(None) or
                 typ == typing.Any or
+                typ is None or
                 issubclass(typ, cls) or
                 typ.__name__ in set(
                     ["int", "bool", "str"]))

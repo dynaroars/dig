@@ -1,0 +1,11 @@
+(<function concat at 0x7f29bf5ae670>, 'concat', [])
+(<function slength at 0x7f29bf5583a0>, 'length', [])
+eqfun.py:Info:3 enumerated terms
+eqfun.py:Debug:
+0. concat(str, str)
+1. slength(str)
+2. slength(concat(str, str))
+eqfun.py:Info:1 const eqts
+eqfun.py:Debug:
+0. int = slength(concat(str, str))
+eqfun.py:Info:0 term eqts
