@@ -60,20 +60,33 @@ def createNew_copy(cls, vname: str, vadd: str, vkey: str, d: dict):
 
 
 class MyTyp:
+
     @classmethod
     def is_valid_typ(cls, typ):
-        print(type(typ))
-        print(typ, typ.__name__)
-        return (typ is None or
-                issubclass(typ, cls) or
-                typ.__name__ in set(
-                    ["int", "bool", "str", "Any", "List"]))
+        # print('hi')
+        # print(type(typ))
+        # print(typ)
+        # print('ba')
+        return (typ is type(None) or
+                typ is int or
+                isinstance(typ, cls) or
+                typ is typing.List or
+                typ is typing.Any or
+                (isinstance(typ, typing._GenericAlias)  # typing.List[typing.Any]
+                 and typ.__dict__['_name'] == "List")
+                )
+
+        # (
+        # or
+        # typ.__dict__['_name'] in set(
+        #     ["int", "bool", "str", "Any"]))
 
     @classmethod
     def name(cls, t: str):
         """
         >>> assert MyTyp.name(typing.List[typing.Any]) == "Any_List"
         """
+        print(t, type(t))
 
         if t is None:
             return str(None)
@@ -157,23 +170,23 @@ class Example(object):
 
         elif typ.__name__ == "bool":
             ret = random.choice([True, False])
-            
+
         elif typ.__name__ == "str":
             ret = random.choice(
                 ["", "zero", "one", "two", "three"])
         else:
             raise AssertionError("can't gen examples of typ '{}'".format(typ))
-            
+
         return ret
+
 
 def is_valid_def(d):
     return (isinstance(d, tuple) and len(d) == 3 and
             callable(d[0]) and
             isinstance(d[1], str) and d[1] and
-            isinstance(d[2],list))
-        
+            isinstance(d[2], list))
+
 
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-

@@ -51,10 +51,16 @@ if __name__ == "__main__":
     mlog = CM.getLogger(__name__, settings.logger_level)
 
     import alg
+    import term
     mlog.warning("DEBUG MODE ON. Can be slow !")
 
     from time import time
     seed = round(time(), 2) if args.seed is None else float(args.seed)
+
+    import mytyp
+
+    print(mytyp.MyTyp.is_valid_typ(type(None)))
+    DBG()
 
     import importlib.util
     spec = importlib.util.spec_from_file_location("", args.sig)
@@ -62,10 +68,10 @@ if __name__ == "__main__":
     spec.loader.exec_module(ex)
 
     for d in ex.defs:
-        print(d)
-        alg.Fun.eval_fun_def(d)
+        print('defs', d)
+        term.Fun.eval_def(d)
 
-    fterms = [alg.Fun.eval_fun_def(d) for d in ex.defs]
+    fterms = [alg.Fun.eval_def(d) for d in ex.defs]
     infer = alg.Infer(fterms)
     try:
         typs_d = ex.typs_d

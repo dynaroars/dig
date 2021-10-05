@@ -1,3 +1,4 @@
+import pdb
 import abc
 import typing
 import itertools
@@ -5,14 +6,15 @@ from collections import Counter
 import os.path
 import copy
 
+import settings
+import helpers.vcommon as CM
+
 import alg_miscs
-import vu_common as CM
-import config as CC
 import mytyp
 
-logger = CM.VLog(os.path.basename(__file__))
-logger.level = CC.logger_level
-CM.VLog.PRINT_TIME = False
+DBG = pdb.set_trace
+
+mlog = CM.getLogger(__name__, settings.logger_level)
 
 """
 Important,  use == for Typing instead of "is"
@@ -24,14 +26,17 @@ True
 False
 """
 
-class IncompatTyp(Exception): pass
+
+class IncompatTyp(Exception):
+    pass
+
 
 class Term(tuple):
     """
     >>> t = Fun(('push', 'push', (Arg((None, str)), Arg((None, int))), (str, int), None, frozenset({0}), False))
     >>> assert len(t.nodes) == 3
     >>> assert t.arg_typs_d == Counter({int: 1, str: 1})
-    
+
 
     >>> t = Fun(('pop', 'pop', (Arg((None, str)),), (str,), int, frozenset({0}), False))
     >>> assert len(t.nodes) == 2
@@ -78,9 +83,9 @@ class Term(tuple):
     # >>> t = EqFun(('eq', '==', (Arg((None, bool)), Fun(('empty', 'empty', (Fun(('pop', 'pop', (Fun(('push', 'push', (Arg((None, str)), Arg((None, int))), (str, int), None, frozenset({0}), False)),), (str,), int, frozenset({0}), False)),), (str,), bool, None, False))), (typing.Any, typing.Any), bool, None, True))
     # >>> assert t.arg_typs_d == Counter({int: 1, bool: 1, str: 1})
     """
-    
+
     __metaclass__ = abc.ABCMeta
-                     
+
     def __init__(self, contents):
         assert contents, contents
         tuple.__init__(contents)
@@ -89,11 +94,14 @@ class Term(tuple):
         self._outp_typ = self[1]
 
     @property
-    def val(self): return self._val
-    @property
-    def outp_typ(self): return self._outp_typ
+    def val(self):
+        return self._val
 
-    #recurse term (tree)
+    @property
+    def outp_typ(self):
+        return self._outp_typ
+
+    # recurse term (tree)
     @property
     def nodes(self) -> list:
         """
@@ -107,7 +115,7 @@ class Term(tuple):
                 if not isinstance(t, Arg):
                     for c in t.children:
                         compute(c, l)
-                
+
             self._nodes = []
             compute(self, self._nodes)
             return self._nodes
@@ -133,14 +141,15 @@ class Term(tuple):
         except AttributeError:
             self._funs = [t for t in self.nodes if not isinstance(t, Arg)]
             return self._funs
-    
+
     @property
     def arg_typs_d(self):
         try:
             return self._arg_typs_d
         except AttributeError:
             C = Counter()
-            for arg in self.args: C[arg.outp_typ] += 1
+            for arg in self.args:
+                C[arg.outp_typ] += 1
             self._arg_typs_d = C
             return self._arg_typs_d
 
@@ -156,7 +165,8 @@ class Term(tuple):
                     key = (k, t.outp_typ)
                     s.add(key)
                 else:
-                    for c in t.children: compute(c, s)
+                    for c in t.children:
+                        compute(c, s)
             arg_names_d = set()
             compute(self, arg_names_d)
             self._arg_names_d = sorted(arg_names_d)
@@ -168,7 +178,7 @@ class Term(tuple):
         """
         return (self.val == other.val and
                 self.call == other.call and
-                len(self.children) == len(other.children) and 
+                len(self.children) == len(other.children) and
                 self.inp_typs == other.inp_typs and
                 self.outp_typ == other.outp_typ and
                 self.side_effect_idxs == other.side_effect_idxs and
@@ -176,10 +186,10 @@ class Term(tuple):
 
     def gen_code(self, merge_se, typs_d, lang_cls) -> typing.List[tuple]:
         used_vars = Counter()
-        return self._gen_code(merge_se, used_vars, typs_d, lang_cls)    
-    
-    def gen_test_funs(self, mid:str, merge_se:bool, typs_d:dict, 
-                      ntests:int, lang_cls) -> (str, str):
+        return self._gen_code(merge_se, used_vars, typs_d, lang_cls)
+
+    def gen_test_funs(self, mid: str, merge_se: bool, typs_d: dict,
+                      ntests: int, lang_cls) -> (str, str):
         assert not self.is_instantiated
         axioms = [self.instantiate(args_d)
                   for args_d in self.gen_args()]
@@ -190,26 +200,25 @@ class Term(tuple):
             code = axiom._gen_test_funs(
                 "{}_{}".format(mid, i), code, ntests, lang_cls)
             codes.append(code)
-            
+
         return axioms, codes
 
-    def _gen_test_funs(self, mid:str, codes, ntests:int, lang_cls):
+    def _gen_test_funs(self, mid: str, codes, ntests: int, lang_cls):
         assert self.is_instantiated
         from eqfun import EqFun
-        
+
         fname, fbody = lang_cls.mk_fun_f(
             mid, codes, "testing {}".format(self),
             self.val == EqFun.axiomeq, ntests, self.arg_names_d)
-        
-        return fname, fbody #("foo()", "code1\ncode2")
-    
 
-    def gen_test_funs_soft(self, mid, merge_se:bool, typs_d:dict, ntests:int, lang_cls):
+        return fname, fbody  # ("foo()", "code1\ncode2")
+
+    def gen_test_funs_soft(self, mid, merge_se: bool, typs_d: dict, ntests: int, lang_cls):
         _, funs = self.gen_test_funs(mid, merge_se, typs_d, ntests, lang_cls)
         fname, fbody = lang_cls.mk_fun("soft_{}".format(mid),
                                        funs, lang_cls.connector_or, None)
         return fname, fbody
-    
+
     @classmethod
     def str_of_terms(cls, terms):
         return '\n'.join("{}. {}".format(i, t) for i, t in enumerate(terms))
@@ -221,7 +230,8 @@ class Term(tuple):
         """
         assert not self.is_instantiated
         return self._instantiate(typs_d, dict((typ, 0) for typ in typs_d))
-    
+
+
 class Arg(Term):
     """
     >>> a1 = Arg((0, int))
@@ -230,27 +240,31 @@ class Arg(Term):
     >>> assert str(repr(a1)) == "Arg((0, int))"
     >>> assert str(Arg((1, typing.List[typing.Any]))) == "Any_List_1"
     """
+
     def __init__(self, term):
         (val, typ) = term
         assert val is None or (isinstance(val, int) and val >= 0), val
         assert mytyp.MyTyp.is_valid_typ(typ), typ
-        
+
         super(Arg, self).__init__((val, typ))
 
-    #doesn't really matter if is_commute is set to True or False
-    #since it doesn't apply
-    #so just set ot False to avoid extra work
+    # doesn't really matter if is_commute is set to True or False
+    # since it doesn't apply
+    # so just set ot False to avoid extra work
     @property
-    def is_commute(self): return False
+    def is_commute(self):
+        return False
+
     @property
-    def nchildren(self): return 0
-    
+    def nchildren(self):
+        return 0
+
     def __str__(self):
         s = mytyp.MyTyp.name(self.outp_typ)
         if self.val is not None:
             s = '{}_{}'.format(s, self.val)
         return s
-    
+
     def __repr__(self):
         return "{}(({}, {}))".format(
             self.__class__.__name__,
@@ -283,10 +297,10 @@ class Arg(Term):
         se = {}
         out = (varname, self.outp_typ)
         rs = [([code], se, out)]
-        return rs        
+        return rs
 
     def implies(self, o):
-        #todo, only if self. is bounded to forall
+        # todo, only if self. is bounded to forall
         return (self == o or
                 (isinstance(o, Arg) and self.outp_typ != o.outp_typ) or
                 isinstance(o, Fun))
@@ -621,7 +635,9 @@ class Fun(Term):
         return rs
 
     @classmethod
-    def mk(cls, val:str, call:str, inp_typs, outp_typ, side_effect_idxs,
+    def mk(cls, val:str, call:str,
+           inp_typs, outp_typ,
+           side_effect_idxs,
            is_commute=False, children=None):
         """
         >>> Fun.mk("lpop", "list.pop", (typing.List[typing.Any],), typing.Any, frozenset({0}), False, None)
@@ -641,7 +657,7 @@ class Fun(Term):
         return fun
 
     @classmethod
-    def eval_fun_def(cls, fun_def):
+    def eval_def(cls, fun_def):
         assert mytyp.is_valid_def(fun_def), fun_def
 
         fun_obj, fun_call, side_effect_idxs = fun_def
