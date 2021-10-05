@@ -8,7 +8,6 @@ from pathlib import Path
 
 DBG = pdb.set_trace
 
-
 def killchildren(pid):
     parent = psutil.Process(pid)
     for child in parent.children(recursive=True):

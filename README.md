@@ -128,7 +128,7 @@ tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
 
 ### Generating Invariants From Traces
 
-DIG can infer invariants directly from an CSV file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+DIG can infer invariants directly from an `CSV` file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
 ```sh
 # in DIG's src directory
@@ -176,7 +176,7 @@ vtrace2 (8 invs):
 8. -x - y <= -10
 ```
 
-Note that if we just run Dig over traces, then many generated inequality results would be spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as [shown above](#generating-invariants-from-a-program), DIG can check and remove spurious results.
+*Note*: if we just run Dig over traces, then many generated inequality results would be spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#generating-invariants-from-a-program), DIG can check and remove spurious results.
 
 ### Additional Options
 
