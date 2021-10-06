@@ -8,8 +8,6 @@ import psutil
 import os
 from threading import Thread
 
-import sage.all
-
 import settings
 
 from helpers.miscs import Miscs, MP
@@ -35,15 +33,14 @@ class Dig(metaclass=ABCMeta):
     def start(self, seed, maxdeg):
         self.seed = seed
         random.seed(seed)
-        sage.all.set_random_seed(seed)
         mlog.debug(
             f"set seed to {seed} "
-            f"(test {random.randint(0, 100)} {sage.all.randint(0, 100)})"
+            f"(test {random.randint(0, 100)})"
         )
 
     def get_auto_deg(self, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
-        
+
         maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
@@ -346,5 +343,3 @@ class DigTraces(Dig):
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         print(dinvs)
-
-

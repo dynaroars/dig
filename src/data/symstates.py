@@ -13,7 +13,7 @@ import subprocess
 
 
 import z3
-from sage.all import cached_function, sage_eval
+
 from typing import NamedTuple
 import settings
 import helpers.vcommon as CM
@@ -183,8 +183,8 @@ class PC_JPF(PathCondition):
 
         return loc, pcs, slocals
 
+    # @cached_function
     @staticmethod
-    @cached_function
     def too_large(p):
         return False
         # if "CON:" not in p:
@@ -199,8 +199,8 @@ class PC_JPF(PathCondition):
         # else:
         #     return False
 
+    # @cached_function
     @staticmethod
-    @cached_function
     def replace_str(s):
         return (
             s.replace("&&", "")

@@ -2,8 +2,6 @@ import pdb
 import itertools
 from typing import NamedTuple
 
-import sage.all
-from sage.all import cached_function
 import z3
 
 import helpers.vcommon as CM
@@ -98,7 +96,7 @@ class MMP(data.inv.base.Inv):
                 ite = b == elem
 
             # ite = "{} {} {}".format(b, '<=' if is_ieq else '==', elem)
-        rest = a[idx + 1 :]
+        rest = a[idx + 1:]
 
         if not rest:  # t <= max(x,y,z)
             return ite
@@ -123,7 +121,8 @@ class MMP(data.inv.base.Inv):
 
         cached = {}
         for mp in mps:
-            key = frozenset([mp.term.a, mp.term.b, (mp.term.is_max, mp.is_ieq)])
+            key = frozenset(
+                [mp.term.a, mp.term.b, (mp.term.is_max, mp.is_ieq)])
 
             if key not in cached:
                 cached[key] = mp
@@ -262,7 +261,7 @@ class Term(NamedTuple):
         terms = sorted(terms, key=lambda x: str(x))
         results = set((t, (0,)) for t in terms)
         for i, term in enumerate(terms):
-            terms_ = terms[:i] + terms[i + 1 :]
+            terms_ = terms[:i] + terms[i + 1:]
             powerset = itertools.chain.from_iterable(
                 itertools.combinations(terms_, r) for r in range(len(terms_) + 1)
             )
@@ -275,8 +274,8 @@ class Term(NamedTuple):
 
         return sorted(results, key=lambda x: str(x))
 
+    # @cached_function
     @staticmethod
-    @cached_function
     def _to_str(a, b, is_max):
         """
         # sage: x, y, z = sage.all.var('x y z')

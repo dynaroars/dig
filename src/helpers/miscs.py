@@ -9,8 +9,7 @@ import multiprocessing
 import queue
 from collections import Iterable, OrderedDict
 
-import sage.all
-from sage.all import cached_function
+import sympy
 
 import helpers.vcommon as CM
 import settings
@@ -78,7 +77,7 @@ class Miscs:
 
     @staticmethod
     def is_expr(x):
-        return isinstance(x, sage.symbolic.expression.Expression)
+        return isinstance(x, sympy.Expr)
 
     @classmethod
     def get_vars(cls, ps):
@@ -102,8 +101,8 @@ class Miscs:
         vs = [v for p in ps for v in p.variables()]
         return sorted(set(vs), key=str)
 
+    # @cached_function
     @staticmethod
-    @cached_function
     def str2rat(s):
         """
         Convert the input 's' to a rational number if possible.
@@ -130,7 +129,7 @@ class Miscs:
         %timeit str2rat('322')
         """
         try:
-            return sage.all.QQ(s)
+            return sympy.Rational(s)
         except TypeError:
             pass
 
@@ -147,7 +146,8 @@ class Miscs:
         assert deg >= 1, deg
         assert rate >= 0.1, rate
 
-        terms = cls.get_terms([sage.all.var(v) for v in vs], deg)
+        symbols = [sympy.Symbol(v) for v in vs]
+        terms = cls.get_terms(symbols, deg)
 
         template, uks = cls.mk_template(terms, 0, ret_coef_vs=True)
         n_eqts_needed = int(rate * len(uks))
@@ -178,10 +178,10 @@ class Miscs:
 
         """
         assert deg >= 0, deg
-        assert ss and all(s.is_symbol() for s in ss), ss
-        ss_ = ([sage.all.SR(1)] if ss else (sage.all.SR(1),)) + ss
+        assert ss and all(isinstance(s, sympy.Symbol) for s in ss), ss
+        ss_ = ([1] if ss else (1,)) + ss
         combs = itertools.combinations_with_replacement(ss_, deg)
-        terms = [sage.all.prod(c) for c in combs]
+        terms = [sympy.prod(c) for c in combs]
         return terms
 
     @classmethod
@@ -204,7 +204,7 @@ class Miscs:
                 return d
 
             # look ahead
-            nterms = sage.all.binomial(nvs + d + 1, d + 1)
+            nterms = sympy.binomial(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
 
@@ -484,17 +484,16 @@ class Miscs:
         # print(eqts)
         # print(uks)
         # print(sol)
-           
+
         # filter sol with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
         if all(x == 0 for x in sol.values()):
             return []
-        
+
         eqts_ = cls.instantiate_template(template, sol)
         return cls.refine(eqts_)
-        
 
     @classmethod
-    def mk_template(cls, terms, rv, op=sage.all.operator.eq, prefix=None, ret_coef_vs=False):
+    def mk_template(cls, terms, rv, op=operator.eq, prefix=None, ret_coef_vs=False):
         """
         get a template from terms.
 
@@ -525,11 +524,11 @@ class Miscs:
 
         if not prefix:
             prefix = "uk_"
-        uks = [sage.all.var(prefix + str(i)) for i in range(len(terms))]
+        uks = [sympy.Symbol(prefix + str(i)) for i in range(len(terms))]
 
         assert not set(terms).intersection(set(uks)), "name conflict"
 
-        template = sum(map(sage.all.prod, zip(uks, terms)))
+        template = sum(map(sympy.prod, zip(uks, terms)))
 
         if rv is not None:  # note, not None because rv can be 0
             template = op(template, rv)

@@ -3,7 +3,7 @@ import pdb
 import operator
 from typing import NamedTuple
 
-import sage.all
+import sympy
 
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
@@ -131,12 +131,12 @@ class RelTerm(NamedTuple):
     e.g., x + y,  x,  x + 3
     """
 
-    term: sage.symbolic.expression.Expression
+    term: sympy.Expr
 
     @classmethod
     def mk(cls, term):
         assert (
-            isinstance(term, sage.symbolic.expression.Expression)
+            isinstance(term, sympy.Expr)
             and not term.is_relational()
         ), term
         return cls(term)

@@ -6,7 +6,7 @@ import pdb
 from collections import namedtuple
 import subprocess
 
-import sage.all
+import sympy
 
 import settings
 from helpers.miscs import MP
@@ -176,7 +176,7 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
         try:
             return self._sageExpr
         except AttributeError:
-            self._sageExpr = sage.all.var(self.name)
+            self._sageExpr = sympy.symbol(self.name)
             return self._sageExpr
 
     @property

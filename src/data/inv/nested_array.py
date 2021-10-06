@@ -2,8 +2,6 @@ import pdb
 import itertools
 import functools
 
-import sage.all
-
 from collections import namedtuple, defaultdict, OrderedDict
 from collections.abc import Iterable
 

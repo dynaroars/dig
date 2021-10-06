@@ -11,7 +11,7 @@ from statistics import mean, median_low
 from pathlib import Path
 import argparse
 
-import sage.all
+# import sage.all
 
 import settings
 import helpers.vcommon as CM
