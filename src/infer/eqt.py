@@ -232,10 +232,24 @@ class Infer(infer.base.Infer):
         return eqts, new_cexs
 
     @classmethod
-    def gen_from_traces(cls, autodeg, traces, symbols):
-        terms, template, uks, n_eqts_needed = Miscs.init_terms(
-            symbols.names, autodeg, settings.EQT_RATE
-        )
-        exprs = list(traces.instantiate(template, n_eqts_needed))
-        eqts = Miscs.solve_eqts(exprs, uks, template)
+    def gen_from_traces(cls, deg, traces, symbols):
+
+        mydeg = deg
+        eqts = []
+        while not eqts and mydeg:
+            terms, template, uks, n_eqts_needed = Miscs.init_terms(
+                symbols.names, mydeg, settings.EQT_RATE
+            )
+            exprs = list(traces.instantiate(template, n_eqts_needed))
+
+            if len(exprs) < len(uks):
+                mydeg = mydeg - 1
+                mlog.warning(f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
+                continue
+                
+            eqts = Miscs.solve_eqts(exprs, uks, template)
+            if not eqts:
+                mydeg = mydeg - 1
+                mlog.warning(f"no eqt results, reducing deg to {mydeg}")
+        
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]

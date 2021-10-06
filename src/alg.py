@@ -42,6 +42,8 @@ class Dig(metaclass=ABCMeta):
         )
 
     def get_auto_deg(self, maxdeg):
+        assert maxdeg is None or maxdeg >= 1, maxdeg
+        
         maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg

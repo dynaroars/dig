@@ -471,7 +471,7 @@ class Miscs:
         for v in ukns:
             sols[v] = sols[v].substitute(symvars)
 
-        return [sols]
+        return sols
 
     @classmethod
     def solve_eqts(cls, eqts, uks, template):
@@ -480,26 +480,18 @@ class Miscs:
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
-
-        def mysolve(eqts, uks):
-            # return sage.all.solve(eqts, *uks, solution_dict=True)
-            return cls.solve_linear_eqts(eqts, uks)
-
-        rs = mysolve(eqts, uks)
-        assert isinstance(rs, list), rs
-        assert all(isinstance(s, dict) for s in rs), rs
-
-        # filter sols with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
-        rs = [d for d in rs if not all(x == 0 for x in d.values())]
-
-        reqts = cls.instantiate_template(template, rs)
-        reqts = cls.refine(reqts)
-        # print '\n'.join(map(str, eqts))
-        # print uks
-        # print reqts
-        # CM.pause()
-
-        return reqts
+        sol = cls.solve_linear_eqts(eqts, uks)
+        # print(eqts)
+        # print(uks)
+        # print(sol)
+           
+        # filter sol with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
+        if all(x == 0 for x in sol.values()):
+            return []
+        
+        eqts_ = cls.instantiate_template(template, sol)
+        return cls.refine(eqts_)
+        
 
     @classmethod
     def mk_template(cls, terms, rv, op=sage.all.operator.eq, prefix=None, ret_coef_vs=False):
@@ -545,7 +537,7 @@ class Miscs:
         return template, uks if ret_coef_vs else template
 
     @classmethod
-    def instantiate_template(cls, template, sols):
+    def instantiate_template(cls, template, sol):
         """
         Instantiate a template with solved coefficient values
 
@@ -560,17 +552,12 @@ class Miscs:
         sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
+        assert isinstance(sol, dict), sol
         assert cls.is_expr(template), template
-
-        if not sols:
-            return []
-        if len(sols) > 1:
-            mlog.warning(f"instantiate_template with {len(sols)} sols")
-            mlog.warning(str(sols))
 
         def fEq(d):
             f_ = template(d)
-            uk_vars = cls.get_vars(d.values())  # e.g., r15,r16 ...
+            uk_vars = cls.get_vars(d.values())  # e.g., r15, r16 ...
 
             if not uk_vars:
                 return f_
@@ -580,7 +567,7 @@ class Miscs:
             rs = [f_(r) for r in rs]
             return rs
 
-        sols = [y for x in sols for y in fEq(x)]
+        sols = fEq(sol)
 
         # remove trivial (tautology) str(x) <=> str(x)
         sols = [
