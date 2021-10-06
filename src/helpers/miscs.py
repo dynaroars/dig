@@ -149,7 +149,13 @@ class Miscs:
         symbols = [sympy.Symbol(v) for v in vs]
         terms = cls.get_terms(symbols, deg)
 
+        print(symbols)
+        print(terms)
+
         template, uks = cls.mk_template(terms, 0, ret_coef_vs=True)
+        print(template)
+        print(uks)
+        DBG()
         n_eqts_needed = int(rate * len(uks))
         return terms, template, uks, n_eqts_needed
 
@@ -493,7 +499,7 @@ class Miscs:
         return cls.refine(eqts_)
 
     @classmethod
-    def mk_template(cls, terms, rv, op=operator.eq, prefix=None, ret_coef_vs=False):
+    def mk_template(cls, terms, rv, op=sympy.Eq, prefix=None, ret_coef_vs=False):
         """
         get a template from terms.
 
@@ -503,13 +509,15 @@ class Miscs:
         (a, b, x, y)
 
         >>> Miscs.mk_template([1, a, b, x, y],0,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0, a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
+        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
+         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
 
         >>> Miscs.mk_template([1, x, y],0, op=operator.gt,prefix=None,ret_coef_vs=True)
         (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
 
         >>> Miscs.mk_template([1, a, b, x, y],None,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0, a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
+        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
+         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
 
         >>> Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
         (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0, a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)

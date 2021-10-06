@@ -244,12 +244,13 @@ class Infer(infer.base.Infer):
 
             if len(exprs) < len(uks):
                 mydeg = mydeg - 1
-                mlog.warning(f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
+                mlog.warning(
+                    f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
                 continue
-                
+
             eqts = Miscs.solve_eqts(exprs, uks, template)
             if not eqts:
                 mydeg = mydeg - 1
                 mlog.warning(f"no eqt results, reducing deg to {mydeg}")
-        
+
         return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
