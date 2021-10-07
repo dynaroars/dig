@@ -176,7 +176,7 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
         try:
             return self._sageExpr
         except AttributeError:
-            self._sageExpr = sympy.symbol(self.name)
+            self._sageExpr = sympy.Symbol(self.name)
             return self._sageExpr
 
     @property

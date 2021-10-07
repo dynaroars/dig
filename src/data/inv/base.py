@@ -30,7 +30,7 @@ class Inv(metaclass=ABCMeta):
                 # PrePost and Max/MinPlus
                 (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
                 isinstance(inv, str) or   # Array relation
-                inv.is_relational()), inv
+                isinstance(inv, sympy.Equality)), inv
 
         assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
 
@@ -84,16 +84,11 @@ class Inv(metaclass=ABCMeta):
 
 class RelInv(Inv, metaclass=ABCMeta):
     def __init__(self, rel, stat=None):
-        assert rel.is_relational() and (
-            rel.operator() == operator.eq
-            or rel.operator() == operator.le
-            or rel.operator() == operator.lt
-        ), rel
-
+        assert isinstance(rel, sympy.Equality), rel
         super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
-        s = str(self.inv)
+        s = f"{self.inv.lhs} == {self.inv.rhs}"
         if print_stat:
             s = f"{s} {self.stat}"
         return s
@@ -108,8 +103,7 @@ class RelInv(Inv, metaclass=ABCMeta):
             return True
 
         try:
-            bval = self.inv.subs(trace.mydict)
-            bval = bool(bval)
+            bval = bool(self.inv.subs(trace.mydict))
             return bval
         except ValueError:
             mlog.debug(f"{self}: failed test")

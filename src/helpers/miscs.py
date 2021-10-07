@@ -33,44 +33,44 @@ class Miscs:
                 mlog.debug(f"create new symbol {symb}")
                 d[symb] = sage.all.var(symb)
 
-    @staticmethod
-    def is_real(x):
-        return isinstance(x, sage.rings.real_mpfr.RealLiteral)
+    # @staticmethod
+    # def is_real(x):
+    #     return isinstance(x, sage.rings.real_mpfr.RealLiteral)
 
-    @staticmethod
-    def is_int(x):
-        return isinstance(x, sage.rings.integer.Integer)
+    # @staticmethod
+    # def is_int(x):
+    #     return isinstance(x, sage.rings.integer.Integer)
 
-    @classmethod
-    def is_num(cls, x):
-        return cls.is_real(x) or cls.is_int(x)
+    # @classmethod
+    # def is_num(cls, x):
+    #     return cls.is_real(x) or cls.is_int(x)
 
-    @staticmethod
-    def is_rel(f, rel=None):
-        """
-        # >>> assert not Miscs.is_rel(7.2)
-        # >>> assert not Miscs.is_rel(x)
-        # >>> assert not Miscs.is_rel(x+7)
-        # >>> assert Miscs.is_rel(x==3,operator.eq)
+    # @staticmethod
+    # def is_rel(f, rel=None):
+    #     """
+    #     # >>> assert not Miscs.is_rel(7.2)
+    #     # >>> assert not Miscs.is_rel(x)
+    #     # >>> assert not Miscs.is_rel(x+7)
+    #     # >>> assert Miscs.is_rel(x==3,operator.eq)
 
-        # >>> assert Miscs.is_rel(x<=3,operator.le)
-        # >>> assert not Miscs.is_rel(x<=3,operator.lt)
-        # >>> assert not Miscs.is_rel(x+3,operator.lt)
+    #     # >>> assert Miscs.is_rel(x<=3,operator.le)
+    #     # >>> assert not Miscs.is_rel(x<=3,operator.lt)
+    #     # >>> assert not Miscs.is_rel(x+3,operator.lt)
 
-        # >>> y = var('y')
-        # >>> assert Miscs.is_rel(x+y<=3)
-        """
-        try:
-            if not f.is_relational():
-                return False
+    #     # >>> y = var('y')
+    #     # >>> assert Miscs.is_rel(x+y<=3)
+    #     """
+    #     try:
+    #         if not f.is_relational():
+    #             return False
 
-            if rel is None:
-                return True
-            else:
-                return f.operator() == rel
+    #         if rel is None:
+    #             return True
+    #         else:
+    #             return f.operator() == rel
 
-        except AttributeError:
-            return False
+    #     except AttributeError:
+    #         return False
 
     @classmethod
     def is_eq(cls, f):
@@ -150,8 +150,8 @@ class Miscs:
         symbols = [sympy.Symbol(v) for v in vs]
         terms = cls.get_terms(symbols, deg)
 
-        print(symbols)
-        print(terms)
+        # print(symbols)
+        # print(terms)
 
         template, uks = cls.mk_template(terms, 0, ret_coef_vs=True)
         n_eqts_needed = int(rate * len(uks))

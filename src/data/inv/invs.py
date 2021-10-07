@@ -194,7 +194,7 @@ class Invs(set):
         for inv in invs:
             mylist = None
             if isinstance(inv, data.inv.eqt.Eqt):
-                if len(Miscs.get_coefs(inv.inv)) > 10:
+                if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
                     mylist = eqts_largecoefs
                 else:
                     mylist = eqts

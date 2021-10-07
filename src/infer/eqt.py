@@ -2,6 +2,7 @@
 CEGIR alg for inferring equalities
 """
 import pdb
+import sympy
 
 import settings
 import helpers.vcommon as CM
@@ -253,4 +254,4 @@ class Infer(infer.base.Infer):
                 mydeg = mydeg - 1
                 mlog.warning(f"no eqt results, reducing deg to {mydeg}")
 
-        return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
+        return [data.inv.eqt.Eqt(sympy.Eq(eqt, 0)) for eqt in eqts]
