@@ -2,7 +2,7 @@ import pdb
 from collections import namedtuple
 from pathlib import Path
 from collections.abc import Iterable
-
+import sympy
 import z3
 
 import helpers.vcommon as CM
@@ -63,7 +63,7 @@ class Trace(SymbsVals):
             for s, v in zip(self.ss, self.vs):
                 if "!" in s:
                     continue
-                k = str(s) if isinstance(v, Iterable) else sage.all.var(s)
+                k = str(s) if isinstance(v, Iterable) else sympy.Symbol(s)
                 assert k not in d
                 d[k] = v
 
