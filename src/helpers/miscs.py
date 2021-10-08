@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
+import time
 
 import pdb
 import itertools
@@ -11,6 +12,7 @@ import queue
 
 
 import sympy
+from sympy.solvers.solveset import linsolve
 
 import helpers.vcommon as CM
 import settings
@@ -149,15 +151,12 @@ class Miscs:
 
         symbols = [sympy.Symbol(v) for v in vs]
         terms = cls.get_terms(symbols, deg)
-
-        # print(symbols)
-        # print(terms)
-
-        template, uks = cls.mk_template(terms, 0, ret_coef_vs=True)
+        uks = [sympy.Symbol(f"uk_{i}") for i in range(len(terms))]
+        assert not set(terms).intersection(set(uks)), "name conflict"
         n_eqts_needed = int(rate * len(uks))
-        return terms, template, uks, n_eqts_needed
+        return terms, uks, n_eqts_needed
 
-    @staticmethod
+    @ staticmethod
     def get_terms(ss, deg):
         """
         get a list of terms from the given list of vars and deg
@@ -188,7 +187,7 @@ class Miscs:
         terms = [sympy.prod(c) for c in combs]
         return terms
 
-    @classmethod
+    @ classmethod
     def get_deg(cls, nvs, nts, max_deg=7):
         """
         Generates a degree wrt to a (maximum) number of terms (nss)
@@ -212,7 +211,7 @@ class Miscs:
             if nterms > nts:
                 return d
 
-    @classmethod
+    @ classmethod
     def get_auto_deg(cls, maxdeg, nvars, maxterm):
         if maxdeg:
             deg = maxdeg
@@ -223,7 +222,7 @@ class Miscs:
 
         return deg
 
-    @staticmethod
+    @ staticmethod
     def get_terms_fixed_coefs(ss, subset_siz, icoef, do_create_terms=True):
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
@@ -257,7 +256,7 @@ class Miscs:
 
         return set(rs)
 
-    @classmethod
+    @ classmethod
     def reduce_eqts(cls, ps):
         """
         Return the basis (e.g., a min subset of ps that implies ps)
@@ -294,14 +293,15 @@ class Miscs:
         else:
             return ps
 
-    @staticmethod
+    @ staticmethod
     def elim_denom(p):
         """
         Eliminate (Integer) denominators in expression operands.
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
 
         Examples:
-        for these doctests, use sage, because # >>> (Python) doesn't show fractions well
+        # >>> (Python) doesn't show fractions well
+        for these doctests, use sage, because
 
         >>> x,y,z = sympy.symbols('x y z')
 
@@ -323,7 +323,7 @@ class Miscs:
             return p
         return p * sympy.lcm(denoms)
 
-    @classmethod
+    @ classmethod
     def get_coefs(cls, p):
         """
         Return coefficients of an expression
@@ -334,7 +334,7 @@ class Miscs:
         """
         return list(p.as_coefficients_dict().values())
 
-    @staticmethod
+    @ staticmethod
     def is_repeating_rational(x):
         """check if x is a repating rational"""
 
@@ -345,7 +345,7 @@ class Miscs:
         x2 = x.n(digits=100).str(skip_zeroes=True)
         return x1 != x2
 
-    @classmethod
+    @ classmethod
     def reduce_with_timeout(cls, ps, timeout=settings.EQT_REDUCE_TIMEOUT):
         Q = multiprocessing.Queue()
 
@@ -376,15 +376,15 @@ class Miscs:
         w.close()
         return ps
 
-    @classmethod
+    @ classmethod
     def is_nice_coef(cls, c, lim):
         return abs(c) <= lim or c % 10 == 0 or c % 5 == 0
 
-    @classmethod
+    @ classmethod
     def is_nice_eqt(cls, eqt, lim):
         return all(cls.is_nice_coef(c, lim) for c in cls.get_coefs(eqt))
 
-    @classmethod
+    @ classmethod
     def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF_INTERMEDIATE):
         ps_ = []
         for p in ps:
@@ -396,7 +396,7 @@ class Miscs:
 
         return ps_
 
-    @classmethod
+    @ classmethod
     def refine(cls, eqts):
 
         if not eqts:
@@ -415,28 +415,26 @@ class Miscs:
 
         return eqts
 
-    @classmethod
-    def solve_eqts(cls, eqts, uks, template):
+    @ classmethod
+    def solve_eqts(cls, eqts, terms, uks):
         assert isinstance(eqts, list) and eqts, eqts
+        assert isinstance(terms, list) and terms, terms
         assert isinstance(uks, list) and uks, uks
+        assert len(terms) == len(uks), (terms, uks)
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
-        sol = sympy.solve(eqts, uks)
-
+        sol = linsolve(eqts, uks)
+        vals = list(list(sol)[0])
         # filter sol with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
-        if all(x == 0 for x in sol.values()):
+        if all(v == 0 for v in vals):
             return []
 
-        for uk in uks:
-            if uk not in sol:
-                sol[uk] = uk
-
-        eqts_ = cls.instantiate_template(template, sol)
+        eqts_ = cls.instantiate_template(terms, uks, vals)
         return cls.refine(eqts_)
 
-    @classmethod
-    def mk_template(cls, terms, rv, prefix=None, ret_coef_vs=False):
+    @ classmethod
+    def mk_template_NOTUSED(cls, terms, rv, prefix=None, ret_coef_vs=False):
         """
         get a template from terms.
 
@@ -457,7 +455,8 @@ class Miscs:
          a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
 
         # >>> Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
-        (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0, a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
+        (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
+         a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
 
         # >>> var('x1')
         x1
@@ -482,8 +481,8 @@ class Miscs:
 
         return template, uks if ret_coef_vs else template
 
-    @classmethod
-    def instantiate_template(cls, template, sol):
+    @ classmethod
+    def instantiate_template(cls, terms, uks, vals):
         """
         Instantiate a template with solved coefficient values
 
@@ -498,8 +497,12 @@ class Miscs:
         # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
-        assert isinstance(sol, dict), sol
-        assert cls.is_expr(template), template
+        assert isinstance(vals, list), vals
+        assert isinstance(terms, list) and terms, terms
+        assert isinstance(uks, list) and uks, uks
+        assert len(terms) == len(uks) == len(vals), (terms, uks, vals)
+
+        #assert cls.is_expr(template), template
 
         # print('template', template)
         # print('sol', sol)
@@ -507,11 +510,22 @@ class Miscs:
         # sol1 FiniteSet((0, -uk_10, 0, 0, uk_10, -uk_20, -uk_26, -uk_28, -uk_14 + uk_20, 0, uk_10, uk_26, 0, uk_13, uk_14, 0, 0, 0, -uk_24 - uk_34, 0, uk_20, -uk_30, 0, uk_23, uk_24, 0, uk_26, 0, uk_28, uk_29, uk_30, 0, uk_32, uk_33, uk_34))
         # sol {uk_0: 0, uk_1: -r1, uk_2: 0, uk_3: 0, uk_4: r1, uk_5: -r4, uk_6: -r7, uk_7: -r8, uk_8: -r3 + r4, uk_9: 0, uk_11: r7, uk_12: 0, uk_15: 0, uk_16: 0, uk_17: 0, uk_18: -r13 - r6, uk_19: 0, uk_21: -r10, uk_22: 0, uk_25: 0, uk_27: 0, uk_31: 0, uk_10: r1, uk_13: r2, uk_14: r3, uk_20: r4, uk_23: r5, uk_24: r6, uk_26: r7, uk_28: r8, uk_29: r9, uk_30: r10, uk_32: r11, uk_33: r12, uk_34: r13}
 
-        eqt = template.subs(sol)
-        uk_vars = cls.get_vars(sol.values())  # e.g., uk_x
+        print(terms)
+        print(uks)
+        print(vals)
+
+        terms_, uks_, vals_expr, vals_num = [], [], [], []
+        for t, u, v in zip(terms, uks, vals):
+            if v == 0:
+                continue
+            terms_.append(t)
+            uks_.append(t)
+
+            vals_.append(v)
 
         if not uk_vars:
             return eqt
+        print(uk_vars)
 
         # print('eqts', eqt)
         # print('uk_vars', uk_vars)
@@ -519,7 +533,11 @@ class Miscs:
         sols = []
         for i, uk in enumerate(uk_vars):
             d = {uk: (1 if j == i else 0) for j, uk in enumerate(uk_vars)}
+            print(d)
+            print(eqt)
+            print('slow a')
             t = eqt.subs(d)
+            print('slow b')
             # print(t)
             sols.append(t)
         # print(sols)
@@ -535,7 +553,7 @@ class Miscs:
 
         return sols
 
-    @staticmethod
+    @ staticmethod
     def show_removed(s, orig_siz, new_siz, elapsed_time):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz

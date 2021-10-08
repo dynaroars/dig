@@ -154,10 +154,10 @@ class Infer(infer.base.Infer):
             f"{loc}: gen init inps using {whileFName} "
             f"(curr inps {len(inps)}, traces {len(traces)})"
         )
-        terms, template, uks, n_eqts_needed = Miscs.init_terms(
+        terms, uks, n_eqts_needed = Miscs.init_terms(
             self.inv_decls[loc].names, deg, rate)
 
-        exprs = whileF(loc, template, n_eqts_needed, inps, traces)
+        exprs = whileF(loc, terms, uks, n_eqts_needed, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
         while not exprs:
@@ -168,10 +168,10 @@ class Infer(infer.base.Infer):
             mlog.info(
                 f"Reduce polynomial degree to {deg}, terms {len(terms)}, uks {len(uks)}"
             )
-            terms, template, uks, n_eqts_needed = Miscs.init_terms(
+            terms, uks, n_eqts_needed = Miscs.init_terms(
                 self.inv_decls[loc].names, deg, rate
             )
-            exprs = whileF(loc, template, n_eqts_needed, inps, traces)
+            exprs = whileF(loc, terms, uks, n_eqts_needed, inps, traces)
 
         return template, uks, exprs
 
@@ -238,18 +238,19 @@ class Infer(infer.base.Infer):
         mydeg = deg
         eqts = []
         while not eqts and mydeg:
-            terms, template, uks, n_eqts_needed = Miscs.init_terms(
+            terms, uks, n_eqts_needed = Miscs.init_terms(
                 symbols.names, mydeg, settings.EQT_RATE
             )
-            exprs = list(traces.instantiate(template, n_eqts_needed))
 
+            template = list(zip(terms, uks))
+            exprs = list(traces.instantiate(template, n_eqts_needed))
             if len(exprs) < len(uks):
                 mydeg = mydeg - 1
                 mlog.warning(
                     f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
                 continue
 
-            eqts = Miscs.solve_eqts(exprs, uks, template)
+            eqts = Miscs.solve_eqts(exprs, terms, uks)
             if not eqts:
                 mydeg = mydeg - 1
                 mlog.warning(f"no eqt results, reducing deg to {mydeg}")

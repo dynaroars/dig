@@ -30,7 +30,7 @@ class Inv(metaclass=ABCMeta):
                 # PrePost and Max/MinPlus
                 (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
                 isinstance(inv, str) or   # Array relation
-                isinstance(inv, sympy.Equality)), inv
+                isinstance(inv, (sympy.Equality, sympy.Le))), inv
 
         assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
 
@@ -84,11 +84,17 @@ class Inv(metaclass=ABCMeta):
 
 class RelInv(Inv, metaclass=ABCMeta):
     def __init__(self, rel, stat=None):
-        assert isinstance(rel, sympy.Equality), rel
+        assert isinstance(rel, (sympy.Equality, sympy.Le)), rel
         super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
-        s = f"{self.inv.lhs} == {self.inv.rhs}"
+        if isinstance(self.inv, sympy.Equality):
+            s = f"{self.inv.lhs} == {self.inv.rhs}"
+        elif isinstance(self.inv, sympy.Le):
+            s = f"{self.inv.lhs} <= {self.inv.rhs}"
+        else:
+            s = str(self.inv)
+
         if print_stat:
             s = f"{s} {self.stat}"
         return s

@@ -149,18 +149,31 @@ class Traces(SymbsValsSet):
                 myd[k].append(d[k])
         return myd
 
-    def instantiate(self, term, ntraces):
-        assert Miscs.is_expr(term), term
+    def instantiate(self, template, ntraces):
+        """
+        template can be  an expr  or  [(expr, uk)], from which we can do sum(expr*uk for ...)
+
+        """
+        #assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
 
+        do_tsubs = False
+        if isinstance(template, Iterable):
+            def tsubs(trace):
+                return sum((t if isinstance(t, int) else t.subs(trace)) * u for t, u in template)
+            do_tsubs = True
+
         exprs = set()
-        if ntraces is None:
-            for t in self.mydicts:
-                exprs = set(term.subs(t) for t in self.mydicts)
+        if ntraces is None:  # use everything
+            if do_tsubs:
+                exprs = set(tsubs(t) for t in self.mydicts)
+            else:
+                exprs = set(template.subs(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
             for t in self.mydicts:
-                expr = term.subs(t)
+
+                expr = tsubs(t) if do_tsubs else template.subs(t)
                 if expr not in exprs:
                     exprs.add(expr)
                     if len(exprs) >= ntracesExtra:

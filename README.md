@@ -1,1 +1,1 @@
-See https://unsat.github.io/dig/
+See https://github.com/unsat/dig/
