@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
-import time
+from time import time
 
 import pdb
 import itertools
@@ -156,7 +156,7 @@ class Miscs:
         n_eqts_needed = int(rate * len(uks))
         return terms, uks, n_eqts_needed
 
-    @ staticmethod
+    @staticmethod
     def get_terms(ss, deg):
         """
         get a list of terms from the given list of vars and deg
@@ -187,7 +187,7 @@ class Miscs:
         terms = [sympy.prod(c) for c in combs]
         return terms
 
-    @ classmethod
+    @classmethod
     def get_deg(cls, nvs, nts, max_deg=7):
         """
         Generates a degree wrt to a (maximum) number of terms (nss)
@@ -211,7 +211,7 @@ class Miscs:
             if nterms > nts:
                 return d
 
-    @ classmethod
+    @classmethod
     def get_auto_deg(cls, maxdeg, nvars, maxterm):
         if maxdeg:
             deg = maxdeg
@@ -222,7 +222,7 @@ class Miscs:
 
         return deg
 
-    @ staticmethod
+    @staticmethod
     def get_terms_fixed_coefs(ss, subset_siz, icoef, do_create_terms=True):
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
@@ -256,7 +256,7 @@ class Miscs:
 
         return set(rs)
 
-    @ classmethod
+    @classmethod
     def reduce_eqts(cls, ps):
         """
         Return the basis (e.g., a min subset of ps that implies ps)
@@ -293,7 +293,7 @@ class Miscs:
         else:
             return ps
 
-    @ staticmethod
+    @staticmethod
     def elim_denom(p):
         """
         Eliminate (Integer) denominators in expression operands.
@@ -323,7 +323,7 @@ class Miscs:
             return p
         return p * sympy.lcm(denoms)
 
-    @ classmethod
+    @classmethod
     def get_coefs(cls, p):
         """
         Return coefficients of an expression
@@ -334,7 +334,7 @@ class Miscs:
         """
         return list(p.as_coefficients_dict().values())
 
-    @ staticmethod
+    @staticmethod
     def is_repeating_rational(x):
         """check if x is a repating rational"""
 
@@ -345,7 +345,7 @@ class Miscs:
         x2 = x.n(digits=100).str(skip_zeroes=True)
         return x1 != x2
 
-    @ classmethod
+    @classmethod
     def reduce_with_timeout(cls, ps, timeout=settings.EQT_REDUCE_TIMEOUT):
         Q = multiprocessing.Queue()
 
@@ -376,15 +376,15 @@ class Miscs:
         w.close()
         return ps
 
-    @ classmethod
+    @classmethod
     def is_nice_coef(cls, c, lim):
         return abs(c) <= lim or c % 10 == 0 or c % 5 == 0
 
-    @ classmethod
+    @classmethod
     def is_nice_eqt(cls, eqt, lim):
         return all(cls.is_nice_coef(c, lim) for c in cls.get_coefs(eqt))
 
-    @ classmethod
+    @classmethod
     def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF_INTERMEDIATE):
         ps_ = []
         for p in ps:
@@ -396,7 +396,7 @@ class Miscs:
 
         return ps_
 
-    @ classmethod
+    @classmethod
     def refine(cls, eqts):
 
         if not eqts:
@@ -415,7 +415,7 @@ class Miscs:
 
         return eqts
 
-    @ classmethod
+    @classmethod
     def solve_eqts(cls, eqts, terms, uks):
         assert isinstance(eqts, list) and eqts, eqts
         assert isinstance(terms, list) and terms, terms
@@ -424,7 +424,9 @@ class Miscs:
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
+        st = time()
         sol = linsolve(eqts, uks)
+        print("solve time", time() - st)
         vals = list(list(sol)[0])
         # filter sol with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
         if all(v == 0 for v in vals):
@@ -433,7 +435,7 @@ class Miscs:
         eqts_ = cls.instantiate_template(terms, uks, vals)
         return cls.refine(eqts_)
 
-    @ classmethod
+    @classmethod
     def mk_template_NOTUSED(cls, terms, rv, prefix=None, ret_coef_vs=False):
         """
         get a template from terms.
@@ -481,8 +483,8 @@ class Miscs:
 
         return template, uks if ret_coef_vs else template
 
-    @ classmethod
-    def instantiate_template(cls, terms, uks, vals):
+    @classmethod
+    def instantiate_template(cls, ts, uks, vs):
         """
         Instantiate a template with solved coefficient values
 
@@ -497,63 +499,40 @@ class Miscs:
         # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
-        assert isinstance(vals, list), vals
-        assert isinstance(terms, list) and terms, terms
+        assert isinstance(vs, list), vs
+        assert isinstance(ts, list) and ts, ts
         assert isinstance(uks, list) and uks, uks
-        assert len(terms) == len(uks) == len(vals), (terms, uks, vals)
+        assert len(ts) == len(uks) == len(vs), (ts, uks, vs)
 
-        #assert cls.is_expr(template), template
+        def _inst(ts, vs, d):
+            #print('myvs', vs)
+            ss = []
+            for t, v in zip(ts, vs):
+                if v in d:
+                    v_ = d[v]
+                else:
+                    v_ = v.subs(d)
+                ss.append(t*v_)
+            return sum(ss)
 
-        # print('template', template)
-        # print('sol', sol)
-        # sol {uk_0: 0, uk_1: -uk_10, uk_2: 0, uk_3: 0, uk_4: uk_10, uk_5: -uk_20, uk_6: -uk_26, uk_7: -uk_28, uk_8: -uk_14 + uk_20, uk_9: 0, uk_11: uk_26, uk_12: 0, uk_15: 0, uk_16: 0, uk_17: 0, uk_18: -uk_24 - uk_34, uk_19: 0, uk_21: -uk_30, uk_22: 0, uk_25: 0, uk_27: 0, uk_31: 0}
-        # sol1 FiniteSet((0, -uk_10, 0, 0, uk_10, -uk_20, -uk_26, -uk_28, -uk_14 + uk_20, 0, uk_10, uk_26, 0, uk_13, uk_14, 0, 0, 0, -uk_24 - uk_34, 0, uk_20, -uk_30, 0, uk_23, uk_24, 0, uk_26, 0, uk_28, uk_29, uk_30, 0, uk_32, uk_33, uk_34))
-        # sol {uk_0: 0, uk_1: -r1, uk_2: 0, uk_3: 0, uk_4: r1, uk_5: -r4, uk_6: -r7, uk_7: -r8, uk_8: -r3 + r4, uk_9: 0, uk_11: r7, uk_12: 0, uk_15: 0, uk_16: 0, uk_17: 0, uk_18: -r13 - r6, uk_19: 0, uk_21: -r10, uk_22: 0, uk_25: 0, uk_27: 0, uk_31: 0, uk_10: r1, uk_13: r2, uk_14: r3, uk_20: r4, uk_23: r5, uk_24: r6, uk_26: r7, uk_28: r8, uk_29: r9, uk_30: r10, uk_32: r11, uk_33: r12, uk_34: r13}
+        st = time()
+        cs = [(t, u, v) for t, u, v in zip(ts, uks, vs) if v != 0]
+        ts_, uks_, vs_ = zip(*cs)
+        uk_vs = cls.get_vars(vs_)
+        if not uk_vs:
+            return sum(t*v for t, v in zip(ts_, vs_))
 
-        print(terms)
-        print(uks)
-        print(vals)
+        tasks = [{uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)}
+                 for i, uk in enumerate(uk_vs)]
 
-        terms_, uks_, vals_expr, vals_num = [], [], [], []
-        for t, u, v in zip(terms, uks, vals):
-            if v == 0:
-                continue
-            terms_.append(t)
-            uks_.append(t)
+        def f(tasks):
+            return [_inst(ts_, vs_, d) for d in tasks]
 
-            vals_.append(v)
-
-        if not uk_vars:
-            return eqt
-        print(uk_vars)
-
-        # print('eqts', eqt)
-        # print('uk_vars', uk_vars)
-
-        sols = []
-        for i, uk in enumerate(uk_vars):
-            d = {uk: (1 if j == i else 0) for j, uk in enumerate(uk_vars)}
-            print(d)
-            print(eqt)
-            print('slow a')
-            t = eqt.subs(d)
-            print('slow b')
-            # print(t)
-            sols.append(t)
-        # print(sols)
-        # DBG()
-        # iM = sage.all.identity_matrix(len(uk_vars))  # standard basis
-        # rs = [dict(zip(uk_vars, l)) for l in iM.rows()]
-        # sols = [f_(r) for r in rs]
-
-        # remove trivial (tautology) str(x) <=> str(x)
-        # sols = [
-        #     s for s in sols if not (s.is_relational() and str(s.lhs()) == str(s.rhs()))
-        # ]
-
+        wrs = MP.run_mp("instantiate sol", tasks, f, settings.DO_MP)
+        sols = [s for s in wrs]
         return sols
 
-    @ staticmethod
+    @staticmethod
     def show_removed(s, orig_siz, new_siz, elapsed_time):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz

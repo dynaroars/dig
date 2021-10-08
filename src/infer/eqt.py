@@ -234,6 +234,7 @@ class Infer(infer.base.Infer):
 
     @classmethod
     def gen_from_traces(cls, deg, traces, symbols):
+        assert isisntance(traces, Traces), traces
 
         mydeg = deg
         eqts = []
@@ -243,6 +244,13 @@ class Infer(infer.base.Infer):
             )
 
             template = list(zip(terms, uks))
+
+            if len(traces) < len(uks):
+                mydeg = mydeg - 1
+                mlog.warning(
+                    f"{len(traces)} traces < {len(uks)} uks, reducing deg to {mydeg}")
+                continue
+
             exprs = list(traces.instantiate(template, n_eqts_needed))
             if len(exprs) < len(uks):
                 mydeg = mydeg - 1
@@ -253,6 +261,6 @@ class Infer(infer.base.Infer):
             eqts = Miscs.solve_eqts(exprs, terms, uks)
             if not eqts:
                 mydeg = mydeg - 1
-                mlog.warning(f"no eqt results, reducing deg to {mydeg}")
+                mlog.warning(f"NO EQTS RESULTS, reducing deg to {mydeg}")
 
         return [data.inv.eqt.Eqt(sympy.Eq(eqt, 0)) for eqt in eqts]

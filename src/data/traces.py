@@ -1,3 +1,4 @@
+from time import time
 import pdb
 from collections import namedtuple
 from pathlib import Path
@@ -155,12 +156,12 @@ class Traces(SymbsValsSet):
 
         """
         #assert Miscs.is_expr(template), template
+        st = time()
         assert ntraces is None or ntraces >= 1, ntraces
-
         do_tsubs = False
         if isinstance(template, Iterable):
             def tsubs(trace):
-                return sum((t if isinstance(t, int) else t.subs(trace)) * u for t, u in template)
+                return sum((t if isinstance(t, int) else t.subs(trace, simulteneous=False)) * u for t, u in template)
             do_tsubs = True
 
         exprs = set()
@@ -183,6 +184,7 @@ class Traces(SymbsValsSet):
             # the more 0's , the better
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
             exprs = set(exprs[:ntraces])
+        print('etiem', time() - st)
         return exprs
 
     def padzeros(self, ss):
