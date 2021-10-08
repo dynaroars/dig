@@ -324,6 +324,13 @@ class DigTraces(Dig):
                         return infer.opt.Ieq.gen_from_traces(traces, symbols)
                     tasks.append((loc, _f))
 
+                # if settings.DO_MINMAXPLUS:
+                #     import infer.opt
+
+                #     def _f():
+                #         return infer.opt.MMP.gen_from_traces(traces, symbols)
+                #     tasks.append((loc, _f))
+
         def f(tasks):
             rs = [(loc, _f()) for loc, _f in tasks]
             return rs

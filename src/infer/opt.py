@@ -46,11 +46,15 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
-        mlog.debug(
-            "check upperbounds for {} terms at {} locs".format(
-                sum(map(len, termss)), len(locs)
-            )
-        )
+
+        dinvs = data.inv.invs.DInvs()
+
+        if not termss:
+            return dinvs
+
+        mlog.debug(f"check upperbounds for {sum(map(len, termss))} "
+                   f"terms at {len(locs)} locs")
+
         refs = {
             loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
             for loc, terms in zip(locs, termss)

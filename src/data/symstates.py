@@ -11,7 +11,7 @@ from multiprocessing import Queue
 from queue import Empty
 import subprocess
 
-
+import sympy
 import z3
 
 from typing import NamedTuple
@@ -365,11 +365,11 @@ class SymStatesMaker(metaclass=ABCMeta):
             depth >= 1 and isinstance(ss, list) for depth, ss in depthss
         ), depthss
 
-        @cached_function
+        # @cached_function
         def zpc(p):
             return Z3.zTrue if p is None else Z3.parse(p)
 
-        @cached_function
+        # @cached_function
         def zslocal(p):
             return Z3.parse(p)
 
@@ -652,7 +652,7 @@ class SymStates(dict):
             f = z3.Not(z3.Implies(f, expr))
 
         models, stat = Z3.get_models(f, ncexs)
-        cexs, is_succ = Z3.extract(models, sage_eval)
+        cexs, is_succ = Z3.extract(models, int)
         return cexs, is_succ, stat
 
     # Find maximal values for term using symbolic states
