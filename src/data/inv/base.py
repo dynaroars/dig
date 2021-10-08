@@ -88,13 +88,7 @@ class RelInv(Inv, metaclass=ABCMeta):
         super().__init__(rel, stat)
 
     def __str__(self, print_stat=False):
-        if isinstance(self.inv, sympy.Equality):
-            s = f"{self.inv.lhs} == {self.inv.rhs}"
-        elif isinstance(self.inv, sympy.Le):
-            s = f"{self.inv.lhs} <= {self.inv.rhs}"
-        else:
-            s = str(self.inv)
-
+        s = self.mystr
         if print_stat:
             s = f"{s} {self.stat}"
         return s
@@ -118,12 +112,12 @@ class RelInv(Inv, metaclass=ABCMeta):
     @property
     def expr(self):
         """
-        cannot make this as property because z3 expr is ctype,
+        cannot cache because z3 expr is ctype,
         not compat with multiprocessing Queue
 
         also, cannot save this to sel._expr
         """
-        return Z3.parse(str(self.inv))
+        return Z3.parse(str(self))
 
 
 class RelTerm(NamedTuple):

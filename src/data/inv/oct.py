@@ -22,3 +22,7 @@ class Oct(data.inv.base.RelInv):
     @property
     def is_simple(self):
         return self.inv.rhs.is_constant() and self.inv.rhs.is_zero
+
+    @property
+    def mystr(self):
+        return f"{self.inv.lhs} <= {self.inv.rhs}"

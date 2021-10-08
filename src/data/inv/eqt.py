@@ -25,3 +25,7 @@ class Eqt(data.inv.base.RelInv):
         #     return True
 
         return super().test_single_trace(trace)
+
+    @property
+    def mystr(self):
+        return f"{self.inv.lhs} == {self.inv.rhs}"
