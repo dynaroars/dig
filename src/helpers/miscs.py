@@ -514,11 +514,20 @@ class Miscs:
         if not uk_vs:
             return eqt
 
+        # print(eqt)
+        # print(uks)
+
         identity_m = [{uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)}
                       for i, uk in enumerate(uk_vs)]
 
+        #st = time()
         sols = [eqt.xreplace(d) for d in identity_m]
-        print('instantiate mis', time() - st)
+        #print('xreplace', time() - st)
+
+        # st = time()
+        # sols = [eqt.subs(d) for d in identity_m]
+        # print('subs', time() - st)
+
         return sols
 
     @staticmethod

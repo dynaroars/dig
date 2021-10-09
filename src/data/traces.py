@@ -100,7 +100,7 @@ class Trace(SymbsVals):
 
     def myeval(self, expr):
         assert Miscs.is_expr(expr), expr
-        rs = expr.subs(self.mydict)
+        rs = expr.xreplace(self.mydict)
         return rs
 
 
@@ -156,8 +156,6 @@ class Traces(SymbsValsSet):
 
         """
         assert Miscs.is_expr(template), template
-
-        st = time()
         assert ntraces is None or ntraces >= 1, ntraces
 
         exprs = set()
@@ -177,7 +175,7 @@ class Traces(SymbsValsSet):
             # the more 0's , the better
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
             exprs = set(exprs[:ntraces])
-        print('etime inst', time() - st)
+
         return exprs
 
     def padzeros(self, ss):
