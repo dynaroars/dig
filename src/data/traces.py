@@ -155,26 +155,33 @@ class Traces(SymbsValsSet):
         template can be  an expr  or  [(expr, uk)], from which we can do sum(expr*uk for ...)
 
         """
-        #assert Miscs.is_expr(template), template
+        # assert Miscs.is_expr(template), template
         st = time()
         assert ntraces is None or ntraces >= 1, ntraces
         do_tsubs = False
         if isinstance(template, Iterable):
+            # def tsubs(trace):
+            #     return sum((t if isinstance(t, int) else t.xreplace(trace)) * u for t, u in template)
+
+            e = sum(t*u for t, u in template)
+
             def tsubs(trace):
-                return sum((t if isinstance(t, int) else t.subs(trace, simulteneous=False)) * u for t, u in template)
+                return e.xreplace(trace)
+
             do_tsubs = True
 
+        print(do_tsubs)
         exprs = set()
         if ntraces is None:  # use everything
             if do_tsubs:
                 exprs = set(tsubs(t) for t in self.mydicts)
             else:
-                exprs = set(template.subs(t) for t in self.mydicts)
+                exprs = set(template.xreplace(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
             for t in self.mydicts:
 
-                expr = tsubs(t) if do_tsubs else template.subs(t)
+                expr = tsubs(t) if do_tsubs else template.xreplace(t)
                 if expr not in exprs:
                     exprs.add(expr)
                     if len(exprs) >= ntracesExtra:
@@ -184,7 +191,7 @@ class Traces(SymbsValsSet):
             # the more 0's , the better
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
             exprs = set(exprs[:ntraces])
-        print('etiem', time() - st)
+        print('etime inst', time() - st)
         return exprs
 
     def padzeros(self, ss):
@@ -206,7 +213,7 @@ class DTraces(dict):
     {loc: Traces}
     """
 
-    @property
+    @ property
     def siz(self):
         return sum(map(len, self.values()))
 

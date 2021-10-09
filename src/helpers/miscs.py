@@ -423,17 +423,16 @@ class Miscs:
         assert len(terms) == len(uks), (terms, uks)
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
-        mlog.debug(f"solve {len(uks)} uks using {len(eqts)} eqts")
-        st = time()
+        mlog.debug(f"solving {len(uks)} uks using {len(eqts)} eqts")
         sol = linsolve(eqts, uks)
-        print("solve time", time() - st)
         vals = list(list(sol)[0])
         # filter sol with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
         if all(v == 0 for v in vals):
             return []
 
         eqts_ = cls.instantiate_template(terms, uks, vals)
-        return cls.refine(eqts_)
+        eqts_ = cls.refine(eqts_)
+        return [sympy.Eq(eqt, 0) for eqt in eqts_]
 
     @classmethod
     def mk_template_NOTUSED(cls, terms, rv, prefix=None, ret_coef_vs=False):
@@ -505,15 +504,24 @@ class Miscs:
         assert len(ts) == len(uks) == len(vs), (ts, uks, vs)
 
         def _inst(ts, vs, d):
-            #print('myvs', vs)
             ss = []
+            st = time()
             for t, v in zip(ts, vs):
                 if v in d:
                     v_ = d[v]
                 else:
-                    v_ = v.subs(d)
+                    v_ = v.xreplace(d)
                 ss.append(t*v_)
-            return sum(ss)
+            e = sum(ss)
+            print('etime1', time() - st)
+            return e
+
+        def _inst2(ts, vs, d):
+            e = sum(t*v for t, v in zip(ts, vs))
+            st = time()
+            e = e.xreplace(d)
+            print('etime2', time() - st)
+            return e
 
         st = time()
         cs = [(t, u, v) for t, u, v in zip(ts, uks, vs) if v != 0]
