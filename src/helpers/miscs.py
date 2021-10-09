@@ -503,41 +503,22 @@ class Miscs:
         assert isinstance(uks, list) and uks, uks
         assert len(ts) == len(uks) == len(vs), (ts, uks, vs)
 
-        def _inst(ts, vs, d):
-            ss = []
-            st = time()
-            for t, v in zip(ts, vs):
-                if v in d:
-                    v_ = d[v]
-                else:
-                    v_ = v.xreplace(d)
-                ss.append(t*v_)
-            e = sum(ss)
-            print('etime1', time() - st)
-            return e
-
-        def _inst2(ts, vs, d):
-            e = sum(t*v for t, v in zip(ts, vs))
-            st = time()
-            e = e.xreplace(d)
-            print('etime2', time() - st)
-            return e
-
         st = time()
         cs = [(t, u, v) for t, u, v in zip(ts, uks, vs) if v != 0]
         ts_, uks_, vs_ = zip(*cs)
+
+        eqt = sum(t*v for t, v in zip(ts_, vs_))
+
         uk_vs = cls.get_vars(vs_)
+
         if not uk_vs:
-            return sum(t*v for t, v in zip(ts_, vs_))
+            return eqt
 
-        tasks = [{uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)}
-                 for i, uk in enumerate(uk_vs)]
+        identity_m = [{uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)}
+                      for i, uk in enumerate(uk_vs)]
 
-        def f(tasks):
-            return [_inst(ts_, vs_, d) for d in tasks]
-
-        wrs = MP.run_mp("instantiate sol", tasks, f, settings.DO_MP)
-        sols = [s for s in wrs]
+        sols = [eqt.xreplace(d) for d in identity_m]
+        print('instantiate mis', time() - st)
         return sols
 
     @staticmethod

@@ -251,7 +251,8 @@ class Infer(infer.base.Infer):
                     f"{len(traces)} traces < {len(uks)} uks, reducing deg to {mydeg}")
                 continue
 
-            exprs = list(traces.instantiate(list(zip(ts, uks)), n_eqts_needed))
+            template = sum(t*u for t, u in zip(ts, uks))
+            exprs = list(traces.instantiate(template, n_eqts_needed))
             if len(exprs) < len(uks):
                 mydeg = mydeg - 1
                 mlog.warning(
