@@ -1,7 +1,7 @@
 import pdb
 import itertools
 from typing import NamedTuple
-
+import sympy
 import z3
 
 import helpers.vcommon as CM
@@ -71,8 +71,9 @@ class MMP(data.inv.base.Inv):
 
         trace = trace.mydict_str
         bval = Term._eval(self.__str__(use_lambda=True), trace)
-        assert isinstance(bval, bool), bval
-        return bval
+        assert isinstance(bval, (sympy.logic.boolalg.BooleanTrue,
+                          sympy.logic.boolalg.BooleanFalse)), bval
+        return bool(bval)
 
     @classmethod
     def mp2df_expr(cls, a, b, idx, is_max, is_ieq):
@@ -324,7 +325,7 @@ class Term(NamedTuple):
         assert isinstance(lambda_str, str) and "lambda" in lambda_str
         assert trace, trace
 
-        f = sage.all.sage_eval(lambda_str)
+        f = eval(lambda_str)
         if CM.is_python3():
             symbols = f.__code__.co_varnames
         else:

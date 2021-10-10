@@ -70,7 +70,7 @@ class Infer(infer.base.Infer):
         """
         repeatedly get more inps using random method
         """
-        template = list(zip(ts, uks))
+        template = sum(t*u for t, u in zip(ts, uks))
         exprs = traces[loc].instantiate(template, n_eqts_needed)
 
         doRand = True
@@ -185,6 +185,7 @@ class Infer(infer.base.Infer):
         assert isinstance(dtraces, DTraces) and dtraces, dtraces
         assert isinstance(inps, Inps) and inps, inps
 
+        template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
         eqts = set()  # results
         exprs = list(exprs)
@@ -226,12 +227,10 @@ class Infer(infer.base.Infer):
 
             cexs = Traces.extract(cexs[loc])
             cexs = cexs.padzeros(set(self.inv_decls[loc].names))
-            exprs_ = cexs.instantiate(ts, uks, None)
+            exprs_ = cexs.instantiate(template, None)
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
             exprs.extend(exprs_)
 
-        eqts = set([p for p in eqts if Miscs.is_nice_eqt(
-            p.inv, settings.MAX_LARGE_COEF_FINAL)])
         return eqts, new_cexs
 
     @classmethod

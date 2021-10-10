@@ -98,8 +98,8 @@ class Z3:
                     mv = str(model[v])
                     try:
                         cex[str(v)] = mv if f is None else f(mv)
-                    except SyntaxError:
-                        # mlog.warning('cannot analyze {}'.format(model))
+                    except ValueError:
+                        #mlog.warning('cannot analyze {}'.format(model))
                         pass
                 cexs.append(cex)
         return cexs, isSucc

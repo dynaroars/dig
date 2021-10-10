@@ -1,7 +1,8 @@
 """
 Symbolic States
 """
-
+from time import time
+import functools
 import sys
 import shlex
 from collections import defaultdict
@@ -54,6 +55,7 @@ class PathCondition(NamedTuple):
 
 
 class PC_CIVL(PathCondition):
+
     @classmethod
     def parse_parts(cls, lines):
         """
@@ -95,8 +97,9 @@ class PC_CIVL(PathCondition):
         assert slocal
         return loc, pc, slocal
 
-    @staticmethod
-    def replace_str(s):
+    @classmethod
+    @functools.cache
+    def replace_str(cls, s):
         return (
             s.replace(" = ", " == ")
             .replace(";", " and ")
@@ -109,6 +112,7 @@ class PC_CIVL(PathCondition):
 
 
 class PC_JPF(PathCondition):
+
     @classmethod
     def parse_parts(cls, lines, delim="**********"):
         """
@@ -175,33 +179,16 @@ class PC_JPF(PathCondition):
         slocals = curpart[:]
         assert loc, loc
 
-        slocals = [cls.replace_str(p)
-                   for p in slocals if p and not cls.too_large(p)]
+        slocals = [cls.replace_str(p) for p in slocals if p]
         slocals = " and ".join(slocals) if slocals else None
         pcs = [cls.replace_str(pc) for pc in pcs if pc]
         pcs = " and ".join(pcs) if pcs else None
 
         return loc, pcs, slocals
 
-    # @cached_function
-    @staticmethod
-    def too_large(p):
-        return False
-        # if "CON:" not in p:
-        #     return False
-
-        # ps = p.split("=")
-        # assert len(ps) == 2
-        # v = sage_eval(ps[1])
-        # if helpers.miscs.Miscs.is_num(v) and v >= settings.LARGE_N:
-        #     mlog.warning(f"ignore {p} (larger than {settings.LARGE_N})")
-        #     return True
-        # else:
-        #     return False
-
-    # @cached_function
-    @staticmethod
-    def replace_str(s):
+    @classmethod
+    @functools.cache
+    def replace_str(cls, s):
         return (
             s.replace("&&", "")
             .replace(" = ", "==")
@@ -246,14 +233,6 @@ class PCs(set):
             return self._pc
 
 
-EXPR_MAPPER = {
-    # For HOLA H32
-    # TODO: Don't need this in Python 3.8
-    # 'j==((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((j_1_SYMINT + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) and i==((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((j_1_SYMINT + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) + 1) and k==100 and b==0 and n==200':
-    #     'j==(j_1_SYMINT + 100) and i==(j_1_SYMINT + 100) and k==100 and b==0 and n==200'
-}
-
-
 class SymStatesMaker(metaclass=ABCMeta):
     def __init__(self, filename, mainQName, funname, ninps, tmpdir):
         assert tmpdir.is_dir(), tmpdir
@@ -268,6 +247,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
+
         tasks = [depth for depth in range(
             self.mindepth, settings.SE_MAXDEPTH + 1)]
 
@@ -276,7 +256,7 @@ class SymStatesMaker(metaclass=ABCMeta):
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
-        wrs = MP.run_mp("get symstates", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("getting symstates", tasks, f, settings.DO_MP)
 
         if not wrs:
             mlog.warning("cannot obtain symbolic states, unreachable locs?")
@@ -296,12 +276,14 @@ class SymStatesMaker(metaclass=ABCMeta):
             return rs
 
         wrs = MP.run_mp("symstates exprs", tasks, f, settings.DO_MP)
+
         for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
             pcs = symstates[loc][depth]
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
             mlog.debug(
                 f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
+
         return symstates
 
     def get_ss(self, depth):
@@ -310,7 +292,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         cmd = self.mk(depth)
         timeout = depth
         mlog.debug(
-            f"Obtain symbolic states at depth {depth} (timeout {timeout}s)")
+            f"Obtaining symbolic states at depth {depth} (timeout {timeout}s)")
         mlog.debug(cmd)
 
         s = None
@@ -337,24 +319,6 @@ class SymStatesMaker(metaclass=ABCMeta):
         pcs = self.pc_cls.parse(s)
         return pcs
 
-    # @classmethod
-    # def get_uniq_ss(cls, loc, depth, symstates):
-    #     pcs = list(symstates[loc][depth])
-    #     for loc_ in symstates:
-    #         if loc != loc:
-    #             continue
-    #         for depth_ in symstates[loc]:
-    #             if depth_ >= depth:
-    #                 continue
-    #             otherpcs = symstates[loc][depth_]
-    #             assert isinstance(otherpcs, PCs)
-    #             pcs = [pc for pc in pcs if pc not in otherpcs]
-
-    #     pcs = PCs(loc, depth)
-    #     for pc in pcs:
-    #         pcs.add(pc)
-    #     return pcs
-
     @classmethod
     def merge(cls, depthss, pc_cls):
         """
@@ -365,18 +329,17 @@ class SymStatesMaker(metaclass=ABCMeta):
             depth >= 1 and isinstance(ss, list) for depth, ss in depthss
         ), depthss
 
-        # @cached_function
+        @functools.cache
         def zpc(p):
             return Z3.zTrue if p is None else Z3.parse(p)
 
-        # @cached_function
+        @functools.cache
         def zslocal(p):
             return Z3.parse(p)
 
         symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
-                slocals = EXPR_MAPPER.get(slocals, slocals)
                 try:
                     pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
                     symstates[loc][depth].add(pc)
@@ -387,7 +350,9 @@ class SymStatesMaker(metaclass=ABCMeta):
         # only store incremental states at each depth
         for loc in symstates:
             depths = sorted(symstates[loc])
-            assert len(depths) >= 2, depths
+            if len(depths) < 2:
+                continue
+
             for i in range(len(depths)):
                 iss = symstates[loc][depths[i]]
                 for j in range(i):
@@ -510,8 +475,6 @@ class SymStates(dict):
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
-
-    # Checking invariants using symbolic states
 
     def check(self, dinvs, inps):
         """
@@ -655,10 +618,9 @@ class SymStates(dict):
         cexs, is_succ = Z3.extract(models, int)
         return cexs, is_succ, stat
 
-    # Find maximal values for term using symbolic states
     def maximize(self, loc, term_expr, iupper, extra_constr=None):
         """
-        maximize value of term
+        maximize value of term using symbolic states
         """
         assert z3.is_expr(term_expr), term_expr
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr

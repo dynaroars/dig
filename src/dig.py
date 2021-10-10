@@ -2,20 +2,10 @@ import pdb
 import sys
 import datetime
 import time
-import psutil
 import os
 from pathlib import Path
 
 DBG = pdb.set_trace
-
-def killchildren(pid):
-    parent = psutil.Process(pid)
-    for child in parent.children(recursive=True):
-        # mlog.debug(f"terminate child {child}")
-        try:
-            child.terminate()
-        except:
-            mlog.exception(f"Can't terminate child {child}")
 
 
 """
@@ -69,6 +59,13 @@ if __name__ == "__main__":
     ag(
         "--se_mindepth",
         "-se_mindepth",
+        type=int,
+        help="depthlimit of symbolic execution",
+    )
+
+    ag(
+        "--se_maxdepth",
+        "-se_maxdepth",
         type=int,
         help="depthlimit of symbolic execution",
     )
@@ -249,5 +246,3 @@ if __name__ == "__main__":
             dig = alg.DigTraces(inp, test_tracefile)
 
         dig.start(seed=seed, maxdeg=args.maxdeg)
-
-    killchildren(os.getpid())

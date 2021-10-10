@@ -174,32 +174,32 @@ class Ieq(Infer):
         terms = [data.inv.base.RelTerm(t) for t in terms]
         return terms
 
-    def my_get_terms_user(self, symbols, uterms):
-        assert isinstance(uterms, set) and uterms, uterms
-        assert all(isinstance(t, str) for t in uterms), uterms
+    # def my_get_terms_user(self, symbols, uterms):
+    #     assert isinstance(uterms, set) and uterms, uterms
+    #     assert all(isinstance(t, str) for t in uterms), uterms
 
-        mylocals = {str(s): s for s in symbols}
+    #     mylocals = {str(s): s for s in symbols}
 
-        from sage.all import sage_eval
+    #     from sage.all import sage_eval
 
-        try:
-            uterms = set(sage_eval(term, locals=mylocals) for term in uterms)
-        except NameError as ex:
-            raise NameError(
-                f"{ex}, defined vars: {','.join(map(str, symbols))}")
+    #     try:
+    #         uterms = set(sage_eval(term, locals=mylocals) for term in uterms)
+    #     except NameError as ex:
+    #         raise NameError(
+    #             f"{ex}, defined vars: {','.join(map(str, symbols))}")
 
-        terms = set()
-        for t in uterms:
-            terms.add(t)
-            terms.add(-t)
-            for v in symbols:
-                # v+t, v-t, -v+t, -v-t
-                terms.add(v + t)
-                terms.add(v - t)
-                terms.add(-v + t)
-                terms.add(-v - t)
+    #     terms = set()
+    #     for t in uterms:
+    #         terms.add(t)
+    #         terms.add(-t)
+    #         for v in symbols:
+    #             # v+t, v-t, -v+t, -v-t
+    #             terms.add(v + t)
+    #             terms.add(v - t)
+    #             terms.add(-v + t)
+    #             terms.add(-v - t)
 
-        return terms
+    #     return terms
 
     def get_excludes(self, terms, inps):
         # print(len(terms), terms)

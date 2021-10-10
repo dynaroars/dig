@@ -23,60 +23,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class Miscs:
-    @staticmethod
-    def msage_eval(s, d):
-        assert all(isinstance(k, str) and Miscs.is_expr(v)
-                   for k, v in d.items()), d
-        while True:
-            try:
-                return sage.all.sage_eval(s, d)
-            except NameError as e:  # name 'yy' is not defined
-                symb = str(e).split("'")[1]
-                mlog.debug(f"create new symbol {symb}")
-                d[symb] = sage.all.var(symb)
-
-    # @staticmethod
-    # def is_real(x):
-    #     return isinstance(x, sage.rings.real_mpfr.RealLiteral)
-
-    # @staticmethod
-    # def is_int(x):
-    #     return isinstance(x, sage.rings.integer.Integer)
-
-    # @classmethod
-    # def is_num(cls, x):
-    #     return cls.is_real(x) or cls.is_int(x)
-
-    # @staticmethod
-    # def is_rel(f, rel=None):
-    #     """
-    #     # >>> assert not Miscs.is_rel(7.2)
-    #     # >>> assert not Miscs.is_rel(x)
-    #     # >>> assert not Miscs.is_rel(x+7)
-    #     # >>> assert Miscs.is_rel(x==3,operator.eq)
-
-    #     # >>> assert Miscs.is_rel(x<=3,operator.le)
-    #     # >>> assert not Miscs.is_rel(x<=3,operator.lt)
-    #     # >>> assert not Miscs.is_rel(x+3,operator.lt)
-
-    #     # >>> y = var('y')
-    #     # >>> assert Miscs.is_rel(x+y<=3)
-    #     """
-    #     try:
-    #         if not f.is_relational():
-    #             return False
-
-    #         if rel is None:
-    #             return True
-    #         else:
-    #             return f.operator() == rel
-
-    #     except AttributeError:
-    #         return False
-
-    @classmethod
-    def is_eq(cls, f):
-        return cls.is_rel(f, operator.eq)
 
     @staticmethod
     def is_expr(x):
@@ -104,9 +50,11 @@ class Miscs:
         vs = [v for p in ps for v in p.free_symbols]
         return sorted(set(vs), key=str)
 
-    # @cached_function
-    @staticmethod
-    def str2rat(s):
+    str2rat_cache = {}
+
+    @classmethod
+    @functools.cache
+    def str2rat(cls, s):
         """
         Convert the input 's' to a rational number if possible.
 
@@ -131,17 +79,17 @@ class Miscs:
         among several ones I've tried
         %timeit str2rat('322')
         """
-        try:
-            return sympy.Rational(s)
-        except TypeError:
-            pass
+        if s in cls.str2rat_cache:
+            return cls.str2rat_cache[s]
+        else:
+            ret = sympy.Rational(s)
+            cls.str2rat_cache[s] = ret
+            return ret
 
-        return sage.all.QQ(sage.all.RR(s))
-
-    @staticmethod
-    def str2list(s):
-        assert isinstance(s, str), s
-        return tuple(sage.all.sage_eval(s))
+    # @staticmethod
+    # def str2list(s):
+    #     assert isinstance(s, str), s
+    #     return tuple(sage.all.sage_eval(s))
 
     @classmethod
     def init_terms(cls, vs, deg, rate):
@@ -288,10 +236,8 @@ class Miscs:
         ps_ = sympy.groebner(ps, *cls.get_vars(ps))
         ps_ = [x for x in ps_]
         mlog.debug(f"Grobner basis: got {len(ps_)} ps from {len(ps)} ps")
-        if len(ps_) <= len(ps):
-            return ps_
-        else:
-            return ps
+
+        return ps_ if len(ps_) < len(ps) else ps
 
     @staticmethod
     def elim_denom(p):
@@ -332,18 +278,9 @@ class Miscs:
         >>> Miscs.get_coefs(3*x+5*x*y**2)
         [3, 5]
         """
+
+        p = p.lhs if isinstance(p, sympy.Equality) else p
         return list(p.as_coefficients_dict().values())
-
-    @staticmethod
-    def is_repeating_rational(x):
-        """check if x is a repating rational"""
-
-        assert isinstance(
-            x, sage.rings.rational.Rational) and not x.is_integer(), x
-
-        x1 = x.n(digits=50).str(skip_zeroes=True)
-        x2 = x.n(digits=100).str(skip_zeroes=True)
-        return x1 != x2
 
     @classmethod
     def reduce_with_timeout(cls, ps, timeout=settings.EQT_REDUCE_TIMEOUT):
@@ -353,15 +290,8 @@ class Miscs:
             rs = cls.reduce_eqts(ps)
             myQ.put(rs)
 
-        w = multiprocessing.Process(
-            target=wprocess,
-            args=(
-                ps,
-                Q,
-            ),
-        )
+        w = multiprocessing.Process(target=wprocess, args=(ps, Q,))
         w.start()
-        # mlog.debug(f"start reduce_eqts for {len(ps)} eqts")
         try:
             newps = Q.get(timeout=timeout)
             mlog.debug(
@@ -377,22 +307,23 @@ class Miscs:
         return ps
 
     @classmethod
-    def is_nice_coef(cls, c, lim):
-        return abs(c) <= lim or c % 10 == 0 or c % 5 == 0
+    def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF_FINAL):
 
-    @classmethod
-    def is_nice_eqt(cls, eqt, lim):
-        return all(cls.is_nice_coef(c, lim) for c in cls.get_coefs(eqt))
+        @functools.cache
+        def is_nice_coef(c):
+            return abs(c) <= lim or c % 10 == 0 or c % 5 == 0
 
-    @classmethod
-    def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF_INTERMEDIATE):
+        @functools.cache
+        def is_nice_eqt(eqt):
+            return (len(eqt.args) <= 10 and
+                    all(is_nice_coef(c) for c in cls.get_coefs(eqt)))
+
         ps_ = []
         for p in ps:
-            if cls.is_nice_eqt(p, lim):
-                # print(f"append {p}")
+            if is_nice_eqt(p):
                 ps_.append(p)
             else:
-                mlog.debug(f"ignore large coefs {str(p)[:50]} ..")
+                mlog.debug(f"ignoring large coefs {str(p)[:50]} ..")
 
         return ps_
 
@@ -402,14 +333,9 @@ class Miscs:
         if not eqts:
             return eqts
 
-        nice_eqts = [cls.elim_denom(s) for s in eqts]
-        nice_eqts = cls.remove_ugly(nice_eqts)
-
-        eqts = cls.reduce_with_timeout(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
-
-        eqts = cls.reduce_with_timeout(list(set(eqts + nice_eqts)))
+        eqts = cls.reduce_with_timeout(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
 
@@ -426,61 +352,15 @@ class Miscs:
         mlog.debug(f"solving {len(uks)} uks using {len(eqts)} eqts")
         sol = linsolve(eqts, uks)
         vals = list(list(sol)[0])
-        # filter sol with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
+
         if all(v == 0 for v in vals):
             return []
 
         eqts_ = cls.instantiate_template(terms, uks, vals)
+        mlog.debug(f"got {len(eqts_)} eqts after instantiating")
         eqts_ = cls.refine(eqts_)
+        mlog.debug(f"got {len(eqts_)} eqts after refinement")
         return [sympy.Eq(eqt, 0) for eqt in eqts_]
-
-    @classmethod
-    def mk_template_NOTUSED(cls, terms, rv, prefix=None, ret_coef_vs=False):
-        """
-        get a template from terms.
-
-        Examples:
-
-        # >>> var('a,b,x,y')
-        (a, b, x, y)
-
-        # >>> Miscs.mk_template([1, a, b, x, y],0,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
-         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
-
-        # >>> Miscs.mk_template([1, x, y],0, op=operator.gt,prefix=None,ret_coef_vs=True)
-        (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
-
-        # >>> Miscs.mk_template([1, a, b, x, y],None,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
-         a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
-
-        # >>> Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
-        (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
-         a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
-
-        # >>> var('x1')
-        x1
-        # >>> Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
-        Traceback (most recent call last):
-        ...
-        AssertionError: name conflict
-        """
-
-        assert rv is not None and isinstance(rv, int), rv
-
-        if not prefix:
-            prefix = "uk_"
-        uks = [sympy.Symbol(prefix + str(i)) for i in range(len(terms))]
-
-        assert not set(terms).intersection(set(uks)), "name conflict"
-
-        template = sum(map(sympy.prod, zip(uks, terms)))
-
-        if rv != 0:  #
-            template = template - rv
-
-        return template, uks if ret_coef_vs else template
 
     @classmethod
     def instantiate_template(cls, ts, uks, vs):
@@ -503,7 +383,6 @@ class Miscs:
         assert isinstance(uks, list) and uks, uks
         assert len(ts) == len(uks) == len(vs), (ts, uks, vs)
 
-        st = time()
         cs = [(t, u, v) for t, u, v in zip(ts, uks, vs) if v != 0]
         ts_, uks_, vs_ = zip(*cs)
 
@@ -514,20 +393,8 @@ class Miscs:
         if not uk_vs:
             return eqt
 
-        # print(eqt)
-        # print(uks)
-
-        identity_m = [{uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)}
-                      for i, uk in enumerate(uk_vs)]
-
-        #st = time()
-        sols = [eqt.xreplace(d) for d in identity_m]
-        #print('xreplace', time() - st)
-
-        # st = time()
-        # sols = [eqt.subs(d) for d in identity_m]
-        # print('subs', time() - st)
-
+        sols = [eqt.xreplace({uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)})
+                for i, uk in enumerate(uk_vs)]
         return sols
 
     @staticmethod
@@ -664,17 +531,5 @@ class MP:
 
 
 if __name__ == "__main__":
-    # import doctest
-    # doctest.testmod()
-
-    x, a, y, b, q, k = sympy.symbols('x, a, y, b, q, k')
-    rs = sympy.groebner([a*y-b, q*y+k-x, a*x-a*k-b*q], x, a, y, b, q, k)
-    # GroebnerBasis([-k - q*y + x, a*y - b], x, a, y, b, q, k, domain='ZZ', order='lex')
-    print(rs)
-    DBG()
-
-    rs = sympy.groebner([x*y - 6, y - 2, x - 3], x, a, y, b, q, k)
-    # GroebnerBasis([x - 3, y - 2], x, a, y, b, q, k, domain='ZZ', order='lex')
-    print(rs)
-
-    # print(Miscs.elim_denom(sympy.Rational(3, 4)*x**2 + sympy.Rational(7, 5)*y**3))
+    import doctest
+    doctest.testmod()

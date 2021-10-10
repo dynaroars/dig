@@ -18,7 +18,7 @@ DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
-WRITE_VTRACES = False # write vtraces to csv
+WRITE_VTRACES = False  # write vtraces to csv
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
@@ -27,7 +27,6 @@ SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs
 EQT_REDUCE_TIMEOUT = 20  # secs
 EQT_RATE = 1.5
-MAX_LARGE_COEF_INTERMEDIATE = 50_000_000
 MAX_LARGE_COEF_FINAL = 50
 MAX_TERM = 200
 
@@ -94,6 +93,8 @@ class Java:
 
 
 class C:
+    SE_MIN_DEPTH = 20
+
     GCC_CMD = "gcc"
     CIL_INSTRUMENT_DIR = SRC_DIR / "ocaml"
     assert CIL_INSTRUMENT_DIR.is_dir(), CIL_INSTRUMENT_DIR
@@ -107,9 +108,6 @@ class C:
 
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
-
-    SE_MIN_DEPTH = 20
-    # SE_DEPTH_INCR = 5
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME"))
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
@@ -250,6 +248,12 @@ def setup(settings, args):
             settings.C.SE_MIN_DEPTH = args.se_mindepth
         else:
             opts.append(f"-se_mindepth {args.se_mindepth}")
+
+    if args.se_maxdepth and args.se_maxdepth >= 1:
+        if settings:
+            settings.SE_MAXDEPTH = args.se_maxdepth
+        else:
+            opts.append(f"-se_maxdepth {args.se_maxdepth}")
 
     if args.tmpdir:
         if settings:

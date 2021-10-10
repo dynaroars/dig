@@ -4,7 +4,6 @@ import pdb
 import random
 import time
 from pathlib import Path
-import psutil
 import os
 from threading import Thread
 
@@ -25,7 +24,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
-        mlog.info(f"analyze '{filename}'")
+        mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
