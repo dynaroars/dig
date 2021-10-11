@@ -4,9 +4,6 @@ import pdb
 import random
 import time
 from pathlib import Path
-import os
-from threading import Thread
-
 import settings
 
 from helpers.miscs import Miscs, MP

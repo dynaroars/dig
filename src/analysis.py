@@ -12,6 +12,7 @@ from pathlib import Path
 import argparse
 
 import settings
+from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.inv
@@ -145,15 +146,6 @@ class AResult(Result):
         return nvs, maxdeg, nterms, nnonlinears
 
     @classmethod
-    def get_degs(cls, p):
-        if (p.operator() == sage.symbolic.operators.mul_vararg or
-                len(p.variables()) == 1):  # single term, like x*y or x
-            return [sum(p.degree(v) for v in p.variables())]
-        else:
-            # x*y  + 3*z^2,  x*y - w
-            return [d for p_ in p.operands() for d in cls.get_degs(p_)]
-
-    @classmethod
     def analyze_inv(cls, inv):
         """
         return the # of variables, max deg, and number of terms
@@ -161,20 +153,20 @@ class AResult(Result):
         if isinstance(inv, data.inv.prepost.PrePost):
             mlog.warning("Not very accurate for PREPOST")
             vs = []
-            degs = [1]
+            maxdegs = 1
             nterms = 1
         elif isinstance(inv, data.inv.mp.MMP):
             vs = inv.term.symbols
-            degs = [1]
+            maxdeg = 1
             nterms = 2
         else:
             p = inv.inv
             vs = p.free_symbols
-            # degs = cls.get_degs(p.lhs)  #TODO
-            degs = [1]
+            assert p.is_Relational, p
+            maxdeg = Miscs.get_max_deg(p.lhs)
             nterms = len(p.lhs.args)
 
-        return vs, max(degs), nterms
+        return vs, maxdeg, nterms
 
 
 class Results:
@@ -288,50 +280,50 @@ class Benchmark:
         assert isinstance(inp, Path), inp
         assert isinstance(args, argparse.Namespace), args
 
-        self.inp=inp
-        self.args=args
+        self.inp = inp
+        self.args = args
 
     def valid_file(cls, f):
         return f.is_file() and f.suffix in {'.c', '.java'}
 
     def start(self):
-        inp=self.inp
-        args=self.args
+        inp = self.inp
+        args = self.args
 
-        bfiles=[]
+        bfiles = []
         if self.valid_file(inp):
             # benchmark single file
-            bfiles=[inp]
-            bstr=inp.stem  # CohenDiv
+            bfiles = [inp]
+            bstr = inp.stem  # CohenDiv
         elif inp.is_dir():
             # benchmark all files in dir
-            bfiles=sorted(f for f in inp.iterdir() if self.valid_file(f))
-            bstr=str(inp.resolve()).replace('/', '_')   # /benchmark/nla
+            bfiles = sorted(f for f in inp.iterdir() if self.valid_file(f))
+            bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
         else:
             mlog.error('something wrong with {}'.format(inp))
             sys.exit(1)
-        ntimes=args.benchmark_times
+        ntimes = args.benchmark_times
 
-        toruns=[]
+        toruns = []
         if args.benchmark_dir:
-            benchmark_dir=Path(args.benchmark_dir).resolve()
+            benchmark_dir = Path(args.benchmark_dir).resolve()
             assert benchmark_dir.is_dir(), benchmark_dir
         else:
             import tempfile
-            prefix="bm_dig{}{}_".format(ntimes, bstr)
-            benchmark_dir=Path(tempfile.mkdtemp(
+            prefix = "bm_dig{}{}_".format(ntimes, bstr)
+            benchmark_dir = Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
 
-        self.benchmark_dir=benchmark_dir
+        self.benchmark_dir = benchmark_dir
 
         # compute which runs have to do in case there are some existing runs
-        self.toruns=[]
-        myruns=set(range(ntimes))
+        self.toruns = []
+        myruns = set(range(ntimes))
         for i, f in enumerate(bfiles):
-            bmdir=benchmark_dir / f.stem
+            bmdir = benchmark_dir / f.stem
             if bmdir.is_dir():  # if there's some previous runs
-                succruns=self.get_success_runs(bmdir)
-                remainruns=list(myruns - succruns)
+                succruns = self.get_success_runs(bmdir)
+                remainruns = list(myruns - succruns)
                 if not remainruns:
                     mlog.info(
                         "{} ran, results in {}".format(f, bmdir))
@@ -339,15 +331,15 @@ class Benchmark:
                     mlog.info("{} in {} needs {} more runs".format(
                         f, bmdir, len(remainruns)))
             else:
-                remainruns=list(myruns)
+                remainruns = list(myruns)
 
             if remainruns:
                 toruns.append((f, bmdir, remainruns))
 
-            self.toruns=toruns
+            self.toruns = toruns
 
-        opts=settings.setup(None, args)
-        self.CMD="timeout {timeout} sage -python -O dig.py {opts} ".format(
+        opts = settings.setup(None, args)
+        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(
             timeout=self.TIMEOUT, opts=opts) \
             + "{filename} -seed {seed} -tmpdir {tmpdir}"
 
@@ -361,7 +353,7 @@ class Benchmark:
                     i+1, len(self.toruns), j+1, len(remainruns),
                     seed, time.strftime("%c"), f))
                 try:
-                    CMD=self.CMD.format(filename=f, seed=seed, tmpdir=bdir)
+                    CMD = self.CMD.format(filename=f, seed=seed, tmpdir=bdir)
                     os.system(CMD)
                 except Exception as ex:
                     mlog.error("Something wrong. Exiting!\n{}".format(ex))
@@ -371,7 +363,7 @@ class Benchmark:
     def get_success_runs(self, rundir):
         assert rundir.is_dir(), rundir
 
-        runs=set()
+        runs = set()
         for rd in rundir.iterdir():
             if not rd.is_dir():
                 mlog.warning('Unexpected file {}'.format(rd))
@@ -379,7 +371,7 @@ class Benchmark:
 
             if (rd / Result.resultfile).is_file():
                 # Dig_2_dxmdlf4y
-                runi=int(rd.stem.split('_')[1])
+                runi = int(rd.stem.split('_')[1])
                 runs.add(runi)
             else:
                 mlog.debug('deleting incomplete run {}'.format(rd))
@@ -392,16 +384,16 @@ class Analysis:
     def __init__(self, benchmark_dir, args=None):
         assert benchmark_dir.is_dir(), benchmark_dir
 
-        self.benchmark_dir=benchmark_dir.resolve()
-        self.args=args
+        self.benchmark_dir = benchmark_dir.resolve()
+        self.args = args
 
     def start(self):
 
-        results_d=defaultdict(list)
+        results_d = defaultdict(list)
 
         def load1(prog, resultdir):
             try:
-                result=Result.load(resultdir)
+                result = Result.load(resultdir)
                 if prog:
                     results_d[prog].append(result)
                 else:
@@ -431,10 +423,10 @@ class Analysis:
                     load2(d)
 
         for prog in sorted(results_d):
-            results=[AResult(r) for r in results_d[prog] if r.dinvs.siz]
+            results = [AResult(r) for r in results_d[prog] if r.dinvs.siz]
             if not results:
                 mlog.warning("no results for {}".format(prog))
                 continue
-            stats=Results(prog, results)
+            stats = Results(prog, results)
             stats.start(median_low)
             # stats.analyze(mean)

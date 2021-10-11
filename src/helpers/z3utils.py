@@ -159,14 +159,6 @@ class Z3:
                 rs = None
                 stat = z3.unknown
 
-        # if (isinstance(rs, list) and not rs):
-        #     print(f)
-        #     print(k)
-        #     print(stat)
-        #     print(models)
-
-        #     DBG()
-
         assert not (isinstance(rs, list) and not rs), rs
         return rs, stat
 

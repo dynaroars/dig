@@ -6,7 +6,7 @@ from pathlib import Path
 DBG = pdb.set_trace
 
 tmpdir = Path("/var/tmp/")
-logger_level = 2
+logger_level = 3
 DO_MP = True  # use multiprocessing
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting

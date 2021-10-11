@@ -136,9 +136,36 @@ class Miscs:
         return terms
 
     @classmethod
+    def get_max_deg(cls, p):
+        """
+        get the max degree from a polynomial
+        >>> x, y, z = sympy.symbols('x y z')
+        >>> p = 3*x**2*y + x*y**4 + z*x
+        print(Miscs.get_max_deg(p))
+
+        print(Miscs.get_max_deg(x))
+
+        print(Miscs.get_max_deg(x**3))
+
+        print(Miscs.get_max_deg(-100))
+
+        print(Miscs.get_max_deg(x*y))
+
+        print(Miscs.get_max_deg(x*y**2 + 3*y))
+
+        """
+        assert isinstance(p, sympy.Expr), p
+        if p.is_Number:  # -100
+            return 0
+        elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
+            return sum(sympy.degree_list(p))
+        elif isinstance(p, sympy.Add):
+            return max(cls.get_max_deg(a) for a in p.args)
+
+    @classmethod
     def get_deg(cls, nvs, nts, max_deg=7):
         """
-        Generates a degree wrt to a (maximum) number of terms (nss)
+        Guess a max degree wrt to a (maximum) number of terms (nss)
 
         # >>> assert Miscs.get_deg(3, 4, 5) == 1
         # >>> Miscs.get_deg(3, 1, 5)
@@ -279,7 +306,7 @@ class Miscs:
         [3, 5]
         """
 
-        p = p.lhs if isinstance(p, sympy.Equality) else p
+        p = p.lhs if p.is_Equality else p
         return list(p.as_coefficients_dict().values())
 
     @classmethod
