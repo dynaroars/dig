@@ -319,14 +319,15 @@ public class Test{{
             code = "{}.{}({})".format(vs[0], term_call, ','.join(vs[1:]))
             
         if term_typ:
-            if term_typ == type(None):
-                out = None
-            else:
-                varname = "{}_ret".format(term_val.replace(".","_"))
-                varname = cls.mk_var(varname, used_vars)
-                out = (varname, term_typ)
-                jtyp = mytyp.get_jtyp(term_typ)
-                code = "{} {} = ({})({})".format(jtyp, varname, jtyp, code)
+            # if term_typ == type(None):
+            #     raise Exception("alglang")
+            #     out = None
+            # else:
+            varname = "{}_ret".format(term_val.replace(".","_"))
+            varname = cls.mk_var(varname, used_vars)
+            out = (varname, term_typ)
+            jtyp = mytyp.get_jtyp(term_typ)
+            code = "{} {} = ({})({})".format(jtyp, varname, jtyp, code)
         else:
             out = None
         code = code + ";"
