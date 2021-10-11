@@ -31,5 +31,5 @@ size_def = (size, 'size', [])
 def isEmpty(st: Stack) -> bool: pass
 isEmpty_def = (isEmpty, 'isEmpty', [])
 
-#defs = [push_def, pop_def, peek_def, empty_def, size_def, isEmpty_def]
-defs = [push_def, pop_def]
+defs = [push_def, pop_def, peek_def, empty_def, size_def, isEmpty_def]
+

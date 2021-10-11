@@ -293,6 +293,7 @@ public class Test{{
 
     @classmethod
     def gen_code_arg(cls, vname, vtyp, vkey:str, typs_d:dict):
+        # print(vtyp)
         assert issubclass(vtyp, mytyp.MyTyp) or vtyp in mytyp.createNew_d, vtyp
         try:
             fun = vtyp.createNew
@@ -305,6 +306,7 @@ public class Test{{
     def gen_code_fun_f3(cls, term_val:str, term_call:str, term_typ,
                         vs:typing.List[str],
                         used_vars:Counter, typs_d:dict):
+        # raise Exception("hi")
         
         #compute code and out
         if term_val == "eq":
@@ -317,11 +319,14 @@ public class Test{{
             code = "{}.{}({})".format(vs[0], term_call, ','.join(vs[1:]))
             
         if term_typ:
-            varname = "{}_ret".format(term_val.replace(".","_"))
-            varname = cls.mk_var(varname, used_vars)
-            out = (varname, term_typ)
-            jtyp = mytyp.get_jtyp(term_typ)
-            code = "{} {} = ({})({})".format(jtyp, varname, jtyp, code)
+            if term_typ == type(None):
+                out = None
+            else:
+                varname = "{}_ret".format(term_val.replace(".","_"))
+                varname = cls.mk_var(varname, used_vars)
+                out = (varname, term_typ)
+                jtyp = mytyp.get_jtyp(term_typ)
+                code = "{} {} = ({})({})".format(jtyp, varname, jtyp, code)
         else:
             out = None
         code = code + ";"

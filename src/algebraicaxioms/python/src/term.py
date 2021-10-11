@@ -329,6 +329,8 @@ class Fun(Term):
          inp_typs, outp_typ,
          side_effect_idxs,
          is_commute) = term
+        if outp_typ == type(None):
+            outp_typ = None
          
         assert isinstance(val, str) and val, val
         assert isinstance(call, str) and call, call
