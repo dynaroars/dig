@@ -31,7 +31,6 @@ MAX_LARGE_COEF_FINAL = 50
 MAX_TERM = 200
 
 TRACE_MAX_VAL = 1_000_000_000
-# LARGE_N = 2_000_000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"

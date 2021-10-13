@@ -1,9 +1,9 @@
 def check_all():
     print('Checking minimum requirements')
     check_platform()
-    check_sage()
+    check_sympy()
     check_z3()
-    check_ext_progs()
+    # check_ext_progs()
     print('Everything seems OK.  Have fun with DIG !')
 
 
@@ -18,21 +18,13 @@ def check_platform():
     print("Platform .. OK")
 
 
-def check_sage(min_version="9.0"):
+def check_sympy():
     """
     Check if the requirement for Sage is met
     """
     try:
-        from distutils.version import StrictVersion
-        from sage.env import SAGE_VERSION, SAGE_DATE, SAGE_SRC
-
-        print('* SAGE: {}, release date: {}, in "{}"'
-              .format(SAGE_VERSION, SAGE_DATE, SAGE_SRC))
-        assert StrictVersion(SAGE_VERSION) >= StrictVersion(min_version), \
-            ("Need SAGE version >= {} (you have {})"
-             .format(min_version, SAGE_VERSION))
-        print("SAGE .. OK")
-
+        import sympy
+        print(f"* Sympy: {sympy.__version__}")
     except Exception as e:
         raise
 
@@ -44,15 +36,12 @@ def check_z3():
     try:
         import z3
         print('* Z3 version: {}'.format(z3.get_version_string()))
-        print("Z3 .. OK")
 
     except Exception as e:
         from sage.env import SAGE_SRC
         msg = (("Try Adding z3py API to PYTHONPATH\n"
                 "E.g. in ~/.bash_profile\n"
-                "export SAGE={}\n"
-                "export PATH=$SAGE:$PATH\n"
-                "export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH")
+               "export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH")
                .format(SAGE_SRC))
 
         raise AssertionError('Cannot import Z3 API.\n{}'.format(msg))
@@ -80,9 +69,8 @@ def check_ext_progs():
     except OSError as e:
         import errno
         if e.errno == errno.ENOENT:
-            msg = (("'{}' not found (install 'jpf'), "
-                    "will not work with JAVA programs")
-                   .format(prog))
+            msg = ((f"'{prog}' not found (install 'jpf'), "
+                    "will not work with JAVA programs"))
             print(msg)
         else:
             # Something else went wrong while trying to run `cmd`
@@ -98,9 +86,8 @@ def check_ext_progs():
     except OSError as e:
         import errno
         if e.errno == errno.ENOENT:
-            msg = (("'{}' not found (install 'civl'), "
-                    "will not work with C programs")
-                   .format(prog))
+            msg = ((f"'{prog}' not found (install 'civl'), "
+                    "will not work with C programs"))
             print(msg)
         else:
             if e.errno == errno.EACCES:
