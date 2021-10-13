@@ -189,7 +189,7 @@ Most of DIG's behaviors can be controlled by the users (the `src\settings.py` li
 By default, DIG automatically to find equalities up to certain degree.  We can specify this degree directly with `-maxdeg X`
 
 ```sh
-tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
+tnguyen@debian ~/dig/src> python3 -O dig.py  ../tests/paper/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
 ...
 ```
 
@@ -414,7 +414,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 ```
 
 * Some troubleshooting tips:
-  * Make sure Z3 is installed correctly so that you can do `sage -c "import z3; z3.get_version()"` without error.
+  * Make sure `sympy` is installed correctly so that you can do `python -c "import sympy"` without error.
+  * Make sure Z3 is installed correctly so that you can do `python -c "import z3; z3.get_version()"` without error.
   * Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
 
 ---
