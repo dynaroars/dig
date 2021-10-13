@@ -45,7 +45,7 @@ vtrace2; 2; 287; 0; 2
 
 ```sh
 # in DIG's src directory
-tnguyen@debian ~/d/src> sage -python -O dig.py ../tests/traces/CohenDiv.tcs -log 3
+tnguyen@debian ~/d/src> python3 -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
 alg:INFO:analyze '../tests/traces/CohenDiv.tcs'
 alg:INFO:test 30 invs using 181 traces (0.44s)
@@ -128,7 +128,7 @@ public class CohenDiv {
 
 ```sh
 # in DIG's src directory
-tnguyen@origin ~/d/src (dev)> sage -python -O dig.py  ../tests/paper/CohenDiv.java -log 3
+tnguyen@origin ~/d/src (dev)> python3 -O dig.py  ../tests/paper/CohenDiv.java -log 3
 settings:INFO:2020-10-03 21:39:01.995144: dig.py ../tests/paper/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/paper/CohenDiv.java'
 alg:INFO:compute symbolic states (18.65s)
@@ -200,7 +200,7 @@ By default, DIG infers octagonal inequalities (i.e., linear inequalities among 2
 Below we use a different example `Sqrt1.java` to demonstrate
 
 ```sh
-tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
+tnguyen@debian ~/dig/src> python3 -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
 ...
 1. a <= 10
 2. a - n <= 0
@@ -210,7 +210,7 @@ tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/CohenDiv.java  
 6. -a <= 0
 
 
-tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -ideg 2  # find nonlinear octagonal inequalities
+tnguyen@debian ~/dig/src> python3 -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -ideg 2  # find nonlinear octagonal inequalities
 ...
 1. a*s - n*t <= 1
 2. a <= 10
@@ -224,7 +224,7 @@ tnguyen@debian ~/dig/src> sage -python -O dig.py  ../tests/paper/Sqrt1.java  -lo
 10. -a*n + s <= 3
 11. -a <= 0
 
-tnguyen@debian ~/dig/src> timeout 900 sage -python -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -icoefs 2  # find linear inequalities with coefs in {2,-1,0,1,2}
+tnguyen@debian ~/dig/src> timeout 900 python3 -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -icoefs 2  # find linear inequalities with coefs in {2,-1,0,1,2}
 ...
 1. a <= 10
 2. 2*a - n <= 1
