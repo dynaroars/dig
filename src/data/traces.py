@@ -139,17 +139,6 @@ class Traces(SymbsValsSet):
     def mydicts(self):
         return (trace.mydict for trace in self)
 
-    @property
-    def mydicts2(self):
-        myd = {}
-        for trace in sorted(self):
-            d = trace.mydict
-            for k in d:
-                if k not in myd:
-                    myd[k] = []
-                myd[k].append(d[k])
-        return myd
-
     def instantiate(self, template, ntraces):
         """
         template can be  an expr  or  [(expr, uk)], from which we can do sum(expr*uk for ...)
@@ -197,7 +186,7 @@ class DTraces(dict):
     {loc: Traces}
     """
 
-    @ property
+    @property
     def siz(self):
         return sum(map(len, self.values()))
 

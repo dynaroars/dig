@@ -1,4 +1,4 @@
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 import pdb
 import operator
 from typing import NamedTuple
@@ -81,11 +81,20 @@ class Inv(metaclass=ABCMeta):
     def is_unknown(self):
         return self.stat == self.UNKNOWN
 
+    @abstractmethod
+    def test_single_trace(self, trace):
+        pass
+
 
 class RelInv(Inv, metaclass=ABCMeta):
     def __init__(self, rel, stat=None):
         assert isinstance(rel, (sympy.Equality, sympy.Le)), rel
         super().__init__(rel, stat)
+
+    @property
+    @abstractmethod
+    def mystr(self):
+        pass
 
     def __str__(self, print_stat=False):
         s = self.mystr
