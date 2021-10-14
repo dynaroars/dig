@@ -21,6 +21,6 @@ isEmpty_def = (isEmpty, 'isEmpty', [])
 def slength(s:str) -> int: pass
 slength_def = (slength, 'length', [])
 
-defs = [isEmpty_def, slength_def]
+defs = [isEmpty_def, slength_def, concat_def]
 
 
