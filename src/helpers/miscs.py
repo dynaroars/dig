@@ -55,25 +55,20 @@ class Miscs:
         Convert the input 's' to a rational number if possible.
 
         Examples:
-
-        # >>> assert Miscs.str2rat('.3333333') == 3333333/10000000
-        # >>> assert Miscs.str2rat('3/7') == 3/7
-        # >>> assert Miscs.str2rat('1.') == 1
-        # >>> assert Miscs.str2rat('1.2') == 6/5
-        # >>> assert Miscs.str2rat('.333') == 333/1000
-        # >>> assert Miscs.str2rat('-.333') == -333/1000
-        # >>> assert Miscs.str2rat('-12.13') == -1213/100
-
-        # Returns None because cannot convert this str
-        # >>> Miscs.str2rat('333333333333333s')
-        Traceback (most recent call last):
-        ...
-        TypeError: unable to convert '333333333333333s' to a real number
-
-
-        Note: this version seems to be the *fastest*
-        among several ones I've tried
-        %timeit str2rat('322')
+        >>> print(Miscs.str2rat('.3333333'))
+        3333333/10000000
+        >>> print(Miscs.str2rat('3/7'))
+        3/7
+        >>> print(Miscs.str2rat('1.'))
+        1
+        >>> print(Miscs.str2rat('1.2'))
+        6/5
+        >>> print(Miscs.str2rat('.333'))   
+        333/1000
+        >>> print(Miscs.str2rat('-.333'))
+        -333/1000
+        >>> print(Miscs.str2rat('-12.13'))
+        -1213/100
         """
         if s in cls.str2rat_cache:
             return cls.str2rat_cache[s]
@@ -107,7 +102,7 @@ class Miscs:
         >>> Miscs.get_terms([a,b,c,d,e,f], 3)
         [1, a, b, c, d, e, f, a**2, a*b, a*c, a*d, a*e, a*f, b**2, b*c, b*d, b*e, b*f, c**2, c*d, c*e, c*f, d**2, d*e, d*f, e**2, e*f, f**2, a**3, a**2*b, a**2*c, a**2*d, a**2*e, a**2*f, a*b**2, a*b*c, a*b*d, a*b*e, a*b*f, a*c**2, a*c*d, a*c*e, a*c*f, a*d**2, a*d*e, a*d*f, a*e**2, a*e*f, a*f**2, b**3, b**2*c, b**2*d, b**2*e, b**2*f, b*c**2, b*c*d, b*c*e, b*c*f, b*d**2, b*d*e, b*d*f, b*e**2, b*e*f, b*f**2, c**3, c**2*d, c**2*e, c**2*f, c*d**2, c*d*e, c*d*f, c*e**2, c*e*f, c*f**2, d**3, d**2*e, d**2*f, d*e**2, d*e*f, d*f**2, e**3, e**2*f, e*f**2, f**3]
         """
-        
+
         assert deg >= 0, deg
         assert ss and all(isinstance(s, sympy.Symbol) for s in ss), ss
         ss_ = ([1] if ss else (1,)) + ss
@@ -214,8 +209,8 @@ class Miscs:
         in which case we return the original set of eqts.
         Warning 2: seems to get stuck often.  So had to give it "nice" polynomials
 
-        # >>> var('a y b q k')
-        (a, y, b, q, k)
+        >>> a, y, b, q, k = sympy.symbols('a y b q k')
+
 
         # >>> rs = Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
         __main__:DEBUG:Grobner basis: got 2 ps from 3 ps
@@ -244,10 +239,6 @@ class Miscs:
         """
         Eliminate (Integer) denominators in expression operands.
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
-
-        Examples:
-        # >>> (Python) doesn't show fractions well
-        for these doctests, use sage, because
 
         >>> x,y,z = sympy.symbols('x y z')
 
@@ -433,7 +424,7 @@ class Miscs:
         generates a dict where keys are k's and values are [v's]
         e.g.,
 
-        # >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]) 
+        >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]) 
         {'a': [1, 3], 'b': [2, 10], 'c': [4]}
         """
         return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
@@ -447,23 +438,23 @@ class MP:
     @staticmethod
     def get_workload(tasks, n_cpus):
         """
-        # >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
-        # >>> wls = MP.get_workload(range(12),5); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(12),5); [len(wl) for wl in wls]
         [2, 2, 2, 3, 3]
 
-        # >>> wls = MP.get_workload(range(20),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(20),7); [len(wl) for wl in wls]
         [2, 3, 3, 3, 3, 3, 3]
 
-        # >>> wls = MP.get_workload(range(20),20); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(20),20); [len(wl) for wl in wls]
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-        # >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
-        # >>> wls = MP.get_workload(range(146), 20); [len(wl) for wl in wls]
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
+        >>> wls = MP.get_workload(range(146), 20); [len(wl) for wl in wls]
+        [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
         """
         assert len(tasks) >= 1, tasks
         assert n_cpus >= 1, n_cpus
