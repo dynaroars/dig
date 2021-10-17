@@ -268,41 +268,28 @@ $ root@b53e0bd86c11:/dig/src#
 You are now ready to use DIG, see instructions in the [USAGE](#usage) section
 
 ### Installing DIG
-
 You can also install DIG yourself.  The tool has been tested using the following setups:
 
-* Debian Linux 9 or 10 (64 bit)
-* Python 3.9+
+* Debian Linux `9` or `10` (64 bit)
+* Python `3.9+`
 * Sympy `1.8+`
 * Microsoft Z3 SMT solver `4.8.3+`
-* Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
-* Java PathFinder and Symbolic Finder:
+* The following are only required if you want to analyze C or Java code.
+  * Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
+  * Java PathFinder and Symbolic Finder:
   * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
   * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
 
 #### Installing Sympy and Z3
 
 * Setup Sympy:
-  - If you do not already have Sympy installed (e.g., doing `import sympy` in Python gives error), then the easiest way to install `sympy` is its recommeded way of using `anaconda`.
-  - Download `https://docs.conda.io/en/latest/miniconda.html`, install `miniconda`
-  - Run `where/you/install/bin/conda install sympy`
-
-* Setup Z3:
-  - If you do not already have `Z3` installed (e.g., doing `import z3` in Python gives error), then install it either through pip or manual build as follow:
-    - You can install z3 using pip3,  e.g., `pip3 install z3-solver`, or
-    - build it directly by [downloading](https://github.com/Z3Prover/z3/releases) and building Z3 by following the instructions in its README file
-
-* To check that you have all needed stuff
-
-```sh
-# in DIG's src directory
-$ cd src
-$ where/you/install/bin/python3 helpers/check_requirements.py
-...
-...
-Everything seems OK. Have fun with DIG!
-```
-
+  * If you do not already have Sympy installed (e.g., doing `import sympy` in Python gives error), then the easiest way to install `sympy` is its recommeded way of using `anaconda`.
+  * Download `https://docs.conda.io/en/latest/miniconda.html`, install `miniconda`
+  * Run 
+    * `/where/you/install/bin/conda install sympy`
+    * `/where/you/install/bin/conda install z3-solver`
+  
+This should be enough to use `DIG` to infer invariants from [traces](#generating-invariants-from-traces). 
 
 #### For Java files: install Java and Symbolic PathFinder
 
