@@ -3,22 +3,20 @@
 **DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions). DIG infers (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG supports equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., `t = 2^x`, and have DIG infer invariants over terms.
 
 DIG's numerical relations (in particular, nonlinear equalities) have been used for
-- nonlinear program understanding and correctness checking (`ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
-- complexity analysis (e.g., providing program run time complexity such as `O(N^2)` or `O(NM)`,  `ASE17`, `FSE17`)
+- nonlinear program understanding and correctness checking (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
+- complexity analysis by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
 - recurrence relations for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, `SEAD20`)
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
 - array analysis (finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, `ICSE12`, `TOSEM13`)
 
-DIG is written in Python and uses the **sympy** library. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
+DIG is written in Python and uses the **sympy** and **z3** library. It infers invariants using dynamic execution (over execution traces).  If source code is available, it can iteratively generate and check invariants using symbolic states for programs written in Java, Java bytecode, and C.
 DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
-
-The current version of DIG infers  invariants direclty from given  program execution traces.  If source code is available, DIG can infer and check invariants for programs written in Java, Java bytecode, and C.
 
 ---
 
 ## Usage
 
-You can use DIG to generate invariants from a [trace file](#generating-invariants-from-traces) (a plain text `csv` file consisting of concrete values of variables) or a [program](#generating-invariants-from-a-program) (either a Java file `.java`, a bytecode file `.class`, or a C file `.c`).
+You can use DIG to generate invariants from a [trace file](#generating-invariants-from-traces) (a plain text semi-colon separated `csv` file consisting of concrete values of variables) or a [program](#generating-invariants-from-a-program) (either a Java file `.java`, a bytecode file `.class`, or a C file `.c`).
 
 ### Generating Invariants From Traces
 
@@ -43,7 +41,7 @@ vtrace2; 2; 287; 0; 2
 ...
 ```
 
-```sh
+```txt
 # in DIG's src directory
 tnguyen@debian ~/d/src> python3 -O dig.py ../tests/traces/CohenDiv.tcs -log 3
 settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
@@ -79,7 +77,7 @@ Consider the following `CohenDiv.java` program
 
 ```java
 // in DIG's src directory
-// $ less ../test/nla/CohenDiv.java
+// $ less ../benchmark/java/nla/CohenDiv.java 
 
 public class CohenDiv {
      public static void vtrace0(int q, int r, int a, int b, int x, int y){}
@@ -425,13 +423,13 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
 Technical information about DIG can be found from these papers.  The `Symbolic States (TSE'21)` paper is probably a good start.
 
 * ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. **Using Symbolic States to Infer Numerical Invariants, Transactions on Software Engineering (TSE)**. to appear, 2021
-* Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. DynamiTe: Dynamic Termination and Non-termination Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
-* ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity. Workshop on Software Security from Design to Deployment, 2020
-* ThanhVu Nguyen, Matthew Dwyer, and William Visser. SymInfer: Inferring Program Invariants using Symbolic States. In Automated Software Engineering (ASE). IEEE, 2017.
-* ThanhVu Nguyen, Timos Antopoulos, Andrew Ruef, and Michael Hicks. A Counterexample-guided Approach to Finding Numerical Invariants. In 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE), pages 605--615. ACM, 2017.
-* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants. Transactions on Software Engineering Methodology (TOSEM), 23(4):30:1--30:30, 2014.
-* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Generate Disjunctive Invariants. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
-* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. Using Dynamic Analysis to Discover Polynomial and Array Invariants. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.  `Distinguish Paper award`
+* Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
+* ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
+* ThanhVu Nguyen, Matthew Dwyer, and William Visser. **SymInfer: Inferring Program Invariants using Symbolic States**. In Automated Software Engineering (ASE). IEEE, 2017.
+* ThanhVu Nguyen, Timos Antopoulos, Andrew Ruef, and Michael Hicks. **A Counterexample-guided Approach to Finding Numerical Invariants**. In 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE), pages 605--615. ACM, 2017.
+* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants**. Transactions on Software Engineering Methodology (TOSEM), 23(4):30:1--30:30, 2014.
+* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **Using Dynamic Analysis to Generate Disjunctive Invariants**. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
+* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **Using Dynamic Analysis to Discover Polynomial and Array Invariants**. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.  `Distinguish Paper award`
 
 ## ACKNOWLEDGEMENTS
 

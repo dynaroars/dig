@@ -34,7 +34,6 @@ class Miscs:
         Returns a list of uniq variables from a list of properties
 
         >>> a,b,c,x = sympy.symbols('a b c x')
-
         >>> assert [a, b, c, x] == Miscs.get_vars([x**(a*b) + a**2+b+2, sympy.Eq(c**2-b,100), sympy.Gt(b**2 + c**2 + a**3,1)])
         >>> assert Miscs.get_vars(a**2+b+5*c+2) == [a, b, c]
         >>> assert Miscs.get_vars(x+x**2) == [x]
@@ -178,15 +177,14 @@ class Miscs:
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
-        # >>> var('x y z t s u')
-        (x, y, z, t, s, u)
-        # >>> sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
+        >>> x, y, z, t, s, u = sympy.symbols('x y z t s u')
+        >>> sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
         [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
-        # >>> sorted(Miscs.get_terms_fixed_coefs([x,y**2], 2, 1), key=lambda x: str(x))
-        [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
-        # >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
-        # >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
-        # >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
+        >>> sorted(Miscs.get_terms_fixed_coefs([x,y**2], 2, 1), key=lambda x: str(x))
+        [-x, -x + y**2, -x - y**2, -y**2, x, x + y**2, x - y**2, y**2]
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
         """
         assert icoef >= 1, icoef
         if len(ss) < subset_siz:
@@ -238,8 +236,7 @@ class Miscs:
 
         ps_ = sympy.groebner(ps, *cls.get_vars(ps))
         ps_ = [x for x in ps_]
-        mlog.debug(f"Grobner basis: got {len(ps_)} ps from {len(ps)} ps")
-
+        mlog.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
         return ps_ if len(ps_) < len(ps) else ps
 
     @staticmethod
