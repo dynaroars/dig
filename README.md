@@ -126,8 +126,8 @@ public class CohenDiv {
 
 ```sh
 # in DIG's src directory
-tnguyen@origin ~/d/src (dev)> python3 -O dig.py  ../tests/paper/CohenDiv.java -log 3
-settings:INFO:2020-10-03 21:39:01.995144: dig.py ../tests/paper/CohenDiv.java -log 3
+tnguyen@origin ~/d/src (dev)> python3 -O dig.py  ../benchmark/java/nla/CohenDiv.java -log 3
+settings:INFO:2020-10-03 21:39:01.995144: dig.py ../benchmark/java/nla/CohenDiv.java -log 3
 alg:INFO:analyze '../tests/paper/CohenDiv.java'
 alg:INFO:compute symbolic states (18.65s)
 alg:INFO:infer invs at 3 locs: vtrace0, vtrace2, vtrace1
@@ -187,7 +187,7 @@ Most of DIG's behaviors can be controlled by the users (the `src\settings.py` li
 By default, DIG automatically to find equalities up to certain degree.  We can specify this degree directly with `-maxdeg X`
 
 ```sh
-tnguyen@debian ~/dig/src> python3 -O dig.py  ../tests/paper/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
+tnguyen@debian ~/dig/src> python3 -O dig.py  ../benchmark/java/nla/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
 ...
 ```
 
@@ -198,7 +198,7 @@ By default, DIG infers octagonal inequalities (i.e., linear inequalities among 2
 Below we use a different example `Sqrt1.java` to demonstrate
 
 ```sh
-tnguyen@debian ~/dig/src> python3 -O dig.py  ../tests/paper/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
+tnguyen@debian ~/dig/src> python3 -O dig.py  ../benchmark/java/nla/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
 ...
 1. a <= 10
 2. a - n <= 0
