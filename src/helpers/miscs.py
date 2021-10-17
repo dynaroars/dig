@@ -33,20 +33,17 @@ class Miscs:
         """
         Returns a list of uniq variables from a list of properties
 
-        Examples:
+        >>> a,b,c,x = sympy.symbols('a b c x')
 
-        # >>> var('a b c x')
-        (a, b, c, x)
-
-        # >>> assert [a, b, c, x] == Miscs.get_vars([x**(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
-        # >>> assert Miscs.get_vars(a**2+b+5*c+2==0) == [a, b, c]
-        # >>> assert Miscs.get_vars(x+x**2) == [x]
-        # >>> assert Miscs.get_vars([3]) == []
-        # >>> assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
+        >>> assert [a, b, c, x] == Miscs.get_vars([x**(a*b) + a**2+b+2, sympy.Eq(c**2-b,100), sympy.Gt(b**2 + c**2 + a**3,1)])
+        >>> assert Miscs.get_vars(a**2+b+5*c+2) == [a, b, c]
+        >>> assert Miscs.get_vars(x+x**2) == [x]
+        >>> assert Miscs.get_vars([3]) == []
+        >>> assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
         """
 
         ps = ps if isinstance(ps, Iterable) else [ps]
-        ps = [p for p in ps if cls.is_expr(p)]
+        ps = [p for p in ps if isinstance(p, (sympy.Expr, sympy.Rel))]
         vs = [v for p in ps for v in p.free_symbols]
         return sorted(set(vs), key=str)
 
@@ -86,11 +83,6 @@ class Miscs:
             cls.str2rat_cache[s] = ret
             return ret
 
-    # @staticmethod
-    # def str2list(s):
-    #     assert isinstance(s, str), s
-    #     return tuple(sage.all.sage_eval(s))
-
     @classmethod
     def init_terms(cls, vs, deg, rate):
         assert vs, vs
@@ -110,24 +102,13 @@ class Miscs:
         get a list of terms from the given list of vars and deg
         the number of terms is len(rs) == binomial(len(ss)+d, d)
 
-        Note: itertools is faster than Sage's MultichooseNK(len(ss)+1,deg)
-
-        # >>> ts = Miscs.get_terms(list(var('a b')), 3)
-        # >>> assert ts == [1, a, b, a**2, a*b, b**2, a**3, a**2*b, a*b**2, b**3]
-
-        # >>> Miscs.get_terms(list(var('a b c d e f')), 3)
-        [1, a, b, c, d, e, f,
-        a^2, a*b, a*c, a*d, a*e, a*f,
-        b^2, b*c, b*d, b*e, b*f, c^2, c*d, c*e, c*f,
-        d^2, d*e, d*f, e^2, e*f, f^2, a^3, a^2*b, a^2*c, a^2*d, a^2*e,
-        a^2*f, a*b^2, a*b*c, a*b*d, a*b*e, a*b*f, a*c^2, a*c*d, a*c*e,
-        a*c*f, a*d^2, a*d*e, a*d*f, a*e^2, a*e*f, a*f^2,
-        b^3, b^2*c, b^2*d, b^2*e, b^2*f, b*c^2, b*c*d, b*c*e, b*c*f, b*d^2,
-        b*d*e, b*d*f, b*e^2, b*e*f, b*f^2, c^3, c^2*d, c^2*e, c^2*f, c*d^2,
-        c*d*e, c*d*f, c*e^2, c*e*f, c*f^2, d^3, d^2*e, d^2*f, d*e^2, d*e*f,
-        d*f^2, e^3, e^2*f, e*f^2, f^3]
-
+        >>> a,b,c,d,e,f = sympy.symbols('a b c d e f')
+        >>> ts = Miscs.get_terms([a, b], 3)
+        >>> assert ts == [1, a, b, a**2, a*b, b**2, a**3, a**2*b, a*b**2, b**3]
+        >>> Miscs.get_terms([a,b,c,d,e,f], 3)
+        [1, a, b, c, d, e, f, a**2, a*b, a*c, a*d, a*e, a*f, b**2, b*c, b*d, b*e, b*f, c**2, c*d, c*e, c*f, d**2, d*e, d*f, e**2, e*f, f**2, a**3, a**2*b, a**2*c, a**2*d, a**2*e, a**2*f, a*b**2, a*b*c, a*b*d, a*b*e, a*b*f, a*c**2, a*c*d, a*c*e, a*c*f, a*d**2, a*d*e, a*d*f, a*e**2, a*e*f, a*f**2, b**3, b**2*c, b**2*d, b**2*e, b**2*f, b*c**2, b*c*d, b*c*e, b*c*f, b*d**2, b*d*e, b*d*f, b*e**2, b*e*f, b*f**2, c**3, c**2*d, c**2*e, c**2*f, c*d**2, c*d*e, c*d*f, c*e**2, c*e*f, c*f**2, d**3, d**2*e, d**2*f, d*e**2, d*e*f, d*f**2, e**3, e**2*f, e*f**2, f**3]
         """
+        
         assert deg >= 0, deg
         assert ss and all(isinstance(s, sympy.Symbol) for s in ss), ss
         ss_ = ([1] if ss else (1,)) + ss
@@ -138,24 +119,19 @@ class Miscs:
     @classmethod
     def get_max_deg(cls, p):
         """
-        get the max degree from a polynomial
+        get the max degree of a polynomial
+
         >>> x, y, z = sympy.symbols('x y z')
         >>> p = 3*x**2*y + x*y**4 + z*x
-        print(Miscs.get_max_deg(p))
-
-        print(Miscs.get_max_deg(x))
-
-        print(Miscs.get_max_deg(x**3))
-
-        print(Miscs.get_max_deg(-100))
-
-        print(Miscs.get_max_deg(x*y))
-
-        print(Miscs.get_max_deg(x*y**2 + 3*y))
-
+        >>> assert(Miscs.get_max_deg(p) == 5)
+        >>> assert(Miscs.get_max_deg(x) == 1)
+        >>> assert(Miscs.get_max_deg(x**3) == 3)
+        >>> assert(Miscs.get_max_deg(-100) == 0)
+        >>> assert(Miscs.get_max_deg(x*y) == 2)
+        >>> assert(Miscs.get_max_deg(x*y**2 + 3*y) == 3)
         """
-        assert isinstance(p, sympy.Expr), p
-        if p.is_Number:  # -100
+        assert isinstance(p, (int, sympy.Expr)), p
+        if isinstance(p, int):
             return 0
         elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
             return sum(sympy.degree_list(p))
@@ -167,8 +143,8 @@ class Miscs:
         """
         Guess a max degree wrt to a (maximum) number of terms (nss)
 
-        # >>> assert Miscs.get_deg(3, 4, 5) == 1
-        # >>> Miscs.get_deg(3, 1, 5)
+        >>> assert(Miscs.get_deg(3, 4, 5) == 1)
+        >>> Miscs.get_deg(3, 1, 5)
         Traceback (most recent call last):
         ...
         AssertionError: (1, 3)
