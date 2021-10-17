@@ -58,8 +58,8 @@ MAINQ_FUN = "mainQ"
 JAVA_HOME = Path(os.path.expandvars("$JAVA8_HOME"))
 JAVAC_CMD = JAVA_HOME / "bin/javac"
 JAVA_CMD = JAVA_HOME / "bin/java"
-assert JAVAC_CMD.is_file(), JAVAC_CMD
-assert JAVA_CMD.is_file(), JAVA_CMD
+# assert JAVAC_CMD.is_file(), JAVAC_CMD
+# assert JAVA_CMD.is_file(), JAVA_CMD
 
 
 class Java:
@@ -73,7 +73,7 @@ class Java:
 
     JPF_HOME = Path(os.path.expandvars("$JPF_HOME")) / "jpf-core"
     JPF_JAR = JPF_HOME / "build/RunJPF.jar"
-    assert JPF_JAR.is_file(), JPF_JAR
+    # assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
     JPF_RUN = f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} " "{jpffile}"
@@ -96,7 +96,7 @@ class C:
 
     GCC_CMD = "gcc"
     CIL_INSTRUMENT_DIR = SRC_DIR / "ocaml"
-    assert CIL_INSTRUMENT_DIR.is_dir(), CIL_INSTRUMENT_DIR
+    # assert CIL_INSTRUMENT_DIR.is_dir(), CIL_INSTRUMENT_DIR
 
     COMPILE = "{gcc} {filename} -o {tmpfile}"
     COMPILE = partial(COMPILE.format, gcc=GCC_CMD)
