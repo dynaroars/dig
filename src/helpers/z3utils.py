@@ -98,8 +98,8 @@ class Z3:
                     mv = str(model[v])
                     try:
                         cex[str(v)] = mv if f is None else f(mv)
-                    except SyntaxError:
-                        # mlog.warning('cannot analyze {}'.format(model))
+                    except ValueError:
+                        #mlog.warning('cannot analyze {}'.format(model))
                         pass
                 cexs.append(cex)
         return cexs, isSucc
@@ -158,14 +158,6 @@ class Z3:
                 # so tmp fix is to treat that as unknown
                 rs = None
                 stat = z3.unknown
-
-        # if (isinstance(rs, list) and not rs):
-        #     print(f)
-        #     print(k)
-        #     print(stat)
-        #     print(models)
-
-        #     DBG()
 
         assert not (isinstance(rs, list) and not rs), rs
         return rs, stat

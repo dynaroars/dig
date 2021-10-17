@@ -194,7 +194,7 @@ class Invs(set):
         for inv in invs:
             mylist = None
             if isinstance(inv, data.inv.eqt.Eqt):
-                if len(Miscs.get_coefs(inv.inv)) > 10:
+                if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
                     mylist = eqts_largecoefs
                 else:
                     mylist = eqts
@@ -304,7 +304,7 @@ class DInvs(dict):
             return [(loc, self[loc].test(dtraces[loc])) for loc in tasks]
 
         wrs = MP.run_mp("test_dinvs", tasks, f, settings.DO_MP)
-        dinvs = DInvs([(loc, invs) for loc, invs in wrs if invs])
+        dinvs = DInvs({loc: invs for loc, invs in wrs if invs})
         Miscs.show_removed("test_dinvs", self.siz, dinvs.siz, time() - st)
         return dinvs
 
@@ -367,7 +367,7 @@ class FalseInv(data.inv.base.Inv):
     def __str__(self, print_stat=False):
         s = str(self.inv)
         if print_stat:
-            s = "{} {}".format(s, self.stat)
+            s = f"{s} {self.stat}"
         return s
 
     @property

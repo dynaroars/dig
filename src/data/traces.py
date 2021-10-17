@@ -1,10 +1,10 @@
+from time import time
 import pdb
 from collections import namedtuple
 from pathlib import Path
 from collections.abc import Iterable
-
+import sympy
 import z3
-import sage.all
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
@@ -64,7 +64,7 @@ class Trace(SymbsVals):
             for s, v in zip(self.ss, self.vs):
                 if "!" in s:
                     continue
-                k = str(s) if isinstance(v, Iterable) else sage.all.var(s)
+                k = str(s) if isinstance(v, Iterable) else sympy.Symbol(s)
                 assert k not in d
                 d[k] = v
 
@@ -100,7 +100,7 @@ class Trace(SymbsVals):
 
     def myeval(self, expr):
         assert Miscs.is_expr(expr), expr
-        rs = expr.subs(self.mydict)
+        rs = expr.xreplace(self.mydict)
         return rs
 
 
@@ -139,29 +139,22 @@ class Traces(SymbsValsSet):
     def mydicts(self):
         return (trace.mydict for trace in self)
 
-    @property
-    def mydicts2(self):
-        myd = {}
-        for trace in sorted(self):
-            d = trace.mydict
-            for k in d:
-                if k not in myd:
-                    myd[k] = []
-                myd[k].append(d[k])
-        return myd
+    def instantiate(self, template, ntraces):
+        """
+        template can be  an expr  or  [(expr, uk)], from which we can do sum(expr*uk for ...)
 
-    def instantiate(self, term, ntraces):
-        assert Miscs.is_expr(term), term
+        """
+        assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
 
         exprs = set()
-        if ntraces is None:
-            for t in self.mydicts:
-                exprs = set(term.subs(t) for t in self.mydicts)
+        if ntraces is None:  # use everything
+            exprs = set(template.xreplace(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
             for t in self.mydicts:
-                expr = term.subs(t)
+
+                expr = template.xreplace(t)
                 if expr not in exprs:
                     exprs.add(expr)
                     if len(exprs) >= ntracesExtra:
@@ -171,6 +164,7 @@ class Traces(SymbsValsSet):
             # the more 0's , the better
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
             exprs = set(exprs[:ntraces])
+
         return exprs
 
     def padzeros(self, ss):
@@ -274,7 +268,8 @@ class DTraces(dict):
         ...
         """
         assert inv_decls and isinstance(inv_decls, data.prog.DSymbs), inv_decls
-        assert isinstance(tracefile, Path) and tracefile.suffix == ".csv", tracefile
+        assert isinstance(
+            tracefile, Path) and tracefile.suffix == ".csv", tracefile
 
         ss = []
         for loc in self:

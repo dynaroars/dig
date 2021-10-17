@@ -1,9 +1,9 @@
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 import pdb
 import operator
 from typing import NamedTuple
 
-import sage.all
+import sympy
 
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
@@ -30,7 +30,7 @@ class Inv(metaclass=ABCMeta):
                 # PrePost and Max/MinPlus
                 (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
                 isinstance(inv, str) or   # Array relation
-                inv.is_relational()), inv
+                isinstance(inv, (sympy.Equality, sympy.Le))), inv
 
         assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
 
@@ -81,19 +81,23 @@ class Inv(metaclass=ABCMeta):
     def is_unknown(self):
         return self.stat == self.UNKNOWN
 
+    @abstractmethod
+    def test_single_trace(self, trace):
+        pass
+
 
 class RelInv(Inv, metaclass=ABCMeta):
     def __init__(self, rel, stat=None):
-        assert rel.is_relational() and (
-            rel.operator() == operator.eq
-            or rel.operator() == operator.le
-            or rel.operator() == operator.lt
-        ), rel
-
+        assert isinstance(rel, (sympy.Equality, sympy.Le)), rel
         super().__init__(rel, stat)
 
+    @property
+    @abstractmethod
+    def mystr(self):
+        pass
+
     def __str__(self, print_stat=False):
-        s = str(self.inv)
+        s = self.mystr
         if print_stat:
             s = f"{s} {self.stat}"
         return s
@@ -108,8 +112,7 @@ class RelInv(Inv, metaclass=ABCMeta):
             return True
 
         try:
-            bval = self.inv.subs(trace.mydict)
-            bval = bool(bval)
+            bval = bool(self.inv.subs(trace.mydict))
             return bval
         except ValueError:
             mlog.debug(f"{self}: failed test")
@@ -118,12 +121,12 @@ class RelInv(Inv, metaclass=ABCMeta):
     @property
     def expr(self):
         """
-        cannot make this as property because z3 expr is ctype,
+        cannot cache because z3 expr is ctype,
         not compat with multiprocessing Queue
 
         also, cannot save this to sel._expr
         """
-        return Z3.parse(str(self.inv))
+        return Z3.parse(str(self))
 
 
 class RelTerm(NamedTuple):
@@ -131,12 +134,12 @@ class RelTerm(NamedTuple):
     e.g., x + y,  x,  x + 3
     """
 
-    term: sage.symbolic.expression.Expression
+    term: sympy.Expr
 
     @classmethod
     def mk(cls, term):
         assert (
-            isinstance(term, sage.symbolic.expression.Expression)
+            isinstance(term, sympy.Expr)
             and not term.is_relational()
         ), term
         return cls(term)

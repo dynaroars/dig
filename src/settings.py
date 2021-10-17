@@ -6,7 +6,7 @@ from pathlib import Path
 DBG = pdb.set_trace
 
 tmpdir = Path("/var/tmp/")
-logger_level = 2
+logger_level = 3
 DO_MP = True  # use multiprocessing
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
@@ -18,7 +18,7 @@ DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
-WRITE_VTRACES = False # write vtraces to csv
+WRITE_VTRACES = False  # write vtraces to csv
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 INP_MAX_V = 300
@@ -27,12 +27,10 @@ SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs
 EQT_REDUCE_TIMEOUT = 20  # secs
 EQT_RATE = 1.5
-MAX_LARGE_COEF_INTERMEDIATE = 50_000_000
 MAX_LARGE_COEF_FINAL = 50
 MAX_TERM = 200
 
 TRACE_MAX_VAL = 1_000_000_000
-# LARGE_N = 2_000_000  # powersum programs can go up to very large vals
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
@@ -94,6 +92,8 @@ class Java:
 
 
 class C:
+    SE_MIN_DEPTH = 20
+
     GCC_CMD = "gcc"
     CIL_INSTRUMENT_DIR = SRC_DIR / "ocaml"
     assert CIL_INSTRUMENT_DIR.is_dir(), CIL_INSTRUMENT_DIR
@@ -107,9 +107,6 @@ class C:
 
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
-
-    SE_MIN_DEPTH = 20
-    # SE_DEPTH_INCR = 5
 
     CIVL_HOME = Path(os.path.expandvars("$CIVL_HOME"))
     CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
@@ -195,9 +192,9 @@ def setup(settings, args):
 
     if 0 <= args.log_level <= 4:
         if settings:
-            settings.logger_level = args.log_level
+            # settings.logger_level = args.log_level
             settings.logger_level = helpers.vcommon.getLogLevel(
-                settings.logger_level)
+                args.log_level)
             mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
         else:
             opts.append(f"-log_level {args.log_level}")
@@ -250,6 +247,12 @@ def setup(settings, args):
             settings.C.SE_MIN_DEPTH = args.se_mindepth
         else:
             opts.append(f"-se_mindepth {args.se_mindepth}")
+
+    if args.se_maxdepth and args.se_maxdepth >= 1:
+        if settings:
+            settings.SE_MAXDEPTH = args.se_maxdepth
+        else:
+            opts.append(f"-se_maxdepth {args.se_maxdepth}")
 
     if args.tmpdir:
         if settings:

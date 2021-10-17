@@ -4,12 +4,6 @@ import pdb
 import random
 import time
 from pathlib import Path
-import psutil
-import os
-from threading import Thread
-
-import sage.all
-
 import settings
 
 from helpers.miscs import Miscs, MP
@@ -27,7 +21,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class Dig(metaclass=ABCMeta):
     def __init__(self, filename):
-        mlog.info(f"analyze '{filename}'")
+        mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
@@ -35,15 +29,14 @@ class Dig(metaclass=ABCMeta):
     def start(self, seed, maxdeg):
         self.seed = seed
         random.seed(seed)
-        sage.all.set_random_seed(seed)
         mlog.debug(
             f"set seed to {seed} "
-            f"(test {random.randint(0, 100)} {sage.all.randint(0, 100)})"
+            f"(test {random.randint(0, 100)})"
         )
 
     def get_auto_deg(self, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
-        
+
         maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
@@ -327,6 +320,13 @@ class DigTraces(Dig):
                         return infer.opt.Ieq.gen_from_traces(traces, symbols)
                     tasks.append((loc, _f))
 
+                # if settings.DO_MINMAXPLUS:
+                #     import infer.opt
+
+                #     def _f():
+                #         return infer.opt.MMP.gen_from_traces(traces, symbols)
+                #     tasks.append((loc, _f))
+
         def f(tasks):
             rs = [(loc, _f()) for loc, _f in tasks]
             return rs
@@ -346,5 +346,3 @@ class DigTraces(Dig):
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         print(dinvs)
-
-

@@ -1,6 +1,6 @@
 import operator
 import pdb
-
+import sympy
 import settings
 import helpers.vcommon as CM
 
@@ -15,12 +15,14 @@ class Oct(data.inv.base.RelInv):
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)
         """
-        assert myoct.operator() == operator.le or myoct.operator() == operator.lt, myoct
+        assert isinstance(myoct, sympy.Le), myoct
 
         super().__init__(myoct, stat)
 
     @property
     def is_simple(self):
-        ub = self.inv.rhs()
-        # need to convert to bool because ub.is_zero() might return 0 == 0
-        return bool(ub.is_constant() and ub.is_zero())
+        return self.inv.rhs.is_constant() and self.inv.rhs.is_zero
+
+    @property
+    def mystr(self):
+        return f"{self.inv.lhs} <= {self.inv.rhs}"

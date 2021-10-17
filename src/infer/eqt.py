@@ -2,6 +2,7 @@
 CEGIR alg for inferring equalities
 """
 import pdb
+import sympy
 
 import settings
 import helpers.vcommon as CM
@@ -65,10 +66,11 @@ class Infer(infer.base.Infer):
             assert expr not in exprs
             exprs.add(expr)
 
-    def _while_rand(self, loc, template, n_eqts_needed, inps, traces):
+    def _while_rand(self, loc, ts, uks, n_eqts_needed, inps, traces):
         """
         repeatedly get more inps using random method
         """
+        template = sum(t*u for t, u in zip(ts, uks))
         exprs = traces[loc].instantiate(template, n_eqts_needed)
 
         doRand = True
@@ -153,10 +155,10 @@ class Infer(infer.base.Infer):
             f"{loc}: gen init inps using {whileFName} "
             f"(curr inps {len(inps)}, traces {len(traces)})"
         )
-        terms, template, uks, n_eqts_needed = Miscs.init_terms(
+        ts, uks, n_eqts_needed = Miscs.init_terms(
             self.inv_decls[loc].names, deg, rate)
 
-        exprs = whileF(loc, template, n_eqts_needed, inps, traces)
+        exprs = whileF(loc, ts, uks, n_eqts_needed, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
         while not exprs:
@@ -165,23 +167,25 @@ class Infer(infer.base.Infer):
 
             deg = deg - 1
             mlog.info(
-                f"Reduce polynomial degree to {deg}, terms {len(terms)}, uks {len(uks)}"
+                f"Reduce polynomial degree to {deg}, terms {len(ts)}, uks {len(uks)}"
             )
-            terms, template, uks, n_eqts_needed = Miscs.init_terms(
+            ts, uks, n_eqts_needed = Miscs.init_terms(
                 self.inv_decls[loc].names, deg, rate
             )
-            exprs = whileF(loc, template, n_eqts_needed, inps, traces)
+            exprs = whileF(loc, ts, uks, n_eqts_needed, inps, traces)
 
-        return template, uks, exprs
+        return ts, uks, exprs
 
-    def _infer(self, loc, template, uks, exprs, dtraces, inps):
+    def _infer(self, loc, ts, uks, exprs, dtraces, inps):
         assert isinstance(loc, str) and loc, loc
-        assert Miscs.is_expr(template), template
+        assert isinstance(ts, list), ts
         assert isinstance(uks, list), uks
+        assert len(ts) == len(uks), (ts, uks)
         assert isinstance(exprs, set) and exprs, exprs
         assert isinstance(dtraces, DTraces) and dtraces, dtraces
         assert isinstance(inps, Inps) and inps, inps
 
+        template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
         eqts = set()  # results
         exprs = list(exprs)
@@ -192,7 +196,7 @@ class Infer(infer.base.Infer):
         while True:
             curIter += 1
             mlog.debug(f"{loc}, iter {curIter} infer using {len(exprs)} exprs")
-            new_eqts = Miscs.solve_eqts(exprs, uks, template)
+            new_eqts = Miscs.solve_eqts(exprs, ts, uks)
             unchecks = [eqt for eqt in new_eqts if eqt not in cache]
 
             if not unchecks:
@@ -227,29 +231,36 @@ class Infer(infer.base.Infer):
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
             exprs.extend(exprs_)
 
-        eqts = set([p for p in eqts if Miscs.is_nice_eqt(
-            p.inv, settings.MAX_LARGE_COEF_FINAL)])
         return eqts, new_cexs
 
     @classmethod
     def gen_from_traces(cls, deg, traces, symbols):
+        assert isinstance(traces, Traces), traces
 
         mydeg = deg
         eqts = []
         while not eqts and mydeg:
-            terms, template, uks, n_eqts_needed = Miscs.init_terms(
+            ts, uks, n_eqts_needed = Miscs.init_terms(
                 symbols.names, mydeg, settings.EQT_RATE
             )
-            exprs = list(traces.instantiate(template, n_eqts_needed))
 
+            if len(traces) < len(uks):
+                mydeg = mydeg - 1
+                mlog.warning(
+                    f"{len(traces)} traces < {len(uks)} uks, reducing deg to {mydeg}")
+                continue
+
+            template = sum(t*u for t, u in zip(ts, uks))
+            exprs = list(traces.instantiate(template, n_eqts_needed))
             if len(exprs) < len(uks):
                 mydeg = mydeg - 1
-                mlog.warning(f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
+                mlog.warning(
+                    f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
                 continue
-                
-            eqts = Miscs.solve_eqts(exprs, uks, template)
+
+            eqts = Miscs.solve_eqts(exprs, ts, uks)
             if not eqts:
                 mydeg = mydeg - 1
-                mlog.warning(f"no eqt results, reducing deg to {mydeg}")
-        
-        return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
+                mlog.warning(f"NO EQTS RESULTS, reducing deg to {mydeg}")
+
+        return [data.inv.eqt.Eqt(eqt)for eqt in eqts]

@@ -46,7 +46,6 @@ def getLogger(name, level):
     logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(level)
-    # formatter = logging.Formatter("%(asctime)s %(process)d ] %(name)s:%(levelname)s:%(message)s")
     formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
     ch.setFormatter(formatter)
     logger.addHandler(ch)
@@ -84,7 +83,6 @@ def vload(filename, mode='rb'):
 def vread(filename):
     with open(filename, 'r') as fh:
         return fh.read()
-
 
 
 if __name__ == "__main__":

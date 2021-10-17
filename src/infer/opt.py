@@ -5,6 +5,7 @@ from abc import ABCMeta
 import pdb
 from time import time
 import operator
+import sympy
 
 import z3
 import settings
@@ -20,6 +21,7 @@ import infer.base
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
 
 class Infer(infer.base.Infer, metaclass=ABCMeta):
     def __init__(self, symstates, prog):
@@ -44,11 +46,15 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
 
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
-        mlog.debug(
-            "check upperbounds for {} terms at {} locs".format(
-                sum(map(len, termss)), len(locs)
-            )
-        )
+
+        dinvs = data.inv.invs.DInvs()
+
+        if not termss:
+            return dinvs
+
+        mlog.debug(f"check upperbounds for {sum(map(len, termss))} "
+                   f"terms at {len(locs)} locs")
+
         refs = {
             loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
             for loc, terms in zip(locs, termss)
@@ -112,7 +118,8 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             st = time()
             excludes = self.get_excludes(terms, inps)
             new_terms = [term for term in terms if term not in excludes]
-            Miscs.show_removed("filter terms", len(terms), len(new_terms), time() - st)
+            Miscs.show_removed("filter terms", len(
+                terms), len(new_terms), time() - st)
             terms = new_terms
         return terms
 
@@ -123,6 +130,7 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
             if isinstance(term, data.inv.mp.Term)
             else settings.IUPPER
         )
+
 
 class Ieq(Infer):
     def __init__(self, symstates, prog):
@@ -166,31 +174,32 @@ class Ieq(Infer):
         terms = [data.inv.base.RelTerm(t) for t in terms]
         return terms
 
-    def my_get_terms_user(self, symbols, uterms):
-        assert isinstance(uterms, set) and uterms, uterms
-        assert all(isinstance(t, str) for t in uterms), uterms
+    # def my_get_terms_user(self, symbols, uterms):
+    #     assert isinstance(uterms, set) and uterms, uterms
+    #     assert all(isinstance(t, str) for t in uterms), uterms
 
-        mylocals = {str(s): s for s in symbols}
+    #     mylocals = {str(s): s for s in symbols}
 
-        from sage.all import sage_eval
+    #     from sage.all import sage_eval
 
-        try:
-            uterms = set(sage_eval(term, locals=mylocals) for term in uterms)
-        except NameError as ex:
-            raise NameError(f"{ex}, defined vars: {','.join(map(str, symbols))}")
+    #     try:
+    #         uterms = set(sage_eval(term, locals=mylocals) for term in uterms)
+    #     except NameError as ex:
+    #         raise NameError(
+    #             f"{ex}, defined vars: {','.join(map(str, symbols))}")
 
-        terms = set()
-        for t in uterms:
-            terms.add(t)
-            terms.add(-t)
-            for v in symbols:
-                # v+t, v-t, -v+t, -v-t
-                terms.add(v + t)
-                terms.add(v - t)
-                terms.add(-v + t)
-                terms.add(-v - t)
+    #     terms = set()
+    #     for t in uterms:
+    #         terms.add(t)
+    #         terms.add(-t)
+    #         for v in symbols:
+    #             # v+t, v-t, -v+t, -v-t
+    #             terms.add(v + t)
+    #             terms.add(v - t)
+    #             terms.add(-v + t)
+    #             terms.add(-v - t)
 
-        return terms
+    #     return terms
 
     def get_excludes(self, terms, inps):
         # print(len(terms), terms)
@@ -221,8 +230,8 @@ class Ieq(Infer):
         for t in terms:
             upperbound = max(traces.myeval(t))
             if minV <= upperbound <= maxV:
-                ieqs.append(t <= upperbound)
-        
+                ieqs.append(sympy.Le(t, upperbound))
+
         ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
         return ieqs
 
@@ -295,4 +304,3 @@ class MMP(Infer):
                 excludes.add(term)
 
         return excludes
-

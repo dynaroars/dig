@@ -11,9 +11,8 @@ from statistics import mean, median_low
 from pathlib import Path
 import argparse
 
-import sage.all
-
 import settings
+from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.inv
@@ -147,15 +146,6 @@ class AResult(Result):
         return nvs, maxdeg, nterms, nnonlinears
 
     @classmethod
-    def get_degs(cls, p):
-        if (p.operator() == sage.symbolic.operators.mul_vararg or
-                len(p.variables()) == 1):  # single term, like x*y or x
-            return [sum(p.degree(v) for v in p.variables())]
-        else:
-            # x*y  + 3*z^2,  x*y - w
-            return [d for p_ in p.operands() for d in cls.get_degs(p_)]
-
-    @classmethod
     def analyze_inv(cls, inv):
         """
         return the # of variables, max deg, and number of terms
@@ -163,19 +153,20 @@ class AResult(Result):
         if isinstance(inv, data.inv.prepost.PrePost):
             mlog.warning("Not very accurate for PREPOST")
             vs = []
-            degs = [1]
+            maxdegs = 1
             nterms = 1
         elif isinstance(inv, data.inv.mp.MMP):
             vs = inv.term.symbols
-            degs = [1]
+            maxdeg = 1
             nterms = 2
         else:
             p = inv.inv
-            vs = set(p.variables())
-            degs = cls.get_degs(p.lhs())
-            nterms = p.lhs().number_of_operands()
+            vs = p.free_symbols
+            assert p.is_Relational, p
+            maxdeg = Miscs.get_max_deg(p.lhs)
+            nterms = len(p.lhs.args)
 
-        return vs, max(degs), nterms
+        return vs, maxdeg, nterms
 
 
 class Results:
@@ -232,12 +223,10 @@ class Results:
         time_s = ', '.join("{} {:.1f}s".format(t, f(time_d[t]))
                            for t in sorted(time_d))
 
-        print("* prog {} locs {}; ".format(self.prog, nlocs),
-              "{}".format(invtypss),
-              "V {} T {} D {}; ".format(V, T, D),
-              "NL {} ({}) ;".format(NL, D))
+        print(f"* prog {self.prog} locs {nlocs}; "
+              f"{invtypss} V {V} T {T} D {D}; NL {NL} ({D}) ;")
 
-        print("-> time {}".format(time_s))
+        print(f"-> time {time_s}")
 
         print(
             f"-> checks {check_solvercallss} {check_changedepthss} {check_changevalss}")
@@ -247,8 +236,8 @@ class Results:
         print("runs {}".format(nruns))
 
         if len(rs) == 1:
-            print("rand seed {}, test ({}, {})".format(
-                rs[0].seed, random.randint(0, 100), sage.all.randint(0, 100)))
+            print(f"rand seed {rs[0].seed},"
+                  f"test {random.randint(0, 100)}")
             print(rs[0].dinvs.__str__(print_stat=False))
 
     @ classmethod
