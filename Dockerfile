@@ -4,16 +4,40 @@ FROM debian:buster
 RUN apt-get update -y
 RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget
 
-WORKDIR /
-COPY . /dig
-RUN mkdir DIG_EXT_FILES
-WORKDIR DIG_EXT_FILES
 
 # Install miniconda & sympy & z3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash ./Miniconda3-latest-Linux-x86_64.sh -b
-RUN /root/miniconda3/bin/conda install sympy -y  #CHANGE TO JUST CONDA
-RUN /root/miniconda3/bin/pip3 install z3-solver  #CHANGE TO JUST PIP3
+RUN /root/miniconda3/bin/conda install sympy pip -y  
+RUN /root/miniconda3/bin/pip3 install z3-solver
+
+
+# download Eclipse Foundation's AdoptOpenJDK build of jdk 8
+RUN apt-get wget apt-transport-https gnupg -y
+RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
+RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
+RUN apt-get update -y
+RUN apt-get install adoptopenjdk-8-hotspot -y
+RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
+
+
+WORKDIR /
+COPY . /dig
+
+## Ocaml and CIL for C code instrumentation
+WORKDIR /dig/EXTERNAL_FILES
+RUN tar xf cil-1.7.3.tar.gz 
+WORKDIR cil-cil-1.7.3
+RUN ./configure && make
+
+WORKDIR /dig/src/ocaml
+RUN make clean; make
+
+## CIVL
+WORKDIR /dig/EXTERNAL_FILES
+RUN tar xf CIVL-1.20_5259.tgz ; ln -sf CIVL-1.20_5259 civl ; ln -sf civl/lib/ lib
+RUN cp dot_sarl ~/.sarl
+
 
 ## now can run DIG on trace files
 ## /root/miniconda3/bin/python3  dig.py ../tests/traces/cohendiv.csv
@@ -21,25 +45,8 @@ RUN /root/miniconda3/bin/pip3 install z3-solver  #CHANGE TO JUST PIP3
 
 # running DIG on C files
 
-## CIL
-RUN wget https://github.com/cil-project/cil/archive/refs/tags/cil-1.7.3.tar.gz && tar xf cil-1.7.3.tar.gz
-WORKDIR cil-cil-1.7.3/
-RUN ./configure && make
 
 
-SHELL ["/bin/bash", "-c"]  # MOVE ME TO TOP
-RUN /root/miniconda3/bin/conda init bash  
-RUN source ~/.bashrc
-RUN chsh -s /bin/bash
-
-
-# # download Eclipse Foundation's AdoptOpenJDK build of jdk 8
-# RUN apt-get wget apt-transport-https gnupg -y
-# RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
-# RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
-# RUN apt-get update -y
-# RUN apt-get install adoptopenjdk-8-hotspot -y
-# RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
 
 # #download java and jpf
 # # RUN mkdir /usr/lib/JPF

@@ -1,0 +1,11 @@
+prover {
+ aliases = z3;
+ kind = Z3;
+ version = "4.8.12 - 64 bit";
+ path = "/root/miniconda3/bin/z3";
+ timeout = 10.0;
+ showQueries = false;
+ showInconclusives = false;
+ showErrors = true;
+}
+
