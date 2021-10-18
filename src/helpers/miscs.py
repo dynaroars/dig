@@ -63,7 +63,7 @@ class Miscs:
         1
         >>> print(Miscs.str2rat('1.2'))
         6/5
-        >>> print(Miscs.str2rat('.333'))   
+        >>> print(Miscs.str2rat('.333'))
         333/1000
         >>> print(Miscs.str2rat('-.333'))
         -333/1000
@@ -121,17 +121,20 @@ class Miscs:
         >>> assert(Miscs.get_max_deg(x) == 1)
         >>> assert(Miscs.get_max_deg(x**3) == 3)
         >>> assert(Miscs.get_max_deg(-100) == 0)
-        >>> assert(Miscs.get_max_deg(x*y) == 2)
+        >>> assert(Miscs.get_max_deg(x*y-100) == 2)
         >>> assert(Miscs.get_max_deg(x*y**2 + 3*y) == 3)
         """
-        return 1
-        # assert isinstance(p, (int, sympy.Expr)), p
-        # if isinstance(p, int):
-        #     return 0
-        # elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
-        #     return sum(sympy.degree_list(p))
-        # elif isinstance(p, sympy.Add):
-        #     return max(cls.get_max_deg(a) for a in p.args)
+
+        assert isinstance(p, (int, sympy.Expr)), p
+        if isinstance(p, (int, sympy.core.numbers.Integer)):
+            return 0
+        elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
+            return sum(sympy.degree_list(p))
+        elif isinstance(p, sympy.Add):
+            return max(cls.get_max_deg(a) for a in p.args)
+        else:
+            mlog.warning(f"cannot handle {p} of type {type(p)}")
+            return 0
 
     @classmethod
     def get_deg(cls, nvs, nts, max_deg=7):
