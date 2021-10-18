@@ -2,7 +2,7 @@ FROM debian:buster
 
 #install general setup tools
 RUN apt-get update -y
-RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget java-common
+RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget openjdk-11-jdk
 
 
 # Install miniconda & sympy & z3
@@ -12,13 +12,13 @@ RUN /root/miniconda3/bin/conda install sympy pip -y
 RUN /root/miniconda3/bin/pip3 install z3-solver
 
 
-# # download Eclipse Foundation's AdoptOpenJDK build of jdk 8
-# RUN apt-get wget apt-transport-https gnupg -y
-# RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
-# RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
-# RUN apt-get update -y
-# RUN apt-get install adoptopenjdk-8-hotspot -y
-# RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
+# # # download Eclipse Foundation's AdoptOpenJDK build of jdk 8
+# # RUN apt-get wget apt-transport-https gnupg -y
+# # RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
+# # RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
+# # RUN apt-get update -y
+# # RUN apt-get install adoptopenjdk-8-hotspot -y
+# # RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
 
 
 WORKDIR /
