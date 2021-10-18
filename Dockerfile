@@ -26,6 +26,7 @@ COPY . /dig
 
 ## Ocaml and CIL for C code instrumentation
 WORKDIR /dig/EXTERNAL_FILES
+RUN apt-get install -y unzip
 RUN unzip develop.zip && mv cil-develop cil
 WORKDIR cil
 RUN ./configure && make
