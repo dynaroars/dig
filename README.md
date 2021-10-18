@@ -236,7 +236,7 @@ tnguyen@debian ~/dig/src> timeout 900 python3 -O dig.py  ../tests/paper/Sqrt1.ja
 
 ---
 
-## Setup
+## Setup using Docker
 
 First, clone DIG
 
@@ -245,9 +245,6 @@ git clone https://github.com/unsat/dig.git
 ```
 
 Then go to DIG's directory (`cd dig`).  Also make sure that you're in the right branch (e.g., `master` or `dev`).
-To run DIG, you can either use the [provided  *docker* script](#using-docker) (easiest way) or [install DIG yourself](#installing-dig).
-
-### Using DOCKER
 
 ```sh
 # in DIG's directory
@@ -263,147 +260,23 @@ $ docker run -it dig
 
 # docker will drop you into a Linux prompt like below.
 $ root@b53e0bd86c11:/dig/src#
+
+
+# now we can run DIG on a trace file
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 4
+
+
+# or on a C program
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -log 4
+
+
+
+# to update DIG to the latest,  do a git pull in the main DIG directory
 ```
 
-You are now ready to use DIG, see instructions in the [USAGE](#usage) section
-
-### Installing DIG
-You can also install DIG yourself.  The tool has been tested using the following setups:
-
-* Debian Linux `9` or `10` (64 bit)
-* Python `3.9+`
-* Sympy `1.8+`
-* Microsoft Z3 SMT solver `4.8.3+`
-* The following are only required if you want to analyze C or Java code.
-  * Java JDK (Oracle `1.8.0_121` or OpenJDK `1.8.0_122`)
-  * Java PathFinder and Symbolic Finder:
-  * JPF (`java-8` branch, commit [`18a0c42de3e80be0c2ddcf0d212e376e576fcda0`](https://github.com/javapathfinder/jpf-core/commit/18a0c42de3e80be0c2ddcf0d212e376e576fcda0))
-  * SPF (commit [`98a0e08fee323c15b651110dd3c28b2ce0c4e274`](https://github.com/SymbolicPathFinder/jpf-symbc/commit/98a0e08fee323c15b651110dd3c28b2ce0c4e274))
-
-#### Installing Sympy and Z3
-
-* Setup Sympy:
-  * If you do not already have Sympy installed (e.g., doing `import sympy` in Python gives error), then the easiest way to install `sympy` is its recommeded way of using `anaconda`.
-  * Download `https://docs.conda.io/en/latest/miniconda.html`, install `miniconda`
-  * Run 
-    * `/where/you/install/bin/conda install sympy`
-    * `/where/you/install/bin/conda install z3-solver`
-  
-This should be enough to use `DIG` to infer invariants from [traces](#generating-invariants-from-traces). 
-
-#### For Java files: install Java and Symbolic PathFinder
-
-* Install Java 8: either the JDK from Oracle 1.8.0_121 or the OpenJDK packaged in Debian (`apt-get install -y default-jdk`, besure the version is 1.8.0_121 or 1.8.0_122).
-
-* Install both Java PathFinder and the Symbolic Pathfinder extension
-
-```sh
-$ mkdir /PATH/TO/JPF
-$ cd /PATH/TO/JPF
-$ git clone https://github.com/javapathfinder/jpf-core #JPF
-$ git clone https://github.com/SymbolicPathFinder/jpf-symbc #Symbolic extension
-
-# build jpf
-$ cd jpf-core
-$ git checkout java-8  #switch to the java-8 branch
-$ ant
-
-#copy patched Listener file to SPF
-$ cp /PATH/TO/dig/src/java/InvariantListenerVu.java jpf-symbc/src/main/gov/nasa/jpf/symbc
-
-# build spf
-$ cd jpf-symbc
-$ ant
-
-# sometimes it helps to rebuild jpf-core again
-# cd jpf-core
-$ ant
 
 
-# Add the following to `~/.jpf/site.properties` (create `~/.jpf` if it doesn't exist)
-jpf-core = /PATH/TO/JPF/jpf-core
-jpf-symbc = /PATH/TO/JPF/jpf-symbc
-extensions=${jpf-core},${jpf-symbc}
-```
 
-* Compile Java files in `java` directory for instrumenting Java byte classes
-
-```sh
-# in DIG's src directory
-$ cd src/java
-$ make
-```
-
-#### For C files: install the [CIVL symbolic execution tool](https://vsl.cis.udel.edu/civl/)
-
-* Build CIL
-
-```sh
-# build CIL
-$ git clone https://github.com/cil-project/cil.git
-$ cd cil
-$ ./configure ; make
-```
-
-* Compile the Ocaml files in `ocaml` directory for instrumenting C files (to CIVL format)
-
-```sh
-# in DIG's src directory
-$ cd src/ocaml
-$ edit Makefile  #point the OCAML_OPTIONS to where CIL is
-$ make
-```
-
-* Get CIVL
-
-```sh
-$ wget --no-check-certificate https://vsl.cis.udel.edu/lib/sw/civl/1.20/r5259/release/CIVL-1.20_5259.tgz
-$ tar xf CIVL-1.20_5259.tgz
-$ ln -sf CIVL-1.20_5259 civl
-$ ln -sf civl/lib/ lib
-
-
-# Tell CIVL to use Z3  by editing the ~/.sarl file
-prover {
- aliases = z3;
- kind = Z3;
- version = "4.8.7 - 64 bit";
- path = "/home/SHARED/Devel/Z3/z3/z3";
- timeout = 10.0;
- showQueries = false;
- showInconclusives = false;
- showErrors = true;
-}
-
-# test CIVL
-$ /home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
-CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
-vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
-path condition: (0<=(X_x-1))&&(0<=(X_y-1))
-...
-
-```
-
-#### Setup Paths
-
-* Put the following in your `~/.sh_profile`
-
-```sh
-# ~/.sh_profile
-export Z3=PATH/TO/z3   #Z3 dir
-export PYTHONPATH=$Z3/src/api/python:$PYTHONPATH
-export JAVA_HOME=/PATH/TO/JAVA
-export PATH=$JAVA_HOME/bin:$PATH
-export JPF_HOME=/PATH/TO/JPF
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JPF_HOME/jpf-symbc/lib/
-```
-
-* Some troubleshooting tips:
-  * Make sure `sympy` is installed correctly so that you can do `python -c "import sympy"` without error.
-  * Make sure Z3 is installed correctly so that you can do `python -c "import z3; z3.get_version()"` without error.
-  * Use DIG with `-log 4` to enable detail logging information, also look at the `settings.py` for various settings on where DIG looks for external programs such as `java` and `javac`
-
----
 
 ## Publications
 
