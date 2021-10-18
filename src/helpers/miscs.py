@@ -124,13 +124,14 @@ class Miscs:
         >>> assert(Miscs.get_max_deg(x*y) == 2)
         >>> assert(Miscs.get_max_deg(x*y**2 + 3*y) == 3)
         """
-        assert isinstance(p, (int, sympy.Expr)), p
-        if isinstance(p, int):
-            return 0
-        elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
-            return sum(sympy.degree_list(p))
-        elif isinstance(p, sympy.Add):
-            return max(cls.get_max_deg(a) for a in p.args)
+        return 1
+        # assert isinstance(p, (int, sympy.Expr)), p
+        # if isinstance(p, int):
+        #     return 0
+        # elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
+        #     return sum(sympy.degree_list(p))
+        # elif isinstance(p, sympy.Add):
+        #     return max(cls.get_max_deg(a) for a in p.args)
 
     @classmethod
     def get_deg(cls, nvs, nts, max_deg=7):
