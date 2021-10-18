@@ -13,6 +13,44 @@ DIG is written in Python and uses the **sympy** and **z3** library. It infers in
 DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
 
 ---
+## Setup using Docker
+
+First, clone DIG
+
+```sh
+git clone https://github.com/unsat/dig.git
+```
+
+Then go to DIG's directory (`cd dig`).
+
+```sh
+# in DIG's directory
+
+# build the docker image,
+$ docker build . -t='dig'
+...
+...
+# this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
+
+# then run dig
+$ docker run -it dig
+
+# docker will drop you into a Linux prompt like below.
+$ root@b53e0bd86c11:/dig/src#
+
+
+# now we can run DIG on a trace file
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 4
+
+
+# or on a C program
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -log 4
+
+
+
+# to update DIG to the latest from github,  do a git pull in the main DIG directory in the Docker
+root@931ac8632c7f:/dig/src# git pull
+```
 
 ## Usage
 
@@ -24,7 +62,7 @@ DIG can infer invariants directly from an `CSV` file consisting of concreting pr
 
 ```csv
 # in DIG's src directory
-$ less ../test/traces/CohenDiv.csv
+$ less ../test/traces/cohendiv.csv
 vtrace1; I q; I r; I a; I b; I x; I y
 vtrace1; 4; 8; 1; 4; 24; 4
 vtrace1; 16; 89; 1; 13; 297; 13
@@ -43,9 +81,9 @@ vtrace2; 2; 287; 0; 2
 
 ```txt
 # in DIG's src directory
-tnguyen@debian ~/d/src> python3 -O dig.py ../tests/traces/CohenDiv.tcs -log 3
-settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/CohenDiv.tcs -log 3
-alg:INFO:analyze '../tests/traces/CohenDiv.tcs'
+tnguyen@debian ~/d/src> python3 -O dig.py ../tests/traces/cohendiv.csv -log 3
+settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/cohendiv.csv -log 3
+alg:INFO:analyze '../tests/traces/cohendiv.csv'
 alg:INFO:test 30 invs using 181 traces (0.44s)
 alg:INFO:simplify 26 invs (0.30s)
 vtrace1 (8 invs):
@@ -68,7 +106,7 @@ vtrace2 (8 invs):
 8. -x - y <= -10
 ```
 
-*Note*: if we just run Dig over traces, then many generated inequality results would be spurious, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#generating-invariants-from-a-program), DIG can check and remove spurious results.
+*Note*: if we just run Dig over traces, then we likely can get spurious inequalities, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#generating-invariants-from-a-program), DIG can check and remove spurious results.
 
 
 ### Generating Invariants From a Program
@@ -235,45 +273,6 @@ tnguyen@debian ~/dig/src> timeout 900 python3 -O dig.py  ../tests/paper/Sqrt1.ja
 ```
 
 ---
-
-## Setup using Docker
-
-First, clone DIG
-
-```sh
-git clone https://github.com/unsat/dig.git
-```
-
-Then go to DIG's directory (`cd dig`).
-
-```sh
-# in DIG's directory
-
-# build the docker image,
-$ docker build . -t='dig'
-...
-...
-# this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
-
-# then run dig
-$ docker run -it dig
-
-# docker will drop you into a Linux prompt like below.
-$ root@b53e0bd86c11:/dig/src#
-
-
-# now we can run DIG on a trace file
-root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 4
-
-
-# or on a C program
-root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -log 4
-
-
-
-# to update DIG to the latest,  do a git pull in the main DIG directory
-```
-
 
 
 
