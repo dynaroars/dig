@@ -244,7 +244,7 @@ First, clone DIG
 git clone https://github.com/unsat/dig.git
 ```
 
-Then go to DIG's directory (`cd dig`).  Also make sure that you're in the right branch (e.g., `master` or `dev`).
+Then go to DIG's directory (`cd dig`).
 
 ```sh
 # in DIG's directory
