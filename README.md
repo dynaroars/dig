@@ -276,8 +276,7 @@ tnguyen@debian ~/dig/src> timeout 900 python3 -O dig.py  ../tests/paper/Sqrt1.ja
 ```
 
 ---
-
-
+</details>
 
 
 ## :page_with_curl: Publications
