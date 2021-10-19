@@ -218,6 +218,9 @@ tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
 
 ### Additional Options
 
+<details>
+<summary><kbd>CLICK</kbd> for further details</summary>
+
 Most of DIG's behaviors can be controlled by the users (the `src\settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
 
 #### Specify max degree for equalities
@@ -277,7 +280,7 @@ tnguyen@debian ~/dig/src> timeout 900 python3 -O dig.py  ../tests/paper/Sqrt1.ja
 
 
 
-## Publications
+## :page_with_curl: Publications
 
 Technical information about DIG can be found from these papers.  The `Symbolic States (TSE'21)` paper is probably a good start.
 
