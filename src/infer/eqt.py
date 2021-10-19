@@ -247,7 +247,7 @@ class Infer(infer.base.Infer):
             if len(traces) < len(uks):
                 mydeg = mydeg - 1
                 mlog.warning(
-                    f"{len(traces)} traces < {len(uks)} uks, reducing deg to {mydeg}")
+                    f"{len(traces)} traces < {len(uks)} uks, reducing to deg {mydeg}")
                 continue
 
             template = sum(t*u for t, u in zip(ts, uks))

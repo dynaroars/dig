@@ -302,7 +302,7 @@ class Miscs:
         return ps
 
     @classmethod
-    def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF_FINAL):
+    def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF):
 
         @functools.cache
         def is_nice_coef(c):

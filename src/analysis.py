@@ -142,7 +142,6 @@ class AResult(Result):
 
         nnonlinears = len([d for d in maxdegs if d >= 2])
 
-        # print(nvs, vss, maxdeg, nterms, nnonlinears)
         return nvs, maxdeg, nterms, nnonlinears
 
     @classmethod
@@ -228,15 +227,17 @@ class Results:
 
         print(f"-> time {time_s}")
 
-        print(
-            f"-> checks {check_solvercallss} {check_changedepthss} {check_changevalss}")
+        if settings.DO_SOLVER_STATS:
+            print(
+                f"-> checks {check_solvercallss} {check_changedepthss} {check_changevalss}")
 
-        print(f"-> max {max_solvercallss} {max_changedepthss}")
-        # , max_changevalss
-        print("runs {}".format(nruns))
+            print(f"-> max {max_solvercallss} {max_changedepthss}")
+            # , max_changevalss
 
-        if len(rs) == 1:
-            print(f"rand seed {rs[0].seed},"
+        if nruns > 1:
+            print(f"runs {nruns}")
+        elif len(rs) == 1:
+            print(f"rand seed {rs[0].seed}, "
                   f"test {random.randint(0, 100)}")
             print(rs[0].dinvs.__str__(print_stat=False))
 

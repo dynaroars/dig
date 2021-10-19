@@ -2,7 +2,7 @@
 CEGIR algorithm
 """
 
-from abc import ABCMeta, abstractmethod
+import abc
 import pdb
 
 import helpers.vcommon as CM
@@ -18,7 +18,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Infer(metaclass=ABCMeta):
+class Infer(metaclass=abc.ABCMeta):
     def __init__(self, symstates, prog):
         assert symstates is None or \
             isinstance(symstates, data.symstates.SymStates), symstates
@@ -29,8 +29,13 @@ class Infer(metaclass=ABCMeta):
         self.inp_decls = prog.inp_decls
         self.prog = prog
 
-    @abstractmethod
+    @abc.abstractmethod
     def gen(self):
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def gen_from_traces(cls, traces, symbols):
         pass
 
     def get_traces(self, inps, traces):

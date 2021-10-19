@@ -148,7 +148,7 @@ class RelTerm(NamedTuple):
     def symbols(self):
         return Miscs.get_vars(self.term)
 
-    def eval_traces(self, traces, pred):
+    def eval_traces(self, traces, pred=None):
         return traces.myeval(self.term, pred)
 
     def mk_lt(self, val):

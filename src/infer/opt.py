@@ -25,10 +25,6 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
-    def __init__(self, symstates, prog):
-        # need prog because symstates could be None
-        super().__init__(symstates, prog)
-
     @staticmethod
     @abc.abstractmethod
     def to_expr(term):
@@ -48,6 +44,25 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_excludes(term):
         pass
+
+    @classmethod
+    def gen_from_traces(cls, traces, symbols):
+        maxV = cls.IUPPER
+        minV = -1 * maxV
+
+        terms = cls.my_get_terms(symbols.sageExprs)
+        ps = []
+        for term in terms:
+            upperbound = int(max(term.eval_traces(traces)))
+            if minV <= upperbound <= maxV:
+                p = cls.inv_cls(term.mk_le(upperbound))
+                ps.append(p)
+
+        return ps
+
+    def __init__(self, symstates, prog):
+        # need prog because symstates could be None
+        super().__init__(symstates, prog)
 
     def gen(self, dtraces, locs=None, extra_constr=None):
         assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
@@ -152,13 +167,11 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
             else Ieq.IUPPER
         )
 
-    @classmethod
-    def gen_from_traces(cls, symbols, traces):
-        maxV = cls.IUPPER_MMP
-        # TODO
-
 
 class Ieq(Infer):
+
+    IUPPER = settings.IUPPER
+
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
@@ -242,35 +255,12 @@ class Ieq(Infer):
                 excludes.add(term)
         return excludes
 
-    @classmethod
-    def gen_from_traces(cls, traces, symbols):
-        """
-        Generate invariants directly from concrete traces
-        """
-        maxV = settings.IUPPER
-        minV = -1 * maxV
-
-        terms = Miscs.get_terms_fixed_coefs(
-            symbols.sageExprs,
-            settings.ITERMS,
-            settings.ICOEFS,
-        )
-        ieqs = []
-        for t in terms:
-            upperbound = max(traces.myeval(t))
-            if minV <= upperbound <= maxV:
-                ieqs.append(sympy.Le(t, upperbound))
-
-        ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
-        return ieqs
-
-    IUPPER = settings.IUPPER
-
 
 class MMP(Infer):
     """
     Min-max plus invariants
     """
+    IUPPER = settings.IUPPER_MMP
 
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
@@ -339,20 +329,3 @@ class MMP(Infer):
                 excludes.add(term)
 
         return excludes
-
-    @classmethod
-    def gen_from_traces(cls, traces, symbols):
-        maxV = settings.IUPPER_MMP
-        minV = -1 * maxV
-
-        terms = cls.my_get_terms(symbols.sageExprs)
-        mps = []
-        for t in terms:
-            upperbound = int(max(t.eval_traces(traces)))
-            if minV <= upperbound <= maxV:
-                mp = cls.inv_cls(t.mk_le(upperbound))
-                mps.append(mp)
-
-        return mps
-
-    IUPPER = settings.IUPPER_MMP
