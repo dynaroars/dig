@@ -17,8 +17,8 @@ DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C
 
 
 
-```sh
-# First, clone DIG
+```bash
+# clone DIG
 $ git clone https://github.com/unsat/dig.git
 
 # Then go to DIG's directory 
