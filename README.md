@@ -41,15 +41,18 @@ $ root@b53e0bd86c11:/dig/src#
 
 # now we can run DIG on a trace file
 root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 4
-
+...
+...
 
 # or on a C program
 root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -log 4
-
-
+...
 
 # to update DIG to the latest from github,  do a git pull in the main DIG directory in the Docker
 root@931ac8632c7f:/dig/src# git pull
+...
+...
+
 ```
 
 ## Usage
