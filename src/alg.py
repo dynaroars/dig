@@ -171,20 +171,21 @@ class DigSymStates(Dig):
 
         shutil.rmtree(self.tmpdir_del)
 
-        # analyze and save results
-        from analysis import Result, Analysis
+        if settings.DO_SOLVER_STATS:
+            # analyze and save results
+            from analysis import Result, Analysis
 
-        result = Result(
-            self.filename,
-            self.seed,
-            dinvs,
-            dtraces,
-            inps,
-            self.symstates.solver_stats_,
-            self.time_d,
-        )
-        result.save(self.tmpdir)
-        Analysis(self.tmpdir).start()  # output stats
+            result = Result(
+                self.filename,
+                self.seed,
+                dinvs,
+                dtraces,
+                inps,
+                self.symstates.solver_stats_,
+                self.time_d,
+            )
+            result.save(self.tmpdir)
+            Analysis(self.tmpdir).start()  # output stats
 
     def infer(self, typ, dinvs, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
