@@ -48,6 +48,12 @@ class Miscs:
 
     str2rat_cache = {}
 
+    @staticmethod
+    def str2list(s):
+        assert isinstance(s, str), s
+        rs = tuple(eval(s))
+        return rs
+
     @classmethod
     @functools.cache
     def str2rat(cls, s):
@@ -77,6 +83,12 @@ class Miscs:
             cls.str2rat_cache[s] = ret
             return ret
 
+    @staticmethod
+    def create_uks(ts, prefix="uk"):
+        uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
+        assert not set(ts).intersection(set(uks)), "name conflict"
+        return uks
+
     @classmethod
     def init_terms(cls, vs, deg, rate):
         assert vs, vs
@@ -85,7 +97,7 @@ class Miscs:
 
         symbols = [sympy.Symbol(v) for v in vs]
         terms = cls.get_terms(symbols, deg)
-        uks = [sympy.Symbol(f"uk_{i}") for i in range(len(terms))]
+        uks = cls.create_uks(terms)
         assert not set(terms).intersection(set(uks)), "name conflict"
         n_eqts_needed = int(rate * len(uks))
         return terms, uks, n_eqts_needed

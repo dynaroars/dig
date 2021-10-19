@@ -2,7 +2,6 @@ import pdb
 import sys
 import datetime
 import time
-import os
 from pathlib import Path
 
 DBG = pdb.set_trace
@@ -10,10 +9,10 @@ DBG = pdb.set_trace
 
 """
 Example runs:
-- sage -python -O dig.py ../benchmark/nla/Bresenham.java
-- sage -python -O dig.py ../benchmark/nla/Bresenham.java -benchmark_times 5  :  run this file 5 times
-- sage -python -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir /path/to/existing_dir/ :  run all files in this dir 5 times
-- sage -python -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir existing_dir/ :  run all files in this dir 5 times and store results in `existing_dir`. If existing_dir has results from previous runs, will only attempt to do incomplete runs.  
+- python3 -O dig.py ../benchmark/nla/Bresenham.java
+- python3 -O dig.py ../benchmark/nla/Bresenham.java -benchmark_times 5  :  run this file 5 times
+- python3 -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir /path/to/existing_dir/ :  run all files in this dir 5 times
+- python3 -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir existing_dir/ :  run all files in this dir 5 times and store results in `existing_dir`. If existing_dir has results from previous runs, will only attempt to do incomplete runs.  
 
 
 Run on traces
@@ -44,31 +43,23 @@ if __name__ == "__main__":
 
     ag("--seed", "-seed", type=float, help="use this seed")
 
-    ag(
-        "--maxdeg",
-        "-maxdeg",
-        type=int,
-        default=None,
-        help="find nonlinear invs up to degree",
-    )
+    ag("--maxdeg", "-maxdeg",
+       type=int,
+       default=None,
+       help="find nonlinear invs up to degree")
 
     ag("--maxterm", "-maxterm", type=int, default=None, help="autodegree")
 
     ag("--inpMaxV", "-inpMaxV", type=int, help="max inp value")
 
-    ag(
-        "--se_mindepth",
-        "-se_mindepth",
-        type=int,
-        help="depthlimit of symbolic execution",
-    )
+    ag("--se_mindepth", "-se_mindepth",
+       type=int,
+       help="depthlimit of symbolic execution")
 
-    ag(
-        "--se_maxdepth",
-        "-se_maxdepth",
-        type=int,
-        help="depthlimit of symbolic execution",
-    )
+    ag("--se_maxdepth", "-se_maxdepth",
+       type=int,
+       help="depthlimit of symbolic execution",
+       )
 
     ag("--iupper", "-iupper", type=int, help="max upperbound val for ieqs")
 

@@ -377,3 +377,9 @@ class FalseInv(data.inv.base.Inv):
     @classmethod
     def mk(cls):
         return FalseInv(0)
+
+    def test_single_trace(self, trace):
+        """
+        fake place holder because test_single_trace is an abstract method
+        """
+        return False

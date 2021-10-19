@@ -236,7 +236,7 @@ class Results:
 
         if nruns > 1:
             print(f"runs {nruns}")
-        elif len(rs) == 1:
+        elif nruns == 1:
             print(f"rand seed {rs[0].seed}, "
                   f"test {random.randint(0, 100)}")
             print(rs[0].dinvs.__str__(print_stat=False))
@@ -262,16 +262,14 @@ class Results:
             if isinstance(k, tuple):
                 assert len(k) == 2
                 from_, to_ = k
-                k_str = "{}->{}".format(from_, to_)
+                k_str = f"{from_}->{to_}"
             else:
                 k_str = str(k)
             s.append((k, k_str, t))
             sizs.append(t)
 
-        s = ', '.join('{}: {}'.format(k_str, f(dd[k]))
-                      for k, k_str, t in s)
-
-        return '{} {} ({})'.format(label, sum(sizs), s)
+        s = ', '.join(f"{k_str}: {f(dd[k])}" for k, k_str, t in s)
+        return f"{label} {sum(sizs)} ({s})"
 
 
 class Benchmark:
@@ -301,7 +299,7 @@ class Benchmark:
             bfiles = sorted(f for f in inp.iterdir() if self.valid_file(f))
             bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
         else:
-            mlog.error('something wrong with {}'.format(inp))
+            mlog.error(f"something wrong with {inp}")
             sys.exit(1)
         ntimes = args.benchmark_times
 
@@ -311,7 +309,7 @@ class Benchmark:
             assert benchmark_dir.is_dir(), benchmark_dir
         else:
             import tempfile
-            prefix = "bm_dig{}{}_".format(ntimes, bstr)
+            prefix = f"bm_dig{ntimes}{bstr}_"
             benchmark_dir = Path(tempfile.mkdtemp(
                 dir=settings.tmpdir, prefix=prefix))
 
@@ -326,11 +324,10 @@ class Benchmark:
                 succruns = self.get_success_runs(bmdir)
                 remainruns = list(myruns - succruns)
                 if not remainruns:
-                    mlog.info(
-                        "{} ran, results in {}".format(f, bmdir))
+                    mlog.info(f"{f} ran, results in {bmdir}")
                 else:
-                    mlog.info("{} in {} needs {} more runs".format(
-                        f, bmdir, len(remainruns)))
+                    mlog.info(
+                        f"{f} in {bmdir} needs {len(remainruns)} more runs")
             else:
                 remainruns = list(myruns)
 
@@ -340,9 +337,8 @@ class Benchmark:
             self.toruns = toruns
 
         opts = settings.setup(None, args)
-        self.CMD = "timeout {timeout} sage -python -O dig.py {opts} ".format(
-            timeout=self.TIMEOUT, opts=opts) \
-            + "{filename} -seed {seed} -tmpdir {tmpdir}"
+        self.CMD = (f"timeout {self.TIMEOUT} python3 -O dig.py {opts} "
+                    "{filename} -seed {seed} -tmpdir {tmpdir}")
 
         import os
         for i, (f, bdir, remainruns) in enumerate(self.toruns):
@@ -350,16 +346,15 @@ class Benchmark:
                 bdir.mkdir()
 
             for j, seed in enumerate(sorted(remainruns)):
-                mlog.info("## file {}/{}, run {}/{}, seed {}, {}: {}".format(
-                    i+1, len(self.toruns), j+1, len(remainruns),
-                    seed, time.strftime("%c"), f))
+                mlog.info(f"## file {i+1}/{len(self.toruns)}, run {j+1}/{len(remainruns)}, "
+                          f"seed {seed}, {time.strftime('%c')}: {f}")
                 try:
                     CMD = self.CMD.format(filename=f, seed=seed, tmpdir=bdir)
                     os.system(CMD)
                 except Exception as ex:
-                    mlog.error("Something wrong. Exiting!\n{}".format(ex))
+                    mlog.error(f"Something wrong. Exiting!\n{ex}")
 
-        mlog.info("benchmark result dir: {}".format(self.benchmark_dir))
+        mlog.info(f"benchmark result dir: {self.benchmark_dir}")
 
     def get_success_runs(self, rundir):
         assert rundir.is_dir(), rundir
@@ -367,7 +362,7 @@ class Benchmark:
         runs = set()
         for rd in rundir.iterdir():
             if not rd.is_dir():
-                mlog.warning('Unexpected file {}'.format(rd))
+                mlog.warning(f"Unexpected file {rd}")
                 continue
 
             if (rd / Result.resultfile).is_file():
@@ -375,7 +370,7 @@ class Benchmark:
                 runi = int(rd.stem.split('_')[1])
                 runs.add(runi)
             else:
-                mlog.debug('deleting incomplete run {}'.format(rd))
+                mlog.debug(f"deleting incomplete run {rd}")
                 shutil.rmtree(rd)
 
         return runs
@@ -426,7 +421,7 @@ class Analysis:
         for prog in sorted(results_d):
             results = [AResult(r) for r in results_d[prog] if r.dinvs.siz]
             if not results:
-                mlog.warning("no results for {}".format(prog))
+                mlog.warning(f"no results for {prog}")
                 continue
             stats = Results(prog, results)
             stats.start(median_low)
