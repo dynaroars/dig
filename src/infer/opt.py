@@ -1,7 +1,7 @@
 """
 Find upperbound of polynomial and min/max terms using an SMT solver optimizer
 """
-from abc import ABCMeta
+import abc
 import pdb
 from time import time
 import operator
@@ -23,10 +23,31 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Infer(infer.base.Infer, metaclass=ABCMeta):
+class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
+
     def __init__(self, symstates, prog):
         # need prog because symstates could be None
         super().__init__(symstates, prog)
+
+    @staticmethod
+    @abc.abstractmethod
+    def to_expr(term):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def inv_cls(term):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def my_get_terms(terms, inps):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def get_excludes(term):
+        pass
 
     def gen(self, dtraces, locs=None, extra_constr=None):
         assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
@@ -126,23 +147,31 @@ class Infer(infer.base.Infer, metaclass=ABCMeta):
     @classmethod
     def get_iupper(cls, term):
         return (
-            settings.IUPPER_MMP
+            MMP.IUPPER
             if isinstance(term, data.inv.mp.Term)
-            else settings.IUPPER
+            else Ieq.IUPPER
         )
+
+    @classmethod
+    def gen_from_traces(cls, symbols, traces):
+        maxV = cls.IUPPER_MMP
+        # TODO
 
 
 class Ieq(Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
-    def to_expr(self, term):
+    @staticmethod
+    def to_expr(term):
         return Z3.parse(str(term.term))
 
-    def inv_cls(self, term_ub):
+    @staticmethod
+    def inv_cls(term_ub):
         return data.inv.oct.Oct(term_ub)
 
-    def my_get_terms(self, symbols):
+    @staticmethod
+    def my_get_terms(symbols):
         assert symbols, symbols
         assert settings.IDEG >= 1, settings.IDEG
 
@@ -166,7 +195,7 @@ class Ieq(Infer):
             terms = terms_
 
         if settings.UTERMS:
-            uterms = self.my_get_terms_user(symbols, settings.UTERMS)
+            uterms = cls.my_get_terms_user(symbols, settings.UTERMS)
             old_siz = len(terms)
             terms.update(uterms)
             mlog.debug(f"add {len(terms) - old_siz} new terms from user")
@@ -201,8 +230,8 @@ class Ieq(Infer):
 
     #     return terms
 
-    def get_excludes(self, terms, inps):
-        # print(len(terms), terms)
+    @staticmethod
+    def get_excludes(terms, inps):
         excludes = set()
         for term in terms:
             t_symbs = set(map(str, term.symbols))
@@ -235,6 +264,8 @@ class Ieq(Infer):
         ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
         return ieqs
 
+    IUPPER = settings.IUPPER
+
 
 class MMP(Infer):
     """
@@ -244,13 +275,16 @@ class MMP(Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
-    def to_expr(self, term):
+    @staticmethod
+    def to_expr(term):
         return data.inv.mp.MMP(term, is_ieq=None).expr
 
-    def inv_cls(self, term_ub):
+    @staticmethod
+    def inv_cls(term_ub):
         return data.inv.mp.MMP(term_ub)
 
-    def my_get_terms(self, symbols):
+    @staticmethod
+    def my_get_terms(symbols):
         terms = data.inv.mp.Term.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
@@ -262,7 +296,8 @@ class MMP(Infer):
         terms_min = _get_terms(terms, is_max=False)
         return terms_min + terms_max
 
-    def get_excludes(self, terms, inps):
+    @staticmethod
+    def get_excludes(terms, inps):
         assert isinstance(terms, list)
         assert all(isinstance(t, data.inv.mp.Term) for t in terms), terms
         assert isinstance(inps, set), inps
@@ -304,3 +339,20 @@ class MMP(Infer):
                 excludes.add(term)
 
         return excludes
+
+    @classmethod
+    def gen_from_traces(cls, traces, symbols):
+        maxV = settings.IUPPER_MMP
+        minV = -1 * maxV
+
+        terms = cls.my_get_terms(symbols.sageExprs)
+        mps = []
+        for t in terms:
+            upperbound = int(max(t.eval_traces(traces)))
+            if minV <= upperbound <= maxV:
+                mp = cls.inv_cls(t.mk_le(upperbound))
+                mps.append(mp)
+
+        return mps
+
+    IUPPER = settings.IUPPER_MMP
