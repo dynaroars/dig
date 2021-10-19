@@ -9,8 +9,8 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
 - array analysis (finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, `ICSE12`, `TOSEM13`)
 
-DIG is written in Python and uses the **sympy** and **z3** library. It infers invariants using dynamic execution (over execution traces).  If source code is available, it can iteratively generate and check invariants using symbolic states for programs written in Java, Java bytecode, and C.
-DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
+DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis (over execution traces).  If source code (C, Java, Java Bytecode) is available, DIG can iteratively infer and check invariants.
+DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states to check candidate invariants.
 
 ---
 ## Setup using Docker
