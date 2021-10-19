@@ -15,22 +15,19 @@ DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C
 ---
 ## Setup using Docker
 
-First, clone DIG
+
 
 ```sh
-git clone https://github.com/unsat/dig.git
-```
+# First, clone DIG
+$ git clone https://github.com/unsat/dig.git
 
-Then go to DIG's directory (`cd dig`).
+# Then go to DIG's directory 
+$ cd dig # in DIG's directory
 
-```sh
-# in DIG's directory
-
-# build the docker image,
+# build the docker image, will take sometime to build everything
 $ docker build . -t='dig'
 ...
 ...
-# this will take some time as it will build a Linux image with all necessary dependencies to run DIG.  
 
 # then run dig
 $ docker run -it dig
