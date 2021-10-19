@@ -40,6 +40,17 @@ class Inv(metaclass=ABCMeta):
         else:
             self.stat = stat
 
+    @property
+    @abstractmethod
+    def mystr(self):
+        pass
+
+    def __str__(self, print_stat=False):
+        s = self.mystr
+        if print_stat:
+            s = f"{s} {self.stat}"
+        return s
+
     def __hash__(self):
         return hash(self.inv)
 
@@ -86,21 +97,40 @@ class Inv(metaclass=ABCMeta):
         pass
 
 
+class FalseInv(Inv):
+    def __init__(self, inv, stat=None):
+        assert inv == 0, inv
+        super().__init__(inv, stat)
+
+    def __str__(self, print_stat=False):
+        s = str(self.inv)
+        if print_stat:
+            s = f"{s} {self.stat}"
+        return s
+
+    @property
+    def expr(self):
+        return z3.BoolVal(False)
+
+    @property
+    def mystr(self):
+        return "False"
+
+    @classmethod
+    def mk(cls):
+        return FalseInv(0)
+
+    def test_single_trace(self, trace):
+        """
+        fake place holder because test_single_trace is an abstract method
+        """
+        return False
+
+
 class RelInv(Inv, metaclass=ABCMeta):
     def __init__(self, rel, stat=None):
         assert isinstance(rel, (sympy.Equality, sympy.Le)), rel
         super().__init__(rel, stat)
-
-    @property
-    @abstractmethod
-    def mystr(self):
-        pass
-
-    def __str__(self, print_stat=False):
-        s = self.mystr
-        if print_stat:
-            s = f"{s} {self.stat}"
-        return s
 
     def test_single_trace(self, trace):
         assert isinstance(trace, data.traces.Trace), trace

@@ -1,8 +1,8 @@
-import z3
 import ast
 import pdb
 import operator
-
+import functools
+import z3
 import helpers.vcommon as CM
 import settings
 
@@ -55,7 +55,7 @@ class Z3:
                 cls._get_vars(c, rs)
 
     @classmethod
-    # @cached_function
+    @functools.cache
     def get_vars(cls, f):
         """
         >>> x,y,z = z3.Ints("x y z")

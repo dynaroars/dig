@@ -25,13 +25,12 @@ class NestedArray(data.inv.base.Inv):
 
         super().__init__(rel, stat)
 
-    def __str__(self, print_stat=False):
-        s = self.inv
-        if print_stat:
-            s = f"{s} {self.stat}"
-        return s
+    @property
+    def mystr(self):
+        return str(self.inv)
 
-    def eval_lambda(self, idx_info, tc):
+    @staticmethod
+    def eval_lambda(inv, idx_info, tc):
         """
         Evaluate array expression p, e.g. p:  A[i,j,k]=B[2i+3j+k]
 
@@ -90,7 +89,7 @@ class NestedArray(data.inv.base.Inv):
         assert isinstance(tc, dict), tc
         assert all(isinstance(k, str) for k in tc), tc.keys()
 
-        f = sage.all.sage_eval(self.inv)
+        f = eval(inv)
         vs = f.__code__.co_varnames
 
         arrs = [v for v in vs if v in tc]  # A,B
@@ -122,4 +121,4 @@ class NestedArray(data.inv.base.Inv):
 
     def test_single_trace(self, trace):
         assert isinstance(trace, data.traces.Trace), trace
-        return self.eval_lambda(None, trace.mydict)
+        return self.eval_lambda(self.inv, None, trace.mydict)

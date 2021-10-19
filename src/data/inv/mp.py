@@ -33,14 +33,15 @@ class MMP(data.inv.base.Inv):
         self.term = term
         self.is_ieq = is_ieq
 
-    def __str__(self, print_stat=False, use_lambda=False):
+    def lambdastr(self, use_lambda=False):
         s = self.term.__str__(use_lambda)
-
         if self.is_ieq is not None:
             s += f" {'<=' if self.is_ieq is True else '=='} 0"
-        if print_stat:
-            s = f"{s} {self.stat}"
         return s
+
+    @property
+    def mystr(self):
+        return self.lambdastr(use_lambda=False)
 
     @property
     def is_eqt(self):
@@ -70,7 +71,7 @@ class MMP(data.inv.base.Inv):
         assert isinstance(trace, Trace), trace
 
         trace = trace.mydict_str
-        bval = Term._eval(self.__str__(use_lambda=True), trace)
+        bval = Term._eval(self.lambdastr(use_lambda=True), trace)
         assert isinstance(bval, (sympy.logic.boolalg.BooleanTrue,
                           sympy.logic.boolalg.BooleanFalse)), bval
         return bool(bval)

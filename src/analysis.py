@@ -100,24 +100,24 @@ class AResult(Result):
         self.check_changevals_ctr = Counter(
             get_change(x.v1, x.v2, as_str=True)
             for x in self.check_depthchanges
-            if not isinstance(x.prop, data.inv.invs.FalseInv))
+            if not isinstance(x.prop, data.inv.base.FalseInv))
 
         self.check_changedepths_ctr = Counter(
             get_change(x.d1, x.d2, as_str=False)
             for x in self.check_depthchanges
-            if not isinstance(x.prop, data.inv.invs.FalseInv))
+            if not isinstance(x.prop, data.inv.base.FalseInv))
 
         self.max_solvercalls_ctr = Counter(
             str(x.stat) for x in self.max_solvercalls)
 
         self.max_changevals_ctr = Counter(
             get_change(x.v1, x.v2, as_str=True) for x in self.max_depthchanges
-            if not isinstance(x.prop, data.inv.invs.FalseInv))
+            if not isinstance(x.prop, data.inv.base.FalseInv))
 
         self.max_changedepths_ctr = Counter(
             get_change(x.d1, x.d2, as_str=False)
             for x in self.max_depthchanges
-            if not isinstance(x.prop, data.inv.invs.FalseInv))
+            if not isinstance(x.prop, data.inv.base.FalseInv))
 
     @classmethod
     def analyze_dinvs(cls, dinvs):

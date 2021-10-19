@@ -48,7 +48,6 @@ class Invs(set):
         return not_in
 
     def test(self, traces):
-        # assert isinstance(traces, Traces)
         assert self, self
 
         def f(tasks):
@@ -207,7 +206,7 @@ class Invs(set):
             elif isinstance(inv, data.inv.nested_array.NestedArray):
                 mylist = arr_rels
             else:
-                assert isinstance(inv, data.inv.invs.FalseInv), inv
+                assert isinstance(inv, data.inv.base.FalseInv), inv
                 mylist = falseinvs
 
             mylist.append(inv)
@@ -348,7 +347,7 @@ class DInvs(dict):
     def mk_false_invs(cls, locs):
         dinvs = cls()
         for loc in locs:
-            dinvs.add(loc, FalseInv.mk())
+            dinvs.add(loc, data.inv.base.FalseInv.mk())
         return dinvs
 
     @classmethod
@@ -357,29 +356,3 @@ class DInvs(dict):
         new_invs = cls()
         new_invs[loc] = invs
         return new_invs
-
-
-class FalseInv(data.inv.base.Inv):
-    def __init__(self, inv, stat=None):
-        assert inv == 0, inv
-        super().__init__(inv, stat)
-
-    def __str__(self, print_stat=False):
-        s = str(self.inv)
-        if print_stat:
-            s = f"{s} {self.stat}"
-        return s
-
-    @property
-    def expr(self):
-        return z3.BoolVal(False)
-
-    @classmethod
-    def mk(cls):
-        return FalseInv(0)
-
-    def test_single_trace(self, trace):
-        """
-        fake place holder because test_single_trace is an abstract method
-        """
-        return False
