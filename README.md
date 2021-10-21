@@ -81,20 +81,28 @@ vtrace2; 2; 287; 0; 2
 
 ```txt
 # in DIG's src directory
-tnguyen@debian ~/d/src> python3 -O dig.py ../tests/traces/cohendiv.csv -log 3
-settings:INFO:2020-06-30 15:26:53.384339: dig.py ../tests/traces/cohendiv.csv -log 3
-alg:INFO:analyze '../tests/traces/cohendiv.csv'
-alg:INFO:test 30 invs using 181 traces (0.44s)
-alg:INFO:simplify 26 invs (0.30s)
-vtrace1 (8 invs):
-1. q*y + r - x == 0
-2. -q <= 0
-3. -r <= 0
-4. -y <= -1
-5. q - x <= 0
+$ time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 3                                                                                                                                            (base) 
+settings:INFO:2021-10-20 22:07:46.378997: dig.py ../tests/traces/cohendiv.csv -log 3
+alg:INFO:analyzing '../tests/traces/cohendiv.csv'
+alg:INFO:testing 540 invs using 181 traces (0.31s)
+alg:INFO:simplify 538 invs (3.38s)
+vtrace1 (16 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
+3. -q <= 0
+4. a - b <= 0
+5. b - r <= 0
 6. r - x <= 0
-7. -r - x <= -2
-8. -x - y <= -10
+7. a - x <= -5
+8. -b + y <= 0
+9. -x + y <= -6
+10. -a - b <= -2
+11. -a - q <= -1
+12. -q - r <= -8
+13. -x - y <= -10
+14. -r - x <= -16
+15. y + 2 - max(q, r, 0) <= 0
+16. a + 2 - max(b, q, r, y) <= 0
 vtrace2 (8 invs):
 1. q*y + r - x == 0
 2. -q <= 0
@@ -102,11 +110,11 @@ vtrace2 (8 invs):
 4. q - x <= 0
 5. r - x <= 0
 6. r - y <= -1
-7. -r - x <= -2
+7. -q - r <= -1
 8. -x - y <= -10
 ```
 
-*Note*: if we just run Dig over traces, then we likely can get spurious inequalities, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#generating-invariants-from-a-program), DIG can check and remove spurious results.
+*Note*: if we just run Dig over traces, then we likely can get spurious inequalities, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#Using-Symbolic-Execution), DIG can check and remove spurious results.
 
 
 ### Generating Invariants From a Program
@@ -165,7 +173,7 @@ void main(int argc, char **argv){
   * `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
 
-##### Generating Invariants from Programs using Symbolic Execution (default option)
+##### Using Symbolic Execution (default option)
 
 
 * We now run DIG on `cohendiv.c` and discover the following invariants at the `vtracesX` locations:
