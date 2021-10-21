@@ -4,6 +4,7 @@ import operator
 from typing import NamedTuple
 
 import sympy
+import z3
 
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
@@ -142,8 +143,7 @@ class RelInv(Inv, metaclass=ABCMeta):
             return True
 
         try:
-            bval = bool(self.inv.subs(trace.mydict))
-            return bval
+            return bool(self.inv.xreplace(trace.mydict))
         except ValueError:
             mlog.debug(f"{self}: failed test")
             return False

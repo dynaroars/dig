@@ -111,109 +111,114 @@ vtrace2 (8 invs):
 
 ### Generating Invariants From a Program
 
-Consider the following `CohenDiv.java` program
+Consider the following `cohendiv.c` program
 
-```java
+```c
 // in DIG's src directory
-// $ less ../benchmark/java/nla/CohenDiv.java 
+// $ less ../test/cohendiv.c
 
-public class CohenDiv {
-     public static void vtrace0(int q, int r, int a, int b, int x, int y){}
-     public static void vtrace1(int q, int r, int a, int b, int x, int y){}
-     public static void vtrace2(int x, int y, int q, int r){}
+#include <stdio.h>
+#include <stdlib.h>
 
-     public static void main (String[] args) {}
-     public static int mainQ(int x, int y) {
-          assert(x >= 0);
-          assert(y >= 1);
+void vassume(int b){}
+void vtrace1(int q, int r, int a, int b, int x, int y){}
+void vtrace2(int q, int r, int a, int b, int x, int y){}
+void vtrace3(int q, int r, int x, int y){}
 
-          int q=0;
-          int r=x;
-          int a=0;
-          int b=0;
+int mainQ(int x, int y){
+    vassume(x >= 1 && y >= 1);
+    
+    int q=0;
+    int r=x;
+    int a=0;
+    int b=0;
+    while(1) {
+	vtrace1(q, r, a, b, x, y);
+	if(!(r>=y))
+	    break;
+	a=1;
+	b=y;
+	  
+	while (1){
+	    vtrace2(q, r, a, b, x, y);
+	    if(!(r >= 2*b))
+		break;
+	       
+	    a = 2*a;
+	    b = 2*b;
+	}
+	r=r-b;
+	q=q+a;
+    }
+    vtrace3(q, r,x, y);
+    return q;
+}
 
-          while(true) {
-               vtrace0(q,r,a,b,x,y);
-               if(!(r>=y)) break;
-               a=1;
-               b=y;
-
-               while (true) {
-                    vtrace1(q,r,a,b,x,y);
-                    if(!(r >= 2*b)) break;
-
-                    a = 2*a;
-                    b = 2*b;
-               }
-               r=r-b;
-               q=q+a;
-          }
-
-          vtrace2(x,y,q,r);
-          return q;
-     }
+void main(int argc, char **argv){
+    mainQ(atoi(argv[1]), atoi(argv[2]));
 }
 
 ```
 
 * To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at that location.
-  * For example, in `CohenDiv.java`,  we call `vtrace0`, `vtrace1` at the head of the outter and inner while loops find loop invariants  and  `vtrace2` before the function exit to find post conditions.
+  * For example, in `cohendiv.c`,  we call `vtrace0`, `vtrace1` at the head of the outter and inner while loops find loop invariants  and  `vtrace2` before the function exit to find post conditions.
   * `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
-* Next, we run DIG on `CohenDiv.java` or its byteclass version (compiled with `javac -g`) and discover the following invariants at `vtracesX` locations:
+
+##### Generating Invariants from Programs using Symbolic Execution (default option)
+
+
+* We now run DIG on `cohendiv.c` and discover the following invariants at the `vtracesX` locations:
 
 ```sh
-# in DIG's src directory
-tnguyen@origin ~/d/src (dev)> python3 -O dig.py  ../benchmark/java/nla/CohenDiv.java -log 3
-settings:INFO:2020-10-03 21:39:01.995144: dig.py ../benchmark/java/nla/CohenDiv.java -log 3
-alg:INFO:analyze '../tests/paper/CohenDiv.java'
-alg:INFO:compute symbolic states (18.65s)
-alg:INFO:infer invs at 3 locs: vtrace0, vtrace2, vtrace1
-alg:INFO:found 5 eqts (26.55s)
-alg:INFO:found 67 ieqs (1.10s)
-alg:INFO:found 377 minmax (2.55s)
-alg:INFO:test 449 invs using 699 traces (0.93s)
-alg:INFO:simplify 449 invs (1.79s)
-* prog CohenDiv locs 3;  invs 25 (Eqt: 5, MP: 1, Oct: 19) V 6 T 3 D 2;  NL 5 (2) ;
--> time eqts 26.5s, ieqs 1.1s, minmax 2.5s, simplify 2.7s, symbolic_states 18.7s, total 51.9s
--> checks  0 () change depths 0 () change vals 0 ()
--> max  0 () change depths 0 ()
-runs 1
-rand seed 1601779141.99, test (6, 59)
-vtrace0 (11 invs):
+settings:INFO:2021-10-20 14:11:22.139334: dig.py ../tests/cohendiv.c -log 3
+alg:INFO:analyzing '../tests/cohendiv.c'
+alg:INFO:got symbolic states at 3 locs: (4.10s)
+alg:INFO:found 11 eqts (19.18s)
+alg:INFO:found 67 ieqs (0.55s)
+alg:INFO:found 377 minmax (1.89s)
+alg:INFO:test 455 invs using 611 traces (0.74s)
+alg:INFO:simplify 451 invs (2.15s)
+* prog cohendiv locs 3; invs 28 (Eqt: 5, MMP: 1, Oct: 22) V 6 T 3 D 2; NL 5 (2) ;
+-> time eqts 19.2s, ieqs 0.5s, minmax 1.9s, simplify 2.9s, symbolic_states 4.1s, total 28.7s
+rand seed 1634757082.14, test 10
+vtrace1 (12 invs):
 1. a*y - b == 0
 2. q*y + r - x == 0
-3. -r <= 0
-4. -a <= 0
-5. a - b <= 0
-6. a - q <= 0
-7. q - x <= 0
-8. r - x <= 0
-9. b - x <= 0
-10. -a - y <= -1
-11. min(q, y) - b <= 0
-vtrace1 (8 invs):
-1. a*y - b == 0
-2. q*y + r - x == 0
-3. -q <= 0
-4. b - r <= 0
+3. -a <= 0
+4. -r <= 0
 5. a - b <= 0
 6. r - x <= 0
-7. -b + y <= 0
-8. -a - y <= -2
-vtrace2 (6 invs):
-1. q*y + r - x == 0
-2. -r <= 0
+7. b - x <= 0
+8. a - q <= 0
+9. q - x <= 0
+10. -b - y <= -1
+11. -q - r <= -1
+12. min(q, y) - b <= 0
+vtrace2 (9 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
 3. -q <= 0
-4. q - x <= 0
+4. a - b <= 0
+5. b - r <= 0
+6. r - x <= 0
+7. -b + y <= 0
+8. -b - y <= -2
+9. -a - q <= -1
+vtrace3 (7 invs):
+1. q*y + r - x == 0
+2. -q <= 0
+3. -r <= 0
+4. -x <= -1
 5. r - x <= 0
-6. r - y <= -1
-tmpdir: /var/tmp/dig_2282784602713568709_x0qxjt3s
+6. q - x <= 0
+7. r - y <= -1
+tmpdir: /var/tmp/dig_322818264817232346_kr7neztj
 ```
 
 ### Other programs
 
-* The directory `../benchmarks/java/nla` contains many programs having nonlinear invariants.
+* The directory `../benchmarks/c/nla` contains many programs having nonlinear invariants.
 
 
 ### Additional Options

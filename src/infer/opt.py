@@ -47,6 +47,8 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     def gen_from_traces(cls, traces, symbols):
+        assert isinstance(data.traces.Traces)
+
         maxV = cls.IUPPER
         minV = -1 * maxV
 

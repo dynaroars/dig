@@ -21,6 +21,7 @@ DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = False  # write vtraces to csv
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
+N_RAND_INPS = 100  # number of randomly generated inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAXDEPTH = 30

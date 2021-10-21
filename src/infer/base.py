@@ -38,16 +38,16 @@ class Infer(metaclass=abc.ABCMeta):
     def gen_from_traces(cls, traces, symbols):
         pass
 
-    def get_traces(self, inps, traces):
+    def get_traces(self, inps, dtraces):
         """
         run inps to get new traces (and update them)
         """
         assert isinstance(inps, Inps) and inps, inps
-        assert isinstance(traces, DTraces), traces
+        assert isinstance(dtraces, DTraces), dtraces
 
-        new_traces = self.prog.get_traces(inps)
-        new_traces = traces.merge(new_traces)
-        return new_traces
+        new_dtraces = self.prog.get_traces(inps)
+        new_dtraces = dtraces.merge(new_dtraces)
+        return new_dtraces
 
     def check(self, dinvs, inps):
         if self.symstates:

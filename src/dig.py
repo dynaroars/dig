@@ -50,6 +50,9 @@ if __name__ == "__main__":
 
     ag("--maxterm", "-maxterm", type=int, default=None, help="autodegree")
 
+    ag("--nrandinps", "-nrandinps", type=int, default=None,
+       help="number of random inputs (on used with --noss)")
+
     ag("--inpMaxV", "-inpMaxV", type=int, help="max inp value")
 
     ag("--se_mindepth", "-se_mindepth",
@@ -234,6 +237,6 @@ if __name__ == "__main__":
             # traces file(s)
             test_tracefile = Path(args.test_tracefile) \
                 if args.test_tracefile else None
-            dig = alg.DigTraces(inp, test_tracefile)
+            dig = alg.DigTraces.mk(inp, test_tracefile)
 
         dig.start(seed=seed, maxdeg=args.maxdeg)

@@ -44,8 +44,7 @@ class Dig(metaclass=ABCMeta):
     def sanitize(self, dinvs, dtraces):
         if not dinvs.siz:
             return dinvs
-
-        msg = f"test {dinvs.siz} invs using {dtraces.siz} traces"
+        msg = f"testing {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
         st = time.time()
         dinvs = dinvs.test(dtraces)
@@ -84,7 +83,6 @@ class DigSymStates(Dig):
 
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
-        st = time.time()
 
         super().start(seed, maxdeg)
 
@@ -104,26 +102,42 @@ class DigSymStates(Dig):
 
         self.prog = data.prog.Prog(
             self.exe_cmd, self.inp_decls, self.inv_decls)
-        self.use_rand_init = True
 
+        if not settings.DO_SS:  # use randomly generated traces from running the program on random inputs
+            rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
+            inps = Inps().merge(rinps, self.inp_decls.names)
+            mlog.debug(f"gen {len(inps)} random inps")
+            if not inps:
+                return
+
+            assert isinstance(inps, Inps), inps
+            dtraces = self.prog.get_traces(inps)
+            if not dtraces:
+                return
+
+            digtraces = DigTraces(
+                self.filename, self.inv_decls, dtraces, test_dtraces=None)
+
+            digtraces.start(self.seed, maxdeg)
+            return
+
+        self.use_rand_init = True
         self.locs = self.inv_decls.keys()
 
-        self.symstates = None
-        if settings.DO_SS:
-            st = time.time()
-            self.symstates = self.get_symbolic_states()
-            et = time.time() - st
-            mlog.info(
-                f"got symbolic states at {len(self.locs)} locs: ({et:.2f}s)"
-            )
+        st = time.time()
+        self.symstates = self.get_symbolic_states()
+        et = time.time() - st
+        mlog.info(
+            f"got symbolic states at {len(self.locs)} locs: ({et:.2f}s)"
+        )
 
-            self.time_d["symbolic_states"] = et
+        self.time_d["symbolic_states"] = et
 
-            # remove locations with no symbolic states
-            for loc in list(self.inv_decls.keys()):
-                if loc not in self.symstates:
-                    mlog.warning(f"{loc}: no symbolic states. Skip")
-                    self.inv_decls.pop(loc)
+        # remove locations with no symbolic states
+        for loc in list(self.inv_decls.keys()):
+            if loc not in self.symstates:
+                mlog.warning(f"{loc}: no symbolic states. Skip")
+                self.inv_decls.pop(loc)
 
         dinvs = DInvs()
         dtraces = DTraces.mk(self.locs)
@@ -274,15 +288,13 @@ class DigSymStatesC(DigSymStates):
 
 
 class DigTraces(Dig):
-    def __init__(self, tracefile, test_tracefile):
-        assert tracefile.is_file(), tracefile
-        assert test_tracefile is None or test_tracefile.is_file()
+    def __init__(self, filename, inv_decls, dtraces, test_dtraces):
+        super().__init__(filename)
 
-        super().__init__(tracefile)
-        self.inv_decls, self.dtraces = DTraces.vread(tracefile)
-
-        if test_tracefile:
-            _, self.test_dtraces = DTraces.vread(test_tracefile)
+        self.inv_decls = inv_decls
+        self.dtraces = dtraces
+        if test_dtraces:
+            self.test_dtraces = test_dtraces
 
     def start(self, seed, maxdeg):
         assert maxdeg is None or maxdeg >= 1, maxdeg
@@ -291,15 +303,12 @@ class DigTraces(Dig):
         mlog.debug(f"got {self.dtraces.siz} traces\n{self.dtraces}")
         tasks = []
         for loc in self.dtraces:
-            symbols = self.inv_decls[loc]
-            traces = self.dtraces[loc]
-
-            if symbols.array_only:
+            if self.inv_decls[loc].array_only:
                 if settings.DO_ARRAYS:
                     import infer.nested_array
 
-                    def _f():
-                        return infer.nested_array.Infer.gen_from_traces(traces)
+                    def _f(l):
+                        return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
                     tasks.append((loc, _f))
             else:
                 if settings.DO_EQTS:
@@ -309,26 +318,26 @@ class DigTraces(Dig):
                     except NameError:
                         autodeg = self.get_auto_deg(maxdeg)
 
-                    def _f():
-                        return infer.eqt.Infer.gen_from_traces(autodeg, traces, symbols)
+                    def _f(l):
+                        return infer.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
                     import infer.opt
 
-                    def _f():
-                        return infer.opt.Ieq.gen_from_traces(traces, symbols)
+                    def _f(l):
+                        return infer.opt.Ieq.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_MINMAXPLUS:
                     import infer.opt
 
-                    def _f():
-                        return infer.opt.MMP.gen_from_traces(traces, symbols)
+                    def _f(l):
+                        return infer.opt.MMP.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
         def f(tasks):
-            rs = [(loc, _f()) for loc, _f in tasks]
+            rs = [(loc, _f(loc)) for loc, _f in tasks]
             return rs
 
         wrs = MP.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
@@ -346,3 +355,16 @@ class DigTraces(Dig):
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         print(dinvs)
+
+    @classmethod
+    def mk(cls, tracefile, test_tracefile):
+        assert tracefile.is_file(), tracefile
+        assert test_tracefile is None or test_tracefile.is_file()
+
+        inv_decls, dtraces = DTraces.vread(tracefile)
+
+        test_dtraces = None
+        if test_tracefile:
+            _, test_dtraces = DTraces.vread(test_tracefile)
+
+        return cls(tracefile, inv_decls, dtraces, test_dtraces)

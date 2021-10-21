@@ -117,7 +117,7 @@ class Infer(infer.base.Infer):
 
     def _while_symstates(self, loc, template, n_eqts_needed, inps, traces):
         """
-        repeated get more traces using the symstates (e.g., Klee)
+        repeated get more traces using the symstates
         """
         assert isinstance(loc, str), loc
         assert n_eqts_needed >= 1, n_eqts_needed
