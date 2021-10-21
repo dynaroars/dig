@@ -15,8 +15,6 @@ DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C
 ---
 ## Setup using Docker
 
-
-
 ```bash
 # clone DIG
 $ git clone --depth 1 https://github.com/unsat/dig.git 
@@ -114,7 +112,7 @@ vtrace2 (8 invs):
 8. -x - y <= -10
 ```
 
-*Note*: if we just run Dig over traces, then we likely can get spurious inequalities, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#Using-Symbolic-Execution), DIG can check and remove spurious results.
+*Note*: if we just run Dig over traces, then we likely can get spurious inequalities, i.e., they are correct with the given traces, but not real invariants.  If given the program source code [as shown here](#using-symbolic-execution-default-option), DIG can check and remove spurious results.
 
 
 ### Generating Invariants From a Program
