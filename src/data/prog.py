@@ -49,12 +49,8 @@ class Prog:
             valid_ranges = self._valid_ranges
             inps = set()
         except AttributeError:
-            mlog.debug("compute valid input ranges")
             valid_ranges, inps = self._get_valid_inp_ranges()
             self._valid_ranges = valid_ranges
-
-        if inps:
-            return inps
 
         while len(inps) < n_needed:
             old_siz = len(inps)

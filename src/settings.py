@@ -239,6 +239,12 @@ def setup(settings, args):
         else:
             opts.append(f"-maxterm {args.maxterm}")
 
+    if args.nrandinps and args.nrandinps >= 1:
+        if settings:
+            settings.N_RAND_INPS = args.nrandinps
+        else:
+            opts.append(f"-nrandinps {args.nrandinps}")
+
     if args.uterms:
         if settings:
             settings.UTERMS = set(args.uterms.split())
