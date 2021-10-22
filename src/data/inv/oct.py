@@ -10,7 +10,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Oct(data.inv.base.RelInv):
+class Oct(data.inv.base.Inv):
     def __init__(self, myoct, stat=None):
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)

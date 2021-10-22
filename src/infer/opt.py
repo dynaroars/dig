@@ -22,7 +22,6 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
 class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
     @staticmethod
@@ -35,9 +34,9 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
     def inv_cls(term):
         pass
 
-    @staticmethod
+    @classmethod
     @abc.abstractmethod
-    def my_get_terms(terms, inps):
+    def my_get_terms(cls, terms, inps):
         pass
 
     @staticmethod
@@ -185,8 +184,8 @@ class Ieq(Infer):
     def inv_cls(term_ub):
         return data.inv.oct.Oct(term_ub)
 
-    @staticmethod
-    def my_get_terms(symbols):
+    @classmethod
+    def my_get_terms(cls, symbols):
         assert symbols, symbols
         assert settings.IDEG >= 1, settings.IDEG
 
@@ -275,8 +274,8 @@ class MMP(Infer):
     def inv_cls(term_ub):
         return data.inv.mp.MMP(term_ub)
 
-    @staticmethod
-    def my_get_terms(symbols):
+    @classmethod
+    def my_get_terms(cls, symbols):
         terms = data.inv.mp.Term.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 

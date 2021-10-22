@@ -92,10 +92,31 @@ class Inv(metaclass=ABCMeta):
     @property
     def is_unknown(self):
         return self.stat == self.UNKNOWN
-
-    @abstractmethod
+    
     def test_single_trace(self, trace):
-        pass
+        assert isinstance(trace, data.traces.Trace), trace
+
+        # temp fix: disable traces that wih extreme large values
+        # (see geo1 e.g., 435848050)
+        if any(x > settings.TRACE_MAX_VAL for x in trace.vs):
+            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
+            return True
+
+        try:
+            return bool(self.inv.xreplace(trace.mydict))
+        except ValueError:
+            mlog.debug(f"{self}: failed test")
+            return False
+
+    @property
+    def expr(self):
+        """
+        cannot cache because z3 expr is ctype,
+        not compat with multiprocessing Queue
+
+        also, cannot save this to sel._expr
+        """
+        return Z3.parse(str(self))
 
 
 class FalseInv(Inv):
@@ -121,42 +142,8 @@ class FalseInv(Inv):
     def mk(cls):
         return FalseInv(0)
 
-    def test_single_trace(self, trace):
-        """
-        fake place holder because test_single_trace is an abstract method
-        """
-        return False
 
 
-class RelInv(Inv, metaclass=ABCMeta):
-    def __init__(self, rel, stat=None):
-        assert isinstance(rel, (sympy.Equality, sympy.Le)), rel
-        super().__init__(rel, stat)
-
-    def test_single_trace(self, trace):
-        assert isinstance(trace, data.traces.Trace), trace
-
-        # temp fix: disable traces that wih extreme large values
-        # (see geo1 e.g., 435848050)
-        if any(x > settings.TRACE_MAX_VAL for x in trace.vs):
-            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
-            return True
-
-        try:
-            return bool(self.inv.xreplace(trace.mydict))
-        except ValueError:
-            mlog.debug(f"{self}: failed test")
-            return False
-
-    @property
-    def expr(self):
-        """
-        cannot cache because z3 expr is ctype,
-        not compat with multiprocessing Queue
-
-        also, cannot save this to sel._expr
-        """
-        return Z3.parse(str(self))
 
 
 class RelTerm(NamedTuple):
