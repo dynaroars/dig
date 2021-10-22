@@ -30,6 +30,7 @@ class Inv(metaclass=ABCMeta):
         assert (inv == 0 or  # FalseInv
                 # PrePost and Max/MinPlus
                 (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
+                (isinstance(inv, tuple) and len(inv) == 3) or  # congruence
                 isinstance(inv, str) or   # Array relation
                 isinstance(inv, (sympy.Equality, sympy.Le))), inv
 
@@ -141,8 +142,6 @@ class FalseInv(Inv):
     @classmethod
     def mk(cls):
         return FalseInv(0)
-
-
 
 
 

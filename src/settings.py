@@ -13,6 +13,7 @@ DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
+DO_CONGRUENCES = True #  support congruence relations
 DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
@@ -158,6 +159,12 @@ def setup(settings, args):
         else:
             opts.append("-noieqs")
 
+    if args.nocongruences:
+        if settings:
+            settings.DO_CONGRUENCES = not args.nocongruences
+        else:
+            opts.append("-nocongruences")
+            
     if args.noarrays:
         if settings:
             settings.DO_ARRAYS = not args.noarrays

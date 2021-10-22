@@ -2,7 +2,9 @@ import ast
 import pdb
 import operator
 import functools
+import typing
 import z3
+
 import helpers.vcommon as CM
 import settings
 
@@ -18,7 +20,7 @@ class Z3:
     @classmethod
     def _process_fs(cls, fs, and_or_or_f):
         assert (isinstance(fs, list) and
-                all(z3.is_expr(f) or f is None for f in fs)), fs
+                all(isinstance(f, z3.ExprRef) or f is None for f in fs)), fs
 
         fs = [f for f in fs if f is not None]
         if not fs:
@@ -46,7 +48,7 @@ class Z3:
         Helper method to obtain variables from a formula f recursively.
         Results are stored in the list rs.
         """
-        assert z3.is_expr(f) or z3.is_const(f), f
+        assert isinstance(f, z3.ExprRef) or z3.is_const(f), f
         if z3.is_const(f):
             if cls.is_var(f):
                 rs.add(f)
@@ -56,12 +58,12 @@ class Z3:
 
     @classmethod
     @functools.cache
-    def get_vars(cls, f):
+    def get_vars(cls, f:z3.ExprRef)-> typing.FrozenSet[z3.ExprRef]:
         """
         >>> x,y,z = z3.Ints("x y z")
         >>> assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
-        assert z3.is_expr(f), f
+        assert isinstance(f, z3.ExprRef), f
 
         rs = set()
         cls._get_vars(f, rs)

@@ -20,9 +20,9 @@ class Oct(data.inv.base.Inv):
         super().__init__(myoct, stat)
 
     @property
-    def is_simple(self):
+    def is_simple(self)-> bool:
         return self.inv.rhs.is_constant() and self.inv.rhs.is_zero
 
     @property
-    def mystr(self):
+    def mystr(self) -> str:
         return f"{self.inv.lhs} <= {self.inv.rhs}"

@@ -3,6 +3,7 @@ import pdb
 from collections import namedtuple
 from pathlib import Path
 from collections.abc import Iterable
+import typing
 import sympy
 import z3
 
@@ -15,16 +16,17 @@ import settings
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
-class SymbsVals(namedtuple("SymbsVals", ("ss", "vs"))):
+class SymbsVals(typing.NamedTuple):
+    ss: tuple
+    vs: tuple
     """ "
     ((x, y), (3, 4))
     """
 
-    def __new__(cls, ss, vs):
+    def mk(cls, ss, vs):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
-        return super().__new__(cls, ss, vs)
+        return cls (ss, vs)
 
     def __str__(self):
         return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))

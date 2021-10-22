@@ -1,6 +1,6 @@
 import pdb
 import itertools
-from typing import NamedTuple, Set, List, Tuple
+import typing
 import functools
 import sympy
 import z3
@@ -10,19 +10,19 @@ from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 import settings
 
+import data.traces
 import data.inv.base
-from data.traces import Trace
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-class Term(NamedTuple):
+class _Term(typing.NamedTuple):
     a: tuple
     b: tuple
     is_max: bool
 
     @property
-    def symbols(self)->Set[str]:
+    def symbols(self)->typing.Set[str]:
         return set(map(str, Miscs.get_vars(self.a + self.b)))
 
     def __str__(self, use_lambda:bool=False) -> str:
@@ -61,7 +61,7 @@ class Term(NamedTuple):
 
         return self.mk(a, b, self.is_max)
 
-    def eval_traces(self, traces, pred=None)->bool:
+    def eval_traces(self, traces:data.traces.Traces, pred=None)->bool:
         if pred is None:
             return [
                 self._eval(self.__str__(use_lambda=True), t.mydict_str) for t in traces
@@ -192,7 +192,7 @@ class Term(NamedTuple):
             return f"{a_} - {b_}"
 
     @staticmethod
-    def _eval(lambda_str, trace):
+    def _eval(lambda_str:str, trace) -> bool:
         """
         Examples:
         # sage: assert MMPInv._eval('lambda x,y: x+y', {'x': 2,'y':3,'d':7}) == 5
@@ -205,7 +205,7 @@ class Term(NamedTuple):
         # sage: assert MMPInv._eval('lambda x,y: x+y == 1 or x + y == 2', {'x': 2,'y':3,'d':7}) == False
         """
         assert isinstance(lambda_str, str) and "lambda" in lambda_str
-        assert trace, trace
+        assert isinstance(trace, dict), trace
 
         f = eval(lambda_str)
         if CM.is_python3():
@@ -227,7 +227,7 @@ class MMP(data.inv.base.Inv):
         is_ieq is True -> treat like  <= expr, e.g., If(x>=y,x<=z,y<=z)
         if_ieq is False -> treat like == expr, e.g., If(x>=y,x>=z,y>=z)
         """
-        assert isinstance(term, Term), term
+        assert isinstance(term, _Term), term
         assert is_ieq is None or isinstance(is_ieq, bool), is_ieq
 
         hash_contents = (term.a, term.b, term.is_max, is_ieq)
@@ -250,7 +250,7 @@ class MMP(data.inv.base.Inv):
         return self.is_ieq is False
 
     @property
-    def expr(self):
+    def expr(self) -> z3.ExprRef:
         """
         # sage: x, y, z = sage.all.var('x y z')
         # sage: mp = MMPInv.mk_max_ieq((x-10, y-3), (y, 5))
@@ -269,11 +269,11 @@ class MMP(data.inv.base.Inv):
 
         return expr
 
-    def test_single_trace(self, trace):
-        assert isinstance(trace, Trace), trace
+    def test_single_trace(self, trace:data.traces.Traces) -> bool:
+        assert isinstance(trace, data.traces.Trace), trace
 
         trace = trace.mydict_str
-        bval = Term._eval(self.lambdastr(use_lambda=True), trace)
+        bval = _Term._eval(self.lambdastr(use_lambda=True), trace)
         assert isinstance(bval, (sympy.logic.boolalg.BooleanTrue,
                           sympy.logic.boolalg.BooleanFalse)), bval
         return bool(bval)

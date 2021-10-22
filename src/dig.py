@@ -103,7 +103,13 @@ if __name__ == "__main__":
         action="store_true",
         help="don't compute ieq/oct invariants",
     )
-
+    ag(
+        "--nocongruences",
+        "-nocongruences",
+        action="store_true",
+        help="don't compute congruence invariants",
+    )
+    
     ag(
         "--noarrays",
         "-noarrays",

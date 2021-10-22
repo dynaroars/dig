@@ -336,6 +336,13 @@ class DigTraces(Dig):
                         return infer.opt.MMP.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
+                if settings.DO_CONGRUENCES:
+                    import infer.congruence
+
+                    def _f(l):
+                        return infer.congruence.Congruence.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                    tasks.append((loc, _f))                    
+
         def f(tasks):
             rs = [(loc, _f(loc)) for loc, _f in tasks]
             return rs

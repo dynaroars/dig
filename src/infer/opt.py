@@ -276,12 +276,12 @@ class MMP(Infer):
 
     @classmethod
     def my_get_terms(cls, symbols):
-        terms = data.inv.mp.Term.get_terms(symbols)
+        terms = data.inv.mp._Term.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
         def _get_terms(terms, is_max):
             terms_ = [(b, a) for a, b in terms]
-            return [data.inv.mp.Term.mk(a, b, is_max) for a, b in terms + terms_]
+            return [data.inv.mp._Term.mk(a, b, is_max) for a, b in terms + terms_]
 
         terms_max = _get_terms(terms, is_max=True)
         terms_min = _get_terms(terms, is_max=False)
