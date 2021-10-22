@@ -1,3 +1,0 @@
-export EXT=./EXTERNAL_FILES
-export CIL=$EXT/cil1.7.3/_build/
-export CIVL=$EXT/CIVIL/

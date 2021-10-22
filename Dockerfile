@@ -2,7 +2,7 @@ FROM debian:buster
 
 #install general setup tools
 RUN apt-get update -y
-RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget openjdk-11-jdk
+RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget openjdk-11-jdk unzip
 
 
 # Install miniconda & sympy & z3
@@ -26,7 +26,6 @@ COPY . /dig
 
 ## Ocaml and CIL for C code instrumentation
 WORKDIR /dig/EXTERNAL_FILES
-RUN apt-get install -y unzip
 RUN unzip develop.zip && mv cil-develop cil
 WORKDIR cil
 RUN ./configure && make
