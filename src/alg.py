@@ -11,7 +11,7 @@ import helpers.vcommon as CM
 
 import data.prog
 from data.traces import Inps, DTraces
-from data.inv.invs import DInvs, Invs
+from inv import DInvs, Invs
 import data.symstates
 
 DBG = pdb.set_trace
@@ -216,9 +216,9 @@ class DigSymStates(Dig):
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
     def infer_eqts(self, maxdeg, dtraces, inps):
-        import data.inv.eqt
+        import eqt
 
-        solver = data.inv.eqt.Infer(self.symstates, self.prog)
+        solver = eqt.Infer(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
         auto_deg = self.get_auto_deg(maxdeg)  # determine degree
@@ -226,12 +226,12 @@ class DigSymStates(Dig):
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        import infer.opt
-        return infer.opt.Ieq(self.symstates, self.prog).gen(dtraces)
+        import opt
+        return opt.Ieq(self.symstates, self.prog).gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
-        import infer.opt
-        return infer.opt.MMP(self.symstates, self.prog).gen(dtraces)
+        import opt
+        return opt.MMP(self.symstates, self.prog).gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):
         import infer.prepost
@@ -312,35 +312,35 @@ class DigTraces(Dig):
                     tasks.append((loc, _f))
             else:
                 if settings.DO_EQTS:
-                    import data.inv.eqt
+                    import eqt
                     try:
                         autodeg
                     except NameError:
                         autodeg = self.get_auto_deg(maxdeg)
 
                     def _f(l):
-                        return data.inv.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
+                        return eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
-                    import infer.opt
+                    import opt
 
                     def _f(l):
-                        return infer.opt.Ieq.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                        return opt.Ieq.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_MINMAXPLUS:
-                    import infer.opt
+                    import opt
 
                     def _f(l):
-                        return infer.opt.MMP.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                        return opt.MMP.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_CONGRUENCES:
-                    import data.inv.congruence
+                    import congruence
 
                     def _f(l):
-                        return data.inv.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                        return congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))                    
 
         def f(tasks):

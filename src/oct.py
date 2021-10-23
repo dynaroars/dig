@@ -4,13 +4,13 @@ import sympy
 import settings
 import helpers.vcommon as CM
 
-import data.inv.base
+import inv
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Oct(data.inv.base.Inv):
+class Oct(inv.Inv):
     def __init__(self, myoct, stat=None):
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)

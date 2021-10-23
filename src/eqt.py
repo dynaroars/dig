@@ -4,15 +4,15 @@ import sympy
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
-import data.inv.base
+import inv
 import data.traces
-import infer.base
+import infer
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Eqt(data.inv.base.Inv):
+class Eqt(inv.Inv):
     def __init__(self, eqt, stat=None):
         assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
         super().__init__(eqt, stat)
@@ -22,7 +22,7 @@ class Eqt(data.inv.base.Inv):
         return f"{self.inv.lhs} == {self.inv.rhs}"
 
 
-class Infer(infer.base.Infer):
+class Infer(infer.Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps

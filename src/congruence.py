@@ -10,8 +10,8 @@ from helpers.z3utils import Z3
 import settings
 
 import data.traces
-import data.inv.base
-import infer.base
+import inv
+import infer
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -36,7 +36,7 @@ class MyCongruence(typing.NamedTuple):
         b = (v % self.n) == self.b
         return b
 
-class Congruence(data.inv.base.Inv):
+class Congruence(inv.Inv):
     def __init__(self, mycongruence, stat=None):
         """
             """
@@ -58,13 +58,13 @@ class Congruence(data.inv.base.Inv):
         return b
 
 
-class Infer(infer.base.Infer):
+class Infer(infer.Infer):
     @classmethod
     def gen_from_traces(cls, traces, symbols):
         ps = []
         terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, settings.ITERMS, settings.ICOEFS)
         for term in terms:
-            term_vals = data.inv.base.RelTerm(term).eval_traces(traces)
+            term_vals = inv.RelTerm(term).eval_traces(traces)
             b,n = cls._solve(term_vals)
             if b is None:
                 continue
