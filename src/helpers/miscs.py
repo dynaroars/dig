@@ -342,7 +342,8 @@ class Miscs:
 
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
-        eqts = cls.reduce_with_timeout(eqts)
+        #eqts = cls.reduce_with_timeout(eqts)
+        eqts = cls.reduce_eqts(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
 

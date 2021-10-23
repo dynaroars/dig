@@ -4,10 +4,7 @@ from math import gcd
 import typing
 import settings
 import helpers.vcommon as CM
-from helpers.miscs import Miscs, MP
-
-from data.traces import Inps, Traces, DTraces
-from data.inv.invs import Invs, DInvs
+from helpers.miscs import Miscs
 import data.inv.congruence
 import infer.base
 
@@ -30,7 +27,7 @@ class Congruence(infer.base.Infer):
         return ps
 
     @classmethod
-    def _solve(cls, X:typing.List[int] )-> typing.Tuple[typing.Optional[int], int]:
+    def _solve(cls, X:typing.List[int] ) -> typing.Tuple[typing.Optional[int], int]:
         assert(X), X
         b = None
         Y = [X[0] - v for v in X]

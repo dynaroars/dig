@@ -44,7 +44,7 @@ class Dig(metaclass=ABCMeta):
     def sanitize(self, dinvs, dtraces):
         if not dinvs.siz:
             return dinvs
-        msg = f"testing {dinvs.siz} invs using {dtraces.siz} traces"
+        msg = f"check {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
         st = time.time()
         dinvs = dinvs.test(dtraces)
