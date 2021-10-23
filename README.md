@@ -302,9 +302,9 @@ vtrace3 (9 invs):
 
 
 
+### Additional Options 
 
 <details>
-### Additional Options 
 
 <summary><kbd>details</kbd></summary>
 
