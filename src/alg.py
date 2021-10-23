@@ -216,9 +216,9 @@ class DigSymStates(Dig):
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
     def infer_eqts(self, maxdeg, dtraces, inps):
-        import infer.eqt
+        import data.inv.eqt
 
-        solver = infer.eqt.Infer(self.symstates, self.prog)
+        solver = data.inv.eqt.Infer(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
 
         auto_deg = self.get_auto_deg(maxdeg)  # determine degree
@@ -312,14 +312,14 @@ class DigTraces(Dig):
                     tasks.append((loc, _f))
             else:
                 if settings.DO_EQTS:
-                    import infer.eqt
+                    import data.inv.eqt
                     try:
                         autodeg
                     except NameError:
                         autodeg = self.get_auto_deg(maxdeg)
 
                     def _f(l):
-                        return infer.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
+                        return data.inv.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
@@ -337,10 +337,10 @@ class DigTraces(Dig):
                     tasks.append((loc, _f))
 
                 if settings.DO_CONGRUENCES:
-                    import infer.congruence
+                    import data.inv.congruence
 
                     def _f(l):
-                        return infer.congruence.Congruence.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                        return data.inv.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))                    
 
         def f(tasks):

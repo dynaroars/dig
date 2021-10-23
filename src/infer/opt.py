@@ -305,11 +305,9 @@ class MMP(Infer):
         for term in terms:
             a_symbs = set(map(str, Miscs.get_vars(term.a)))
             b_symbs = set(map(str, Miscs.get_vars(term.b)))
-            # print(term, a_symbs, b_symbs)
 
             if not is_pure(a_symbs) or not is_pure(b_symbs):
                 excludes.add(term)
-                # print('excluding, not pure', term)
                 continue
 
             inp_in_a = any(s in inps for s in a_symbs)
@@ -318,7 +316,6 @@ class MMP(Infer):
             # exclude if (inp in both a and b) or inp not in a or b
             if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
                 excludes.add(term)
-                # print('excluding', term)
                 continue
 
             t_symbs = set.union(a_symbs, b_symbs)

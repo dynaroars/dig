@@ -1,7 +1,3 @@
-"""
-CEGIR algorithm
-"""
-
 import abc
 import pdb
 
@@ -9,9 +5,8 @@ import helpers.vcommon as CM
 import settings
 
 import data.prog
-from data.traces import Inps, DTraces
-from data.inv.base import Inv
-from data.inv.invs import DInvs
+import data.traces
+import data.inv.invs
 import data.symstates
 
 DBG = pdb.set_trace
@@ -42,8 +37,8 @@ class Infer(metaclass=abc.ABCMeta):
         """
         run inps to get new traces (and update them)
         """
-        assert isinstance(inps, Inps) and inps, inps
-        assert isinstance(dtraces, DTraces), dtraces
+        assert isinstance(inps, data.traces.Inps) and inps, inps
+        assert isinstance(dtraces, data.traces.DTraces), dtraces
 
         new_dtraces = self.prog.get_traces(inps)
         new_dtraces = dtraces.merge(new_dtraces)
@@ -56,6 +51,6 @@ class Infer(metaclass=abc.ABCMeta):
             # no symbolic states, not performing checking
             for loc in dinvs:
                 for inv in dinvs[loc]:
-                    inv.stat = Inv.UNKNOWN
+                    inv.stat = data.invs.Inv.UNKNOWN
             cexs = {}
         return cexs, dinvs
