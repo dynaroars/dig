@@ -3,7 +3,6 @@ import typing
 
 import sympy
 
-
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
@@ -26,11 +25,6 @@ class MyCongruence(typing.NamedTuple):
     b: int
     n: int
 
-    """ def check(X, n, b):
-    for v in X:
-        if v % n != b:
-            raise RuntimeError(f'n={n} b={b} X={X}') """
-
     def __str__(self) -> str:
         s = f"{self.a} === {self.b} (mod {self.n})"
         return s
@@ -48,6 +42,10 @@ class Congruence(data.inv.base.Inv):
 
         super().__init__(mycongruence, stat)
 
+    @classmethod
+    def mk(cls, term, b,n):
+        return cls(MyCongruence(term, b, n))
+
     @property
     def mystr(self) -> str:
         return str(self.inv)
@@ -56,6 +54,7 @@ class Congruence(data.inv.base.Inv):
         assert isinstance(trace, data.traces.Trace), trace
         b = self.inv._eval(trace)
         return b
+
 
 if __name__ == "__main__":
     import doctest
