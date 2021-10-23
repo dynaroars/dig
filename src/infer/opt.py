@@ -203,11 +203,11 @@ class Ieq(Infer):
             terms_ = set()
             for ts in terms:
                 assert ts
-                ts_ = [set(t.variables()) for t, _ in ts]
+                ts_ = [set(t.free_symbols) for t, _ in ts]
                 if len(ts) <= 1 or not set.intersection(*ts_):
                     terms_.add(sum(operator.mul(*tc) for tc in ts))
             terms = terms_
-
+            
         if settings.UTERMS:
             uterms = cls.my_get_terms_user(symbols, settings.UTERMS)
             old_siz = len(terms)

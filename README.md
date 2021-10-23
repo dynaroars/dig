@@ -20,8 +20,8 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
 - array analysis, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 
-
 ---
+
 ## Setup using Docker
 
 ```bash
@@ -238,7 +238,7 @@ tmpdir: /var/tmp/dig_438110305327007555_aaggfvgm
 
 This option runs the program on random inputs, collects traces, and infers invariants.  It does not use symbolic states and thus does not require symbolic execution tools, but it can have spurious results.
 
-```
+```sh
 $ time ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3 -noss -nrandinps 10
 settings:INFO:2021-10-23 12:37:15.965808: dig.py ../tests/cohendiv.c -log 3 -noss -nrandinps 10
 alg:INFO:analyzing '../tests/cohendiv.c'
@@ -306,58 +306,56 @@ vtrace3 (9 invs):
 <details>
 <summary><kbd>CLICK</kbd> for further details</summary>
 
-Most of DIG's behaviors can be controlled by the users (the `src\settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
+
+Most of DIG's behaviors can be controlled by the user (the `src\settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
 
 #### Specify max degree for equalities
 
-By default, DIG automatically to find equalities up to certain degree.  We can specify this degree directly with `-maxdeg X`
+By default, DIG automatically to find equalities that can have high degrees (e.g., `x^7`).  This can take time and so we can specify DIG to search for equalities no more than some maximum degree `X` using the option `-maxdeg X`.  This will make DIG runs faster (with the cost of not able to find equalities with higher degrees than `X`). 
+
+By default DIG searches for all supported forms of invariants.  However, we can turn them off using `-noeqts`, `-noieqs` , `-nominmax`, `nocongruences`  
 
 ```sh
-tnguyen@debian ~/dig/src> python3 -O dig.py  ../benchmark/java/nla/CohenDiv.java   -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and donot infer inequalities
+$ ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and do not infer inequalities
 ...
 ```
 
 #### Customizing Inequalities
 
-By default, DIG infers octagonal inequalities (i.e., linear inequalities among 2 variables with coefs in in the set {-1,0,1}).  But we can customize DIG to find more expression inequalities (of course, with the trade-off that it takes more time to generate more expressive invs).
+By default, DIG infers octagonal inequalities (i.e., linear inequalities among `2` variables with coefs in in the set `{-1,0,1}`).   We can customize DIG to find more expression inequalities (of course, with the trade-off that it takes more time to generate more expressive invs).
 
 Below we use a different example `Sqrt1.java` to demonstrate
 
 ```sh
-tnguyen@debian ~/dig/src> python3 -O dig.py  ../benchmark/java/nla/CohenDiv.java  -log 3  -noeqts  # for demonstration, only find default, octagonal, ieq's.
+$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -nocongruences  # find default, octagonal, ieq's.
 ...
-1. a <= 10
-2. a - n <= 0
-3. -t <= -1
-4. -s <= -1
+1. 2*a - t + 1 == 0
+2. 4*s - t**2 - 2*t - 1 == 0
+3. -a <= 0
+4. a - n <= 0
 5. -n + t <= 2
-6. -a <= 0
+6. -s + t <= 0
 
 
-tnguyen@debian ~/dig/src> python3 -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -ideg 2  # find nonlinear octagonal inequalities
+$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -nocongruences -ideg 2   # find nonlinear octagonal inequalities
 ...
-1. a*s - n*t <= 1
-2. a <= 10
-3. -t <= -1
-4. -s <= -1
-5. -n*t + s <= 1
-6. -n*s + t <= 1
-7. -n*s + a*t <= 0
-8. -n + t <= 2
-9. -a*n + t <= 2
-10. -a*n + s <= 3
-11. -a <= 0
+1. 2*a - t + 1 == 0
+2. 4*s - t**2 - 2*t - 1 == 0
+3. -a <= 0
+4. a - n <= 0
+5. -s + t <= 0
+6. -n + t <= 2
+7. -s**2 + t**2 <= 0
 
-tnguyen@debian ~/dig/src> timeout 900 python3 -O dig.py  ../tests/paper/Sqrt1.java  -log 4 -noeqts -icoefs 2  # find linear inequalities with coefs in {2,-1,0,1,2}
+$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -nocongruences -icoefs 2   # find linear inequalities with coefs in {2,-1,0,1,2}
 ...
-1. a <= 10
-2. 2*a - n <= 1
-3. -t <= -1
-4. -s <= -1
+1. 2*a - t + 1 == 0
+2. 4*s - t**2 - 2*t - 1 == 0
+3. -a <= 0
+4. a - n <= 0
 5. -n + 2*t <= 6
-6. -a <= 0
-7. -2*n + t <= 1
-8. -2*n + s <= 2
+6. -2*n + s <= 2
+7. -2*s + 2*t <= 0
 ```
 
 ---
