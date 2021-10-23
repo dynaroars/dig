@@ -366,14 +366,14 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 Technical information about DIG can be found from these papers.  The `Symbolic States` paper (`TSE21`) is probably a good start.
 
-* ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. **Using Symbolic States to Infer Numerical Invariants, Transactions on Software Engineering (TSE)**. to appear, 2021
-* Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
-* ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
-* ThanhVu Nguyen, Matthew Dwyer, and William Visser. **SymInfer: Inferring Program Invariants using Symbolic States**. In Automated Software Engineering (ASE). IEEE, 2017.
-* ThanhVu Nguyen, Timos Antopoulos, Andrew Ruef, and Michael Hicks. **A Counterexample-guided Approach to Finding Numerical Invariants**. In 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE), pages 605--615. ACM, 2017.
-* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants**. Transactions on Software Engineering Methodology (TOSEM), 23(4):30:1--30:30, 2014.
-* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **Using Dynamic Analysis to Generate Disjunctive Invariants**. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
-* ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **Using Dynamic Analysis to Discover Polynomial and Array Invariants**. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.  `Distinguish Paper Award`
+1. ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. **Using Symbolic States to Infer Numerical Invariants, Transactions on Software Engineering (TSE)**. to appear, 2021
+1. Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
+1. ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
+1. ThanhVu Nguyen, Matthew Dwyer, and William Visser. **SymInfer: Inferring Program Invariants using Symbolic States**. In Automated Software Engineering (ASE). IEEE, 2017.
+1. ThanhVu Nguyen, Timos Antopoulos, Andrew Ruef, and Michael Hicks. **A Counterexample-guided Approach to Finding Numerical Invariants**. In 11th Joint Meeting on Foundations of Software Engineering (ESEC/FSE), pages 605--615. ACM, 2017.
+1. ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **DIG: A Dynamic Invariant Generator for Polynomial and Array Invariants**. Transactions on Software Engineering Methodology (TOSEM), 23(4):30:1--30:30, 2014.
+1. ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **Using Dynamic Analysis to Generate Disjunctive Invariants**. In 36th International Conference on Software Engineering (ICSE), pages 608--619. IEEE, 2014.
+1. ThanhVu Nguyen, Deepak Kapur, Westley Weimer, and Stephanie Forrest. **Using Dynamic Analysis to Discover Polynomial and Array Invariants**. In 34th International Conference on Software Engineering (ICSE), pages 683--693. IEEE, 2012.  `Distinguish Paper Award`
 
 ## ACKNOWLEDGEMENTS
 
