@@ -16,7 +16,7 @@ import data.inv.base
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-class _Term(typing.NamedTuple):
+class MPTerm(typing.NamedTuple):
     a: tuple
     b: tuple
     is_max: bool
@@ -192,7 +192,7 @@ class _Term(typing.NamedTuple):
             return f"{a_} - {b_}"
 
     @staticmethod
-    def _eval(lambda_str:str, trace) -> bool:
+    def _eval(lambda_str:str, trace:data.traces.Trace) -> bool:
         """
         Examples:
         # sage: assert MMPInv._eval('lambda x,y: x+y', {'x': 2,'y':3,'d':7}) == 5
@@ -227,7 +227,7 @@ class MMP(data.inv.base.Inv):
         is_ieq is True -> treat like  <= expr, e.g., If(x>=y,x<=z,y<=z)
         if_ieq is False -> treat like == expr, e.g., If(x>=y,x>=z,y>=z)
         """
-        assert isinstance(term, _Term), term
+        assert isinstance(term, MPTerm), term
         assert is_ieq is None or isinstance(is_ieq, bool), is_ieq
 
         hash_contents = (term.a, term.b, term.is_max, is_ieq)
@@ -273,7 +273,7 @@ class MMP(data.inv.base.Inv):
         assert isinstance(trace, data.traces.Trace), trace
 
         trace = trace.mydict_str
-        bval = _Term._eval(self.lambdastr(use_lambda=True), trace)
+        bval = MPTerm._eval(self.lambdastr(use_lambda=True), trace)
         assert isinstance(bval, (sympy.logic.boolalg.BooleanTrue,
                           sympy.logic.boolalg.BooleanFalse)), bval
         return bool(bval)

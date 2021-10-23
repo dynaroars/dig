@@ -128,7 +128,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(term, (data.inv.base.RelTerm, data.inv.mp.Term)), (
+        assert isinstance(term, (data.inv.base.RelTerm, data.inv.mp.MPTerm)), (
             term,
             type(term),
         )
@@ -164,7 +164,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
     def get_iupper(cls, term):
         return (
             MMP.IUPPER
-            if isinstance(term, data.inv.mp.Term)
+            if isinstance(term, data.inv.mp.MPTerm)
             else Ieq.IUPPER
         )
 
@@ -276,12 +276,12 @@ class MMP(Infer):
 
     @classmethod
     def my_get_terms(cls, symbols):
-        terms = data.inv.mp._Term.get_terms(symbols)
+        terms = data.inv.mp.MPTerm.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
         def _get_terms(terms, is_max):
             terms_ = [(b, a) for a, b in terms]
-            return [data.inv.mp._Term.mk(a, b, is_max) for a, b in terms + terms_]
+            return [data.inv.mp.MPTerm.mk(a, b, is_max) for a, b in terms + terms_]
 
         terms_max = _get_terms(terms, is_max=True)
         terms_min = _get_terms(terms, is_max=False)
@@ -290,7 +290,7 @@ class MMP(Infer):
     @staticmethod
     def get_excludes(terms, inps):
         assert isinstance(terms, list)
-        assert all(isinstance(t, data.inv.mp.Term) for t in terms), terms
+        assert all(isinstance(t, data.inv.mp.MPTerm) for t in terms), terms
         assert isinstance(inps, set), inps
 
         def is_pure(xs):

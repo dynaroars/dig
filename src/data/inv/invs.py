@@ -73,7 +73,7 @@ class Invs(set):
 
     def simplify(self):
 
-        eqts, eqts_largecoefs, octs, mps, preposts, \
+        eqts, eqts_largecoefs, octs, mps, congruences, preposts, \
             arr_rels, falseinvs = self.classify(self)
 
         assert not falseinvs, falseinvs
@@ -128,7 +128,7 @@ class Invs(set):
             octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
         )
 
-        done += octs_simple + octs_mps + arr_rels
+        done += octs_simple + octs_mps + congruences + arr_rels
         return self.__class__(done)
 
     @classmethod
@@ -188,7 +188,7 @@ class Invs(set):
 
     @classmethod
     def classify(cls, invs):
-        eqts, eqts_largecoefs, octs, mps, preposts, falseinvs = [], [], [], [], [], []
+        eqts, eqts_largecoefs, octs, mps, congruences, preposts, falseinvs = [], [], [], [], [], [], []
         arr_rels = []
         for inv in invs:
             mylist = None
@@ -205,12 +205,14 @@ class Invs(set):
                 mylist = preposts
             elif isinstance(inv, data.inv.nested_array.NestedArray):
                 mylist = arr_rels
+            elif isinstance(inv, data.inv.congruence.Congruence):
+                mylist = congruences
             else:
                 assert isinstance(inv, data.inv.base.FalseInv), inv
                 mylist = falseinvs
 
             mylist.append(inv)
-        return eqts, eqts_largecoefs, octs, mps, preposts, arr_rels, falseinvs
+        return eqts, eqts_largecoefs, octs, mps, congruences, preposts, arr_rels, falseinvs
 
 
 class DInvs(dict):
@@ -244,7 +246,7 @@ class DInvs(dict):
         ss = []
 
         for loc in sorted(self):
-            eqts, eqts_largecoefs, octs, mps, preposts, \
+            eqts, eqts_largecoefs, octs, mps, congruences, preposts, \
                 arr_rels, falseinvs = self[loc].classify(self[loc])
 
             ss.append(f"{loc} ({len(self[loc])} invs):")
@@ -257,6 +259,7 @@ class DInvs(dict):
                 + sorted(preposts, key=mylen)
                 + sorted(octs, key=mylen)
                 + sorted(mps, key=mylen)
+                + sorted(congruences, key=mylen)
                 + sorted(arr_rels, key=mylen)
                 + sorted(falseinvs, key=mylen)
             )
