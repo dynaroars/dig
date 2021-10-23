@@ -304,7 +304,9 @@ vtrace3 (9 invs):
 
 
 <details>
-### <summary><kbd>Additional Options</kbd></summary>
+### Additional Options 
+
+<summary><kbd>details</kbd></summary>
 
 
 Most of DIG's behaviors can be controlled by the user (the `src/settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
