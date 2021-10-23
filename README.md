@@ -1,16 +1,25 @@
 # DIG
 
-**DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions). DIG infers (potentially **nonlinear**) numerical invariants using symbolic states extracted from a symbolic execution tool. DIG supports equalities such as `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`, inequalities such as `x <= y^2 + 3`, and min/max inequalities such as `max(x,y) <= z + 2`.  The user can also use *terms* to represent desired information, e.g., `t = 2^x`, and have DIG infer invariants over terms.
+**DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently support the the following forms of invariants:
+- nonlinear / linear equalities among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
+- linear inequalities (including interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
+- min/max equalities/inequalities that represent a certain type of disjunctive invariants, e.g., `max(x,y) <= z + 2`
+- congruence relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
+- array invariants, e.g., `A[i] = B[C[3*i+2]]`
+
+The user can also use *terms* to represent desired information, e.g., `t = 2^x, y = log(n)`, and have DIG infer invariants over terms.
+
+DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis (over execution traces).  If source code (C, Java, Java Bytecode) is available, DIG can iteratively infer and check invariants.
+DIG uses symbolic execution (/Symbolic PathFinder/ for Java and /CIVL/ for C) to collect symbolic states to check candidate invariants.
+
 
 DIG's numerical relations (in particular, nonlinear equalities) have been used for
 - nonlinear program understanding and correctness checking (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
 - complexity analysis by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
-- recurrence relations for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, `SEAD20`)
+- recurrence relations for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, (`SEAD20`)
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
-- array analysis (finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, `ICSE12`, `TOSEM13`)
+- array analysis, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 
-DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis (over execution traces).  If source code (C, Java, Java Bytecode) is available, DIG can iteratively infer and check invariants.
-DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states to check candidate invariants.
 
 ---
 ## Setup using Docker
@@ -47,7 +56,6 @@ root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmar
 root@931ac8632c7f:/dig/src# git pull
 ...
 ...
-
 ```
 
 ## Usage
@@ -58,7 +66,7 @@ DIG can generate invariants from a [trace file](#generating-invariants-from-trac
 
 DIG can infer invariants directly from an `CSV` file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
 
-```csv
+```txt
 # in DIG's src directory
 $ less ../test/traces/cohendiv.csv
 vtrace1; I q; I r; I a; I b; I x; I y
@@ -79,36 +87,40 @@ vtrace2; 2; 287; 0; 2
 
 ```txt
 # in DIG's src directory
-$ time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 3                                                                                                                                            (base) 
-settings:INFO:2021-10-20 22:07:46.378997: dig.py ../tests/traces/cohendiv.csv -log 3
+$ settings:INFO:2021-10-23 12:31:51.549397: dig.py ../tests/traces/cohendiv.csv -log 3
 alg:INFO:analyzing '../tests/traces/cohendiv.csv'
-alg:INFO:testing 540 invs using 181 traces (0.31s)
-alg:INFO:simplify 538 invs (3.38s)
-vtrace1 (16 invs):
+alg:INFO:testing 546 invs using 181 traces (0.25s)
+alg:INFO:simplify 544 invs (2.69s)
+vtrace1 (21 invs):
 1. a*y - b == 0
 2. q*y + r - x == 0
 3. -q <= 0
-4. a - b <= 0
+4. -a <= -1
 5. b - r <= 0
 6. r - x <= 0
-7. a - x <= -5
-8. -b + y <= 0
-9. -x + y <= -6
-10. -a - b <= -2
-11. -a - q <= -1
-12. -q - r <= -8
+7. a - b <= 0
+8. a - x <= -5
+9. -b + y <= 0
+10. -x + y <= -6
+11. -q - r <= -8
+12. -r - x <= -16
 13. -x - y <= -10
-14. -r - x <= -16
-15. y + 2 - max(q, r, 0) <= 0
-16. a + 2 - max(b, q, r, y) <= 0
+14. a + 2 - max(b, q, r) <= 0
+15. y + 2 - max(a, b, q, r) <= 0
+16. q === 0 (mod 2)
+17. -q === 0 (mod 2)
+18. r + x === 0 (mod 2)
+19. r - x === 0 (mod 2)
+20. -r + x === 0 (mod 2)
+21. -r - x === 0 (mod 2)
 vtrace2 (8 invs):
 1. q*y + r - x == 0
-2. -q <= 0
-3. -r <= 0
-4. q - x <= 0
+2. -r <= 0
+3. -q <= 0
+4. -x <= -1
 5. r - x <= 0
-6. r - y <= -1
-7. -q - r <= -1
+6. q - x <= 0
+7. r - y <= -1
 8. -x - y <= -10
 ```
 
@@ -171,55 +183,117 @@ void main(int argc, char **argv){
   * `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
 
-##### Using Symbolic Execution (default option)
+> Using symbolic states collected from symbolic execution (default option)
 
 
 * We now run DIG on `cohendiv.c` and discover the following invariants at the `vtracesX` locations:
 
 ```sh
-settings:INFO:2021-10-20 14:11:22.139334: dig.py ../tests/cohendiv.c -log 3
+$ time ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3
+settings:INFO:2021-10-23 12:32:51.192847: dig.py ../tests/cohendiv.c -log 3
 alg:INFO:analyzing '../tests/cohendiv.c'
-alg:INFO:got symbolic states at 3 locs: (4.10s)
-alg:INFO:found 11 eqts (19.18s)
+alg:INFO:got symbolic states at 3 locs: (4.34s)
+alg:INFO:found 9 eqts (10.85s)
 alg:INFO:found 67 ieqs (0.55s)
-alg:INFO:found 377 minmax (1.89s)
-alg:INFO:test 455 invs using 611 traces (0.74s)
-alg:INFO:simplify 451 invs (2.15s)
-* prog cohendiv locs 3; invs 28 (Eqt: 5, MMP: 1, Oct: 22) V 6 T 3 D 2; NL 5 (2) ;
--> time eqts 19.2s, ieqs 0.5s, minmax 1.9s, simplify 2.9s, symbolic_states 4.1s, total 28.7s
-rand seed 1634757082.14, test 10
+alg:INFO:found 377 minmax (1.69s)
+alg:INFO:testing 453 invs using 735 traces (0.43s)
+alg:INFO:simplify 449 invs (1.72s)
+* prog cohendiv locs 3; invs 27 (Eqt: 4, MMP: 2, Oct: 21) V 6 T 3 D 2; NL 4 (2) ;
+-> time eqts 10.9s, ieqs 0.6s, minmax 1.7s, simplify 2.2s, symbolic_states 4.3s, total 19.6s
+rand seed 1635010371.19, test 89
 vtrace1 (12 invs):
-1. a*y - b == 0
-2. q*y + r - x == 0
-3. -a <= 0
-4. -r <= 0
-5. a - b <= 0
-6. r - x <= 0
-7. b - x <= 0
-8. a - q <= 0
-9. q - x <= 0
-10. -b - y <= -1
-11. -q - r <= -1
-12. min(q, y) - b <= 0
-vtrace2 (9 invs):
+1. q*y + r - x == 0
+2. -a <= 0
+3. -r <= 0
+4. -y <= -1
+5. r - x <= 0
+6. b - x <= 0
+7. q - x <= 0
+8. a - b <= 0
+9. a - q <= 0
+10. -a - r <= -1
+11. min(q, y) - b <= 0
+12. min(b, r) - x - 1 <= 0
+vtrace2 (8 invs):
 1. a*y - b == 0
 2. q*y + r - x == 0
 3. -q <= 0
-4. a - b <= 0
-5. b - r <= 0
-6. r - x <= 0
-7. -b + y <= 0
-8. -b - y <= -2
-9. -a - q <= -1
+4. -y <= -1
+5. r - x <= 0
+6. b - r <= 0
+7. a - b <= 0
+8. -b + y <= 0
 vtrace3 (7 invs):
 1. q*y + r - x == 0
-2. -q <= 0
-3. -r <= 0
+2. -r <= 0
+3. -q <= 0
 4. -x <= -1
 5. r - x <= 0
 6. q - x <= 0
 7. r - y <= -1
-tmpdir: /var/tmp/dig_322818264817232346_kr7neztj
+tmpdir: /var/tmp/dig_438110305327007555_aaggfvgm
+```
+
+> Using Random Inputs 
+
+This option runs the program on random inputs, collects traces, and infers invariants.  It does not use symbolic states and thus does not require symbolic execution tools, but it can have spurious results.
+
+```
+$ time ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3 -noss -nrandinps 10
+settings:INFO:2021-10-23 12:37:15.965808: dig.py ../tests/cohendiv.c -log 3 -noss -nrandinps 10
+alg:INFO:analyzing '../tests/cohendiv.c'
+alg:INFO:analyzing '../tests/cohendiv.c'
+infer.eqt:WARNING:18 traces < 35 uks, reducing to deg 2
+infer.eqt:WARNING:38 traces < 84 uks, reducing to deg 2
+infer.eqt:WARNING:50 traces < 84 uks, reducing to deg 2
+alg:INFO:testing 678 invs using 106 traces (0.30s)
+alg:INFO:simplify 670 invs (3.26s)
+vtrace1 (17 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
+3. -a <= 0
+4. -r <= 0
+5. -y <= -9
+6. a - b <= 0
+7. a - q <= 0
+8. r - x <= 0
+9. q - x <= -6
+10. b - x <= -2
+11. -a - r <= -2
+12. -x - y <= -16
+13. min(q, r, x) - b <= 0
+14. a + q === 0 (mod 2)
+15. a - q === 0 (mod 2)
+16. -a - q === 0 (mod 2)
+17. -a + q === 0 (mod 2)
+vtrace2 (17 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
+3. -q <= 0
+4. -y <= -9
+5. r - x <= 0
+6. b - r <= 0
+7. -b + y <= 0
+8. -r + y <= -2
+9. -q - x <= -12
+10. min(a, b, q) - y - 1 <= 0
+11. b + 2 - max(a, q, r, y) <= 0
+12. q === 0 (mod 2)
+13. -q === 0 (mod 2)
+14. r - x === 0 (mod 4)
+15. r + x === 0 (mod 2)
+16. -r + x === 0 (mod 4)
+17. -r - x === 0 (mod 2)
+vtrace3 (9 invs):
+1. q*y + r - x == 0
+2. -r <= 0
+3. -q <= 0
+4. -y <= -9
+5. r - x <= 0
+6. r - y <= -1
+7. -q - x <= -6
+8. -q - r <= -3
+9. -x - y <= -16
 ```
 
 ### Other programs
