@@ -35,8 +35,8 @@ class Congruence(infer.base.Infer):
         b = None
         Y = [X[0] - v for v in X]
         g = reduce(gcd, Y)
-        if g != 1:
-            b = X[0] % g
-        else:
+        if g ==1 or g == -1:
             g = None
+        else:
+            b = X[0] % g
         return b, g
