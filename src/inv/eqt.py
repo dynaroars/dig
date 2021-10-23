@@ -4,15 +4,17 @@ import sympy
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
-import inv
-import data.traces
-import infer
+
+import inv.inv
+import inv.infer
+import traces
+
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Eqt(inv.Inv):
+class Eqt(inv.inv.Inv):
     def __init__(self, eqt, stat=None):
         assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
         super().__init__(eqt, stat)
@@ -22,15 +24,15 @@ class Eqt(inv.Inv):
         return f"{self.inv.lhs} == {self.inv.rhs}"
 
 
-class Infer(infer.Infer):
+class Infer(inv.infer.Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps
 
     def gen(self, deg, traces, inps):
         assert deg >= 1, deg
-        assert isinstance(traces, data.traces.DTraces) and traces, traces
-        assert isinstance(inps, data.traces.Inps), inps
+        assert isinstance(traces, traces.DTraces) and traces, traces
+        assert isinstance(inps, traces.Inps), inps
 
         locs = traces.keys()
         # first obtain enough traces
@@ -50,7 +52,7 @@ class Infer(infer.Infer):
         wrs = MP.run_mp("find eqts", tasks, f, settings.DO_MP)
 
         # put results together
-        dinvs = data.inv.invs.DInvs()
+        dinvs = inv.inv.DInvs()
         for loc, (eqts, cexs) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug(
@@ -58,7 +60,7 @@ class Infer(infer.Infer):
             if eqts:
                 mlog.debug("\n".join(map(str, eqts)))
 
-            dinvs[loc] = data.inv.invs.Invs(eqts)
+            dinvs[loc] = inv.inv.Invs(eqts)
 
         return dinvs
 
@@ -95,7 +97,7 @@ class Infer(infer.Infer):
             if loc not in new_traces:
                 doRand = False
 
-                dinvsFalse = data.inv.invs.DInvs.mk_false_invs([loc])
+                dinvsFalse = inv.inv.DInvs.mk_false_invs([loc])
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
 
                 # cannot find new inputs
@@ -132,7 +134,7 @@ class Infer(infer.Infer):
             mlog.debug(
                 f"{loc}: need more traces ({len(exprs)} eqts, need >= {n_eqts_needed})"
             )
-            dinvsFalse = data.inv.invs.DInvs.mk_false_invs([loc])
+            dinvsFalse = inv.inv.DInvs.mk_false_invs([loc])
             cexs, _, _ = self.symstates.check(dinvsFalse, inps)
 
             if loc not in cexs:
@@ -187,8 +189,8 @@ class Infer(infer.Infer):
         assert isinstance(uks, list), uks
         assert len(ts) == len(uks), (ts, uks)
         assert isinstance(exprs, set) and exprs, exprs
-        assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
-        assert isinstance(inps, data.traces.Inps) and inps, inps
+        assert isinstance(dtraces, traces.DTraces) and dtraces, dtraces
+        assert isinstance(inps, traces.Inps) and inps, inps
 
         template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
@@ -218,7 +220,8 @@ class Infer(infer.Infer):
                 f"{loc}: check {len(unchecks)} unchecked ({len(new_eqts)} candidates)"
             )
 
-            dinvs = data.inv.invs.DInvs.mk(loc, data.inv.invs.Invs(list(map(data.inv.eqt.Eqt, unchecks))))
+            dinvs = inv.inv.DInvs.mk(loc, inv.inv.Invs(
+                list(map(inv.eqt.Eqt, unchecks))))
             cexs, dinvs = self.check(dinvs, None)
             if cexs:
                 new_cexs.append(cexs)
@@ -230,7 +233,7 @@ class Infer(infer.Infer):
                 mlog.debug(f"{loc}: no disproved candidates -- break")
                 break
 
-            cexs = data.traces.Traces.extract(cexs[loc])
+            cexs = traces.Traces.extract(cexs[loc])
             cexs = cexs.padzeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
@@ -240,7 +243,7 @@ class Infer(infer.Infer):
 
     @classmethod
     def gen_from_traces(cls, deg, traces, symbols):
-        assert isinstance(traces, data.traces.Traces), traces
+        assert isinstance(traces, traces.Traces), traces
 
         mydeg = deg
         eqts = []
@@ -268,4 +271,4 @@ class Infer(infer.Infer):
                 mydeg = mydeg - 1
                 mlog.warning(f"NO EQTS RESULTS, reducing deg to {mydeg}")
 
-        return [data.inv.eqt.Eqt(eqt)for eqt in eqts]
+        return [inv.eqt.Eqt(eqt)for eqt in eqts]

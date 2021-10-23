@@ -11,7 +11,7 @@ from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 import helpers.vcommon as CM
 import settings
-import data.traces
+import traces
 
 
 DBG = pdb.set_trace
@@ -80,7 +80,7 @@ class Inv(metaclass=ABCMeta):
         self._stat = None
 
     def test(self, traces):
-        assert isinstance(traces, data.traces.Traces), traces
+        assert isinstance(traces, traces.Traces), traces
         return all(self.test_single_trace(trace) for trace in traces)
 
     @property
@@ -94,9 +94,9 @@ class Inv(metaclass=ABCMeta):
     @property
     def is_unknown(self):
         return self.stat == self.UNKNOWN
-    
+
     def test_single_trace(self, trace):
-        assert isinstance(trace, data.traces.Trace), trace
+        assert isinstance(trace, traces.Trace), trace
 
         # temp fix: disable traces that wih extreme large values
         # (see geo1 e.g., 435848050)
@@ -145,7 +145,6 @@ class FalseInv(Inv):
         return FalseInv(0)
 
 
-
 class RelTerm(NamedTuple):
     """
     e.g., x + y,  x,  x + 3
@@ -186,7 +185,6 @@ class RelTerm(NamedTuple):
         return myop(self.term, val)
 
 
-
 class Invs(set):
     def __init__(self, invs=set()):
         assert all(isinstance(inv, Inv) for inv in invs), invs
@@ -194,7 +192,7 @@ class Invs(set):
 
     def __str__(self, print_stat=False, delim="\n"):
         invs = sorted(
-            self, reverse=True, key=lambda inv: isinstance(inv, data.inv.eqt.Eqt)
+            self, reverse=True, key=lambda inv: isinstance(inv, inv.eqt.Eqt)
         )
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
@@ -259,7 +257,7 @@ class Invs(set):
             (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
         # find equality invs (==) from min/max-plus
-        mps = data.inv.mp.MMP.simplify(mps)
+        mps = inv.mp.MMP.simplify(mps)
         mps_eqt, mps_ieq = [], []
         for mp in mps:
             (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
@@ -359,20 +357,20 @@ class Invs(set):
         arr_rels = []
         for inv in invs:
             mylist = None
-            if isinstance(inv, data.inv.eqt.Eqt):
+            if isinstance(inv, inv.eqt.Eqt):
                 if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
                     mylist = eqts_largecoefs
                 else:
                     mylist = eqts
-            elif isinstance(inv, data.inv.oct.Oct):
+            elif isinstance(inv, inv.oct.Oct):
                 mylist = octs
-            elif isinstance(inv, data.inv.mp.MMP):
+            elif isinstance(inv, inv.mp.MMP):
                 mylist = mps
-            elif isinstance(inv, data.inv.prepost.PrePost):
+            elif isinstance(inv, inv.prepost.PrePost):
                 mylist = preposts
-            elif isinstance(inv, data.inv.nested_array.NestedArray):
+            elif isinstance(inv, inv.nested_array.NestedArray):
                 mylist = arr_rels
-            elif isinstance(inv, data.inv.congruence.Congruence):
+            elif isinstance(inv, inv.congruence.Congruence):
                 mylist = congruences
             else:
                 assert isinstance(inv, FalseInv), inv
@@ -407,7 +405,7 @@ class DInvs(dict):
 
     @property
     def n_eqs(self):
-        return self.typ_ctr[data.inv.eqt.Eqt.__name__]
+        return self.typ_ctr[inv.eqt.Eqt.__name__]
 
     def __str__(self, print_stat=False, print_first_n=None):
         ss = []

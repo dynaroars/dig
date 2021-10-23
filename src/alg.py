@@ -9,10 +9,11 @@ import settings
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
-import data.prog
-from data.traces import Inps, DTraces
-from inv import DInvs, Invs
-import data.symstates
+import prog
+import symstates
+from traces import Inps, DTraces
+from inv.inv import DInvs, Invs
+
 
 DBG = pdb.set_trace
 
@@ -100,7 +101,7 @@ class DigSymStates(Dig):
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
-        self.prog = data.prog.Prog(
+        self.prog = prog.Prog(
             self.exe_cmd, self.inp_decls, self.inv_decls)
 
         if not settings.DO_SS:  # use randomly generated traces from running the program on random inputs
@@ -216,7 +217,7 @@ class DigSymStates(Dig):
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
     def infer_eqts(self, maxdeg, dtraces, inps):
-        import eqt
+        import inv.eqt
 
         solver = eqt.Infer(self.symstates, self.prog)
         solver.use_rand_init = self.use_rand_init
@@ -226,19 +227,19 @@ class DigSymStates(Dig):
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        import opt
+        import inv.opt
         return opt.Ieq(self.symstates, self.prog).gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
-        import opt
+        import inv.opt
         return opt.MMP(self.symstates, self.prog).gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):
-        import infer.prepost
-        return infer.prepost.Infer(self.symstates, self.prog).gen(dinvs, dtraces)
+        import inv.prepost
+        return inv.prepost.Infer(self.symstates, self.prog).gen(dinvs, dtraces)
 
     def get_symbolic_states(self):
-        symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
+        symstates = symstates.SymStates(self.inp_decls, self.inv_decls)
         symstates.compute(
             self.symstatesmaker_cls,
             self.symexefile,
@@ -252,11 +253,11 @@ class DigSymStates(Dig):
 class DigSymStatesJava(DigSymStates):
     @property
     def mysrc_cls(self):
-        return data.prog.Java
+        return prog.Java
 
     @property
     def symstatesmaker_cls(self):
-        return data.symstates.SymStatesMakerJava
+        return symstates.SymStatesMakerJava
 
     @property
     def symexefile(self):
@@ -272,11 +273,11 @@ class DigSymStatesJava(DigSymStates):
 class DigSymStatesC(DigSymStates):
     @property
     def mysrc_cls(self):
-        return data.prog.C
+        return prog.C
 
     @property
     def symstatesmaker_cls(self):
-        return data.symstates.SymStatesMakerC
+        return symstates.SymStatesMakerC
 
     @property
     def symexefile(self):
@@ -305,14 +306,14 @@ class DigTraces(Dig):
         for loc in self.dtraces:
             if self.inv_decls[loc].array_only:
                 if settings.DO_ARRAYS:
-                    import infer.nested_array
+                    import inv.nested_array
 
                     def _f(l):
-                        return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
+                        return inv.nested_array.Infer.gen_from_traces(self.dtraces[l])
                     tasks.append((loc, _f))
             else:
                 if settings.DO_EQTS:
-                    import eqt
+                    import inv.eqt
                     try:
                         autodeg
                     except NameError:
@@ -323,25 +324,25 @@ class DigTraces(Dig):
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
-                    import opt
+                    import inv.opt
 
                     def _f(l):
                         return opt.Ieq.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_MINMAXPLUS:
-                    import opt
+                    import inv.opt
 
                     def _f(l):
                         return opt.MMP.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_CONGRUENCES:
-                    import congruence
+                    import inv.congruence
 
                     def _f(l):
                         return congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
-                    tasks.append((loc, _f))                    
+                    tasks.append((loc, _f))
 
         def f(tasks):
             rs = [(loc, _f(loc)) for loc, _f in tasks]

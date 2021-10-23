@@ -13,7 +13,7 @@ from helpers.miscs import MP
 from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
-import data.traces
+import traces
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -35,11 +35,11 @@ class Prog:
         """
         front end to obtain traces from inps
         """
-        assert isinstance(inps, data.traces.Inps), inps
+        assert isinstance(inps, traces.Inps), inps
 
         traces = self._get_traces_mp(inps)
         traces = itertools.chain.from_iterable(traces.values())
-        traces = data.traces.DTraces.parse(traces, self.inv_decls)
+        traces = traces.DTraces.parse(traces, self.inv_decls)
         assert all(loc in self.inv_decls for loc in traces), traces.keys()
         return traces
 
@@ -65,7 +65,7 @@ class Prog:
 
     # PRIVATE METHODS
     def _get_traces(self, inp):
-        assert isinstance(inp, data.traces.Inp), inp
+        assert isinstance(inp, traces.Inp), inp
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                 for v in inp.vs)
@@ -83,7 +83,7 @@ class Prog:
         run program on inps and obtain traces in parallel
         return {inp: traces}
         """
-        assert isinstance(inps, data.traces.Inps), inps
+        assert isinstance(inps, traces.Inps), inps
 
         tasks = [inp for inp in inps if inp not in self._cache]
 
@@ -105,11 +105,11 @@ class Prog:
         inp_ranges = self._get_inp_ranges(len(self.inp_decls))
         for inp_range in inp_ranges:
             inp = self._get_inp_from_range(inp_range)
-            myInp = data.traces.Inp(self.inp_decls.names, inp)
+            myInp = traces.Inp(self.inp_decls.names, inp)
             dr[myInp] = inp_range
             di[myInp] = inp
 
-        myInps = data.traces.Inps(di.keys())
+        myInps = traces.Inps(di.keys())
         mytraces = self._get_traces_mp(myInps)
 
         valid_ranges, valid_inps = set(), set()

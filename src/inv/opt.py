@@ -13,16 +13,17 @@ from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
-import data.traces
-import data.inv.oct
-import data.inv.mp
-import infer.base
+import traces
+import inv.oct
+import inv.mp
+import inv.infer
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
+
+class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
@@ -46,7 +47,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     def gen_from_traces(cls, traces, symbols):
-        assert isinstance(traces, data.traces.Traces), traces
+        assert isinstance(traces, traces.Traces), traces
 
         maxV = cls.IUPPER
         minV = -1 * maxV
@@ -66,7 +67,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
         super().__init__(symstates, prog)
 
     def gen(self, dtraces, locs=None, extra_constr=None):
-        assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
+        assert isinstance(dtraces, traces.DTraces) and dtraces, dtraces
 
         if locs:
             # gen preconds
@@ -84,7 +85,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
 
-        dinvs = data.inv.invs.DInvs()
+        dinvs = inv.inv.DInvs()
 
         if not termss:
             return dinvs
@@ -96,10 +97,10 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
             loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
             for loc, terms in zip(locs, termss)
         }
-        ieqs = data.inv.invs.DInvs()
+        ieqs = inv.inv.DInvs()
         for loc in refs:
             for inv in refs[loc].keys():
-                ieqs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+                ieqs.setdefault(loc, inv.inv.Invs()).add(inv)
 
         cexs, ieqs = self.check(ieqs, inps=None)
         ieqs = ieqs.remove_disproved()
@@ -116,19 +117,19 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
         wrs = MP.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
 
-        dinvs = data.inv.invs.DInvs()
+        dinvs = inv.inv.DInvs()
         for loc, term, v in wrs:
             if v is None:
                 continue
             inv = self.inv_cls(term.mk_le(v))
-            inv.set_stat(data.inv.base.Inv.PROVED)
-            dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+            inv.set_stat(inv.inv.Inv.PROVED)
+            dinvs.setdefault(loc, inv.inv.Invs()).add(inv)
 
         return dinvs
 
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(term, (data.inv.base.RelTerm, data.inv.mp.MPTerm)), (
+        assert isinstance(term, (inv.inv.RelTerm, inv.inv.mp.MPTerm)), (
             term,
             type(term),
         )
@@ -164,7 +165,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
     def get_iupper(cls, term):
         return (
             MMP.IUPPER
-            if isinstance(term, data.inv.mp.MPTerm)
+            if isinstance(term, inv.inv.mp.MPTerm)
             else Ieq.IUPPER
         )
 
@@ -182,7 +183,7 @@ class Ieq(Infer):
 
     @staticmethod
     def inv_cls(term_ub):
-        return data.inv.oct.Oct(term_ub)
+        return inv.inv.oct.Oct(term_ub)
 
     @classmethod
     def my_get_terms(cls, symbols):
@@ -214,7 +215,7 @@ class Ieq(Infer):
             terms.update(uterms)
             mlog.debug(f"add {len(terms) - old_siz} new terms from user")
 
-        terms = [data.inv.base.RelTerm(t) for t in terms]
+        terms = [inv.inv.RelTerm(t) for t in terms]
         return terms
 
     # def my_get_terms_user(self, symbols, uterms):
@@ -268,20 +269,20 @@ class MMP(Infer):
 
     @staticmethod
     def to_expr(term):
-        return data.inv.mp.MMP(term, is_ieq=None).expr
+        return inv.inv.mp.MMP(term, is_ieq=None).expr
 
     @staticmethod
     def inv_cls(term_ub):
-        return data.inv.mp.MMP(term_ub)
+        return inv.inv.mp.MMP(term_ub)
 
     @classmethod
     def my_get_terms(cls, symbols):
-        terms = data.inv.mp.MPTerm.get_terms(symbols)
+        terms = inv.inv.mp.MPTerm.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
         def _get_terms(terms, is_max):
             terms_ = [(b, a) for a, b in terms]
-            return [data.inv.mp.MPTerm.mk(a, b, is_max) for a, b in terms + terms_]
+            return [inv.inv.mp.MPTerm.mk(a, b, is_max) for a, b in terms + terms_]
 
         terms_max = _get_terms(terms, is_max=True)
         terms_min = _get_terms(terms, is_max=False)

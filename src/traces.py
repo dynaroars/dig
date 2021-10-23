@@ -10,11 +10,12 @@ import z3
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 
-import data.prog
+import prog
 import settings
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
+
 
 class SymbsVals(typing.NamedTuple):
     ss: tuple
@@ -26,7 +27,7 @@ class SymbsVals(typing.NamedTuple):
     def mk(cls, ss, vs):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
-        return cls (ss, vs)
+        return cls(ss, vs)
 
     def __str__(self):
         return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
@@ -235,7 +236,7 @@ class DTraces(dict):
         # >>> traces = ['vtrace1; 0; 285; 1; 9; 285; 9 ', 'vtrace1; 0; 285; 2; 18; 285; 9; ', 'vtrace1; 0; 285; 4; 36; 285; 9; ']
         # >>> DTraces.parse(traces)
         """
-        assert isinstance(inv_decls, data.prog.DSymbs) and inv_decls, inv_decls
+        assert isinstance(inv_decls, prog.DSymbs) and inv_decls, inv_decls
         lines = [l.strip() for l in traces]
         lines = [l for l in lines if l]
 
@@ -269,7 +270,7 @@ class DTraces(dict):
         vtrace2; 8; 4
         ...
         """
-        assert inv_decls and isinstance(inv_decls, data.prog.DSymbs), inv_decls
+        assert inv_decls and isinstance(inv_decls, prog.DSymbs), inv_decls
         assert isinstance(
             tracefile, Path) and tracefile.suffix == ".csv", tracefile
 
@@ -302,7 +303,7 @@ class DTraces(dict):
         with open(tracefile) as csvfile:
             traces = []
             # determine variable declarations for different locations
-            inv_decls = data.prog.DSymbs()
+            inv_decls = prog.DSymbs()
 
             myreader = csv.reader(csvfile, delimiter=';')
             for row in myreader:
@@ -311,7 +312,7 @@ class DTraces(dict):
                     continue
                 loc, contents = row[0], row[1:]
                 if loc not in inv_decls:
-                    inv_decls[loc] = data.prog.Symbs.mk(contents)
+                    inv_decls[loc] = prog.Symbs.mk(contents)
                 else:
                     s = f"{loc}; {';'.join(contents)}"
                     traces.append(s)

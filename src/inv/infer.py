@@ -4,10 +4,10 @@ import pdb
 import helpers.vcommon as CM
 import settings
 
-import data.prog
-import data.traces
-import data.inv.invs
-import data.symstates
+import prog
+import traces
+import inv.inv
+import symstates
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -16,8 +16,8 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 class Infer(metaclass=abc.ABCMeta):
     def __init__(self, symstates, prog):
         assert symstates is None or \
-            isinstance(symstates, data.symstates.SymStates), symstates
-        assert isinstance(prog, data.prog.Prog), prog
+            isinstance(symstates, symstates.SymStates), symstates
+        assert isinstance(prog, prog.Prog), prog
 
         self.symstates = symstates
         self.inv_decls = prog.inv_decls
@@ -37,8 +37,8 @@ class Infer(metaclass=abc.ABCMeta):
         """
         run inps to get new traces (and update them)
         """
-        assert isinstance(inps, data.traces.Inps) and inps, inps
-        assert isinstance(dtraces, data.traces.DTraces), dtraces
+        assert isinstance(inps, traces.Inps) and inps, inps
+        assert isinstance(dtraces, traces.DTraces), dtraces
 
         new_dtraces = self.prog.get_traces(inps)
         new_dtraces = dtraces.merge(new_dtraces)
@@ -51,6 +51,6 @@ class Infer(metaclass=abc.ABCMeta):
             # no symbolic states, not performing checking
             for loc in dinvs:
                 for inv in dinvs[loc]:
-                    inv.stat = data.invs.Inv.UNKNOWN
+                    inv.stat = inv.inv.Inv.UNKNOWN
             cexs = {}
         return cexs, dinvs

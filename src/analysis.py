@@ -15,7 +15,7 @@ import settings
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
-import data.inv
+import inv
 
 DBG = pdb.set_trace
 
@@ -100,24 +100,24 @@ class AResult(Result):
         self.check_changevals_ctr = Counter(
             get_change(x.v1, x.v2, as_str=True)
             for x in self.check_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, inv.base.FalseInv))
 
         self.check_changedepths_ctr = Counter(
             get_change(x.d1, x.d2, as_str=False)
             for x in self.check_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, inv.base.FalseInv))
 
         self.max_solvercalls_ctr = Counter(
             str(x.stat) for x in self.max_solvercalls)
 
         self.max_changevals_ctr = Counter(
             get_change(x.v1, x.v2, as_str=True) for x in self.max_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, inv.base.FalseInv))
 
         self.max_changedepths_ctr = Counter(
             get_change(x.d1, x.d2, as_str=False)
             for x in self.max_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, inv.base.FalseInv))
 
     @classmethod
     def analyze_dinvs(cls, dinvs):
@@ -149,12 +149,12 @@ class AResult(Result):
         """
         return the # of variables, max deg, and number of terms
         """
-        if isinstance(inv, data.inv.prepost.PrePost):
+        if isinstance(inv, inv.prepost.PrePost):
             mlog.warning("Not very accurate for PREPOST")
             vs = []
             maxdegs = 1
             nterms = 1
-        elif isinstance(inv, data.inv.mp.MMP):
+        elif isinstance(inv, inv.mp.MMP):
             vs = inv.term.symbols
             maxdeg = 1
             nterms = 2
