@@ -11,7 +11,7 @@ from helpers.z3utils import Z3
 import settings
 
 import data.traces
-import inv
+import data.inv.base
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -218,7 +218,7 @@ class MPTerm(typing.NamedTuple):
         return rs
 
 
-class MMP(inv.Inv):
+class MMP(data.inv.base.Inv):
     def __init__(self, term, is_ieq=True, stat=None):
         """
         term = max(x, y) - z

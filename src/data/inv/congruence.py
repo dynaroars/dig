@@ -1,7 +1,6 @@
 import pdb
 import typing
-from functools import reduce
-from math import gcd
+
 import sympy
 
 import helpers.vcommon as CM
@@ -10,8 +9,7 @@ from helpers.z3utils import Z3
 import settings
 
 import data.traces
-import inv
-import infer
+import data.inv.base
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -36,7 +34,7 @@ class MyCongruence(typing.NamedTuple):
         b = (v % self.n) == self.b
         return b
 
-class Congruence(inv.Inv):
+class Congruence(data.inv.base.Inv):
     def __init__(self, mycongruence, stat=None):
         """
             """
@@ -56,34 +54,6 @@ class Congruence(inv.Inv):
         assert isinstance(trace, data.traces.Trace), trace
         b = self.inv._eval(trace)
         return b
-
-
-class Infer(infer.Infer):
-    @classmethod
-    def gen_from_traces(cls, traces, symbols):
-        ps = []
-        terms = Miscs.get_terms_fixed_coefs(symbols.sageExprs, settings.ITERMS, settings.ICOEFS)
-        for term in terms:
-            term_vals = inv.RelTerm(term).eval_traces(traces)
-            b,n = cls._solve(term_vals)
-            if b is None:
-                continue
-            p = data.inv.congruence.Congruence.mk(term, b, n)
-            ps.append(p)
-
-        return ps
-
-    @classmethod
-    def _solve(cls, X:typing.List[int] )-> typing.Tuple[typing.Optional[int], int]:
-        assert(X), X
-        b = None
-        Y = [X[0] - v for v in X]
-        g = reduce(gcd, Y)
-        if g ==1 or g == -1:
-            g = None
-        else:
-            b = X[0] % g
-        return b, g
 
 
 if __name__ == "__main__":

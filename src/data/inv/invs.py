@@ -1,203 +1,38 @@
-from abc import ABCMeta, abstractmethod
+from time import time
 import pdb
-import operator
-from typing import NamedTuple
 from collections import Counter
 
-import sympy
 import z3
 
-from helpers.miscs import Miscs
+import settings
+from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
 import helpers.vcommon as CM
-import settings
-import traces
 
+import data.inv.base
+import data.inv.eqt
+import data.inv.oct
+import data.inv.mp
+import data.inv.prepost
+import data.inv.nested_array
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Inv(metaclass=ABCMeta):
-
-    PROVED = "p"
-    DISPROVED = "d"
-    UNKNOWN = "u"
-
-    def __init__(self, inv, stat=None):
-        """
-        stat = None means never been checked
-        """
-        assert (inv == 0 or  # FalseInv
-                # PrePost and Max/MinPlus
-                (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
-                (isinstance(inv, tuple) and len(inv) == 3) or  # congruence
-                isinstance(inv, str) or   # Array relation
-                isinstance(inv, (sympy.Equality, sympy.Le))), inv
-
-        assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
-
-        self.inv = inv
-        if stat is None:
-            self.reset_stat()
-        else:
-            self.stat = stat
-
-    @property
-    @abstractmethod
-    def mystr(self):
-        pass
-
-    def __str__(self, print_stat=False):
-        s = self.mystr
-        if print_stat:
-            s = f"{s} {self.stat}"
-        return s
-
-    def __hash__(self):
-        return hash(self.inv)
-
-    def __repr__(self):
-        return repr(self.inv)
-
-    def __eq__(self, o):
-        assert isinstance(o, Inv), o
-        return self.inv.__eq__(o.inv)
-
-    def __ne__(self, o):
-        return not self.inv.__eq__(o.inv)
-
-    def get_stat(self):
-        return self._stat
-
-    def set_stat(self, stat):
-        assert stat in {self.PROVED, self.DISPROVED, self.UNKNOWN}, stat
-        self._stat = stat
-
-    stat = property(get_stat, set_stat)
-
-    def reset_stat(self):
-        self._stat = None
-
-    def test(self, traces):
-        assert isinstance(traces, traces.Traces), traces
-        return all(self.test_single_trace(trace) for trace in traces)
-
-    @property
-    def is_proved(self):
-        return self.stat == self.PROVED
-
-    @property
-    def is_disproved(self):
-        return self.stat == self.DISPROVED
-
-    @property
-    def is_unknown(self):
-        return self.stat == self.UNKNOWN
-
-    def test_single_trace(self, trace):
-        assert isinstance(trace, traces.Trace), trace
-
-        # temp fix: disable traces that wih extreme large values
-        # (see geo1 e.g., 435848050)
-        if any(x > settings.TRACE_MAX_VAL for x in trace.vs):
-            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
-            return True
-
-        try:
-            return bool(self.inv.xreplace(trace.mydict))
-        except ValueError:
-            mlog.debug(f"{self}: failed test")
-            return False
-
-    @property
-    def expr(self):
-        """
-        cannot cache because z3 expr is ctype,
-        not compat with multiprocessing Queue
-
-        also, cannot save this to sel._expr
-        """
-        return Z3.parse(str(self))
-
-
-class FalseInv(Inv):
-    def __init__(self, inv, stat=None):
-        assert inv == 0, inv
-        super().__init__(inv, stat)
-
-    def __str__(self, print_stat=False):
-        s = str(self.inv)
-        if print_stat:
-            s = f"{s} {self.stat}"
-        return s
-
-    @property
-    def expr(self):
-        return z3.BoolVal(False)
-
-    @property
-    def mystr(self):
-        return "False"
-
-    @classmethod
-    def mk(cls):
-        return FalseInv(0)
-
-
-class RelTerm(NamedTuple):
-    """
-    e.g., x + y,  x,  x + 3
-    """
-
-    term: sympy.Expr
-
-    @classmethod
-    def mk(cls, term):
-        assert (
-            isinstance(term, sympy.Expr)
-            and not term.is_relational()
-        ), term
-        return cls(term)
-
-    @property
-    def symbols(self):
-        return Miscs.get_vars(self.term)
-
-    def eval_traces(self, traces, pred=None):
-        return traces.myeval(self.term, pred)
-
-    def mk_lt(self, val):
-        return self._mk_rel(operator.lt, val)
-
-    def mk_le(self, val):
-        return self._mk_rel(operator.le, val)
-
-    def mk_eq(self, val):
-        return self._mk_rel(operator.eq, val)
-
-    def _mk_rel(self, myop, val):
-        """
-        return myop(self.term, val), e.g., x + y <= 8
-        """
-        assert myop == operator.eq or myop == operator.le or myop == operator.lt, myop
-
-        return myop(self.term, val)
-
-
 class Invs(set):
     def __init__(self, invs=set()):
-        assert all(isinstance(inv, Inv) for inv in invs), invs
+        assert all(isinstance(inv, data.inv.base.Inv) for inv in invs), invs
         super().__init__(invs)
 
     def __str__(self, print_stat=False, delim="\n"):
         invs = sorted(
-            self, reverse=True, key=lambda inv: isinstance(inv, inv.eqt.Eqt)
+            self, reverse=True, key=lambda inv: isinstance(inv, data.inv.eqt.Eqt)
         )
         return delim.join(inv.__str__(print_stat) for inv in invs)
 
     def __contains__(self, inv):
-        assert isinstance(inv, Inv), inv
+        assert isinstance(inv, data.inv.base.Inv), inv
         return super().__contains__(inv)
 
     @property
@@ -205,7 +40,7 @@ class Invs(set):
         return Counter(inv.__class__.__name__ for inv in self)
 
     def add(self, inv):
-        assert isinstance(inv, Inv), inv
+        assert isinstance(inv, data.inv.base.Inv), inv
 
         not_in = inv not in self
         if not_in:
@@ -257,7 +92,7 @@ class Invs(set):
             (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
         # find equality invs (==) from min/max-plus
-        mps = inv.mp.MMP.simplify(mps)
+        mps = data.inv.mp.MMP.simplify(mps)
         mps_eqt, mps_ieq = [], []
         for mp in mps:
             (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
@@ -357,23 +192,23 @@ class Invs(set):
         arr_rels = []
         for inv in invs:
             mylist = None
-            if isinstance(inv, inv.eqt.Eqt):
+            if isinstance(inv, data.inv.eqt.Eqt):
                 if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
                     mylist = eqts_largecoefs
                 else:
                     mylist = eqts
-            elif isinstance(inv, inv.oct.Oct):
+            elif isinstance(inv, data.inv.oct.Oct):
                 mylist = octs
-            elif isinstance(inv, inv.mp.MMP):
+            elif isinstance(inv, data.inv.mp.MMP):
                 mylist = mps
-            elif isinstance(inv, inv.prepost.PrePost):
+            elif isinstance(inv, data.inv.prepost.PrePost):
                 mylist = preposts
-            elif isinstance(inv, inv.nested_array.NestedArray):
+            elif isinstance(inv, data.inv.nested_array.NestedArray):
                 mylist = arr_rels
-            elif isinstance(inv, inv.congruence.Congruence):
+            elif isinstance(inv, data.inv.congruence.Congruence):
                 mylist = congruences
             else:
-                assert isinstance(inv, FalseInv), inv
+                assert isinstance(inv, data.inv.base.FalseInv), inv
                 mylist = falseinvs
 
             mylist.append(inv)
@@ -405,7 +240,7 @@ class DInvs(dict):
 
     @property
     def n_eqs(self):
-        return self.typ_ctr[inv.eqt.Eqt.__name__]
+        return self.typ_ctr[data.inv.eqt.Eqt.__name__]
 
     def __str__(self, print_stat=False, print_first_n=None):
         ss = []
@@ -441,7 +276,7 @@ class DInvs(dict):
 
     def add(self, loc, inv):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(inv, Inv), inv
+        assert isinstance(inv, data.inv.base.Inv), inv
 
         return self.setdefault(loc, Invs()).add(inv)
 
@@ -515,7 +350,7 @@ class DInvs(dict):
     def mk_false_invs(cls, locs):
         dinvs = cls()
         for loc in locs:
-            dinvs.add(loc, FalseInv.mk())
+            dinvs.add(loc, data.inv.base.FalseInv.mk())
         return dinvs
 
     @classmethod

@@ -13,17 +13,16 @@ from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
-import traces
-import inv.oct
-import inv.mp
-import inv.infer
+import data.traces
+import data.inv.oct
+import data.inv.mp
+import infer.base
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-
-class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
+class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
@@ -47,7 +46,7 @@ class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     def gen_from_traces(cls, traces, symbols):
-        assert isinstance(traces, traces.Traces), traces
+        assert isinstance(traces, data.traces.Traces), traces
 
         maxV = cls.IUPPER
         minV = -1 * maxV
@@ -67,7 +66,7 @@ class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
         super().__init__(symstates, prog)
 
     def gen(self, dtraces, locs=None, extra_constr=None):
-        assert isinstance(dtraces, traces.DTraces) and dtraces, dtraces
+        assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
 
         if locs:
             # gen preconds
@@ -85,7 +84,7 @@ class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
 
-        dinvs = inv.inv.DInvs()
+        dinvs = data.inv.invs.DInvs()
 
         if not termss:
             return dinvs
@@ -97,10 +96,10 @@ class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
             loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
             for loc, terms in zip(locs, termss)
         }
-        ieqs = inv.inv.DInvs()
+        ieqs = data.inv.invs.DInvs()
         for loc in refs:
             for inv in refs[loc].keys():
-                ieqs.setdefault(loc, inv.inv.Invs()).add(inv)
+                ieqs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
         cexs, ieqs = self.check(ieqs, inps=None)
         ieqs = ieqs.remove_disproved()
@@ -117,19 +116,19 @@ class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
 
         wrs = MP.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
 
-        dinvs = inv.inv.DInvs()
+        dinvs = data.inv.invs.DInvs()
         for loc, term, v in wrs:
             if v is None:
                 continue
             inv = self.inv_cls(term.mk_le(v))
-            inv.set_stat(inv.inv.Inv.PROVED)
-            dinvs.setdefault(loc, inv.inv.Invs()).add(inv)
+            inv.set_stat(data.inv.base.Inv.PROVED)
+            dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
 
         return dinvs
 
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(term, (inv.inv.RelTerm, inv.inv.mp.MPTerm)), (
+        assert isinstance(term, (data.inv.base.RelTerm, data.inv.mp.MPTerm)), (
             term,
             type(term),
         )
@@ -165,7 +164,7 @@ class Infer(inv.infer.Infer, metaclass=abc.ABCMeta):
     def get_iupper(cls, term):
         return (
             MMP.IUPPER
-            if isinstance(term, inv.inv.mp.MPTerm)
+            if isinstance(term, data.inv.mp.MPTerm)
             else Ieq.IUPPER
         )
 
@@ -183,7 +182,7 @@ class Ieq(Infer):
 
     @staticmethod
     def inv_cls(term_ub):
-        return inv.inv.oct.Oct(term_ub)
+        return data.inv.oct.Oct(term_ub)
 
     @classmethod
     def my_get_terms(cls, symbols):
@@ -215,7 +214,7 @@ class Ieq(Infer):
             terms.update(uterms)
             mlog.debug(f"add {len(terms) - old_siz} new terms from user")
 
-        terms = [inv.inv.RelTerm(t) for t in terms]
+        terms = [data.inv.base.RelTerm(t) for t in terms]
         return terms
 
     # def my_get_terms_user(self, symbols, uterms):
@@ -269,20 +268,20 @@ class MMP(Infer):
 
     @staticmethod
     def to_expr(term):
-        return inv.inv.mp.MMP(term, is_ieq=None).expr
+        return data.inv.mp.MMP(term, is_ieq=None).expr
 
     @staticmethod
     def inv_cls(term_ub):
-        return inv.inv.mp.MMP(term_ub)
+        return data.inv.mp.MMP(term_ub)
 
     @classmethod
     def my_get_terms(cls, symbols):
-        terms = inv.inv.mp.MPTerm.get_terms(symbols)
+        terms = data.inv.mp.MPTerm.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 
         def _get_terms(terms, is_max):
             terms_ = [(b, a) for a, b in terms]
-            return [inv.inv.mp.MPTerm.mk(a, b, is_max) for a, b in terms + terms_]
+            return [data.inv.mp.MPTerm.mk(a, b, is_max) for a, b in terms + terms_]
 
         terms_max = _get_terms(terms, is_max=True)
         terms_min = _get_terms(terms, is_max=False)
@@ -306,9 +305,11 @@ class MMP(Infer):
         for term in terms:
             a_symbs = set(map(str, Miscs.get_vars(term.a)))
             b_symbs = set(map(str, Miscs.get_vars(term.b)))
+            # print(term, a_symbs, b_symbs)
 
             if not is_pure(a_symbs) or not is_pure(b_symbs):
                 excludes.add(term)
+                # print('excluding, not pure', term)
                 continue
 
             inp_in_a = any(s in inps for s in a_symbs)
@@ -317,6 +318,7 @@ class MMP(Infer):
             # exclude if (inp in both a and b) or inp not in a or b
             if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
                 excludes.add(term)
+                # print('excluding', term)
                 continue
 
             t_symbs = set.union(a_symbs, b_symbs)
