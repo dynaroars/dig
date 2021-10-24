@@ -290,30 +290,6 @@ class Miscs:
         return list(p.as_coefficients_dict().values())
 
     @classmethod
-    def reduce_with_timeout(cls, ps, timeout=settings.EQT_REDUCE_TIMEOUT):
-        Q = multiprocessing.Queue()
-
-        def wprocess(ps, myQ):
-            rs = cls.reduce_eqts(ps)
-            myQ.put(rs)
-
-        w = multiprocessing.Process(target=wprocess, args=(ps, Q,))
-        w.start()
-        try:
-            newps = Q.get(timeout=timeout)
-            mlog.debug(
-                f"done reduce_eqts, got {len(newps)} ps from  {len(ps)} ps")
-            ps = newps
-        except queue.Empty:
-            mlog.warning(
-                f"timeout reduce_eqts for {len(ps)} eqts, terminate worker")
-            w.terminate()
-
-        w.join()
-        w.close()
-        return ps
-
-    @classmethod
     def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF):
 
         @functools.cache
@@ -342,7 +318,6 @@ class Miscs:
 
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
-        #eqts = cls.reduce_with_timeout(eqts)
         eqts = cls.reduce_eqts(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)

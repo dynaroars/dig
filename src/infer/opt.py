@@ -313,7 +313,6 @@ class MMP(Infer):
             # exclude if (inp in both a and b) or inp not in a or b
             if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
                 excludes.add(term)
-                # print('excluding', term)
                 continue
 
             t_symbs = set.union(a_symbs, b_symbs)

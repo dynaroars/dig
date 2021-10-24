@@ -142,10 +142,6 @@ class Traces(SymbsValsSet):
         return (trace.mydict for trace in self)
 
     def instantiate(self, template, ntraces):
-        """
-        template can be  an expr  or  [(expr, uk)], from which we can do sum(expr*uk for ...)
-
-        """
         assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
 
