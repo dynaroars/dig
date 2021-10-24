@@ -180,7 +180,7 @@ if __name__ == "__main__":
         "--uterms",
         type=str,
         default=None,
-        help='user-supplied terms (separated by space), e.g., "-uterms y^2 xy"',
+        help='user-supplied terms (separated by ;), e.g., -uterms "y^2 ; xy+4"',
     )
 
     ag(

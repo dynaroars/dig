@@ -254,7 +254,7 @@ def setup(settings, args):
 
     if args.uterms:
         if settings:
-            settings.UTERMS = set(args.uterms.split())
+            settings.UTERMS = set(args.uterms.split(';'))
         else:
             opts.append(f'-uterms "{args.uterms}"')  # not tested
 

@@ -226,17 +226,16 @@ class Ieq(Infer):
 
         if not set(v for t in uterms for v in t.free_symbols).issubset(set(symbols)):
             raise NameError(f"{uterms} contain symbols not in {symbols}")
-
         terms = set()
         for t in uterms:
             terms.add(t)
             terms.add(-t)
-            for v in symbols:
-                # v+t, v-t, -v+t, -v-t
-                terms.add(v + t)
-                terms.add(v - t)
-                terms.add(-v + t)
-                terms.add(-v - t)
+            ts = [t_ for v in symbols for t_ in (v+t, v-t, -v+t, -v-t)]
+            for t_ in ts:
+                if isinstance(t_, sympy.Number):
+                    mlog.warning(f"skipping {t_}")
+                else:
+                    terms.add(t_)
 
         return terms
 

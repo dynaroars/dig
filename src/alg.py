@@ -49,7 +49,6 @@ class Dig(metaclass=ABCMeta):
         st = time.time()
         dinvs = dinvs.test(dtraces)
         mlog.info(f"{msg} ({time.time() - st:.2f}s)")
-
         if not dinvs.siz:
             return dinvs
 
