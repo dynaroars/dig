@@ -31,7 +31,7 @@ if __name__ == "__main__":
         ),
     )
 
-    # 0 Error #1 Warn #2 Info #3 Debug #4 Detail
+    # 0 Error #1 Warn #2 Info #3 Debug 
     ag(
         "--log_level",
         "-log_level",
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         assert args.benchmark_times is None, args.benchmark_times
 
         if not inp.is_file():
-            raise AssertionError(f"{inp} is not valid")
+            raise FileNotFoundError(f"'{inp}' not found")
 
         seed = round(time.time(), 2) if args.seed is None else float(args.seed)
         import settings
