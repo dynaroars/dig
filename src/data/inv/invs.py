@@ -10,13 +10,13 @@ from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
 import data.inv.base
-import data.inv.eqt
+import infer.eqt
 import data.inv.oct
 import data.inv.mp
+import infer.congruence
 import data.inv.prepost
 import data.inv.nested_array
 
-import infer.congruence
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -195,7 +195,7 @@ class Invs(set):
         arr_rels = []
         for inv in invs:
             mylist = None
-            if isinstance(inv, data.inv.eqt.Eqt):
+            if isinstance(inv, infer.eqt.Eqt):
                 if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
                     mylist = eqts_largecoefs
                 else:
@@ -243,7 +243,7 @@ class DInvs(dict):
 
     @property
     def n_eqs(self):
-        return self.typ_ctr[data.inv.eqt.Eqt.__name__]
+        return self.typ_ctr[infer.eqt.Eqt.__name__]
 
     def __str__(self, print_stat=False, print_first_n=None):
         ss = []

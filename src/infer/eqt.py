@@ -9,12 +9,22 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 
 from data.traces import Inps, Traces, DTraces
-from data.inv.invs import Invs, DInvs
-import data.inv.eqt
+import data.inv.invs
+import data.inv.base
 import infer.base
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
+
+
+class Eqt(data.inv.base.Inv):
+    def __init__(self, eqt, stat=None):
+        assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
+        super().__init__(eqt, stat)
+
+    @property
+    def mystr(self):
+        return f"{self.inv.lhs} == {self.inv.rhs}"
 
 
 class Infer(infer.base.Infer):
@@ -45,7 +55,7 @@ class Infer(infer.base.Infer):
         wrs = MP.run_mp("find eqts", tasks, f, settings.DO_MP)
 
         # put results together
-        dinvs = DInvs()
+        dinvs = data.inv.invs.DInvs()
         for loc, (eqts, cexs) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug(
@@ -53,7 +63,7 @@ class Infer(infer.base.Infer):
             if eqts:
                 mlog.debug("\n".join(map(str, eqts)))
 
-            dinvs[loc] = Invs(eqts)
+            dinvs[loc] = data.inv.invs.Invs(eqts)
 
         return dinvs
 
@@ -90,7 +100,7 @@ class Infer(infer.base.Infer):
             if loc not in new_traces:
                 doRand = False
 
-                dinvsFalse = DInvs.mk_false_invs([loc])
+                dinvsFalse = data.inv.invs.DInvs.mk_false_invs([loc])
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
 
                 # cannot find new inputs
@@ -127,7 +137,7 @@ class Infer(infer.base.Infer):
             mlog.debug(
                 f"{loc}: need more traces ({len(exprs)} eqts, need >= {n_eqts_needed})"
             )
-            dinvsFalse = DInvs.mk_false_invs([loc])
+            dinvsFalse = data.inv.invs.DInvs.mk_false_invs([loc])
             cexs, _, _ = self.symstates.check(dinvsFalse, inps)
 
             if loc not in cexs:
@@ -213,7 +223,8 @@ class Infer(infer.base.Infer):
                 f"{loc}: check {len(unchecks)} unchecked ({len(new_eqts)} candidates)"
             )
 
-            dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
+            dinvs = data.inv.invs.DInvs.mk(
+                loc, data.inv.invs.Invs(list(map(Eqt, unchecks))))
             cexs, dinvs = self.check(dinvs, None)
             if cexs:
                 new_cexs.append(cexs)
@@ -263,4 +274,4 @@ class Infer(infer.base.Infer):
                 mydeg = mydeg - 1
                 mlog.warning(f"NO EQTS RESULTS, reducing deg to {mydeg}")
 
-        return [data.inv.eqt.Eqt(eqt)for eqt in eqts]
+        return [Eqt(eqt)for eqt in eqts]

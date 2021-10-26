@@ -1,7 +1,3 @@
-"""
-CEGIR algorithm
-"""
-
 import abc
 import pdb
 
