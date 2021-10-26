@@ -96,6 +96,22 @@ RUN cp dot_sarl ~/.sarl
 
 
 
+# Linhan
+WORKDIR /
+RUN /root/miniconda3/bin/pip3 install flask
+RUN apt install nano
+
+RUN echo "pushd /;wget https://codeload.github.com/SWVM/dig_web/zip/refs/heads/master; unzip -o master;rm master;popd" >> dig_reload.sh
+RUN chmod 755 dig_reload.sh
+
+RUN wget https://codeload.github.com/SWVM/dig_web/zip/refs/heads/master
+RUN unzip -o master
+RUN rm master
+
+
+RUN echo 'alias dig_reload="/dig_reload.sh"' >> ~/.bashrc
+RUN echo 'alias dig_web=" /root/miniconda3/bin/python /dig_web-master/server.py "' >> ~/.bashrc
+
 
 
 
