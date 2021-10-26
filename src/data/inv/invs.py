@@ -16,6 +16,8 @@ import data.inv.mp
 import data.inv.prepost
 import data.inv.nested_array
 
+import infer.congruence
+
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
@@ -188,7 +190,8 @@ class Invs(set):
 
     @classmethod
     def classify(cls, invs):
-        eqts, eqts_largecoefs, octs, mps, congruences, preposts, falseinvs = [], [], [], [], [], [], []
+        eqts, eqts_largecoefs, octs, mps, congruences, preposts, falseinvs = [
+        ], [], [], [], [], [], []
         arr_rels = []
         for inv in invs:
             mylist = None
@@ -205,7 +208,7 @@ class Invs(set):
                 mylist = preposts
             elif isinstance(inv, data.inv.nested_array.NestedArray):
                 mylist = arr_rels
-            elif isinstance(inv, data.inv.congruence.Congruence):
+            elif isinstance(inv, infer.congruence.Congruence):
                 mylist = congruences
             else:
                 assert isinstance(inv, data.inv.base.FalseInv), inv

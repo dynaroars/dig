@@ -11,7 +11,6 @@ import settings
 import data.prog
 from data.traces import Inps, DTraces
 from data.inv.base import Inv
-from data.inv.invs import DInvs
 import data.symstates
 
 DBG = pdb.set_trace

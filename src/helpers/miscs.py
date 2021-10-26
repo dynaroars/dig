@@ -1,19 +1,12 @@
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
 from time import time
-
 import pdb
 import itertools
 import functools
-import operator
-
 import multiprocessing
-import queue
-
-
 import sympy
 from sympy.solvers.solveset import linsolve
-
 import helpers.vcommon as CM
 import settings
 
