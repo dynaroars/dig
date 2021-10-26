@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+import abc
 from collections import Counter
 from time import time
 import pdb
@@ -19,7 +19,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Inv(metaclass=ABCMeta):
+class Inv(metaclass=abc.ABCMeta):
 
     PROVED = "p"
     DISPROVED = "d"
@@ -36,7 +36,7 @@ class Inv(metaclass=ABCMeta):
                 isinstance(inv, str) or   # Array relation
                 isinstance(inv, (sympy.Equality, sympy.Le))), inv
 
-        assert stat in {None, Inv.PROVED, Inv.DISPROVED, Inv.UNKNOWN}
+        assert stat in {None, self.PROVED, self.DISPROVED, self.UNKNOWN}
 
         self.inv = inv
         if stat is None:
@@ -45,7 +45,7 @@ class Inv(metaclass=ABCMeta):
             self.stat = stat
 
     @property
-    @abstractmethod
+    @abc.abstractmethod
     def mystr(self):
         pass
 
@@ -265,7 +265,8 @@ class Invs(set):
             for mp in mps:
                 (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
 
-        done = eqts + mps_eqt  # don't simply these
+        done = eqts + mps_eqt + congruences  # don't simply these
+
         mps_ieq = self.simplify1(mps_ieq, done + octs, "mps_ieq", my_get_expr)
         octs_not_simple = self.simplify1(
             octs_not_simple, done + octs_simple + mps_ieq, "octs", my_get_expr
@@ -296,7 +297,7 @@ class Invs(set):
             octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
         )
 
-        done += octs_simple + octs_mps + congruences + arr_rels
+        done += octs_simple + octs_mps + arr_rels
         return self.__class__(done)
 
     @classmethod

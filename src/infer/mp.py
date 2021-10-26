@@ -411,3 +411,8 @@ class Infer(infer.infer._Opt):
                 excludes.add(term)
 
         return excludes
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

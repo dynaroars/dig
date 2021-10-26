@@ -4,10 +4,12 @@ from math import gcd
 import typing
 
 import sympy
+import z3
 
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
+from helpers.z3utils import Z3
 import infer.inv
 import infer.infer
 import data.traces
@@ -32,6 +34,13 @@ class MyCongruence(typing.NamedTuple):
         s = f"{self.a} === {self.b} (mod {self.n})"
         return s
 
+    @property
+    def expr(self) -> z3.ExprRef:
+        a = Z3.parse(str(self.a))
+        b = Z3.parse(str(self.b))
+        c = Z3.parse(str(self.n))
+        return a % b == c
+
     def _eval(self, trace: data.traces.Trace) -> bool:
         v = int(self.a.xreplace(trace.mydict))
         b = (v % self.n) == self.b
@@ -53,6 +62,10 @@ class Congruence(infer.inv.Inv):
     @property
     def mystr(self) -> str:
         return str(self.inv)
+
+    @property
+    def expr(self) -> z3.ExprRef:
+        return self.inv.expr
 
     def test_single_trace(self, trace: data.traces.Traces) -> bool:
         assert isinstance(trace, data.traces.Trace), trace
@@ -87,3 +100,8 @@ class Infer(infer.infer._Infer):
         else:
             b = X[0] % g
         return b, g
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
