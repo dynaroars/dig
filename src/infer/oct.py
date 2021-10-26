@@ -7,7 +7,7 @@ from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 
 import infer.inv
-import infer.opt
+import infer.infer
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -35,7 +35,7 @@ class Oct(infer.inv.Inv):
         return f"{self.inv.lhs} <= {self.inv.rhs}"
 
 
-class Infer(infer.opt.Infer):
+class Infer(infer.infer._Opt):
 
     IUPPER = settings.IUPPER
 

@@ -8,9 +8,9 @@ import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 
-from data.traces import Inps, Traces, DTraces
+import data.traces
 import infer.inv
-import infer.base
+import infer.infer
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -26,15 +26,15 @@ class Eqt(infer.inv.Inv):
         return f"{self.inv.lhs} == {self.inv.rhs}"
 
 
-class Infer(infer.base.Infer):
+class Infer(infer.infer._Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
         self.use_rand_init = False  # use symstates or random to get init inps
 
     def gen(self, deg, traces, inps):
         assert deg >= 1, deg
-        assert isinstance(traces, DTraces) and traces, traces
-        assert isinstance(inps, Inps), inps
+        assert isinstance(traces, data.traces.DTraces) and traces, traces
+        assert isinstance(inps, data.traces.Inps), inps
 
         locs = traces.keys()
         # first obtain enough traces
@@ -191,8 +191,8 @@ class Infer(infer.base.Infer):
         assert isinstance(uks, list), uks
         assert len(ts) == len(uks), (ts, uks)
         assert isinstance(exprs, set) and exprs, exprs
-        assert isinstance(dtraces, DTraces) and dtraces, dtraces
-        assert isinstance(inps, Inps) and inps, inps
+        assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
+        assert isinstance(inps, data.traces.Inps) and inps, inps
 
         template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
@@ -235,7 +235,7 @@ class Infer(infer.base.Infer):
                 mlog.debug(f"{loc}: no disproved candidates -- break")
                 break
 
-            cexs = Traces.extract(cexs[loc])
+            cexs = data.traces.Traces.extract(cexs[loc])
             cexs = cexs.padzeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
@@ -245,7 +245,7 @@ class Infer(infer.base.Infer):
 
     @classmethod
     def gen_from_traces(cls, deg, traces, symbols):
-        assert isinstance(traces, Traces), traces
+        assert isinstance(traces, data.traces.Traces), traces
 
         mydeg = deg
         eqts = []

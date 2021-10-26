@@ -12,7 +12,7 @@ import settings
 
 import data.traces
 import infer.inv
-import infer.opt
+import infer.infer
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -339,7 +339,7 @@ class MMP(infer.inv.Inv):
         return list(cached.values())
 
 
-class Infer(infer.opt.Infer):
+class Infer(infer.infer._Opt):
     """
     Min-max plus invariants
     """

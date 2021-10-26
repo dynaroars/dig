@@ -14,7 +14,7 @@ from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 
 import infer.inv
-import infer.base
+import infer.infer
 
 
 DBG = pdb.set_trace
@@ -129,7 +129,7 @@ class NestedArray(infer.inv.Inv):
         return self.eval_lambda(self.inv, None, trace.mydict)
 
 
-class Infer(infer.base.Infer):
+class Infer(infer.infer._Infer):
 
     @classmethod
     def gen_from_traces(cls, traces):

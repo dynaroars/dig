@@ -15,7 +15,7 @@ import settings
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
-import data.inv
+import infer.inv
 # import infer.mp
 
 DBG = pdb.set_trace
@@ -101,24 +101,24 @@ class AResult(Result):
         self.check_changevals_ctr = Counter(
             get_change(x.v1, x.v2, as_str=True)
             for x in self.check_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, infer.inv.FalseInv))
 
         self.check_changedepths_ctr = Counter(
             get_change(x.d1, x.d2, as_str=False)
             for x in self.check_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, infer.inv.FalseInv))
 
         self.max_solvercalls_ctr = Counter(
             str(x.stat) for x in self.max_solvercalls)
 
         self.max_changevals_ctr = Counter(
             get_change(x.v1, x.v2, as_str=True) for x in self.max_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, infer.inv.FalseInv))
 
         self.max_changedepths_ctr = Counter(
             get_change(x.d1, x.d2, as_str=False)
             for x in self.max_depthchanges
-            if not isinstance(x.prop, data.inv.base.FalseInv))
+            if not isinstance(x.prop, infer.inv.FalseInv))
 
     @classmethod
     def analyze_dinvs(cls, dinvs):
@@ -152,7 +152,7 @@ class AResult(Result):
         """
         import infer.mp
 
-        # if isinstance(inv, data.inv.prepost.PrePost):
+        # if isinstance(inv, infer.inv.prepost.PrePost):
         #     mlog.warning("Not very accurate for PREPOST")
         #     vs = []
         #     maxdegs = 1

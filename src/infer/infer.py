@@ -1,64 +1,78 @@
-"""
-Find upperbound of polynomial and min/max terms using an SMT solver optimizer
-"""
 import abc
 import pdb
 from time import time
 import operator
+import z3
 import sympy
 
-import z3
-import settings
+import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
-import helpers.vcommon as CM
 
-import data.traces
-import infer.base
+import settings
+
+import data.prog
+import infer.inv
+import data.symstates
 
 DBG = pdb.set_trace
-
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
+class _Infer(metaclass=abc.ABCMeta):
+    """
+    Base class for inference
+    """
 
-    @staticmethod
-    @abc.abstractmethod
-    def to_expr(term):
-        pass
+    def __init__(self, symstates, prog):
+        assert symstates is None or \
+            isinstance(symstates, data.symstates.SymStates), symstates
+        assert isinstance(prog, data.prog.Prog), prog
 
-    @staticmethod
-    @abc.abstractmethod
-    def inv_cls(term):
-        pass
+        self.symstates = symstates
+        self.inv_decls = prog.inv_decls
+        self.inp_decls = prog.inp_decls
+        self.prog = prog
 
-    @classmethod
     @abc.abstractmethod
-    def my_get_terms(cls, terms, inps):
-        pass
-
-    @staticmethod
-    @abc.abstractmethod
-    def get_excludes(term):
+    def gen(self):
         pass
 
     @classmethod
+    @abc.abstractmethod
     def gen_from_traces(cls, traces, symbols):
-        assert isinstance(traces, data.traces.Traces), traces
+        """
+        Generating invariants directly from traces
+        """
+        pass
 
-        maxV = cls.IUPPER
-        minV = -1 * maxV
+    def get_traces(self, inps, dtraces):
+        """
+        run inps to get new traces (and update them)
+        """
+        assert isinstance(inps, data.traces.Inps) and inps, inps
+        assert isinstance(dtraces, data.traces.DTraces), dtraces
 
-        terms = cls.my_get_terms(symbols.sageExprs)
-        ps = []
-        for term in terms:
-            upperbound = int(max(term.eval_traces(traces)))
-            if minV <= upperbound <= maxV:
-                p = cls.inv_cls(term.mk_le(upperbound))
-                ps.append(p)
+        new_dtraces = self.prog.get_traces(inps)
+        new_dtraces = dtraces.merge(new_dtraces)
+        return new_dtraces
 
-        return ps
+    def check(self, dinvs, inps):
+        if self.symstates:
+            cexs, dinvs = self.symstates.check(dinvs, inps)
+        else:
+            # no symbolic states, not performing checking
+            for loc in dinvs:
+                for inv in dinvs[loc]:
+                    inv.stat = infer.inv.Inv.UNKNOWN
+            cexs = {}
+        return cexs, dinvs
+
+
+class _Opt(_Infer, metaclass=abc.ABCMeta):
+    """
+    Find upperbound of polynomial and min/max terms using an SMT solver optimizer
+    """
 
     def __init__(self, symstates, prog):
         # need prog because symstates could be None
@@ -88,7 +102,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
         if not termss:
             return dinvs
 
-        mlog.debug(f"check upperbounds for {sum(map(len, termss))} "
+        mlog.debug(f"checking upperbounds for {sum(map(len, termss))} "
                    f"terms at {len(locs)} locs")
 
         refs = {
@@ -105,7 +119,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
         tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
         mlog.debug(
-            f"infer upperbounds for {len(tasks)} terms at {len(locs)} locs")
+            f"inferring upperbounds for {len(tasks)} terms at {len(locs)} locs")
 
         def f(tasks):
             return [
@@ -113,7 +127,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
                 for loc, term in tasks
             ]
 
-        wrs = MP.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("optimizing upperbound", tasks, f, settings.DO_MP)
 
         dinvs = infer.inv.DInvs()
         for loc, term, v in wrs:
@@ -158,3 +172,40 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
                 terms), len(new_terms), time() - st)
             terms = new_terms
         return terms
+
+    @staticmethod
+    @abc.abstractmethod
+    def to_expr(term):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def inv_cls(term):
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def my_get_terms(cls, terms, inps):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def get_excludes(term):
+        pass
+
+    @classmethod
+    def gen_from_traces(cls, traces, symbols):
+        assert isinstance(traces, data.traces.Traces), traces
+
+        maxV = cls.IUPPER
+        minV = -1 * maxV
+
+        terms = cls.my_get_terms(symbols.sageExprs)
+        ps = []
+        for term in terms:
+            upperbound = int(max(term.eval_traces(traces)))
+            if minV <= upperbound <= maxV:
+                p = cls.inv_cls(term.mk_le(upperbound))
+                ps.append(p)
+
+        return ps

@@ -8,8 +8,8 @@ import sympy
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
-import infer.base
 import infer.inv
+import infer.infer
 import data.traces
 
 
@@ -60,7 +60,7 @@ class Congruence(infer.inv.Inv):
         return b
 
 
-class Infer(infer.base.Infer):
+class Infer(infer.infer._Infer):
     @classmethod
     def gen_from_traces(cls, traces, symbols):
         ps = []
