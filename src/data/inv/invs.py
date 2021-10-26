@@ -11,7 +11,7 @@ import helpers.vcommon as CM
 
 import data.inv.base
 import infer.eqt
-import data.inv.oct
+import infer.oct
 import data.inv.mp
 import infer.congruence
 import data.inv.prepost
@@ -200,7 +200,7 @@ class Invs(set):
                     mylist = eqts_largecoefs
                 else:
                     mylist = eqts
-            elif isinstance(inv, data.inv.oct.Oct):
+            elif isinstance(inv, infer.oct.Oct):
                 mylist = octs
             elif isinstance(inv, data.inv.mp.MMP):
                 mylist = mps

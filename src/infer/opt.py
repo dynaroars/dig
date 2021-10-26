@@ -14,13 +14,14 @@ from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
 import data.traces
-import data.inv.oct
+import infer.oct
 import data.inv.mp
 import infer.base
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
+
 
 class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
@@ -93,7 +94,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
                    f"terms at {len(locs)} locs")
 
         refs = {
-            loc: {self.inv_cls(t.mk_le(self.get_iupper(t))): t for t in terms}
+            loc: {self.inv_cls(t.mk_le(self.IUPPER)): t for t in terms}
             for loc, terms in zip(locs, termss)
         }
         ieqs = data.inv.invs.DInvs()
@@ -160,97 +161,6 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
             terms = new_terms
         return terms
 
-    @classmethod
-    def get_iupper(cls, term):
-        return (
-            MMP.IUPPER
-            if isinstance(term, data.inv.mp.MPTerm)
-            else Ieq.IUPPER
-        )
-
-
-class Ieq(Infer):
-
-    IUPPER = settings.IUPPER
-
-    def __init__(self, symstates, prog):
-        super().__init__(symstates, prog)
-
-    @staticmethod
-    def to_expr(term):
-        return Z3.parse(str(term.term))
-
-    @staticmethod
-    def inv_cls(term_ub):
-        return data.inv.oct.Oct(term_ub)
-
-    @classmethod
-    def my_get_terms(cls, symbols):
-        assert symbols, symbols
-        assert settings.IDEG >= 1, settings.IDEG
-
-        if settings.IDEG == 1:
-            terms = Miscs.get_terms_fixed_coefs(
-                symbols, settings.ITERMS, settings.ICOEFS
-            )
-        else:
-            terms = Miscs.get_terms(list(symbols), settings.IDEG)
-            terms = [t for t in terms if t != 1]
-            terms = Miscs.get_terms_fixed_coefs(
-                terms, settings.ITERMS, settings.ICOEFS, do_create_terms=False
-            )
-
-            terms_ = set()
-            for ts in terms:
-                assert ts
-                ts_ = [set(t.free_symbols) for t, _ in ts]
-                if len(ts) <= 1 or not set.intersection(*ts_):
-                    terms_.add(sum(operator.mul(*tc) for tc in ts))
-            terms = terms_
-            
-        if settings.UTERMS:
-            uterms = cls.my_get_terms_user(symbols, settings.UTERMS)
-            old_siz = len(terms)
-            terms.update(uterms)
-            mlog.debug(f"add {len(terms) - old_siz} new terms from user")
-
-        terms = [data.inv.base.RelTerm(t) for t in terms]
-        return terms
-
-    @staticmethod
-    def my_get_terms_user(symbols, uterms):
-        assert isinstance(uterms, set) and uterms, uterms
-        assert all(isinstance(t, str) for t in uterms), uterms
-
-        uterms = set(sympy.sympify(term) for term in uterms)
-
-        if not set(v for t in uterms for v in t.free_symbols).issubset(set(symbols)):
-            raise NameError(f"{uterms} contain symbols not in {symbols}")
-        terms = set()
-        for t in uterms:
-            terms.add(t)
-            terms.add(-t)
-            ts = [t_ for v in symbols for t_ in (v+t, v-t, -v+t, -v-t)]
-            for t_ in ts:
-                if isinstance(t_, sympy.Number):
-                    mlog.warning(f"skipping {t_}")
-                else:
-                    terms.add(t_)
-
-        return terms
-
-    @staticmethod
-    def get_excludes(terms, inps):
-        excludes = set()
-        for term in terms:
-            t_symbs = set(map(str, term.symbols))
-            if len(t_symbs) <= 1:  # ok for finding bound of single input val
-                continue
-
-            if inps.issuperset(t_symbs):
-                excludes.add(term)
-        return excludes
-
 
 class MMP(Infer):
     """
@@ -261,15 +171,15 @@ class MMP(Infer):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
-    @staticmethod
+    @ staticmethod
     def to_expr(term):
         return data.inv.mp.MMP(term, is_ieq=None).expr
 
-    @staticmethod
+    @ staticmethod
     def inv_cls(term_ub):
         return data.inv.mp.MMP(term_ub)
 
-    @classmethod
+    @ classmethod
     def my_get_terms(cls, symbols):
         terms = data.inv.mp.MPTerm.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
@@ -282,7 +192,7 @@ class MMP(Infer):
         terms_min = _get_terms(terms, is_max=False)
         return terms_min + terms_max
 
-    @staticmethod
+    @ staticmethod
     def get_excludes(terms, inps):
         assert isinstance(terms, list)
         assert all(isinstance(t, data.inv.mp.MPTerm) for t in terms), terms

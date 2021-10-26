@@ -225,8 +225,8 @@ class DigSymStates(Dig):
         return dinvs
 
     def infer_ieqs(self, dtraces, inps):
-        import infer.opt
-        return infer.opt.Ieq(self.symstates, self.prog).gen(dtraces)
+        import infer.oct
+        return infer.oct.Infer(self.symstates, self.prog).gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
         import infer.opt
@@ -325,7 +325,7 @@ class DigTraces(Dig):
                     import infer.opt
 
                     def _f(l):
-                        return infer.opt.Ieq.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                        return infer.oct.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_MINMAXPLUS:
