@@ -15,7 +15,7 @@ import data.inv.oct
 import data.inv.mp
 import infer.congruence
 import data.inv.prepost
-import data.inv.nested_array
+import infer.nested_array
 
 
 DBG = pdb.set_trace
@@ -206,7 +206,7 @@ class Invs(set):
                 mylist = mps
             elif isinstance(inv, data.inv.prepost.PrePost):
                 mylist = preposts
-            elif isinstance(inv, data.inv.nested_array.NestedArray):
+            elif isinstance(inv, infer.nested_array.NestedArray):
                 mylist = arr_rels
             elif isinstance(inv, infer.congruence.Congruence):
                 mylist = congruences
