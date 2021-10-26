@@ -83,7 +83,7 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
 
-        dinvs = data.inv.invs.DInvs()
+        dinvs = infer.inv.DInvs()
 
         if not termss:
             return dinvs
@@ -95,10 +95,10 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
             loc: {self.inv_cls(t.mk_le(self.IUPPER)): t for t in terms}
             for loc, terms in zip(locs, termss)
         }
-        ieqs = data.inv.invs.DInvs()
+        ieqs = infer.inv.DInvs()
         for loc in refs:
             for inv in refs[loc].keys():
-                ieqs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+                ieqs.setdefault(loc, infer.inv.Invs()).add(inv)
 
         cexs, ieqs = self.check(ieqs, inps=None)
         ieqs = ieqs.remove_disproved()
@@ -115,19 +115,19 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
         wrs = MP.run_mp("optimize upperbound", tasks, f, settings.DO_MP)
 
-        dinvs = data.inv.invs.DInvs()
+        dinvs = infer.inv.DInvs()
         for loc, term, v in wrs:
             if v is None:
                 continue
             inv = self.inv_cls(term.mk_le(v))
-            inv.set_stat(data.inv.base.Inv.PROVED)
-            dinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+            inv.set_stat(infer.inv.Inv.PROVED)
+            dinvs.setdefault(loc, infer.inv.Invs()).add(inv)
 
         return dinvs
 
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
-        # assert isinstance(term, (data.inv.base.RelTerm, infer.mp.MPTerm)), (
+        # assert isinstance(term, (infer.inv.RelTerm, infer.mp.MPTerm)), (
         #     term,
         #     type(term),
         # )

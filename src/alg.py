@@ -11,7 +11,7 @@ import helpers.vcommon as CM
 
 import data.prog
 from data.traces import Inps, DTraces
-from data.inv.invs import DInvs, Invs
+from infer.inv import DInvs, Invs
 import data.symstates
 
 DBG = pdb.set_trace

@@ -13,7 +13,7 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 
-import data.inv.base
+import infer.inv
 import infer.base
 
 
@@ -23,7 +23,7 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 special_str = "_special"
 
 
-class NestedArray(data.inv.base.Inv):
+class NestedArray(infer.inv.Inv):
 
     def __init__(self, rel, stat=None):
         assert isinstance(rel, str) and rel, rel

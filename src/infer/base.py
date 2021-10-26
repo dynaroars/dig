@@ -6,7 +6,7 @@ import settings
 
 import data.prog
 from data.traces import Inps, DTraces
-from data.inv.base import Inv
+import infer.inv
 import data.symstates
 
 DBG = pdb.set_trace
@@ -51,6 +51,6 @@ class Infer(metaclass=abc.ABCMeta):
             # no symbolic states, not performing checking
             for loc in dinvs:
                 for inv in dinvs[loc]:
-                    inv.stat = Inv.UNKNOWN
+                    inv.stat = infer.inv.Inv.UNKNOWN
             cexs = {}
         return cexs, dinvs

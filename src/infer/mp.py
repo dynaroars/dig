@@ -11,7 +11,7 @@ from helpers.z3utils import Z3
 import settings
 
 import data.traces
-import data.inv.base
+import infer.inv
 import infer.opt
 
 DBG = pdb.set_trace
@@ -220,7 +220,7 @@ class Term(typing.NamedTuple):
         return rs
 
 
-class MMP(data.inv.base.Inv):
+class MMP(infer.inv.Inv):
     def __init__(self, term, is_ieq=True, stat=None):
         """
         term = max(x, y) - z

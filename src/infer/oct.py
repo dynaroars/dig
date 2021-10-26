@@ -6,14 +6,14 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 
-import data.inv.base
+import infer.inv
 import infer.opt
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Oct(data.inv.base.Inv):
+class Oct(infer.inv.Inv):
     """
     Octagonal invariants c1x + c2y <= c3
     """
@@ -80,7 +80,7 @@ class Infer(infer.opt.Infer):
             terms.update(uterms)
             mlog.debug(f"add {len(terms) - old_siz} new terms from user")
 
-        terms = [data.inv.base.RelTerm(t) for t in terms]
+        terms = [infer.inv.RelTerm(t) for t in terms]
         return terms
 
     @staticmethod

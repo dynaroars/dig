@@ -152,12 +152,12 @@ class AResult(Result):
         """
         import infer.mp
 
-        if isinstance(inv, data.inv.prepost.PrePost):
-            mlog.warning("Not very accurate for PREPOST")
-            vs = []
-            maxdegs = 1
-            nterms = 1
-        elif isinstance(inv, infer.mp.MMP):
+        # if isinstance(inv, data.inv.prepost.PrePost):
+        #     mlog.warning("Not very accurate for PREPOST")
+        #     vs = []
+        #     maxdegs = 1
+        #     nterms = 1
+        if isinstance(inv, infer.mp.MMP):
             vs = inv.term.symbols
             maxdeg = 1
             nterms = 2

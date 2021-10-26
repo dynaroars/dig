@@ -22,8 +22,7 @@ from helpers.miscs import MP
 from helpers.z3utils import Z3
 import data.prog
 import data.traces
-import data.inv.base
-import data.inv.invs
+import infer.inv
 import analysis
 
 DBG = pdb.set_trace
@@ -481,7 +480,7 @@ class SymStates(dict):
         Check invs, return cexs
         Also update inps
         """
-        assert isinstance(dinvs, data.inv.invs.DInvs), dinvs
+        assert isinstance(dinvs, infer.inv.DInvs), dinvs
         assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
         mlog.debug(
@@ -500,26 +499,26 @@ class SymStates(dict):
         wrs = MP.run_mp("prove", tasks, f, settings.DO_MP)
 
         mCexs = []
-        mdinvs = data.inv.invs.DInvs()
+        mdinvs = infer.inv.DInvs()
         for loc, str_inv, (cexs, is_succ) in wrs:
             inv = refsD[(loc, str_inv)]
 
             if cexs:
-                stat = data.inv.base.Inv.DISPROVED
+                stat = infer.inv.Inv.DISPROVED
                 mCexs.append({loc: {str(inv): cexs}})
             else:
                 stat = (
-                    data.inv.base.Inv.PROVED if is_succ else data.inv.base.Inv.UNKNOWN
+                    infer.inv.Inv.PROVED if is_succ else infer.inv.Inv.UNKNOWN
                 )
             inv.stat = stat
-            mdinvs.setdefault(loc, data.inv.invs.Invs()).add(inv)
+            mdinvs.setdefault(loc, infer.inv.Invs()).add(inv)
 
         return merge(mCexs), mdinvs
 
     def mcheck_d(self, loc, inv, inps, ncexs):
         assert isinstance(loc, str), loc
         assert inv is None or isinstance(
-            inv, data.inv.base.Inv) or z3.is_expr(inv), inv
+            inv, infer.inv.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 

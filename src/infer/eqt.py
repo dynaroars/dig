@@ -9,15 +9,14 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 
 from data.traces import Inps, Traces, DTraces
-import data.inv.invs
-import data.inv.base
+import infer.inv
 import infer.base
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Eqt(data.inv.base.Inv):
+class Eqt(infer.inv.Inv):
     def __init__(self, eqt, stat=None):
         assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
         super().__init__(eqt, stat)
@@ -55,7 +54,7 @@ class Infer(infer.base.Infer):
         wrs = MP.run_mp("find eqts", tasks, f, settings.DO_MP)
 
         # put results together
-        dinvs = data.inv.invs.DInvs()
+        dinvs = infer.inv.DInvs()
         for loc, (eqts, cexs) in wrs:
             new_inps = inps.merge(cexs, self.inp_decls.names)
             mlog.debug(
@@ -63,7 +62,7 @@ class Infer(infer.base.Infer):
             if eqts:
                 mlog.debug("\n".join(map(str, eqts)))
 
-            dinvs[loc] = data.inv.invs.Invs(eqts)
+            dinvs[loc] = infer.inv.Invs(eqts)
 
         return dinvs
 
@@ -100,7 +99,7 @@ class Infer(infer.base.Infer):
             if loc not in new_traces:
                 doRand = False
 
-                dinvsFalse = data.inv.invs.DInvs.mk_false_invs([loc])
+                dinvsFalse = infer.inv.DInvs.mk_false_invs([loc])
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
 
                 # cannot find new inputs
@@ -137,7 +136,7 @@ class Infer(infer.base.Infer):
             mlog.debug(
                 f"{loc}: need more traces ({len(exprs)} eqts, need >= {n_eqts_needed})"
             )
-            dinvsFalse = data.inv.invs.DInvs.mk_false_invs([loc])
+            dinvsFalse = infer.inv.DInvs.mk_false_invs([loc])
             cexs, _, _ = self.symstates.check(dinvsFalse, inps)
 
             if loc not in cexs:
@@ -223,8 +222,8 @@ class Infer(infer.base.Infer):
                 f"{loc}: check {len(unchecks)} unchecked ({len(new_eqts)} candidates)"
             )
 
-            dinvs = data.inv.invs.DInvs.mk(
-                loc, data.inv.invs.Invs(list(map(Eqt, unchecks))))
+            dinvs = infer.inv.DInvs.mk(
+                loc, infer.inv.Invs(list(map(Eqt, unchecks))))
             cexs, dinvs = self.check(dinvs, None)
             if cexs:
                 new_cexs.append(cexs)
