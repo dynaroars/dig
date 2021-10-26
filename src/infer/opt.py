@@ -14,8 +14,6 @@ from helpers.z3utils import Z3
 import helpers.vcommon as CM
 
 import data.traces
-import infer.oct
-import data.inv.mp
 import infer.base
 
 DBG = pdb.set_trace
@@ -129,14 +127,14 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
 
     def maximize(self, loc, term, extra_constr, dtraces):
         assert isinstance(loc, str) and loc, loc
-        assert isinstance(term, (data.inv.base.RelTerm, data.inv.mp.MPTerm)), (
-            term,
-            type(term),
-        )
+        # assert isinstance(term, (data.inv.base.RelTerm, infer.mp.MPTerm)), (
+        #     term,
+        #     type(term),
+        # )
         assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
         assert isinstance(dtraces, data.traces.DTraces), dtraces
 
-        iupper = self.get_iupper(term)
+        iupper = self.IUPPER
 
         # check if concrete states(traces) exceed upperbound
         if extra_constr is None:
@@ -160,77 +158,3 @@ class Infer(infer.base.Infer, metaclass=abc.ABCMeta):
                 terms), len(new_terms), time() - st)
             terms = new_terms
         return terms
-
-
-class MMP(Infer):
-    """
-    Min-max plus invariants
-    """
-    IUPPER = settings.IUPPER_MMP
-
-    def __init__(self, symstates, prog):
-        super().__init__(symstates, prog)
-
-    @ staticmethod
-    def to_expr(term):
-        return data.inv.mp.MMP(term, is_ieq=None).expr
-
-    @ staticmethod
-    def inv_cls(term_ub):
-        return data.inv.mp.MMP(term_ub)
-
-    @ classmethod
-    def my_get_terms(cls, symbols):
-        terms = data.inv.mp.MPTerm.get_terms(symbols)
-        terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
-
-        def _get_terms(terms, is_max):
-            terms_ = [(b, a) for a, b in terms]
-            return [data.inv.mp.MPTerm.mk(a, b, is_max) for a, b in terms + terms_]
-
-        terms_max = _get_terms(terms, is_max=True)
-        terms_min = _get_terms(terms, is_max=False)
-        return terms_min + terms_max
-
-    @ staticmethod
-    def get_excludes(terms, inps):
-        assert isinstance(terms, list)
-        assert all(isinstance(t, data.inv.mp.MPTerm) for t in terms), terms
-        assert isinstance(inps, set), inps
-
-        def is_pure(xs):
-            # if it's small, then we won't be too strict and allow it
-            return (
-                len(xs) <= 2
-                or all(x in inps for x in xs)
-                or all(x not in inps for x in xs)
-            )
-
-        excludes = set()
-        for term in terms:
-            a_symbs = set(map(str, Miscs.get_vars(term.a)))
-            b_symbs = set(map(str, Miscs.get_vars(term.b)))
-            # print(term, a_symbs, b_symbs)
-
-            if not is_pure(a_symbs) or not is_pure(b_symbs):
-                excludes.add(term)
-                # print('excluding, not pure', term)
-                continue
-
-            inp_in_a = any(s in inps for s in a_symbs)
-            inp_in_b = any(s in inps for s in b_symbs)
-
-            # exclude if (inp in both a and b) or inp not in a or b
-            if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
-                excludes.add(term)
-                continue
-
-            t_symbs = set.union(a_symbs, b_symbs)
-
-            if len(t_symbs) <= 1:  # finding bound of single input val,
-                continue
-
-            if inps.issuperset(t_symbs) or all(s not in inps for s in t_symbs):
-                excludes.add(term)
-
-        return excludes

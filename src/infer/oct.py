@@ -1,11 +1,10 @@
 import operator
 import pdb
 import sympy
-from helpers.z3utils import Z3
-
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
+from helpers.z3utils import Z3
 
 import data.inv.base
 import infer.opt

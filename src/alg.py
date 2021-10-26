@@ -229,8 +229,8 @@ class DigSymStates(Dig):
         return infer.oct.Infer(self.symstates, self.prog).gen(dtraces)
 
     def infer_minmax(self, dtraces, inps):
-        import infer.opt
-        return infer.opt.MMP(self.symstates, self.prog).gen(dtraces)
+        import infer.mp
+        return infer.mp.Infer(self.symstates, self.prog).gen(dtraces)
 
     def infer_preposts(self, dinvs, dtraces):
         import infer.prepost
@@ -322,17 +322,17 @@ class DigTraces(Dig):
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
-                    import infer.opt
+                    import infer.oct
 
                     def _f(l):
                         return infer.oct.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_MINMAXPLUS:
-                    import infer.opt
+                    import infer.mp
 
                     def _f(l):
-                        return infer.opt.MMP.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+                        return infer.mp.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_CONGRUENCES:

@@ -12,7 +12,7 @@ import helpers.vcommon as CM
 import data.inv.base
 import infer.eqt
 import infer.oct
-import data.inv.mp
+import infer.mp
 import infer.congruence
 import data.inv.prepost
 import infer.nested_array
@@ -94,7 +94,7 @@ class Invs(set):
             (octs_simple if oct.is_simple else octs_not_simple).append(oct)
 
         # find equality invs (==) from min/max-plus
-        mps = data.inv.mp.MMP.simplify(mps)
+        mps = infer.mp.MMP.simplify(mps)
         mps_eqt, mps_ieq = [], []
         for mp in mps:
             (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
@@ -202,7 +202,7 @@ class Invs(set):
                     mylist = eqts
             elif isinstance(inv, infer.oct.Oct):
                 mylist = octs
-            elif isinstance(inv, data.inv.mp.MMP):
+            elif isinstance(inv, infer.mp.MMP):
                 mylist = mps
             elif isinstance(inv, data.inv.prepost.PrePost):
                 mylist = preposts

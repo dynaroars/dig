@@ -16,6 +16,7 @@ from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.inv
+# import infer.mp
 
 DBG = pdb.set_trace
 
@@ -149,12 +150,14 @@ class AResult(Result):
         """
         return the # of variables, max deg, and number of terms
         """
+        import infer.mp
+
         if isinstance(inv, data.inv.prepost.PrePost):
             mlog.warning("Not very accurate for PREPOST")
             vs = []
             maxdegs = 1
             nterms = 1
-        elif isinstance(inv, data.inv.mp.MMP):
+        elif isinstance(inv, infer.mp.MMP):
             vs = inv.term.symbols
             maxdeg = 1
             nterms = 2

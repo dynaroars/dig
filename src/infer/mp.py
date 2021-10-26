@@ -12,20 +12,22 @@ import settings
 
 import data.traces
 import data.inv.base
+import infer.opt
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-class MPTerm(typing.NamedTuple):
+
+class Term(typing.NamedTuple):
     a: tuple
     b: tuple
     is_max: bool
 
     @property
-    def symbols(self)->typing.Set[str]:
+    def symbols(self) -> typing.Set[str]:
         return set(map(str, Miscs.get_vars(self.a + self.b)))
 
-    def __str__(self, use_lambda:bool=False) -> str:
+    def __str__(self, use_lambda: bool = False) -> str:
         """
         Return string representing a lambda function
         lambda x, y, ... = max(x, y...) - max(x, y...)
@@ -36,7 +38,7 @@ class MPTerm(typing.NamedTuple):
         return s
 
     @classmethod
-    def mk(cls, a, b, is_max:bool=True):
+    def mk(cls, a, b, is_max: bool = True):
         if not isinstance(a, tuple):
             a = (a,)
         if not isinstance(b, tuple):
@@ -61,7 +63,7 @@ class MPTerm(typing.NamedTuple):
 
         return self.mk(a, b, self.is_max)
 
-    def eval_traces(self, traces:data.traces.Traces, pred=None)->bool:
+    def eval_traces(self, traces: data.traces.Traces, pred=None) -> bool:
         if pred is None:
             return [
                 self._eval(self.__str__(use_lambda=True), t.mydict_str) for t in traces
@@ -80,22 +82,22 @@ class MPTerm(typing.NamedTuple):
         max(c1+x1, ... ,cn+xn, c0) <= xj
         where ci are in {0,-oo} for max plus
 
-        sage: from data.mps import MMPTerm
+        sage: from data.mps import Term
 
         sage: var('x y z t s w')
         (x, y, z, t, s, w)
 
-        sage: ts = MMPTerm.get_terms([x,y])
+        sage: ts = MTerm.get_terms([x,y])
         sage: ts
         [(x, (0,)), (x, (y, 0)), (x, (y,)), (y, (0,)), (y, (x, 0))]
         sage: assert len(ts) == 5
 
-        sage: ts = MMPTerm.get_terms([x,y], ignore_oct=True)
+        sage: ts = MTerm.get_terms([x,y], ignore_oct=True)
         sage: ts
         [(x, (y, 0)), (y, (x, 0))]
 
 
-        sage: ts = MMPTerm.get_terms([x,y,z])
+        sage: ts = MTerm.get_terms([x,y,z])
         sage: assert len(ts) == 18
         sage: ts
         [(x, (0,)),
@@ -117,7 +119,7 @@ class MPTerm(typing.NamedTuple):
         (z, (x, y, 0)),
         (z, (y, 0))]
 
-        sage: ts = MMPTerm.get_terms([x,y,z], ignore_oct=True)
+        sage: ts = MTerm.get_terms([x,y,z], ignore_oct=True)
         sage: ts
         [(x, (y, 0)),
         (x, (y, z)),
@@ -133,10 +135,10 @@ class MPTerm(typing.NamedTuple):
         (z, (y, 0))]
 
 
-        sage: ts = MMPTerm.get_terms([x,y,z,w])
+        sage: ts = MTerm.get_terms([x,y,z,w])
         sage: assert len(ts) == 54
 
-        sage: assert len(MMPTerm.get_terms([x,y,z,t,s])) == 145
+        sage: assert len(MTerm.get_terms([x,y,z,t,s])) == 145
 
         """
         assert terms, terms
@@ -159,7 +161,7 @@ class MPTerm(typing.NamedTuple):
 
     @staticmethod
     @functools.cache
-    def _to_str(a, b, is_max:bool)->str:
+    def _to_str(a, b, is_max: bool) -> str:
         """
         # sage: x, y, z = sage.all.var('x y z')
         # sage: print(MMPInv._to_str((x,), (0,), is_max=True))
@@ -192,7 +194,7 @@ class MPTerm(typing.NamedTuple):
             return f"{a_} - {b_}"
 
     @staticmethod
-    def _eval(lambda_str:str, trace:data.traces.Trace) -> bool:
+    def _eval(lambda_str: str, trace: data.traces.Trace) -> bool:
         """
         Examples:
         # sage: assert MMPInv._eval('lambda x,y: x+y', {'x': 2,'y':3,'d':7}) == 5
@@ -227,7 +229,7 @@ class MMP(data.inv.base.Inv):
         is_ieq is True -> treat like  <= expr, e.g., If(x>=y,x<=z,y<=z)
         if_ieq is False -> treat like == expr, e.g., If(x>=y,x>=z,y>=z)
         """
-        assert isinstance(term, MPTerm), term
+        assert isinstance(term, Term), term
         assert is_ieq is None or isinstance(is_ieq, bool), is_ieq
 
         hash_contents = (term.a, term.b, term.is_max, is_ieq)
@@ -269,11 +271,11 @@ class MMP(data.inv.base.Inv):
 
         return expr
 
-    def test_single_trace(self, trace:data.traces.Traces) -> bool:
+    def test_single_trace(self, trace: data.traces.Traces) -> bool:
         assert isinstance(trace, data.traces.Trace), trace
 
         trace = trace.mydict_str
-        bval = MPTerm._eval(self.lambdastr(use_lambda=True), trace)
+        bval = Term._eval(self.lambdastr(use_lambda=True), trace)
         assert isinstance(bval, (sympy.logic.boolalg.BooleanTrue,
                           sympy.logic.boolalg.BooleanFalse)), bval
         return bool(bval)
@@ -337,3 +339,75 @@ class MMP(data.inv.base.Inv):
         return list(cached.values())
 
 
+class Infer(infer.opt.Infer):
+    """
+    Min-max plus invariants
+    """
+    IUPPER = settings.IUPPER_MMP
+
+    def __init__(self, symstates, prog):
+        super().__init__(symstates, prog)
+
+    @staticmethod
+    def to_expr(term):
+        return MMP(term, is_ieq=None).expr
+
+    @staticmethod
+    def inv_cls(term_ub):
+        return MMP(term_ub)
+
+    @classmethod
+    def my_get_terms(cls, symbols):
+        terms = Term.get_terms(symbols)
+        terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
+
+        def _get_terms(terms, is_max):
+            terms_ = [(b, a) for a, b in terms]
+            return [Term.mk(a, b, is_max) for a, b in terms + terms_]
+
+        terms_max = _get_terms(terms, is_max=True)
+        terms_min = _get_terms(terms, is_max=False)
+        return terms_min + terms_max
+
+    @staticmethod
+    def get_excludes(terms, inps):
+        assert isinstance(terms, list)
+        assert all(isinstance(t, Term) for t in terms), terms
+        assert isinstance(inps, set), inps
+
+        def is_pure(xs):
+            # if it's small, then we won't be too strict and allow it
+            return (
+                len(xs) <= 2
+                or all(x in inps for x in xs)
+                or all(x not in inps for x in xs)
+            )
+
+        excludes = set()
+        for term in terms:
+            a_symbs = set(map(str, Miscs.get_vars(term.a)))
+            b_symbs = set(map(str, Miscs.get_vars(term.b)))
+            # print(term, a_symbs, b_symbs)
+
+            if not is_pure(a_symbs) or not is_pure(b_symbs):
+                excludes.add(term)
+                # print('excluding, not pure', term)
+                continue
+
+            inp_in_a = any(s in inps for s in a_symbs)
+            inp_in_b = any(s in inps for s in b_symbs)
+
+            # exclude if (inp in both a and b) or inp not in a or b
+            if (inp_in_a and inp_in_b) or (not inp_in_a and not inp_in_b):
+                excludes.add(term)
+                continue
+
+            t_symbs = set.union(a_symbs, b_symbs)
+
+            if len(t_symbs) <= 1:  # finding bound of single input val,
+                continue
+
+            if inps.issuperset(t_symbs) or all(s not in inps for s in t_symbs):
+                excludes.add(term)
+
+        return excludes
