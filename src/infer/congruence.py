@@ -74,6 +74,16 @@ class Congruence(infer.inv.Inv):
 
 
 class Infer(infer.infer._Infer):
+
+    def gen(self, traces: data.traces.DTraces, inps: data.traces.Inps) -> infer.inv.DInvs:
+
+        locs = traces.keys()
+        # tasks = [
+        #     (loc, self._get_init_traces
+        #     ]
+
+        return infer.inv.DInvs()
+
     @classmethod
     def gen_from_traces(cls, traces, symbols):
         ps = []

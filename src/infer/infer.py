@@ -69,6 +69,13 @@ class _Infer(metaclass=abc.ABCMeta):
         return cexs, dinvs
 
 
+class _Iterative(_Infer, metaclass=abc.ABCMeta):
+    """
+    Find invs using a guess and check iterative approach
+    """
+    pass
+
+
 class _Opt(_Infer, metaclass=abc.ABCMeta):
     """
     Find upperbound of polynomial and min/max terms using an SMT solver optimizer

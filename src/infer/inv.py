@@ -251,7 +251,7 @@ class Invs(set):
             return self.get_expr(p, exprs_d)
 
         # simplify eqts, e.g., to remove x - y == 0  if -x + y == 0 exists
-        eqts = self.simplify2(eqts, None, "eqts", my_get_expr)
+        eqts = self._simplify_slow(eqts, None, "eqts", my_get_expr)
 
         octs_simple, octs_not_simple = [], []
         for oct in octs:
@@ -267,8 +267,9 @@ class Invs(set):
 
         done = eqts + mps_eqt + congruences  # don't simply these
 
-        mps_ieq = self.simplify1(mps_ieq, done + octs, "mps_ieq", my_get_expr)
-        octs_not_simple = self.simplify1(
+        mps_ieq = self._simpify_fast(
+            mps_ieq, done + octs, "mps_ieq", my_get_expr)
+        octs_not_simple = self._simpify_fast(
             octs_not_simple, done + octs_simple + mps_ieq, "octs", my_get_expr
         )
 
@@ -284,7 +285,7 @@ class Invs(set):
             octs_not_simple = mysorted(octs_not_simple)
             mps_ieq = mysorted(mps_ieq)
 
-            octs_mps = self.simplify2(
+            octs_mps = self._simplify_slow(
                 octs_mps,
                 done + octs_simple,
                 "octs+mps",
@@ -293,7 +294,7 @@ class Invs(set):
 
         # don't use done to simplify octs_simple because
         # nonlinear eqts will remove many useful octs
-        octs_simple = self.simplify2(
+        octs_simple = self._simplify_slow(
             octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
         )
 
@@ -301,7 +302,7 @@ class Invs(set):
         return self.__class__(done)
 
     @classmethod
-    def simplify1(cls, ps, others, msg, get_expr):
+    def _simpify_fast(cls, ps, others, msg, get_expr):
         """
         Simplify given properties ps (usually a class of invs such as octs or mps)
         using the properties in others, e.g., remove p if others => p
@@ -318,14 +319,16 @@ class Invs(set):
         def f(ps):
             return [p for p in ps if not Z3._imply(conj, get_expr(p))]
 
-        wrs = MP.run_mp(f"simplify1 {len(ps)} {msg}", ps, f, settings.DO_MP)
+        wrs = MP.run_mp(
+            f"_simpify_fast {len(ps)} {msg}", ps, f, settings.DO_MP)
 
-        Miscs.show_removed(f"simplify1 {msg}", len(ps), len(wrs), time() - st)
+        Miscs.show_removed(f"_simpify_fast {msg}", len(
+            ps), len(wrs), time() - st)
         ps = [p for p in wrs]
         return ps
 
     @classmethod
-    def simplify2(cls, ps, others, msg, get_expr):
+    def _simplify_slow(cls, ps, others, msg, get_expr):
         """
         Simplify given properties ps using properties in both ps and others
         e.g., remove g if  ps_exclude_g & others => g
@@ -350,8 +353,8 @@ class Invs(set):
 
         results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
         results = [ps[i] for i in results]
-        Miscs.show_removed(f"simplify2 {msg}", len(
-            ps), len(results), time() - st)
+        Miscs.show_removed(f"_simplify_slow {msg}",
+                           len(ps), len(results), time() - st)
 
         return results
 

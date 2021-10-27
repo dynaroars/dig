@@ -26,12 +26,13 @@ class Eqt(infer.inv.Inv):
         return f"{self.inv.lhs} == {self.inv.rhs}"
 
 
-class Infer(infer.infer._Infer):
-    def __init__(self, symstates, prog):
-        super().__init__(symstates, prog)
-        self.use_rand_init = False  # use symstates or random to get init inps
+class Infer(infer.infer._Iterative):
 
-    def gen(self, deg, traces, inps):
+    # def __init__(self, symstates, prog, maxdeg):
+    #     super().__init__(symstates, prog)
+    #     self.maxdeg = maxdeg
+
+    def gen(self, deg, traces, inps) -> infer.inv.DInvs:
         assert deg >= 1, deg
         assert isinstance(traces, data.traces.DTraces) and traces, traces
         assert isinstance(inps, data.traces.Inps), inps
@@ -124,42 +125,16 @@ class Infer(infer.infer._Infer):
 
         return exprs
 
-    def _while_symstates(self, loc, template, n_eqts_needed, inps, traces):
-        """
-        repeated get more traces using the symstates
-        """
-        assert isinstance(loc, str), loc
-        assert n_eqts_needed >= 1, n_eqts_needed
-
-        exprs = traces[loc].instantiate(template, n_eqts_needed)
-        while n_eqts_needed > len(exprs):
-            mlog.debug(
-                f"{loc}: need more traces ({len(exprs)} eqts, need >= {n_eqts_needed})"
-            )
-            dinvsFalse = infer.inv.DInvs.mk_false_invs([loc])
-            cexs, _, _ = self.symstates.check(dinvsFalse, inps)
-
-            if loc not in cexs:
-                mlog.error(f"{loc}: cannot generate enough traces")
-                return
-
-            new_inps = inps.merge(cexs, self.inp_decls.names)
-            new_traces = self.get_traces(new_inps, traces)
-
-            self.add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
-
-        return exprs
-
     def _get_init_traces(self, loc, deg, traces, inps, rate):
-        "Initial loop to obtain (random) traces to bootstrap eqt solving"
+        """
+        Initial loop to obtain (random) traces to bootstrap eqt solving
+        """
 
         assert deg >= 1, deg
         assert isinstance(rate, float) and rate >= 0.1, rate
 
-        if self.use_rand_init:
-            whileF, whileFName = self._while_rand, "random"
-        else:
-            whileF, whileFName = self._while_symstates, "symstates"
+        whileF, whileFName = self._while_rand, "random"
+
         mlog.debug(
             f"{loc}: gen init inps using {whileFName} "
             f"(curr inps {len(inps)}, traces {len(traces)})"
@@ -185,7 +160,8 @@ class Infer(infer.infer._Infer):
 
         return ts, uks, exprs
 
-    def _infer(self, loc, ts, uks, exprs, dtraces, inps):
+    def _infer(self, loc: str, ts: list, uks: list, exprs: set,
+               dtraces: data.traces.DTraces, inps: data.traces.Inps):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(ts, list), ts
         assert isinstance(uks, list), uks

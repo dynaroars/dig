@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+import abc
 import itertools
 import pdb
 import random
@@ -19,13 +19,13 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.logger_level)
 
 
-class Dig(metaclass=ABCMeta):
+class Dig(metaclass=abc.ABCMeta):
     def __init__(self, filename):
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
-    @abstractmethod
+    @abc.abstractmethod
     def start(self, seed, maxdeg):
         self.seed = seed
         random.seed(seed)
@@ -71,10 +71,11 @@ class Dig(metaclass=ABCMeta):
         return dinvs
 
 
-class DigSymStates(Dig):
+class DigSymStates(Dig, metaclass=abc.ABCMeta):
     EQTS = "eqts"
     IEQS = "ieqs"
     MINMAX = "minmax"
+    CONGRUENCE = "congruence"
     PREPOSTS = "preposts"
 
     def __init__(self, filename):
@@ -120,7 +121,6 @@ class DigSymStates(Dig):
             digtraces.start(self.seed, maxdeg)
             return
 
-        self.use_rand_init = True
         self.locs = self.inv_decls.keys()
 
         st = time.time()
@@ -154,10 +154,14 @@ class DigSymStates(Dig):
             self.infer(self.MINMAX, dinvs,
                        lambda: self.infer_minmax(dtraces, inps))
 
+        if settings.DO_CONGRUENCES:
+            self.infer(self.CONGRUENCE, dinvs,
+                       lambda: self.infer_congruence(dtraces, inps))
+
         dinvs = self.sanitize(dinvs, dtraces)
 
         if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer("preposts", dinvs,
+            self.infer(self.PREPPOSTS, dinvs,
                        lambda: self.infer_preposts(dinvs, dtraces))
 
         et = time.time() - st
@@ -200,7 +204,8 @@ class DigSymStates(Dig):
         Analysis(self.tmpdir).start()  # output stats and results
 
     def infer(self, typ, dinvs, f):
-        assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
+        assert typ in {self.EQTS, self.IEQS, self.MINMAX,
+                       self.CONGRUENCE, self.PREPOSTS}, typ
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
         st = time.time()
@@ -218,7 +223,6 @@ class DigSymStates(Dig):
         import infer.eqt
 
         solver = infer.eqt.Infer(self.symstates, self.prog)
-        solver.use_rand_init = self.use_rand_init
 
         auto_deg = self.get_auto_deg(maxdeg)  # determine degree
         dinvs = solver.gen(auto_deg, dtraces, inps)
@@ -231,6 +235,10 @@ class DigSymStates(Dig):
     def infer_minmax(self, dtraces, inps):
         import infer.mp
         return infer.mp.Infer(self.symstates, self.prog).gen(dtraces)
+
+    def infer_congruence(self, dtraces, inps):
+        import infer.congruence
+        return infer.congruence.Infer(self.symstates, self.prog).gen(dtraces, inps)
 
     def infer_preposts(self, dinvs, dtraces):
         import infer.prepost
@@ -300,6 +308,8 @@ class DigTraces(Dig):
 
         super().start(seed, maxdeg)
         mlog.debug(f"got {self.dtraces.siz} traces\n{self.dtraces}")
+
+        # run everything in parallel
         tasks = []
         for loc in self.dtraces:
             if self.inv_decls[loc].array_only:
