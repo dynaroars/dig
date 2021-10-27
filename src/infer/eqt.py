@@ -133,20 +133,18 @@ class Infer(infer.infer._Iterative):
         assert deg >= 1, deg
         assert isinstance(rate, float) and rate >= 0.1, rate
 
-        whileF, whileFName = self._while_rand, "random"
-
         mlog.debug(
-            f"{loc}: gen init inps using {whileFName} "
+            f"{loc}: generating random initial inps "
             f"(curr inps {len(inps)}, traces {len(traces)})"
         )
         ts, uks, n_eqts_needed = Miscs.init_terms(
             self.inv_decls[loc].names, deg, rate)
 
-        exprs = whileF(loc, ts, uks, n_eqts_needed, inps, traces)
+        exprs = self._while_rand(loc, ts, uks, n_eqts_needed, inps, traces)
 
         # if cannot generate sufficient traces, adjust degree
         while not exprs:
-            if deg < 2:
+            if deg <= 1:
                 return  # cannot generate enough traces
 
             deg = deg - 1
@@ -156,7 +154,7 @@ class Infer(infer.infer._Iterative):
             ts, uks, n_eqts_needed = Miscs.init_terms(
                 self.inv_decls[loc].names, deg, rate
             )
-            exprs = whileF(loc, ts, uks, n_eqts_needed, inps, traces)
+            exprs = self._while_rand(loc, ts, uks, n_eqts_needed, inps, traces)
 
         return ts, uks, exprs
 
