@@ -14,6 +14,12 @@ from data.traces import Inps, DTraces
 from infer.inv import DInvs, Invs
 import data.symstates
 
+import infer.nested_array
+import infer.eqt
+import infer.oct
+import infer.mp
+import infer.congruence
+
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
@@ -26,7 +32,7 @@ class Dig(metaclass=abc.ABCMeta):
         self.time_d = {}  # time results
 
     @abc.abstractmethod
-    def start(self, seed, maxdeg):
+    def start(self, seed, maxdeg: int) -> None:
         self.seed = seed
         random.seed(seed)
         mlog.debug(
@@ -35,8 +41,6 @@ class Dig(metaclass=abc.ABCMeta):
         )
 
     def get_auto_deg(self, maxdeg):
-        assert maxdeg is None or maxdeg >= 1, maxdeg
-
         maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
@@ -44,6 +48,7 @@ class Dig(metaclass=abc.ABCMeta):
     def sanitize(self, dinvs, dtraces):
         if not dinvs.siz:
             return dinvs
+
         msg = f"check {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
         st = time.time()
@@ -82,7 +87,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         super().__init__(filename)
 
     def start(self, seed, maxdeg):
-        assert maxdeg is None or maxdeg >= 1, maxdeg
+
+        if not(maxdeg is None or maxdeg >= 1):
+            raise ValueError(f"maxdeg has invalid value {maxdeg}")
 
         super().start(seed, maxdeg)
 
@@ -103,7 +110,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         self.prog = data.prog.Prog(
             self.exe_cmd, self.inp_decls, self.inv_decls)
 
-        if not settings.DO_SS:  # use randomly generated traces from running the program on random inputs
+        if not settings.DO_SS:  # use traces from running the program on random inputs
             rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
             inps = Inps().merge(rinps, self.inp_decls.names)
             mlog.debug(f"gen {len(inps)} random inps")
@@ -121,11 +128,10 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             digtraces.start(self.seed, maxdeg)
             return
 
-        self.locs = self.inv_decls.keys()
-
         st = time.time()
         self.symstates = self.get_symbolic_states()
         et = time.time() - st
+        self.locs = self.inv_decls.keys()
         mlog.info(
             f"got symbolic states at {len(self.locs)} locs: ({et:.2f}s)"
         )
@@ -143,31 +149,25 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         inps = Inps()
 
         if settings.DO_EQTS:
-            self.infer(self.EQTS, dinvs,
-                       lambda: self.infer_eqts(maxdeg, dtraces, inps))
-
-        if settings.DO_IEQS:
-            self.infer(self.IEQS, dinvs,
-                       lambda: self.infer_ieqs(dtraces, inps))
-
-        if settings.DO_MINMAXPLUS:
-            self.infer(self.MINMAX, dinvs,
-                       lambda: self.infer_minmax(dtraces, inps))
+            self._infer(self.EQTS, dinvs,
+                        lambda: self._infer_eqts(maxdeg, dtraces, inps))
 
         if settings.DO_CONGRUENCES:
-            self.infer(self.CONGRUENCE, dinvs,
-                       lambda: self.infer_congruence(dtraces, inps))
+            self._infer(self.CONGRUENCE, dinvs,
+                        lambda: self._infer_congruence(dtraces, inps))
+
+        if settings.DO_IEQS:
+            self._infer(self.IEQS, dinvs,
+                        lambda: self._infer_ieqs(dtraces))
+
+        if settings.DO_MINMAXPLUS:
+            self._infer(self.MINMAX, dinvs,
+                        lambda: self._infer_minmax(dtraces))
 
         dinvs = self.sanitize(dinvs, dtraces)
 
-        if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer(self.PREPPOSTS, dinvs,
-                       lambda: self.infer_preposts(dinvs, dtraces))
-
         et = time.time() - st
         self.time_d["total"] = et
-
-        # print(f"{dinvs}\nrun time {et:.2f}s, result dir: {self.tmpdir}")
 
         self.cleanup(dinvs, dtraces, inps)
 
@@ -203,7 +203,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()  # output stats and results
 
-    def infer(self, typ, dinvs, f):
+    def _infer(self, typ, dinvs, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE, self.PREPOSTS}, typ
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
@@ -219,30 +219,26 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             dinvs.merge(new_invs)
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
-    def infer_eqts(self, maxdeg, dtraces, inps):
-        import infer.eqt
-
+    def _infer_eqts(self, maxdeg, dtraces, inps):
         solver = infer.eqt.Infer(self.symstates, self.prog)
 
         auto_deg = self.get_auto_deg(maxdeg)  # determine degree
+
         dinvs = solver.gen(auto_deg, dtraces, inps)
         return dinvs
 
-    def infer_ieqs(self, dtraces, inps):
-        import infer.oct
+    def _infer_ieqs(self, dtraces):
         return infer.oct.Infer(self.symstates, self.prog).gen(dtraces)
 
-    def infer_minmax(self, dtraces, inps):
-        import infer.mp
+    def _infer_minmax(self, dtraces):
         return infer.mp.Infer(self.symstates, self.prog).gen(dtraces)
 
-    def infer_congruence(self, dtraces, inps):
-        import infer.congruence
+    def _infer_congruence(self, dtraces, inps):
         return infer.congruence.Infer(self.symstates, self.prog).gen(dtraces, inps)
 
-    def infer_preposts(self, dinvs, dtraces):
-        import infer.prepost
-        return infer.prepost.Infer(self.symstates, self.prog).gen(dinvs, dtraces)
+    # def _infer_preposts(self, dinvs, dtraces):
+    #     import infer.prepost
+    #     return infer.prepost.Infer(self.symstates, self.prog).gen(dinvs, dtraces)
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
@@ -314,14 +310,13 @@ class DigTraces(Dig):
         for loc in self.dtraces:
             if self.inv_decls[loc].array_only:
                 if settings.DO_ARRAYS:
-                    import infer.nested_array
+                    # import infer.nested_array
 
                     def _f(l):
                         return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
                     tasks.append((loc, _f))
             else:
                 if settings.DO_EQTS:
-                    import infer.eqt
                     try:
                         autodeg
                     except NameError:
@@ -332,22 +327,16 @@ class DigTraces(Dig):
                     tasks.append((loc, _f))
 
                 if settings.DO_IEQS:
-                    import infer.oct
-
                     def _f(l):
                         return infer.oct.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_MINMAXPLUS:
-                    import infer.mp
-
                     def _f(l):
                         return infer.mp.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
 
                 if settings.DO_CONGRUENCES:
-                    import infer.congruence
-
                     def _f(l):
                         return infer.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
                     tasks.append((loc, _f))
@@ -371,6 +360,85 @@ class DigTraces(Dig):
 
         dinvs = self.sanitize(dinvs, self.dtraces)
         print(dinvs)
+
+    # @classmethod
+    # def infer_tasks(dtraces, inv_decls, cond, f) -> list:
+    #     return [(loc, _f) for loc in dtraces if cond]
+
+    # @classmethod
+    # def infer_nested_array_tasks(dtraces, inv_decls) -> list:
+    #     tasks = []
+    #     for loc in dtraces:
+    #         if inv_decls[loc].array_only and settings.DO_ARRAYS:
+    #             import infer.nested_array
+
+    #             def _f(l):
+    #                 return infer.nested_array.Infer.gen_from_traces(dtraces[l])
+    #             tasks.append((loc, _f))
+    #     return tasks
+
+    # @classmethod
+    # def infer_eqt_tasks(cls, dtraces, inv_decls) -> None:
+    #     tasks = []
+    #     if not settings.DO_EQTS:
+    #         return tasks
+
+    #     try:
+    #         autodeg
+    #     except NameError:
+    #         autodeg = cls.get_auto_deg(inv_decls, maxdeg)
+
+    #     import infer.eqt
+
+    #     def _f(l):
+    #         return infer.eqt.Infer.gen_from_traces(autodeg, dtraces[l], inv_decls[l])
+
+    #     return [(loc, _f) for loc in dtraces if not inv_decls[loc].array_only]
+
+    # @classmethod
+    # def infer_ieq_tasks(cls, dtraces, inv_decls) -> None:
+    #     def _f(l):
+    #         return infer.oct.Infer.gen_from_traces(dtraces[l], inv_decls[l])
+
+    #     return cls.infer_tasks(dtraces, inv_decls, not)
+
+    #     return [(loc, _f) for loc in dtraces if not inv_decls[loc].array_only]
+
+    # @classmethod
+    # def infer_minmaxplus_tasks(cls, dtraces, inv_decls) -> None:
+    #     tasks = []
+    #     if not settings.DO_MINMAXPLUS:
+    #         return tasks
+
+    #     import infer.mp
+    #     for loc in dtraces:
+    #         if not inv_decls[loc].array_only:
+
+    #             def _f(l):
+    #                 return infer.mp.Infer.gen_from_traces(dtraces[l], inv_decls[l])
+    #             tasks.append((loc, _f))
+    #     return tasks
+
+    # @classmethod
+    # def infer_congruence_tasks(cls, dtraces, inv_decls) -> None:
+    #     tasks = []
+    #     if not settings.DO_CONGRUENCES:
+    #         return tasks
+
+    #     import infer.congruence
+    #     for loc in dtraces:
+    #         if not inv_decls[loc].array_only:
+    #             def _f(l):
+    #                 return infer.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+    #             tasks.append((loc, _f))
+
+    #     return tasks
+
+    # @classmethod
+    # def infer_ieqs_tasks(cls, dtraces, inv_decls) -> None:
+    #     tasks = []
+    #     for loc in dtraces:
+    #         if not inv_decls[loc].array_only and settings.DO_EQTS:
 
     @classmethod
     def mk(cls, tracefile, test_tracefile):

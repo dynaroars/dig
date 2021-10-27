@@ -91,6 +91,8 @@ class Infer(infer.infer._Infer):
             symbols.sageExprs, settings.ITERMS, settings.ICOEFS)
         for term in terms:
             term_vals = infer.inv.RelTerm(term).eval_traces(traces)
+            if len(set(term_vals)) == 1:  # all are same
+                continue
             b, n = cls._solve(term_vals)
             if b is None:
                 continue
