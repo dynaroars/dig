@@ -10,10 +10,10 @@ from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.prog
-from data.traces import Inps, DTraces
-from infer.inv import DInvs, Invs
 import data.symstates
+import data.traces
 
+import infer.inv
 import infer.nested_array
 import infer.eqt
 import infer.oct
@@ -31,8 +31,11 @@ class Dig(metaclass=abc.ABCMeta):
         self.filename = filename
         self.time_d = {}  # time results
 
+    def doit(seed, maxdeg: int) -> infer.inv.DInvs:
+        pass
+
     @abc.abstractmethod
-    def start(self, seed, maxdeg: int) -> None:
+    def start(self, seed, maxdeg: int):
         self.seed = seed
         random.seed(seed)
         mlog.debug(
@@ -112,12 +115,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         if not settings.DO_SS:  # use traces from running the program on random inputs
             rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
-            inps = Inps().merge(rinps, self.inp_decls.names)
+            inps = data.traces.Inps().merge(rinps, self.inp_decls.names)
             mlog.debug(f"gen {len(inps)} random inps")
             if not inps:
                 return
 
-            assert isinstance(inps, Inps), inps
+            assert isinstance(inps, data.traces.Inps), inps
             dtraces = self.prog.get_traces(inps)
             if not dtraces:
                 return
@@ -144,9 +147,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 mlog.warning(f"{loc}: no symbolic states. Skip")
                 self.inv_decls.pop(loc)
 
-        dinvs = DInvs()
-        dtraces = DTraces.mk(self.locs)
-        inps = Inps()
+        dinvs = infer.inv.DInvs()
+        dtraces = data.traces.DTraces.mk(self.locs)
+        inps = data.traces.Inps()
 
         if settings.DO_EQTS:
             self._infer(self.EQTS, dinvs,
@@ -177,6 +180,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             mlog.info(f"traces written to {tracefile}")
 
         print(f"tmpdir: {self.tmpdir}")
+        return dinvs
 
     def cleanup(self, dinvs, dtraces, inps):
         """
@@ -201,7 +205,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             self.time_d,
         )
         result.save(self.tmpdir)
-        Analysis(self.tmpdir).start()  # output stats and results
+        Analysis(self.tmpdir).start()  # output stats
 
     def _infer(self, typ, dinvs, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
@@ -235,10 +239,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
     def _infer_congruence(self, dtraces, inps):
         return infer.congruence.Infer(self.symstates, self.prog).gen(dtraces, inps)
-
-    # def _infer_preposts(self, dinvs, dtraces):
-    #     import infer.prepost
-    #     return infer.prepost.Infer(self.symstates, self.prog).gen(dinvs, dtraces)
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
@@ -347,7 +347,7 @@ class DigTraces(Dig):
 
         wrs = MP.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
 
-        dinvs = DInvs()
+        dinvs = infer.inv.DInvs()
         for loc, invs in wrs:
             for inv in invs:
                 dinvs.add(loc, inv)
@@ -359,7 +359,7 @@ class DigTraces(Dig):
             pass  # no test traces
 
         dinvs = self.sanitize(dinvs, self.dtraces)
-        print(dinvs)
+        return dinvs
 
     # @classmethod
     # def infer_tasks(dtraces, inv_decls, cond, f) -> list:
@@ -445,10 +445,10 @@ class DigTraces(Dig):
         assert tracefile.is_file(), tracefile
         assert test_tracefile is None or test_tracefile.is_file()
 
-        inv_decls, dtraces = DTraces.vread(tracefile)
+        inv_decls, dtraces = data.traces.DTraces.vread(tracefile)
 
         test_dtraces = None
         if test_tracefile:
-            _, test_dtraces = DTraces.vread(test_tracefile)
+            _, test_dtraces = data.traces.DTraces.vread(test_tracefile)
 
         return cls(tracefile, inv_decls, dtraces, test_dtraces)

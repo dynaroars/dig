@@ -205,6 +205,10 @@ class Invs(set):
     def typ_ctr(self):
         return Counter(inv.__class__.__name__ for inv in self)
 
+    @property
+    def cinvs(self):
+        return CInvs(self)
+
     def add(self, inv):
         assert isinstance(inv, Inv), inv
 
@@ -231,6 +235,77 @@ class Invs(set):
         invs = self.__class__(myinvs)
         return invs
 
+    def simplify(self):
+        return self.__class__(self.cinvs.simplify())
+
+
+class CInvs:
+    """
+    Classify invariants into their types for various simplification tasks
+    """
+
+    def __init__(self, invs: Invs):
+        self.invs = invs
+        self.eqts = []
+        self.eqts_largecoefs = []
+        self.octs = []
+        self.mps = []
+        self.congruences = []
+        self.arr_rels = []
+        self.falseinvs = []
+
+        import infer.eqt
+        import infer.oct
+        import infer.mp
+        import infer.congruence
+        import infer.nested_array
+
+        eqts, eqts_largecoefs, octs, mps, congruences, falseinvs = [], [], [], [], [], []
+        arr_rels = []
+        for inv in self.invs:
+            mylist = None
+            if isinstance(inv, infer.eqt.Eqt):
+                if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
+                    mylist = self.eqts_largecoefs
+                else:
+                    mylist = self.eqts
+            elif isinstance(inv, infer.oct.Oct):
+                mylist = self.octs
+            elif isinstance(inv, infer.mp.MMP):
+                mylist = self.mps
+            elif isinstance(inv, infer.nested_array.NestedArray):
+                mylist = self.arr_rels
+            elif isinstance(inv, infer.congruence.Congruence):
+                mylist = self.congruences
+            else:
+                assert isinstance(inv, FalseInv), inv
+                mylist = self.falseinvs
+            mylist.append(inv)
+
+    def __str__(self, print_stat=False, print_first_n=None):
+        ss = []
+
+        def mylen(x):
+            return len(str(x))
+
+        invs = (
+            sorted(self.eqts + self.eqts_largecoefs, key=mylen)
+            + sorted(self.octs, key=mylen)
+            + sorted(self.mps, key=mylen)
+            + sorted(self.congruences, key=mylen)
+            + sorted(self.arr_rels, key=mylen)
+            + sorted(self.falseinvs, key=mylen)
+        )
+
+        if print_first_n and print_first_n < len(invs):
+            invs = invs[:print_first_n] + ["..."]
+
+        ss.extend(
+            f"{i + 1}. {inv if isinstance(inv, str) else inv.__str__(print_stat)}"
+            for i, inv in enumerate(invs)
+        )
+        return '\n'.join(ss)
+
     @classmethod
     def get_expr(cls, p, exprs_d):
         if p not in exprs_d:
@@ -238,12 +313,15 @@ class Invs(set):
         return exprs_d[p]
 
     def simplify(self):
-
-        eqts, eqts_largecoefs, octs, mps, congruences, \
-            arr_rels, falseinvs = self.classify(self)
+        eqts = self.eqts
+        eqts_largecoefs = self.eqts_largecoefs
+        octs = self.octs
+        mps = self.mps
+        congruences = self.congruences
+        arr_rels = self.arr_rels
+        falseinvs = self.falseinvs
 
         assert not falseinvs, falseinvs
-        #assert not preposts, preposts
 
         exprs_d = {}
 
@@ -299,7 +377,7 @@ class Invs(set):
         )
 
         done += octs_simple + octs_mps + arr_rels
-        return self.__class__(done)
+        return done
 
     @classmethod
     def _simpify_fast(cls, ps, others, msg, get_expr):
@@ -358,42 +436,6 @@ class Invs(set):
 
         return results
 
-    @classmethod
-    def classify(cls, invs):
-
-        import infer.eqt
-        import infer.oct
-        import infer.mp
-        import infer.congruence
-        #import data.inv.prepost
-        import infer.nested_array
-
-        eqts, eqts_largecoefs, octs, mps, congruences, falseinvs = [], [], [], [], [], []
-        arr_rels = []
-        for inv in invs:
-            mylist = None
-            if isinstance(inv, infer.eqt.Eqt):
-                if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
-                    mylist = eqts_largecoefs
-                else:
-                    mylist = eqts
-            elif isinstance(inv, infer.oct.Oct):
-                mylist = octs
-            elif isinstance(inv, infer.mp.MMP):
-                mylist = mps
-            # elif isinstance(inv, data.inv.prepost.PrePost):
-            #     mylist = preposts
-            elif isinstance(inv, infer.nested_array.NestedArray):
-                mylist = arr_rels
-            elif isinstance(inv, infer.congruence.Congruence):
-                mylist = congruences
-            else:
-                assert isinstance(inv, FalseInv), inv
-                mylist = falseinvs
-
-            mylist.append(inv)
-        return eqts, eqts_largecoefs, octs, mps, congruences, arr_rels, falseinvs
-
 
 class DInvs(dict):
     """
@@ -426,32 +468,9 @@ class DInvs(dict):
 
     def __str__(self, print_stat=False, print_first_n=None):
         ss = []
-
         for loc in sorted(self):
-            eqts, eqts_largecoefs, octs, mps, congruences, \
-                arr_rels, falseinvs = self[loc].classify(self[loc])
-
-            ss.append(f"{loc} ({len(self[loc])} invs):")
-
-            def mylen(x):
-                return len(str(x))
-
-            invs = (
-                sorted(eqts + eqts_largecoefs, key=mylen)
-                + sorted(octs, key=mylen)
-                + sorted(mps, key=mylen)
-                + sorted(congruences, key=mylen)
-                + sorted(arr_rels, key=mylen)
-                + sorted(falseinvs, key=mylen)
-            )
-
-            if print_first_n and print_first_n < len(invs):
-                invs = invs[:print_first_n] + ["..."]
-
-            ss.extend(
-                f"{i + 1}. {inv if isinstance(inv, str) else inv.__str__(print_stat)}"
-                for i, inv in enumerate(invs)
-            )
+            ss.append(f"{loc} ({len(self[loc])} invs):\n"
+                      f"{self[loc].cinvs.__str__(print_stat, print_first_n)}")
 
         return "\n".join(ss)
 

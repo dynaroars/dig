@@ -31,7 +31,7 @@ if __name__ == "__main__":
         ),
     )
 
-    # 0 Error #1 Warn #2 Info #3 Debug 
+    # 0 Error #1 Warn #2 Info #3 Debug
     ag(
         "--log_level",
         "-log_level",
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         action="store_true",
         help="don't compute congruence invariants",
     )
-    
+
     ag(
         "--noarrays",
         "-noarrays",
@@ -245,4 +245,5 @@ if __name__ == "__main__":
                 if args.test_tracefile else None
             dig = alg.DigTraces.mk(inp, test_tracefile)
 
-        dig.start(seed=seed, maxdeg=args.maxdeg)
+        dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
+        print(dinvs)

@@ -242,7 +242,7 @@ class Results:
         elif nruns == 1:
             print(f"rand seed {rs[0].seed}, "
                   f"test {random.randint(0, 100)}")
-            print(rs[0].dinvs.__str__(print_stat=False))
+            # print(rs[0].dinvs.__str__(print_stat=False))
 
     @ classmethod
     def analyze_dicts(cls, ds, f, label):
