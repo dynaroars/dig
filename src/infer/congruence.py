@@ -36,10 +36,13 @@ class MyCongruence(typing.NamedTuple):
 
     @property
     def expr(self) -> z3.ExprRef:
+        """
+        # x === 2 (mod 5) ~   x % 5 == 2
+        """
         a = Z3.parse(str(self.a))
         b = Z3.parse(str(self.b))
         c = Z3.parse(str(self.n))
-        return a % b == c
+        return a % c == b
 
     def _eval(self, trace: data.traces.Trace) -> bool:
         v = int(self.a.xreplace(trace.mydict))

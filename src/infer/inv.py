@@ -317,6 +317,8 @@ class CInvs:
 
         assert not falseinvs, falseinvs
 
+        done = eqts_largecoefs
+
         exprs_d = {}
 
         def my_get_expr(p):
@@ -324,7 +326,16 @@ class CInvs:
 
         # simplify eqts, e.g., to remove x - y == 0  if -x + y == 0 exists
         eqts = self._simplify_slow(eqts, None, "eqts", my_get_expr)
+        done += eqts
 
+        # simplify congruences
+        congruences = self._simplify_fast(
+            congruences, eqts, "congruences", my_get_expr)
+        congruences = self._simplify_slow(
+            congruences, None, "congruences", my_get_expr)
+        done += congruences
+
+        # simplify ieqs
         octs_simple, octs_not_simple = [], []
         for oct in octs:
             (octs_simple if oct.is_simple else octs_not_simple).append(oct)
@@ -337,11 +348,11 @@ class CInvs:
             for mp in mps:
                 (mps_eqt if mp.is_eqt else mps_ieq).append(mp)
 
-        done = eqts + mps_eqt + congruences  # don't simply these
+        done += mps_eqt
 
-        mps_ieq = self._simpify_fast(
+        mps_ieq = self._simplify_fast(
             mps_ieq, done + octs, "mps_ieq", my_get_expr)
-        octs_not_simple = self._simpify_fast(
+        octs_not_simple = self._simplify_fast(
             octs_not_simple, done + octs_simple + mps_ieq, "octs", my_get_expr
         )
 
@@ -374,7 +385,7 @@ class CInvs:
         return done
 
     @classmethod
-    def _simpify_fast(cls, ps, others, msg, get_expr):
+    def _simplify_fast(cls, ps, others, msg, get_expr):
         """
         Simplify given properties ps (usually a class of invs such as octs or mps)
         using the properties in others, e.g., remove p if others => p
@@ -392,9 +403,9 @@ class CInvs:
             return [p for p in ps if not Z3._imply(conj, get_expr(p))]
 
         wrs = MP.run_mp(
-            f"_simpify_fast {len(ps)} {msg}", ps, f, settings.DO_MP)
+            f"_simplify_fast {len(ps)} {msg}", ps, f, settings.DO_MP)
 
-        Miscs.show_removed(f"_simpify_fast {msg}", len(
+        Miscs.show_removed(f"_simplify_fast {msg}", len(
             ps), len(wrs), time() - st)
         ps = [p for p in wrs]
         return ps
@@ -420,7 +431,7 @@ class CInvs:
             #assert iexpr.decl().kind() != z3.Z3_OP_EQ, iexpr
             jexprs = [ps_exprs[j] for j in js]
             ret = Z3._imply(conj + jexprs, iexpr, is_conj=True)
-            # print('{} => {}'.format(jexprs, iexpr))
+            #print('{} => {} ret{}'.format(jexprs, iexpr, ret))
             return ret
 
         results = Miscs.simplify_idxs(list(range(len(ps))), _imply)
