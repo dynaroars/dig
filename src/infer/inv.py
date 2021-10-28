@@ -276,7 +276,7 @@ class CInvs:
                 mylist = self.falseinvs
             mylist.append(inv)
 
-    def __str__(self, print_stat=False, print_first_n=None):
+    def __str__(self, print_stat=False, print_first_n=None, writeresults=False):
         ss = []
 
         def mylen(x):
@@ -294,11 +294,11 @@ class CInvs:
         if print_first_n and print_first_n < len(invs):
             invs = invs[:print_first_n] + ["..."]
 
-        ss.extend(
-            f"{i + 1}. {inv if isinstance(inv, str) else inv.__str__(print_stat)}"
-            for i, inv in enumerate(invs)
-        )
-        return '\n'.join(ss)
+        for i, inv in enumerate(invs):
+            inv = inv if isinstance(inv, str) else inv.__str__(print_stat)
+            ss.append(inv if writeresults else f"{i + 1}. {inv}")
+
+        return ('; ' if writeresults else '\n').join(ss)
 
     @classmethod
     def get_expr(cls, p, exprs_d):
@@ -460,13 +460,15 @@ class DInvs(dict):
 
         return self.typ_ctr[infer.eqt.Eqt.__name__]
 
-    def __str__(self, print_stat=False, print_first_n=None):
+    def __str__(self, print_stat=False, print_first_n=None, writeresults=False):
         ss = []
         for loc in sorted(self):
-            ss.append(f"{loc} ({len(self[loc])} invs):\n"
-                      f"{self[loc].cinvs.__str__(print_stat, print_first_n)}")
+            s = "; " if writeresults else f"({len(self[loc])} invs):\n"
+            ss.append(f"{loc}{s}"
+                      f"{self[loc].cinvs.__str__(print_stat, print_first_n, writeresults)}")
 
-        return "\n".join(ss)
+        ss = "\n".join(ss)
+        return ss
 
     def add(self, loc, inv):
         assert isinstance(loc, str) and loc, loc

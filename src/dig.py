@@ -160,7 +160,12 @@ if __name__ == "__main__":
         action="store_true",
         help="collect solver stats (e.g., how many sat/unsat, etc)",
     )
-
+    ag(
+        "--writeresults",
+        "-writeresults",
+        action="store_true",
+        help="print inv results to file",
+    )
     ag(
         "--writevtraces",
         "-writevtraces",
@@ -246,4 +251,18 @@ if __name__ == "__main__":
             dig = alg.DigTraces.mk(inp, test_tracefile)
 
         dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
+
         print(dinvs)
+        # write results to file
+
+        if args.writeresults:
+
+            try:
+                tmpdir = dig.tmpdir
+            except AttributeError:
+                tmpdir = settings.tmpdir
+            invs = dinvs.__str__(writeresults=True)
+
+            resultfile = tmpdir/"dig_results.csv"
+            resultfile.write_text(invs)
+            mlog.info(f"invs written to {resultfile}")
