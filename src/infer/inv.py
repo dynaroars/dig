@@ -191,12 +191,6 @@ class Invs(set):
         assert all(isinstance(inv, Inv) for inv in invs), invs
         super().__init__(invs)
 
-    def __str__(self, print_stat=False, delim="\n"):
-        invs = sorted(
-            self, reverse=True, key=lambda inv: isinstance(inv, data.inv.eqt.Eqt)
-        )
-        return delim.join(inv.__str__(print_stat) for inv in invs)
-
     def __contains__(self, inv):
         assert isinstance(inv, Inv), inv
         return super().__contains__(inv)
