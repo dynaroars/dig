@@ -163,7 +163,8 @@ if __name__ == "__main__":
     ag(
         "--writeresults",
         "-writeresults",
-        action="store_true",
+        type=str,
+        default=None,
         help="print inv results to file",
     )
     ag(
@@ -256,13 +257,7 @@ if __name__ == "__main__":
         # write results to file
 
         if args.writeresults:
-
-            try:
-                tmpdir = dig.tmpdir
-            except AttributeError:
-                tmpdir = settings.tmpdir
+            resultfile = Path(args.writeresults)
             invs = dinvs.__str__(writeresults=True)
-
-            resultfile = tmpdir/"dig_results.csv"
             resultfile.write_text(invs)
-            mlog.info(f"invs written to {resultfile}")
+            print(f"{dinvs.siz} invs over {len(dinvs)} locs written to {resultfile}")
