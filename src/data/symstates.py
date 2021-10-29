@@ -694,7 +694,7 @@ class SymStates(dict):
             maxv, stat = maxv_, stat_
 
         if maxv is not None and changes >= settings.SE_DEPTH_NOCHANGES_MAX:
-            mlog.warning(f"value of {term_expr} changes frequently, skip")
+            mlog.debug(f"value of {term_expr} changes frequently, skip")
             maxv = None
 
         return maxv, stat

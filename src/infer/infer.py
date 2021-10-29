@@ -62,6 +62,7 @@ class _Infer(metaclass=abc.ABCMeta):
             cexs, dinvs = self.symstates.check(dinvs, inps)
         else:
             # no symbolic states, not performing checking
+            assert False, "shouldn't get here"
             for loc in dinvs:
                 for inv in dinvs[loc]:
                     inv.stat = infer.inv.Inv.UNKNOWN

@@ -315,7 +315,8 @@ class CInvs:
         done = eqts_largecoefs
 
         # simplify eqts, e.g., to remove x - y == 0  if -x + y == 0 exists
-        # eqts = self._simplify_slow(eqts, None, "eqts")  #TODO: remove grobner basis should take care of this?
+        # grobner basis should take care of this? Apparently not
+        eqts = self._simplify_slow(eqts, None, "eqts")
         done += eqts
 
         # simplify congruences

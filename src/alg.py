@@ -2,7 +2,7 @@ import abc
 import itertools
 import pdb
 import random
-import time
+from time import time
 from pathlib import Path
 import settings
 
@@ -54,9 +54,9 @@ class Dig(metaclass=abc.ABCMeta):
 
         msg = f"check {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
-        st = time.time()
+        st = time()
         dinvs = dinvs.test(dtraces)
-        mlog.info(f"{msg} ({time.time() - st:.2f}s)")
+        mlog.info(f"{msg} ({time() - st:.2f}s)")
         if not dinvs.siz:
             return dinvs
 
@@ -70,11 +70,11 @@ class Dig(metaclass=abc.ABCMeta):
             msg = f"simplify {dinvs.siz} invs"
             mlog.debug(msg)
             mlog.debug(dinvs.__str__(print_stat=False, print_first_n=20))
-            st1 = time.time()
+            st1 = time()
             dinvs = dinvs.simplify()
-            mlog.info(f"{msg} ({time.time() - st1:.2f}s)")
+            mlog.info(f"{msg} ({time() - st1:.2f}s)")
 
-        self.time_d["simplify"] = time.time() - st
+        self.time_d["simplify"] = time() - st
 
         return dinvs
 
@@ -128,15 +128,15 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             digtraces = DigTraces(
                 self.filename, self.inv_decls, dtraces, test_dtraces=None)
 
-            digtraces.start(self.seed, maxdeg)
-            return
+            dinvs = digtraces.start(self.seed, maxdeg)
+            return dinvs
 
-        st = time.time()
+        st = time()
         self.symstates = self.get_symbolic_states()
-        et = time.time() - st
+        et = time() - st
         self.locs = self.inv_decls.keys()
         mlog.info(
-            f"got symbolic states at {len(self.locs)} locs: ({et:.2f}s)"
+            f"got symbolic states at {len(self.locs)} locs in {et:.2f}s"
         )
 
         self.time_d["symbolic_states"] = et
@@ -147,11 +147,10 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 mlog.warning(f"{loc}: no symbolic states. Skip")
                 self.inv_decls.pop(loc)
 
-        dtraces = data.traces.DTraces.mk(self.locs)
         tasks = []
         if settings.DO_EQTS:
             def f():
-                return self._infer(self.EQTS, lambda: self._infer_eqts(maxdeg, dtraces))
+                return self._infer(self.EQTS, lambda: self._infer_eqts(maxdeg))
             tasks.append(f)
 
         if settings.DO_IEQS:
@@ -171,16 +170,17 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
 
         dinvs = infer.inv.DInvs()
+        dtraces = data.traces.DTraces.mk(self.locs)
 
-        for typ, invs, et in wrs:  # dtraces_,
+        for typ, (dinvs_, dtraces_), et in wrs:
             self.time_d[typ] = et
-            dinvs.merge(invs)
-            # dtraces.merge(dtraces_)
+            dinvs.merge(dinvs_)
+            if dtraces_:
+                dtraces.merge(dtraces_)
+
         dinvs = self.sanitize(dinvs, dtraces)
 
-        et = time.time() - st
-        self.time_d["total"] = et
-
+        self.time_d["total"] = time() - st
         self.cleanup(dinvs, dtraces)
 
         if settings.WRITE_VTRACES:
@@ -220,27 +220,32 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                        self.CONGRUENCE, self.PREPOSTS}, typ
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
-        st = time.time()
+        st = time()
 
-        new_invs = f()  # get invs
+        dinvs, dtraces = f()  # get invs
 
-        if new_invs.siz:
-            et = time.time() - st
-            mlog.info(f"found {new_invs.siz} {typ} ({et:.2f}s)")
+        if dinvs.siz:
+            et = time() - st
+            mlog.info(f"got {dinvs.siz} {typ} in {et:.2f}s")
+            mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
-            # dinvs.merge(new_invs)
-            mlog.debug(new_invs.__str__(print_stat=True, print_first_n=20))
+        return typ, (dinvs, dtraces),  et
 
-        return typ, new_invs, et
+    def _infer_eqts(self, maxdeg):
+        dinvs, dtraces = infer.eqt.Infer(
+            self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
 
-    def _infer_eqts(self, maxdeg, dtraces):
-        return infer.eqt.Infer(self.symstates, self.prog).gen(self.get_auto_deg(maxdeg), dtraces)
+        # if settings.DO_CONGRUENCES:
+        #     pass
+        # self.symstates.check(dinvs)
+
+        return dinvs, dtraces
 
     def _infer_ieqs(self):
-        return infer.oct.Infer(self.symstates, self.prog).gen()
+        return infer.oct.Infer(self.symstates, self.prog).gen(), None
 
     def _infer_minmax(self):
-        return infer.mp.Infer(self.symstates, self.prog).gen()
+        return infer.mp.Infer(self.symstates, self.prog).gen(), None
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
