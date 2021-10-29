@@ -32,7 +32,7 @@ class Result:
     resultfile = 'result'
 
     def __init__(self, filename, seed,
-                 dinvs, dtraces, inps,
+                 dinvs, dtraces,
                  stats,
                  time_d):
 
@@ -42,7 +42,6 @@ class Result:
         self.seed = seed
         self.dinvs = dinvs
         self.dtraces = dtraces
-        self.inps = inps
         self.stats = stats
         self.time_d = time_d
 
@@ -62,7 +61,7 @@ class AResult(Result):
     def __init__(self, result):
 
         super().__init__(result.filename, result.seed, result.dinvs,
-                         result.dtraces, result.inps, result.stats,
+                         result.dtraces, result.stats,
                          result.time_d)
 
         self.check_solvercalls = [

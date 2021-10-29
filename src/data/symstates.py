@@ -617,31 +617,27 @@ class SymStates(dict):
         cexs, is_succ = Z3.extract(models, int)
         return cexs, is_succ, stat
 
-    def maximize(self, loc, term_expr, iupper, extra_constr=None):
+    def maximize(self, loc, term_expr, iupper):
         """
         maximize value of term using symbolic states
         """
         assert z3.is_expr(term_expr), term_expr
-        assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
 
         if settings.DO_INCR_DEPTH:
-            v, stat = self.mmaximize_depth(
-                self[loc], term_expr, iupper, extra_constr)
+            v, stat = self.mmaximize_depth(self[loc], term_expr, iupper)
+
         else:
             v, stat = self.mmaximize(
                 self.get_ss_at_depth(self[loc], depth=None), term_expr, iupper
             )
         return v
 
-    def mmaximize_depth(self, ssd, term_expr, iupper, extra_constr):
+    def mmaximize_depth(self, ssd, term_expr, iupper):
         assert isinstance(ssd, SymStatesDepth), ssd
         assert z3.is_expr(term_expr), term_expr
-        assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
 
         def f(depth):
             ss = self.get_ss_at_depth(ssd, depth=depth)
-            if extra_constr is not None:
-                ss = z3.And(ss, extra_constr)
             maxv, stat = self.mmaximize(ss, term_expr, iupper)
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat

@@ -85,21 +85,11 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         # need prog because symstates could be None
         super().__init__(symstates, prog)
 
-    def gen(self, dtraces, locs=None, extra_constr=None):
-        assert isinstance(dtraces, data.traces.DTraces) and dtraces, dtraces
+    def gen(self):
+        locs = self.inv_decls.keys()
 
-        if locs:
-            # gen preconds
-            assert z3.is_expr(extra_constr)
-
-            def _terms(_):
-                return self.inp_decls.sageExprs
-
-        else:
-            locs = self.inv_decls.keys()
-
-            def _terms(loc):
-                return self.inv_decls[loc].sageExprs
+        def _terms(loc):
+            return self.inv_decls[loc].sageExprs
 
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
@@ -130,7 +120,8 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
         def f(tasks):
             return [
-                (loc, term, self.maximize(loc, term, extra_constr, dtraces))
+                (loc, term, self.symstates.maximize(
+                    loc, self.to_expr(term), self.IUPPER))
                 for loc, term in tasks
             ]
 
@@ -145,25 +136,6 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
             dinvs.setdefault(loc, infer.inv.Invs()).add(inv)
 
         return dinvs
-
-    def maximize(self, loc, term, extra_constr, dtraces):
-        assert isinstance(loc, str) and loc, loc
-        # assert isinstance(term, (infer.inv.RelTerm, infer.mp.MPTerm)), (
-        #     term,
-        #     type(term),
-        # )
-        assert extra_constr is None or z3.is_expr(extra_constr), extra_constr
-        assert isinstance(dtraces, data.traces.DTraces), dtraces
-
-        iupper = self.IUPPER
-
-        # check if concrete states(traces) exceed upperbound
-        if extra_constr is None:
-            # skip if do prepost
-            if term.eval_traces(dtraces[loc], lambda v: int(v) > iupper):
-                return None
-
-        return self.symstates.maximize(loc, self.to_expr(term), iupper, extra_constr)
 
     def get_terms(self, symbols):
 

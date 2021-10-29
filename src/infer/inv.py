@@ -1,5 +1,6 @@
 import abc
 from collections import Counter
+import functools
 from time import time
 import pdb
 import operator
@@ -300,12 +301,6 @@ class CInvs:
 
         return ('; ' if writeresults else '\n').join(ss)
 
-    @classmethod
-    def get_expr(cls, p, exprs_d):
-        if p not in exprs_d:
-            exprs_d[p] = p.expr
-        return exprs_d[p]
-
     def simplify(self):
         eqts = self.eqts
         eqts_largecoefs = self.eqts_largecoefs
@@ -319,20 +314,14 @@ class CInvs:
 
         done = eqts_largecoefs
 
-        exprs_d = {}
-
-        def my_get_expr(p):
-            return self.get_expr(p, exprs_d)
-
         # simplify eqts, e.g., to remove x - y == 0  if -x + y == 0 exists
-        eqts = self._simplify_slow(eqts, None, "eqts", my_get_expr)
+        # eqts = self._simplify_slow(eqts, None, "eqts")  #TODO: remove grobner basis should take care of this?
         done += eqts
 
         # simplify congruences
-        congruences = self._simplify_fast(
-            congruences, eqts, "congruences", my_get_expr)
-        congruences = self._simplify_slow(
-            congruences, None, "congruences", my_get_expr)
+        congruences = self._simplify_fast(congruences, eqts, "congruences")
+        congruences = self._simplify_slow(congruences, None, "congruences")
+
         done += congruences
 
         # simplify ieqs
@@ -351,10 +340,9 @@ class CInvs:
         done += mps_eqt
 
         mps_ieq = self._simplify_fast(
-            mps_ieq, done + octs, "mps_ieq", my_get_expr)
+            mps_ieq, done + octs, "mps_ieq")
         octs_not_simple = self._simplify_fast(
-            octs_not_simple, done + octs_simple + mps_ieq, "octs", my_get_expr
-        )
+            octs_not_simple, done + octs_simple + mps_ieq, "octs")
 
         done += eqts_largecoefs
         octs_mps = octs_not_simple + mps_ieq
@@ -371,21 +359,23 @@ class CInvs:
             octs_mps = self._simplify_slow(
                 octs_mps,
                 done + octs_simple,
-                "octs+mps",
-                my_get_expr,
-            )
+                "octs+mps")
 
         # don't use done to simplify octs_simple because
         # nonlinear eqts will remove many useful octs
         octs_simple = self._simplify_slow(
-            octs_simple, mps_eqt + octs_mps, "octs_simple", my_get_expr
-        )
+            octs_simple, mps_eqt + octs_mps, "octs_simple")
 
         done += octs_simple + octs_mps + arr_rels
         return done
 
     @classmethod
-    def _simplify_fast(cls, ps, others, msg, get_expr):
+    @functools.cache
+    def _get_expr(cls, p):
+        return p.expr
+
+    @classmethod
+    def _simplify_fast(cls, ps, others, msg):
         """
         Simplify given properties ps (usually a class of invs such as octs or mps)
         using the properties in others, e.g., remove p if others => p
@@ -395,12 +385,12 @@ class CInvs:
             return ps
 
         st = time()
-        conj = [get_expr(p) for p in others]
+        conj = [cls._get_expr(p) for p in others]
         for p in ps:
-            _ = get_expr(p)
+            _ = cls._get_expr(p)
 
         def f(ps):
-            return [p for p in ps if not Z3._imply(conj, get_expr(p))]
+            return [p for p in ps if not Z3._imply(conj, cls._get_expr(p))]
 
         wrs = MP.run_mp(
             f"_simplify_fast {len(ps)} {msg}", ps, f, settings.DO_MP)
@@ -411,7 +401,7 @@ class CInvs:
         return ps
 
     @classmethod
-    def _simplify_slow(cls, ps, others, msg, get_expr):
+    def _simplify_slow(cls, ps, others, msg):
         """
         Simplify given properties ps using properties in both ps and others
         e.g., remove g if  ps_exclude_g & others => g
@@ -422,8 +412,8 @@ class CInvs:
             return ps
 
         st = time()
-        conj = [get_expr(p) for p in others] if others else []
-        ps_exprs = [get_expr(p) for p in ps]
+        conj = [cls._get_expr(p) for p in others] if others else []
+        ps_exprs = [cls._get_expr(p) for p in ps]
 
         def _imply(js, i):
             iexpr = ps_exprs[i]

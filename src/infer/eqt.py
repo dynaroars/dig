@@ -28,19 +28,16 @@ class Eqt(infer.inv.Inv):
 
 class Infer(infer.infer._Iterative):
 
-    # def __init__(self, symstates, prog, maxdeg):
-    #     super().__init__(symstates, prog)
-    #     self.maxdeg = maxdeg
-
-    def gen(self, deg, traces, inps) -> infer.inv.DInvs:
+    def gen(self, deg, dtraces) -> infer.inv.DInvs:
         assert deg >= 1, deg
-        assert isinstance(traces, data.traces.DTraces) and traces, traces
-        assert isinstance(inps, data.traces.Inps), inps
 
-        locs = traces.keys()
+        locs = self.prog.inv_decls.keys()
+        inps = data.traces.Inps()
+
         # first obtain enough traces
+        # BUG: dtraces might not be updted properly when this run in parallel
         tasks = [
-            (loc, self._get_init_traces(loc, deg, traces, inps, settings.EQT_RATE))
+            (loc, self._get_init_traces(loc, deg, dtraces, inps, settings.EQT_RATE))
             for loc in locs
         ]
         tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
@@ -48,7 +45,7 @@ class Infer(infer.infer._Iterative):
         # then solve/prove in parallel
         def f(tasks):
             return [
-                (loc, self._infer(loc, template, uks, exprs, traces, inps))
+                (loc, self._infer(loc, template, uks, exprs, dtraces, inps))
                 for loc, (template, uks, exprs) in tasks
             ]
 

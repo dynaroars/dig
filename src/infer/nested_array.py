@@ -10,7 +10,7 @@ import z3
 
 import settings
 import helpers.vcommon as CM
-from helpers.miscs import Miscs
+from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
 
 import infer.inv
@@ -148,7 +148,7 @@ class Infer(infer.infer._Infer):
         def f(tasks):
             rs = [a.peelme(tc) for a in tasks]
             return rs
-        from helpers.miscs import MP
+
         wrs = MP.run_mp("Apply reachability", tasks, f, settings.DO_MP)
 
         rels = [NestedArray(ar) for ar in itertools.chain(*wrs)]
