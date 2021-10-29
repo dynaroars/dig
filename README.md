@@ -64,7 +64,7 @@ DIG can generate invariants from a [trace file](#generating-invariants-from-trac
 
 ### Generating Invariants From Traces
 
-DIG can infer invariants directly from an `CSV` file consisting of concreting program execution traces.  Below is an example of traces generated when running the above `CohenDiv` program with various inputs
+DIG can infer invariants directly from an `csv` file consisting of concreting program execution traces as shown below.
 
 ```txt
 # in DIG's src directory
@@ -87,40 +87,38 @@ vtrace2; 2; 287; 0; 2
 
 ```txt
 # in DIG's src directory
-$ settings:INFO:2021-10-23 12:31:51.549397: dig.py ../tests/traces/cohendiv.csv -log 3
+
+tnguyen@origin ~/d/src (dev)> time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 3                                                                                                                                            (base) 
+settings:INFO:2021-10-29 13:51:40.966898: dig.py ../tests/traces/cohendiv.csv -log 3
 alg:INFO:analyzing '../tests/traces/cohendiv.csv'
-alg:INFO:testing 546 invs using 181 traces (0.25s)
-alg:INFO:simplify 544 invs (2.69s)
-vtrace1 (21 invs):
+alg:INFO:check 546 invs using 181 traces (0.26s)
+alg:INFO:simplify 544 invs (2.35s)
+vtrace1(17 invs):
 1. a*y - b == 0
 2. q*y + r - x == 0
 3. -q <= 0
-4. -a <= -1
-5. b - r <= 0
+4. -y <= -1
+5. a - b <= 0
 6. r - x <= 0
-7. a - b <= 0
+7. b - r <= 0
 8. a - x <= -5
 9. -b + y <= 0
 10. -x + y <= -6
 11. -q - r <= -8
 12. -r - x <= -16
 13. -x - y <= -10
-14. a + 2 - max(b, q, r) <= 0
-15. y + 2 - max(a, b, q, r) <= 0
-16. q === 0 (mod 2)
-17. -q === 0 (mod 2)
-18. r + x === 0 (mod 2)
-19. r - x === 0 (mod 2)
-20. -r + x === 0 (mod 2)
-21. -r - x === 0 (mod 2)
-vtrace2 (8 invs):
+14. a + 2 - max(q, r, y) <= 0
+15. y + 2 - max(b, q, r, 0) <= 0
+16. -q === 0 (mod 2)
+17. -r - x === 0 (mod 2)
+vtrace2(8 invs):
 1. q*y + r - x == 0
-2. -r <= 0
-3. -q <= 0
-4. -x <= -1
+2. -q <= 0
+3. -r <= 0
+4. q - x <= 0
 5. r - x <= 0
-6. q - x <= 0
-7. r - y <= -1
+6. r - y <= -1
+7. -q - r <= -1
 8. -x - y <= -10
 ```
 
@@ -190,31 +188,35 @@ void main(int argc, char **argv){
 
 ```sh
 $ time ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3
-settings:INFO:2021-10-23 12:32:51.192847: dig.py ../tests/cohendiv.c -log 3
+settings:INFO:2021-10-29 13:51:11.038391: dig.py ../tests/cohendiv.c -log 3
 alg:INFO:analyzing '../tests/cohendiv.c'
-alg:INFO:got symbolic states at 3 locs: (4.34s)
-alg:INFO:found 9 eqts (10.85s)
-alg:INFO:found 67 ieqs (0.55s)
-alg:INFO:found 377 minmax (1.69s)
-alg:INFO:testing 453 invs using 735 traces (0.43s)
-alg:INFO:simplify 449 invs (1.72s)
-* prog cohendiv locs 3; invs 27 (Eqt: 4, MMP: 2, Oct: 21) V 6 T 3 D 2; NL 4 (2) ;
--> time eqts 10.9s, ieqs 0.6s, minmax 1.7s, simplify 2.2s, symbolic_states 4.3s, total 19.6s
-rand seed 1635010371.19, test 89
-vtrace1 (12 invs):
-1. q*y + r - x == 0
-2. -a <= 0
+alg:INFO:got symbolic states at 4 locs in 4.21s
+alg:INFO:got 69 ieqs in 1.11s
+alg:INFO:got 377 minmax in 1.69s
+alg:INFO:got 6 eqts in 5.50s
+alg:INFO:check 452 invs using 680 traces (0.33s)
+alg:INFO:simplify 452 invs (1.40s)
+* prog cohendiv locs 4; invs 29 (Eqt: 5, MMP: 1, Oct: 23) V 6 T 3 D 2; NL 5 (2) ;
+-> time eqts 5.5s, ieqs 1.1s, minmax 1.7s, simplify 1.8s, symbolic_states 4.2s, total 11.5s
+rand seed 1635533471.04, test 62
+tmpdir: /var/tmp/dig_92233634043151007_2nugp63w
+vtrace0(2 invs):
+1. -y <= -1
+2. -x <= -1
+vtrace1(12 invs):
+1. a*y - b == 0
+2. q*y + r - x == 0
 3. -r <= 0
-4. -y <= -1
-5. r - x <= 0
-6. b - x <= 0
-7. q - x <= 0
-8. a - b <= 0
-9. a - q <= 0
-10. -a - r <= -1
-11. min(q, y) - b <= 0
-12. min(b, r) - x - 1 <= 0
-vtrace2 (8 invs):
+4. -a <= 0
+5. -y <= -1
+6. q - x <= 0
+7. a - q <= 0
+8. b - x <= 0
+9. r - x <= 0
+10. a - b <= 0
+11. -q - r <= -1
+12. min(q, y) - b <= 0
+vtrace2(8 invs):
 1. a*y - b == 0
 2. q*y + r - x == 0
 3. -q <= 0
@@ -223,15 +225,14 @@ vtrace2 (8 invs):
 6. b - r <= 0
 7. a - b <= 0
 8. -b + y <= 0
-vtrace3 (7 invs):
+vtrace3(7 invs):
 1. q*y + r - x == 0
-2. -r <= 0
-3. -q <= 0
-4. -x <= -1
+2. -q <= 0
+3. -r <= 0
+4. q - x <= 0
 5. r - x <= 0
-6. q - x <= 0
-7. r - y <= -1
-tmpdir: /var/tmp/dig_438110305327007555_aaggfvgm
+6. r - y <= -1
+7. -r - x <= -1
 ```
 
 > Using Random Inputs 
