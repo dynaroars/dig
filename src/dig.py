@@ -170,7 +170,8 @@ if __name__ == "__main__":
     ag(
         "--writevtraces",
         "-writevtraces",
-        action="store_true",
+        type=str,
+        default=None,
         help="write vtraces to a csv file"
     )
     ag(

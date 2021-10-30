@@ -2,7 +2,7 @@ import abc
 import itertools
 import pdb
 import random
-from time import time
+import time
 from pathlib import Path
 import settings
 
@@ -26,6 +26,12 @@ mlog = CM.getLogger(__name__, settings.logger_level)
 
 
 class Dig(metaclass=abc.ABCMeta):
+    EQTS = "eqts"
+    IEQS = "ieqs"
+    MINMAX = "minmax"
+    CONGRUENCE = "congruence"
+    PREPOSTS = "preposts"
+
     def __init__(self, filename):
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
@@ -54,9 +60,9 @@ class Dig(metaclass=abc.ABCMeta):
 
         msg = f"check {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
-        st = time()
+        st = time.time()
         dinvs = dinvs.test(dtraces)
-        mlog.info(f"{msg} ({time() - st:.2f}s)")
+        mlog.info(f"{msg} ({time.time() - st:.2f}s)")
         if not dinvs.siz:
             return dinvs
 
@@ -70,21 +76,16 @@ class Dig(metaclass=abc.ABCMeta):
             msg = f"simplify {dinvs.siz} invs"
             mlog.debug(msg)
             mlog.debug(dinvs.__str__(print_stat=False, print_first_n=20))
-            st1 = time()
+            st1 = time.time()
             dinvs = dinvs.simplify()
-            mlog.info(f"{msg} ({time() - st1:.2f}s)")
+            mlog.info(f"{msg} ({time.time() - st1:.2f}s)")
 
-        self.time_d["simplify"] = time() - st
+        self.time_d["simplify"] = time.time() - st
 
         return dinvs
 
 
 class DigSymStates(Dig, metaclass=abc.ABCMeta):
-    EQTS = "eqts"
-    IEQS = "ieqs"
-    MINMAX = "minmax"
-    CONGRUENCE = "congruence"
-    PREPOSTS = "preposts"
 
     def __init__(self, filename):
         super().__init__(filename)
@@ -131,9 +132,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             dinvs = digtraces.start(self.seed, maxdeg)
             return dinvs
 
-        st = time()
+        st = time.time()
         self.symstates = self.get_symbolic_states()
-        et = time() - st
+        et = time.time() - st
         self.locs = self.inv_decls.keys()
         mlog.info(
             f"got symbolic states at {len(self.locs)} locs in {et:.2f}s"
@@ -180,13 +181,13 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         dinvs = self.sanitize(dinvs, dtraces)
 
-        self.time_d["total"] = time() - st
+        self.time_d["total"] = time.time() - st
         self.cleanup(dinvs, dtraces)
 
         if settings.WRITE_VTRACES:
-            tracefile = self.tmpdir/"alltraces.csv"
+            tracefile = Path(settings.WRITE_VTRACES)
             dtraces.vwrite(self.inv_decls, tracefile)
-            mlog.info(f"traces written to {tracefile}")
+            mlog.info(f"{dtraces.siz} traces written to {tracefile}")
 
         print(f"tmpdir: {self.tmpdir}")
         return dinvs
@@ -220,12 +221,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                        self.CONGRUENCE, self.PREPOSTS}, typ
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
-        st = time()
+        st = time.time()
 
         dinvs, dtraces = f()  # get invs
 
         if dinvs.siz:
-            et = time() - st
+            et = time.time() - st
             mlog.info(f"got {dinvs.siz} {typ} in {et:.2f}s")
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
@@ -260,13 +261,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
 
 class DigSymStatesJava(DigSymStates):
-    @property
-    def mysrc_cls(self):
-        return data.prog.Java
-
-    @property
-    def symstatesmaker_cls(self):
-        return data.symstates.SymStatesMakerJava
+    mysrc_cls = data.prog.Java
+    symstatesmaker_cls = data.symstates.SymStatesMakerJava
 
     @property
     def symexefile(self):
@@ -280,13 +276,8 @@ class DigSymStatesJava(DigSymStates):
 
 
 class DigSymStatesC(DigSymStates):
-    @property
-    def mysrc_cls(self):
-        return data.prog.C
-
-    @property
-    def symstatesmaker_cls(self):
-        return data.symstates.SymStatesMakerC
+    mysrc_cls = data.prog.C
+    symstatesmaker_cls = data.symstates.SymStatesMakerC
 
     @property
     def symexefile(self):
@@ -310,7 +301,9 @@ class DigTraces(Dig):
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
-        mlog.debug(f"got {self.dtraces.siz} traces\n{self.dtraces}")
+        mlog.info(
+            f"got {self.dtraces.siz} traces over {len(self.dtraces)} locs")
+        mlog.debug(f"{self.dtraces}")
 
         tasks = (self._nested_arrays_tasks() + self._eqts_tasks(maxdeg) + self._ieqs_tasks() +
                  self._minmax_tasks() + self._congruences_tasks())
