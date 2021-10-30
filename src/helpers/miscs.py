@@ -105,7 +105,8 @@ class Miscs:
         >>> ts = Miscs.get_terms([a, b], 3)
         >>> assert ts == [1, a, b, a**2, a*b, b**2, a**3, a**2*b, a*b**2, b**3]
         >>> Miscs.get_terms([a,b,c,d,e,f], 3)
-        [1, a, b, c, d, e, f, a**2, a*b, a*c, a*d, a*e, a*f, b**2, b*c, b*d, b*e, b*f, c**2, c*d, c*e, c*f, d**2, d*e, d*f, e**2, e*f, f**2, a**3, a**2*b, a**2*c, a**2*d, a**2*e, a**2*f, a*b**2, a*b*c, a*b*d, a*b*e, a*b*f, a*c**2, a*c*d, a*c*e, a*c*f, a*d**2, a*d*e, a*d*f, a*e**2, a*e*f, a*f**2, b**3, b**2*c, b**2*d, b**2*e, b**2*f, b*c**2, b*c*d, b*c*e, b*c*f, b*d**2, b*d*e, b*d*f, b*e**2, b*e*f, b*f**2, c**3, c**2*d, c**2*e, c**2*f, c*d**2, c*d*e, c*d*f, c*e**2, c*e*f, c*f**2, d**3, d**2*e, d**2*f, d*e**2, d*e*f, d*f**2, e**3, e**2*f, e*f**2, f**3]
+        [1, a, b, c, d, e, f, a**2, a*b, a*c, a*d, a*e, a*f, b**2, b*c, b*d, b*e, b*f, c**2, c*d, c*e, c*f, d**2, d*e, d*f, e**2, e*f, f**2, a**3, a**2*b, a**2*c, a**2*d, a**2*e, a**2*f, a*b**2, a*b*c, a*b*d, a*b*e, a*b*f, a*c**2, a*c*d, a*c*e, a*c*f, a*d**2, a*d*e, a*d*f, a*e**2,
+            a*e*f, a*f**2, b**3, b**2*c, b**2*d, b**2*e, b**2*f, b*c**2, b*c*d, b*c*e, b*c*f, b*d**2, b*d*e, b*d*f, b*e**2, b*e*f, b*f**2, c**3, c**2*d, c**2*e, c**2*f, c*d**2, c*d*e, c*d*f, c*e**2, c*e*f, c*f**2, d**3, d**2*e, d**2*f, d*e**2, d*e*f, d*f**2, e**3, e**2*f, e*f**2, f**3]
         """
 
         assert deg >= 0, deg
@@ -283,16 +284,16 @@ class Miscs:
         return list(p.as_coefficients_dict().values())
 
     @classmethod
-    def remove_ugly(cls, ps, lim=settings.MAX_LARGE_COEF):
+    def remove_ugly(cls, ps):
 
         @functools.cache
         def is_nice_coef(c):
-            return abs(c) <= lim or c % 10 == 0 or c % 5 == 0
+            return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
 
         @functools.cache
         def is_nice_eqt(eqt):
-            return (len(eqt.args) <= 10 and
-                    all(is_nice_coef(c) for c in cls.get_coefs(eqt)))
+            return (len(eqt.args) <= settings.UGLY_FACTOR
+                    and all(is_nice_coef(c) for c in cls.get_coefs(eqt)))
 
         ps_ = []
         for p in ps:
@@ -303,7 +304,7 @@ class Miscs:
 
         return ps_
 
-    @classmethod
+    @ classmethod
     def refine(cls, eqts):
 
         if not eqts:

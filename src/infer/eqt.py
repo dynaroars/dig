@@ -214,18 +214,16 @@ class Infer(infer.infer._Iterative):
                 mlog.debug(f"{loc}: no new results -- break")
                 break
 
+            new_eqts = infer.inv.Invs(list(map(Eqt, unchecks)))
+
             mlog.debug(
-                "{}: {} candidates:\n{}".format(
-                    loc, len(new_eqts), "\n".join(map(str, new_eqts))
-                )
-            )
+                f"{loc}: {len(new_eqts)} candidates: {'; '.join(map(str, new_eqts))}")
 
             mlog.debug(
                 f"{loc}: check {len(unchecks)} unchecked ({len(new_eqts)} candidates)"
             )
 
-            dinvs = infer.inv.DInvs.mk(
-                loc, infer.inv.Invs(list(map(Eqt, unchecks))))
+            dinvs = infer.inv.DInvs.mk(loc, new_eqts)
             cexs, dinvs = self.check(dinvs, None)
 
             [eqts.add(inv) for inv in dinvs[loc] if not inv.is_disproved]

@@ -224,9 +224,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         st = time.time()
 
         dinvs, dtraces = f()  # get invs
-
+        et = time.time() - st
         if dinvs.siz:
-            et = time.time() - st
             mlog.info(f"got {dinvs.siz} {typ} in {et:.2f}s")
             mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 

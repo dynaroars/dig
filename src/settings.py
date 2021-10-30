@@ -13,7 +13,7 @@ DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
 DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
-DO_CONGRUENCES = True #  support congruence relations
+DO_CONGRUENCES = True  # support congruence relations
 DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
@@ -28,7 +28,7 @@ SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAXDEPTH = 30
 SOLVER_TIMEOUT = 3 * 1000  # secs
 EQT_RATE = 1.5
-MAX_LARGE_COEF = 50
+UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
 MAX_TERM = 200
 
 TRACE_MAX_VAL = 1_000_000_000
@@ -163,7 +163,7 @@ def setup(settings, args):
             settings.DO_CONGRUENCES = not args.nocongruences
         else:
             opts.append("-nocongruences")
-            
+
     if args.noarrays:
         if settings:
             settings.DO_ARRAYS = not args.noarrays
