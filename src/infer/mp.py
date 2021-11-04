@@ -210,10 +210,7 @@ class Term(typing.NamedTuple):
         assert isinstance(trace, dict), trace
 
         f = eval(lambda_str)
-        if CM.is_python3():
-            symbols = f.__code__.co_varnames
-        else:
-            symbols = f.func_code.co_varnames
+        symbols = f.__code__.co_varnames
         # if trace has more keys than variables in lambda str then remove them
         trace = dict([(s, trace[s]) for s in symbols])
         rs = f(**trace)

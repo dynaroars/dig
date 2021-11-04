@@ -79,20 +79,20 @@ class Z3:
         return solver
 
     @classmethod
-    def extract(self, models, f):
+    def extract(cls, models, f):
         assert (
-            models is None
-            or models is False
-            or (
-                isinstance(models, list)
-                and all(isinstance(m, z3.ModelRef) for m in models)
-                and models
-            )
+                models is None
+                or models is False
+                or (
+                        isinstance(models, list)
+                        and all(isinstance(m, z3.ModelRef) for m in models)
+                        and models
+                )
         ), models
 
         cexs = set()
-        isSucc = models is not None
-        if isSucc and models:  # disproved
+        is_succ = models is not None
+        if is_succ and models:  # disproved
             cexs = []
             for model in models:
                 cex = {}
@@ -101,10 +101,10 @@ class Z3:
                     try:
                         cex[str(v)] = mv if f is None else f(mv)
                     except ValueError:
-                        #mlog.warning('cannot analyze {}'.format(model))
+                        # mlog.warning('cannot analyze {}'.format(model))
                         pass
                 cexs.append(cex)
-        return cexs, isSucc
+        return cexs, is_succ
 
     @classmethod
     def get_models(cls, f, k):
@@ -133,6 +133,7 @@ class Z3:
             for v in m:
                 try:
                     e = v() == m[v]
+                    ands.append(e)
                 except z3.Z3Exception:
                     """
                     when the model contains functions, e.g.,
@@ -140,8 +141,6 @@ class Z3:
                     """
                     # mlog.warning('cannot analyze {}'.format(m))
                     pass
-
-                ands.append(e)
             block = z3.Not(z3.And(ands))
             solver.add(block)
 

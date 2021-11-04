@@ -1,35 +1,35 @@
 """
 Analyze Dig's results
 """
-import sys
-import shutil
-import time
-import random
-import pdb
-from collections import Counter, defaultdict, namedtuple
-from statistics import mean, median_low
-from pathlib import Path
 import argparse
+import pdb
+import random
+import shutil
+import sys
+import time
+from collections import Counter, defaultdict, namedtuple
+from pathlib import Path
+from statistics import median_low
 
-import settings
-from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
-
 import infer.inv
+import settings
+from helpers.miscs import Miscs
+
 # import infer.mp
 
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.logger_level)
 
-CheckSolverCalls = namedtuple("CheckSolverCalls", ("stat"))
-CheckDepthChanges = namedtuple("CheckDepthChanges", ("prop v1 d1 v2 d2"))
-MaxSolverCalls = namedtuple("MaxSolverCalls", ("stat"))
+CheckSolverCalls = namedtuple("CheckSolverCalls", "stat")
+CheckDepthChanges = namedtuple("CheckDepthChanges", "prop v1 d1 v2 d2")
+MaxSolverCalls = namedtuple("MaxSolverCalls", "stat")
 MaxDepthChanges = namedtuple("MaxDepthChanges", "prop v1 d1 v2 d2")
 
 
 class Result:
-    resultfile = 'result'
+    resultfile: str = 'result'
 
     def __init__(self, filename, seed,
                  dinvs, dtraces,
@@ -81,10 +81,6 @@ class AResult(Result):
     def analyze(self):
         self.V, self.D, self.T, self.NL = self.analyze_dinvs(self.dinvs)
 
-        def get_inv_typ(inv):
-            assert inv is not None, inv
-            return inv.__class__.__name__
-
         def get_change(x, y, as_str=True):
             if as_str:
                 x = str(x)
@@ -92,7 +88,7 @@ class AResult(Result):
             else:
                 x = -1 if x is None else x
                 y = -1 if y is None else y
-            return (x, y)
+            return x, y
 
         self.check_solvercalls_ctr = Counter(
             str(x.stat) for x in self.check_solvercalls)
@@ -214,8 +210,6 @@ class Results:
             max_changedepthss, f, 'change depths')
 
         max_changevalss = [r.max_changevals_ctr for r in rs]
-        max_changevalss = self.analyze_dicts(
-            max_changevalss, f, 'change vals')
 
         time_d = defaultdict(list)
         for r in rs:
@@ -284,14 +278,14 @@ class Benchmark:
         self.inp = inp
         self.args = args
 
-    def valid_file(cls, f):
+    @staticmethod
+    def valid_file(f):
         return f.is_file() and f.suffix in {'.c', '.java'}
 
     def start(self):
         inp = self.inp
         args = self.args
 
-        bfiles = []
         if self.valid_file(inp):
             # benchmark single file
             bfiles = [inp]
@@ -358,7 +352,8 @@ class Benchmark:
 
         mlog.info(f"benchmark result dir: {self.benchmark_dir}")
 
-    def get_success_runs(self, rundir):
+    @staticmethod
+    def get_success_runs(rundir):
         assert rundir.is_dir(), rundir
 
         runs = set()

@@ -4,12 +4,6 @@ To run doctest
 $ python -m doctest -v common.py
 """
 
-
-def is_python3():
-    import sys
-    return sys.version_info > (3, 0)
-
-
 def pause(s=None):
     input("Press any key to continue ..." if s is None else s)
 

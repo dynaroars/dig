@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
-from time import time
 import pdb
 import itertools
 import functools
@@ -461,7 +460,6 @@ class MP:
         """
 
         def wprocess(mytasks, myQ):
-            rs = None
             try:
                 rs = f(mytasks)
             except BaseException as ex:
