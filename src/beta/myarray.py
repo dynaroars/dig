@@ -28,7 +28,7 @@ import z3
 
 DBG = pdb.set_trace
 
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 special_str = "_special"
 

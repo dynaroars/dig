@@ -8,7 +8,7 @@ from helpers.z3utils import Z3
 
 
 DBG = pdb.set_trace
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 class Miscs:

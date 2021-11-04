@@ -9,7 +9,7 @@ from data.inv.base import Inv
 import data.inv.invs
 
 dbg = pdb.set_trace
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 class PrePost(Inv):

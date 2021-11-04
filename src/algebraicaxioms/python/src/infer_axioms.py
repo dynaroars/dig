@@ -6,7 +6,7 @@ import settings
 
 DBG = pdb.set_trace
 
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 if __name__ == "__main__":
@@ -45,10 +45,10 @@ if __name__ == "__main__":
     import os.path
     args = aparser.parse_args()
 
-    settings.logger_level = args.log_level
-    settings.logger_level = CM.getLogLevel(
-        settings.logger_level)
-    mlog = CM.getLogger(__name__, settings.logger_level)
+    settings.LOGGER_LEVEL = args.log_level
+    settings.LOGGER_LEVEL = CM.getLogLevel(
+        settings.LOGGER_LEVEL)
+    mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
     import alg
     import term

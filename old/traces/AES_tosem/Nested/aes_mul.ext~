@@ -1,7 +1,0 @@
-Expect: r[i] = Alogtable(mod255(add(Logtable(a[i]),Logtable(b[i]))))
-Input: a
-Input: b
-ExtFun: add
-ExtFun: mod255
-
-

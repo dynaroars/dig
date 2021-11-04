@@ -20,7 +20,7 @@ from helpers.miscs import Miscs
 
 DBG = pdb.set_trace
 
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 CheckSolverCalls = namedtuple("CheckSolverCalls", "stat")
 CheckDepthChanges = namedtuple("CheckDepthChanges", "prop v1 d1 v2 d2")
@@ -307,7 +307,7 @@ class Benchmark:
             import tempfile
             prefix = f"bm_dig{ntimes}{bstr}_"
             benchmark_dir = Path(tempfile.mkdtemp(
-                dir=settings.tmpdir, prefix=prefix))
+                dir=settings.TMPDIR, prefix=prefix))
 
         self.benchmark_dir = benchmark_dir
 

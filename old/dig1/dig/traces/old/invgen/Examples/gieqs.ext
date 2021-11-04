@@ -1,7 +1,0 @@
-#sage:  ig = InvGen("Examples/gieqs.tcs",verbose=1)
-#sage: ig.getIeqs('cl',terms=[x,y])
-
-Expect: x - y + 2 >= 0
-Expect: x + y - 2 >= 0
-Expect: -x + y + 2 >= 0
-Expect: -x - y + 6 >= 0

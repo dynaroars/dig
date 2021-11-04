@@ -1,2 +1,0 @@
-Assume: y >= x
-Expect: 2*x + 1 >= y

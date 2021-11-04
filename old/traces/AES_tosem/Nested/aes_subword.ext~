@@ -1,7 +1,0 @@
-Expect: r[i] = S[w[i]]  
-Input: w
-Output: r
-Global: Si
-Global: S
-Global: Alogtable
-Global: Logtable

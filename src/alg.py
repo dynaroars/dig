@@ -21,7 +21,7 @@ import infer.congruence
 
 DBG = pdb.set_trace
 
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 class Dig(metaclass=abc.ABCMeta):
@@ -93,12 +93,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         super().start(seed, maxdeg)
 
-        assert settings.tmpdir.is_dir()
+        assert settings.TMPDIR.is_dir()
         import tempfile
 
         prefix = hash(self.seed)
         self.tmpdir = Path(
-            tempfile.mkdtemp(dir=settings.tmpdir, prefix=f"dig_{prefix}_")
+            tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"dig_{prefix}_")
         )
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
