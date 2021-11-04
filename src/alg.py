@@ -1,5 +1,4 @@
 import abc
-import itertools
 import pdb
 import random
 import time
@@ -36,9 +35,6 @@ class Dig(metaclass=abc.ABCMeta):
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
-
-    def doit(seed, maxdeg: int) -> infer.inv.DInvs:
-        pass
 
     @abc.abstractmethod
     def start(self, seed, maxdeg: int):
