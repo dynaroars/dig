@@ -120,7 +120,11 @@ class Inv(metaclass=abc.ABCMeta):
 
         also, cannot save this to sel._expr
         """
-        return Z3.parse(str(self))
+
+        expr = Z3.parse(str(self))
+
+        #print("HIII", str(self), expr)
+        return expr
 
 
 class FalseInv(Inv):
@@ -136,7 +140,7 @@ class FalseInv(Inv):
 
     @property
     def expr(self):
-        return z3.BoolVal(False)
+        return Z3.zFalse
 
     @property
     def mystr(self):

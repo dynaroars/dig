@@ -278,8 +278,10 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
             pcs = symstates[loc][depth]
+
             pcs._expr = Z3.from_smt2_str(myexpr)
             pcs._pc = Z3.from_smt2_str(mypc)
+
             mlog.debug(
                 f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
 

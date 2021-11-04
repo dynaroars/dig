@@ -37,7 +37,7 @@ if __name__ == "__main__":
         "-log_level",
         type=int,
         choices=range(5),
-        default=2,
+        default=3,
         help="set logger info",
     )
 

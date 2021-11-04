@@ -37,9 +37,6 @@ class Dig(metaclass=abc.ABCMeta):
         self.filename = filename
         self.time_d = {}  # time results
 
-    def doit(seed, maxdeg: int) -> infer.inv.DInvs:
-        pass
-
     @abc.abstractmethod
     def start(self, seed, maxdeg: int):
         self.seed = seed
@@ -50,7 +47,7 @@ class Dig(metaclass=abc.ABCMeta):
         )
 
     def get_auto_deg(self, maxdeg):
-        maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
+        maxvars = max(self.inv_decls.values(), key=len)
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 

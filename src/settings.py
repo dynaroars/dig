@@ -200,15 +200,6 @@ def setup(settings, args):
         else:
             opts.append("-writevtraces")
 
-    if 0 <= args.log_level <= 4:
-        if settings:
-            # settings.logger_level = args.log_level
-            settings.logger_level = helpers.vcommon.getLogLevel(
-                args.log_level)
-            mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
-        else:
-            opts.append(f"-log_level {args.log_level}")
-
     if args.inpMaxV and args.inpMaxV >= 1:
         if settings:
             settings.INP_MAX_V = args.inpMaxV
@@ -276,5 +267,11 @@ def setup(settings, args):
             assert settings.tmpdir.is_dir()
         else:
             opts.append(f"-tmpdir {args.tmpdir}")
+
+    if settings:
+        settings.logger_level = helpers.vcommon.getLogLevel(args.log_level)
+        mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
+    else:
+        opts.append(f"-log_level {args.log_level}")
 
     return mlog if settings else " ".join(opts)

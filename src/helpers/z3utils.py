@@ -58,7 +58,7 @@ class Z3:
 
     @classmethod
     @functools.cache
-    def get_vars(cls, f:z3.ExprRef)-> typing.FrozenSet[z3.ExprRef]:
+    def get_vars(cls, f: z3.ExprRef) -> typing.FrozenSet[z3.ExprRef]:
         """
         >>> x,y,z = z3.Ints("x y z")
         >>> assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
@@ -283,10 +283,8 @@ class Z3:
 
         elif isinstance(node, ast.Name):
             return z3.Int(str(node.id))
-
         elif isinstance(node, ast.Num):
             return z3.IntVal(str(node.n))
-
         elif isinstance(node, ast.Add):
             return operator.add
         elif isinstance(node, ast.Mult):
