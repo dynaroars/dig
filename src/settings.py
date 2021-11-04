@@ -5,8 +5,8 @@ from pathlib import Path
 
 DBG = pdb.set_trace
 
-tmpdir = Path("/var/tmp/")
-logger_level = 3
+TMPDIR = Path("/var/tmp/")
+LOGGER_LEVEL = 3
 DO_MP = True  # use multiprocessing
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
@@ -22,7 +22,7 @@ DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = False  # write vtraces to csv
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
-N_RAND_INPS = 100  # number of randomly generated inputs, only used when DO_SS is False
+N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAXDEPTH = 30
@@ -271,7 +271,8 @@ def setup(settings, args):
     if settings:
         settings.logger_level = helpers.vcommon.getLogLevel(args.log_level)
         mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
+        return mlog
     else:
         opts.append(f"-log_level {args.log_level}")
-
-    return mlog if settings else " ".join(opts)
+        return " ".join(opts)
+    
