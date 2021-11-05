@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
 import pdb
@@ -9,6 +10,9 @@ from sympy.solvers.solveset import linsolve
 import helpers.vcommon as CM
 import settings
 
+from typing import Type, TypeVar, Union, Optional, Callable
+from typing import List, Iterable, Any, Tuple, Dict, Sequence, Set
+
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -17,11 +21,11 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 class Miscs:
 
     @staticmethod
-    def is_expr(x):
+    def is_expr(x: Any) -> bool:
         return isinstance(x, sympy.Expr)
 
     @classmethod
-    def get_vars(cls, ps):
+    def get_vars(cls: Type[Miscs], ps: Any) -> List[sympy.Symbol]:
         """
         Returns a list of uniq variables from a list of properties
 
@@ -38,17 +42,17 @@ class Miscs:
         vs = [v for p in ps for v in p.free_symbols]
         return sorted(set(vs), key=str)
 
-    str2rat_cache = {}
+    str2rat_cache: Dict[str, sympy.Rational] = {}
 
     @staticmethod
-    def str2list(s):
+    def str2list(s: str) -> Tuple:
         assert isinstance(s, str), s
         rs = tuple(eval(s))
         return rs
 
     @classmethod
     @functools.cache
-    def str2rat(cls, s):
+    def str2rat(cls: Type[Miscs], s: str) -> sympy.Rational:
         """
         Convert the input 's' to a rational number if possible.
 
@@ -76,13 +80,13 @@ class Miscs:
             return ret
 
     @staticmethod
-    def create_uks(ts, prefix="uk"):
+    def create_uks(ts: List[Any], prefix: str = "uk") -> List[sympy.Symbol]:
         uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
         assert not set(ts).intersection(set(uks)), "name conflict"
         return uks
 
     @classmethod
-    def init_terms(cls, vs, deg, rate):
+    def init_terms(cls: Type[Miscs], vs: List[str], deg: int, rate: float) -> Tuple[List[Any], List[sympy.Symbol], int]:
         assert vs, vs
         assert deg >= 1, deg
         assert rate >= 0.1, rate
@@ -95,7 +99,7 @@ class Miscs:
         return terms, uks, n_eqts_needed
 
     @staticmethod
-    def get_terms(ss, deg):
+    def get_terms(ss: List[sympy.Symbol], deg: int) -> List[Any]:
         """
         get a list of terms from the given list of vars and deg
         the number of terms is len(rs) == binomial(len(ss)+d, d)
@@ -110,13 +114,14 @@ class Miscs:
 
         assert deg >= 0, deg
         assert ss and all(isinstance(s, sympy.Symbol) for s in ss), ss
-        ss_ = ([1] if ss else (1,)) + ss
+        # ss_ = ([1] if ss else (1,)) + ss
+        ss_ = [1] + ss
         combs = itertools.combinations_with_replacement(ss_, deg)
         terms = [sympy.prod(c) for c in combs]
         return terms
 
     @classmethod
-    def get_max_deg(cls, p):
+    def get_max_deg(cls: Type[Miscs], p: Union[int, sympy.Expr]) -> int:
         """
         get the max degree of a polynomial
 
@@ -142,7 +147,7 @@ class Miscs:
             return 0
 
     @classmethod
-    def get_deg(cls, nvs, nts, max_deg=7):
+    def get_deg(cls: Type[Miscs], nvs: int, nts: int, max_deg: int = 7) -> int:
         """
         Guess a max degree wrt to a (maximum) number of terms (nss)
 
@@ -164,9 +169,10 @@ class Miscs:
             nterms = sympy.binomial(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
+        return max_deg
 
     @classmethod
-    def get_auto_deg(cls, maxdeg, nvars, maxterm):
+    def get_auto_deg(cls: Type[Miscs], maxdeg: int, nvars: int, maxterm: int) -> int:
         if maxdeg:
             deg = maxdeg
             mlog.debug(f"using deg {deg}")
@@ -210,7 +216,7 @@ class Miscs:
         return set(rs)
 
     @classmethod
-    def reduce_eqts(cls, ps):
+    def reduce_eqts(cls: Type[Miscs], ps: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
         """
         Return the basis (e.g., a min subset of ps that implies ps)
         of the set of polynomial eqts using Groebner basis.
@@ -244,7 +250,7 @@ class Miscs:
         return ps_ if len(ps_) < len(ps) else ps
 
     @staticmethod
-    def elim_denom(p):
+    def elim_denom(p: Union[sympy.Expr, sympy.Rel]) -> Union[sympy.Expr, sympy.Rel]:
         """
         Eliminate (Integer) denominators in expression operands.
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
@@ -270,7 +276,7 @@ class Miscs:
         return p * sympy.lcm(denoms)
 
     @classmethod
-    def get_coefs(cls, p):
+    def get_coefs(cls: Type[Miscs], p: Union[sympy.Expr, sympy.Rel]) -> List[Union[int, float]]:
         """
         Return coefficients of an expression
 
@@ -283,14 +289,14 @@ class Miscs:
         return list(p.as_coefficients_dict().values())
 
     @classmethod
-    def remove_ugly(cls, ps):
+    def remove_ugly(cls: Type[Miscs], ps: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
 
         @functools.cache
-        def is_nice_coef(c):
+        def is_nice_coef(c: Union[int, float]) -> bool:
             return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
 
         @functools.cache
-        def is_nice_eqt(eqt):
+        def is_nice_eqt(eqt: Union[sympy.Expr, sympy.Rel]) -> bool:
             return (len(eqt.args) <= settings.UGLY_FACTOR
                     and all(is_nice_coef(c) for c in cls.get_coefs(eqt)))
 
@@ -304,7 +310,7 @@ class Miscs:
         return ps_
 
     @ classmethod
-    def refine(cls, eqts):
+    def refine(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
 
         if not eqts:
             return eqts
@@ -318,7 +324,7 @@ class Miscs:
         return eqts
 
     @classmethod
-    def solve_eqts(cls, eqts, terms, uks):
+    def solve_eqts(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]], terms: List[Any], uks: List[sympy.Symbol]) -> List[sympy.Eq]:
         assert isinstance(eqts, list) and eqts, eqts
         assert isinstance(terms, list) and terms, terms
         assert isinstance(uks, list) and uks, uks
@@ -340,6 +346,7 @@ class Miscs:
 
     @classmethod
     def instantiate_template(cls, ts, uks, vs):
+    # def instantiate_template(cls: Type[Miscs], ts: List[Any], uks: List[sympy.Symbol], vs: List[str]):
         """
         Instantiate a template with solved coefficient values
 
@@ -374,7 +381,7 @@ class Miscs:
         return sols
 
     @staticmethod
-    def show_removed(s, orig_siz, new_siz, elapsed_time):
+    def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float):
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
         mlog.debug(
@@ -383,7 +390,7 @@ class Miscs:
         )
 
     @staticmethod
-    def simplify_idxs(ordered_idxs, imply_f):
+    def simplify_idxs(ordered_idxs: List[int], imply_f: Callable[[Set[int], int], bool]) -> List[int]:
         """
         attempt to remove i in idxs if imply_f returns true
         Note: the order of idxs determine what to get checked (and removed)
@@ -403,7 +410,7 @@ class Miscs:
         return sorted(results)
 
     @staticmethod
-    def create_dict(l):
+    def create_dict(l: List[Tuple[Any, Any]]) -> Dict[Any, Any]:
         """
         given a list of set of type [(k1,v1),..,(kn,vn)]
         generates a dict where keys are k's and values are [v's]
@@ -415,13 +422,13 @@ class Miscs:
         return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
 
     @staticmethod
-    def merge_dict(l):
+    def merge_dict(l: List[Dict[Any, Any]]) -> Dict[Any, Any]:
         return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
 
 
 class MP:
     @staticmethod
-    def get_workload(tasks, n_cpus):
+    def get_workload(tasks: List[Any], n_cpus: int) -> List[List[Any]]:
         """
         >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
@@ -449,17 +456,17 @@ class MP:
             cpu_id = i % n_cpus
             wloads[cpu_id].append(task)
 
-        wloads = [wl for wl in sorted(wloads.values(), key=lambda wl: len(wl))]
+        _wloads = [wl for wl in sorted(wloads.values(), key=lambda wl: len(wl))]
 
-        return wloads
+        return _wloads
 
     @staticmethod
-    def run_mp(taskname, tasks, f, DO_MP):
+    def run_mp(taskname: str, tasks: List[Any], f: Callable[[List[Any]], Any], DO_MP: bool):
         """
         Run wprocess on tasks in parallel
         """
 
-        def wprocess(mytasks, myQ):
+        def wprocess(mytasks: List[Any], myQ: Union[None, multiprocessing.Queue]):
             try:
                 rs = f(mytasks)
             except BaseException as ex:
@@ -476,7 +483,7 @@ class MP:
 
         n_cpus = multiprocessing.cpu_count()
         if DO_MP and len(tasks) >= 2 and n_cpus >= 2:
-            Q = multiprocessing.Queue()
+            Q: multiprocessing.Queue = multiprocessing.Queue()
             wloads = MP.get_workload(tasks, n_cpus=n_cpus)
             mlog.debug(
                 f"{taskname}:running {len(tasks)} jobs "
