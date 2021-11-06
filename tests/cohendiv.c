@@ -9,7 +9,7 @@ void vtrace3(int q, int r, int x, int y){}
 
 int mainQ(int x, int y){
     vassume(x >= 1 && y >= 1);
-    vtrace0(x,y);  //preconditions
+    //vtrace0(x,y);  //preconditions
     int q=0;
     int r=x;
     int a=0;
@@ -32,7 +32,7 @@ int mainQ(int x, int y){
 	r=r-b;
 	q=q+a;
     }
-    vtrace3(q, r,x, y);  //postconditions
+    vtrace3(q, r, x, y);  //postconditions
     return q;
 }
 

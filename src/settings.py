@@ -26,7 +26,7 @@ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAXDEPTH = 30
-SOLVER_TIMEOUT = 3 * 1000  # secs
+SOLVER_TIMEOUT = 3  # secs
 EQT_RATE = 1.5
 UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
 MAX_TERM = 200
@@ -263,14 +263,14 @@ def setup(settings, args):
 
     if args.tmpdir:
         if settings:
-            settings.tmpdir = Path(args.tmpdir)
-            assert settings.tmpdir.is_dir()
+            settings.TMPDIR = Path(args.tmpdir)
+            assert settings.TMPDIR.is_dir()
         else:
             opts.append(f"-tmpdir {args.tmpdir}")
 
     if settings:
-        settings.logger_level = helpers.vcommon.getLogLevel(args.log_level)
-        mlog = helpers.vcommon.getLogger(__name__, settings.logger_level)
+        settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
+        mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
         return mlog
     else:
         opts.append(f"-log_level {args.log_level}")

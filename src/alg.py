@@ -152,12 +152,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         if settings.DO_IEQS:
             def f():
-                return self._infer(self.IEQS, lambda: self._infer_ieqs())
+                return self._infer(self.IEQS, self._infer_ieqs)
             tasks.append(f)
 
         if settings.DO_MINMAXPLUS:
             def f():
-                return self._infer(self.MINMAX, lambda: self._infer_minmax())
+                return self._infer(self.MINMAX, self._infer_minmax)
             tasks.append(f)
 
         def f(tasks):
@@ -230,11 +230,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
     def _infer_eqts(self, maxdeg):
         dinvs, dtraces = infer.eqt.Infer(
             self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
-
-        # if settings.DO_CONGRUENCES:
-        #     pass
-        # self.symstates.check(dinvs)
-
         return dinvs, dtraces
 
     def _infer_ieqs(self):

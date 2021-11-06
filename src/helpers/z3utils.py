@@ -1,11 +1,15 @@
 import ast
 import pdb
 import operator
+import multiprocessing
 import functools
 import typing
+import queue
 import z3
 
 import helpers.vcommon as CM
+from helpers.miscs import Miscs
+
 import settings
 
 DBG = pdb.set_trace
@@ -74,8 +78,8 @@ class Z3:
         assert isinstance(maximize, bool), maximize
 
         solver = z3.Optimize() if maximize else z3.Solver()
-        solver.set(timeout=settings.SOLVER_TIMEOUT)
-        solver.set("timeout", settings.SOLVER_TIMEOUT)
+        solver.set(timeout=settings.SOLVER_TIMEOUT * 1000)
+        solver.set("timeout", settings.SOLVER_TIMEOUT * 1000)
         return solver
 
     @classmethod
@@ -145,8 +149,7 @@ class Z3:
             solver.add(block)
 
         stat = solver.check()
-
-        if stat == z3.unknown:  # for z3.unknown/unsat/sat, use == instead of is
+        if stat == z3.unknown:  # for unknown/unsat/sat, use == instead of is
             rs = None
         elif stat == z3.unsat and i == 0:
             rs = False
@@ -316,8 +319,9 @@ class Z3:
         else:
             raise NotImplementedError(ast.dump(node))
 
-    @classmethod
-    def simplify(cls, f):
+    @staticmethod
+    @functools.cache
+    def simplify(f):
         assert z3.is_expr(f), f
         simpl = z3.Tactic("ctx-solver-simplify")
         simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
@@ -327,8 +331,8 @@ class Z3:
             pass
         return f
 
-    @classmethod
-    def to_smt2_str(cls, f, status="unknown", name="benchmark", logic=""):
+    @staticmethod
+    def to_smt2_str(f, status="unknown", name="benchmark", logic=""):
         v = (z3.Ast * 0)()
         s = z3.Z3_benchmark_to_smtlib_string(
             f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast()
@@ -364,3 +368,6 @@ class Z3:
                 return vs
         else:
             return str(m) if as_str else m
+
+
+

@@ -50,9 +50,9 @@ class Miscs:
         rs = tuple(eval(s))
         return rs
 
-    @classmethod
+    @staticmethod
     @functools.cache
-    def str2rat(cls: Type[Miscs], s: str) -> sympy.Rational:
+    def str2rat(s: str) -> sympy.Rational:
         """
         Convert the input 's' to a rational number if possible.
 
@@ -72,12 +72,8 @@ class Miscs:
         >>> print(Miscs.str2rat('-12.13'))
         -1213/100
         """
-        if s in cls.str2rat_cache:
-            return cls.str2rat_cache[s]
-        else:
-            ret = sympy.Rational(s)
-            cls.str2rat_cache[s] = ret
-            return ret
+        return sympy.Rational(s)
+
 
     @staticmethod
     def create_uks(ts: List[Any], prefix: str = "uk") -> List[sympy.Symbol]:
@@ -166,7 +162,7 @@ class Miscs:
                 return d
 
             # look ahead
-            nterms = sympy.binomial(nvs + d + 1, d + 1)
+            nterms:int = sympy.binomial(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
         return max_deg

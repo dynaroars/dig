@@ -1,6 +1,5 @@
 from time import time
 import pdb
-from collections import namedtuple
 from pathlib import Path
 from collections.abc import Iterable
 import typing

@@ -241,8 +241,8 @@ if __name__ == "__main__":
         if __debug__:
             mlog.warning("DEBUG MODE ON. Can be slow !")
         import alg
-
-        if inp.suffix == ".java" or inp.suffix == ".class":
+        
+        if inp.suffix in (".java", ".class"):
             dig = alg.DigSymStatesJava(inp)
         elif inp.suffix == ".c":
             dig = alg.DigSymStatesC(inp)

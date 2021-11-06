@@ -1,3 +1,9 @@
+"""
+Modelling a program, including running the program on inputs and 
+collecting traces
+"""
+
+import abc
 import shlex
 import itertools
 import random
@@ -31,7 +37,7 @@ class Prog:
         self._cache = {}  # inp -> traces (str)
 
     # PUBLIC METHODS
-    def get_traces(self, inps):
+    def get_traces(self, inps: data.traces.Inps):
         """
         front end to obtain traces from inps
         """
@@ -64,7 +70,7 @@ class Prog:
         return inps
 
     # PRIVATE METHODS
-    def _get_traces(self, inp):
+    def _get_traces(self, inp:data.traces.Inp):
         assert isinstance(inp, data.traces.Inp), inp
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
@@ -105,20 +111,20 @@ class Prog:
         inp_ranges = self._get_inp_ranges(len(self.inp_decls))
         for inp_range in inp_ranges:
             inp = self._get_inp_from_range(inp_range)
-            myInp = data.traces.Inp(self.inp_decls.names, inp)
-            dr[myInp] = inp_range
-            di[myInp] = inp
+            my_inp = data.traces.Inp(self.inp_decls.names, inp)
+            dr[my_inp] = inp_range
+            di[my_inp] = inp
 
-        myInps = data.traces.Inps(di.keys())
-        mytraces = self._get_traces_mp(myInps)
+        my_inps = data.traces.Inps(di.keys())
+        mytraces = self._get_traces_mp(my_inps)
 
         valid_ranges, valid_inps = set(), set()
-        for myInp in mytraces:
-            if mytraces[myInp]:
-                valid_ranges.add(dr[myInp])
-                valid_inps.add(di[myInp])
+        for my_inp in mytraces:
+            if mytraces[my_inp]:
+                valid_ranges.add(dr[my_inp])
+                valid_inps.add(di[my_inp])
             else:
-                mlog.debug(f"inp range {dr[myInp]} invalid")
+                mlog.debug(f"inp range {dr[my_inp]} invalid")
 
         return valid_ranges, valid_inps
 
@@ -150,19 +156,11 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
 
     @property
     def is_array(self):
-        try:
-            return self._is_array
-        except AttributeError:
-            self._is_array = self.typ == "array"
-            return self._is_array
+        return self.typ == "array"
 
     @property
     def is_real(self):
-        try:
-            return self._is_real
-        except AttributeError:
-            self._is_real = self.typ in {"D", "F"}
-            return self._is_real
+        return self.typ in {"D", "F"}
 
     def __str__(self):
         return f"{self.typ} {self.name}"
@@ -170,7 +168,8 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
     @property
     def sageExpr(self):
         try:
-            return self._sageExpr
+            ret = self._sageExpr
+            return ret
         except AttributeError:
             self._sageExpr = sympy.Symbol(self.name)
             return self._sageExpr
@@ -178,7 +177,8 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
     @property
     def expr(self):
         try:
-            return self._expr
+            ret = self._expr
+            return ret
         except AttributeError:
             self._expr = Z3.parse(str(self.sageExpr))
             return self._expr
@@ -208,14 +208,16 @@ class Symbs(tuple):
     @property
     def sageExprs(self):
         return tuple(s.sageExpr for s in self)
-
+ 
     @property
     def exprs(self):
         try:
-            return self._exprs
+            ret = self._exprs
+            return ret
         except AttributeError:
             self._exprs = [s.expr for s in self]
-            return self._exprs
+            return self._exprs 
+
 
     @classmethod
     def mk(cls, ls):
@@ -244,7 +246,7 @@ class DSymbs(dict):
     pass
 
 
-class Src:
+class Src(metaclass=abc.ABCMeta):
     def __init__(self, filename, tmpdir):
         assert filename.is_file(), filename
         assert tmpdir.is_dir(), tmpdir
@@ -278,13 +280,18 @@ class Src:
             inv_decls,
             mainQ_name,
         )
+    @abc.abstractmethod
+    def check(self, filename, tmpdir):
+        pass
 
     @classmethod
     def parse_type_info(cls, msg):
         # vtrace2; I x; I y; I q; I r
         # vtrace1; I q; I r; I a; I b; I x; I y
         # mainQ_cohendiv; I x; I y,
-
+        
+        mainQ_name = None
+        inp_decls = None
         inv_decls = []
 
         for l in msg.split("\n"):
@@ -311,6 +318,8 @@ class Src:
 
 
 class Java(Src):
+    instrument_cmd = settings.Java.INSTRUMENT
+
     def check(self, filename, tmpdir):
         basename = Path(filename.name)  # c.class
         funname = basename.stem  # c
@@ -332,30 +341,26 @@ class Java(Src):
 
         return filename, basename, funname
 
-    @property
-    def instrument_cmd(self):
-        return settings.Java.INSTRUMENT
-
 
 class C(Src):
+    instrument_cmd = settings.C.INSTRUMENT
+
     def __init__(self, filename, tmpdir):
         super().__init__(filename, tmpdir)
 
         self.traceexe = self.tracefile.with_suffix(".exe")
-        self.compile_test(self.tracefile, self.traceexe)
+        self._compile_test(self.tracefile, self.traceexe)
 
     def check(self, filename, tmpdir):
         basename = Path(filename.name)
         funname = basename.stem
-        self.compile_test(filename, tmpdir / f"{funname}.exe")
+        self._compile_test(filename, tmpdir / f"{funname}.exe")
         return filename, basename, funname
 
     @classmethod
-    def compile_test(cls, filename, out):
+    def _compile_test(cls, filename, out):
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
         subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out
 
-    @property
-    def instrument_cmd(self):
-        return settings.C.INSTRUMENT
+

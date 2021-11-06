@@ -1,7 +1,6 @@
 """
 Symbolic States
 """
-from time import time
 import functools
 import sys
 import shlex
@@ -12,7 +11,6 @@ from multiprocessing import Queue
 from queue import Empty
 import subprocess
 
-import sympy
 import z3
 
 from typing import NamedTuple
@@ -284,7 +282,6 @@ class SymStatesMaker(metaclass=ABCMeta):
 
             mlog.debug(
                 f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
-
         return symstates
 
     def get_ss(self, depth):
@@ -497,9 +494,7 @@ class SymStates(dict):
                 (loc, str(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
                 for loc, inv in tasks
             ]
-
         wrs = MP.run_mp("prove", tasks, f, settings.DO_MP)
-
         mCexs = []
         mdinvs = infer.inv.DInvs()
         for loc, str_inv, (cexs, is_succ) in wrs:
@@ -523,7 +518,7 @@ class SymStates(dict):
             inv, infer.inv.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
-
+        
         try:
             inv_expr = inv.expr
             if inv_expr is Z3.zFalse:
