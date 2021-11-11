@@ -25,7 +25,7 @@ class Miscs:
         return isinstance(x, sympy.Expr)
 
     @classmethod
-    def get_vars(cls: Type[Miscs], ps: Any) -> List[sympy.Symbol]:
+    def get_vars(cls: Type[Miscs], props: Any) -> List[sympy.Symbol]:
         """
         Returns a list of uniq variables from a list of properties
 
@@ -37,9 +37,9 @@ class Miscs:
         >>> assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
         """
 
-        ps = ps if isinstance(ps, Iterable) else [ps]
-        ps = [p for p in ps if isinstance(p, (sympy.Expr, sympy.Rel))]
-        vs = [v for p in ps for v in p.free_symbols]
+        props = props if isinstance(props, Iterable) else [props]
+        props = (p for p in props if isinstance(p, (sympy.Expr, sympy.Rel)))
+        vs = (v for p in props for v in p.free_symbols)
         return sorted(set(vs), key=str)
 
     str2rat_cache: Dict[str, sympy.Rational] = {}
@@ -74,7 +74,6 @@ class Miscs:
         """
         return sympy.Rational(s)
 
-
     @staticmethod
     def create_uks(ts: List[Any], prefix: str = "uk") -> List[sympy.Symbol]:
         uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
@@ -95,10 +94,10 @@ class Miscs:
         return terms, uks, n_eqts_needed
 
     @staticmethod
-    def get_terms(ss: List[sympy.Symbol], deg: int) -> List[Any]:
+    def get_terms(symbols: List[sympy.Symbol], deg: int) -> List[Any]:
         """
         get a list of terms from the given list of vars and deg
-        the number of terms is len(rs) == binomial(len(ss)+d, d)
+        the number of terms is len(rs) == binomial(len(symbols)+d, d)
 
         >>> a,b,c,d,e,f = sympy.symbols('a b c d e f')
         >>> ts = Miscs.get_terms([a, b], 3)
@@ -109,14 +108,16 @@ class Miscs:
         """
 
         assert deg >= 0, deg
-        assert ss and all(isinstance(s, sympy.Symbol) for s in ss), ss
+        assert (symbols and
+                all(isinstance(s, sympy.Symbol) for s in symbols)), symbols
+
         # ss_ = ([1] if ss else (1,)) + ss
-        ss_ = [1] + ss
-        combs = itertools.combinations_with_replacement(ss_, deg)
+        symbols_ = [1] + symbols
+        combs = itertools.combinations_with_replacement(symbols_, deg)
         terms = [sympy.prod(c) for c in combs]
         return terms
 
-    @classmethod
+    @ classmethod
     def get_max_deg(cls: Type[Miscs], p: Union[int, sympy.Expr]) -> int:
         """
         get the max degree of a polynomial
@@ -162,7 +163,7 @@ class Miscs:
                 return d
 
             # look ahead
-            nterms:int = sympy.binomial(nvs + d + 1, d + 1)
+            nterms: int = sympy.binomial(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
         return max_deg
@@ -305,7 +306,7 @@ class Miscs:
 
         return ps_
 
-    @ classmethod
+    @classmethod
     def refine(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
 
         if not eqts:
@@ -341,8 +342,8 @@ class Miscs:
         return [sympy.Eq(eqt, 0) for eqt in eqts_]
 
     @classmethod
-    def instantiate_template(cls, ts, uks, vs):
-    # def instantiate_template(cls: Type[Miscs], ts: List[Any], uks: List[sympy.Symbol], vs: List[str]):
+    def instantiate_template(cls, terms, uks, vs):
+        # def instantiate_template(cls: Type[Miscs], terms: List[Any], uks: List[sympy.Symbol], vs: List[str]):
         """
         Instantiate a template with solved coefficient values
 
@@ -358,14 +359,14 @@ class Miscs:
         []
         """
         assert isinstance(vs, list), vs
-        assert isinstance(ts, list) and ts, ts
+        assert isinstance(terms, list) and terms, terms
         assert isinstance(uks, list) and uks, uks
-        assert len(ts) == len(uks) == len(vs), (ts, uks, vs)
+        assert len(terms) == len(uks) == len(vs), (terms, uks, vs)
 
-        cs = [(t, u, v) for t, u, v in zip(ts, uks, vs) if v != 0]
-        ts_, uks_, vs_ = zip(*cs)
+        cs = [(t, u, v) for t, u, v in zip(terms, uks, vs) if v != 0]
+        terms_, uks_, vs_ = zip(*cs)
 
-        eqt = sum(t*v for t, v in zip(ts_, vs_))
+        eqt = sum(t*v for t, v in zip(terms_, vs_))
 
         uk_vs = cls.get_vars(vs_)
 
@@ -452,7 +453,8 @@ class MP:
             cpu_id = i % n_cpus
             wloads[cpu_id].append(task)
 
-        _wloads = [wl for wl in sorted(wloads.values(), key=lambda wl: len(wl))]
+        _wloads = [wl for wl in sorted(
+            wloads.values(), key=lambda wl: len(wl))]
 
         return _wloads
 

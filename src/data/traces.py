@@ -20,8 +20,8 @@ class SymbsVals(typing.NamedTuple):
     vs: tuple
     """ "
     ((x, y), (3, 4))
-    """
-
+    """   
+    @classmethod
     def mk(cls, ss, vs):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs

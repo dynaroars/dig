@@ -70,9 +70,9 @@ class _Infer(metaclass=abc.ABCMeta):
         return cexs, dinvs
 
 
-class _Iterative(_Infer, metaclass=abc.ABCMeta):
+class _CEGIR(_Infer, metaclass=abc.ABCMeta):
     """
-    Find invs using a guess and check iterative approach
+    Find invs using a guess and check iterative CEGIR approach
     """
     pass
 

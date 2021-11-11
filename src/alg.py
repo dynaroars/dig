@@ -132,9 +132,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         self.symstates = self.get_symbolic_states()
         et = time.time() - st
         self.locs = self.inv_decls.keys()
-        mlog.info(
-            f"got symbolic states at {len(self.locs)} locs in {et:.2f}s"
-        )
 
         self.time_d["symbolic_states"] = et
 
@@ -144,6 +141,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 mlog.warning(f"{loc}: no symbolic states. Skip")
                 self.inv_decls.pop(loc)
 
+        mlog.info(
+            f"got {self.symstates.siz} symstates for {len(self.locs)} locs in {et:.2f}s"
+        )
         tasks = []
         if settings.DO_EQTS:
             def f():

@@ -16,7 +16,6 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)

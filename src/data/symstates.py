@@ -5,7 +5,7 @@ import functools
 import sys
 import shlex
 from collections import defaultdict
-from abc import ABCMeta
+import abc
 import pdb
 from multiprocessing import Queue
 from queue import Empty
@@ -26,7 +26,6 @@ import analysis
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-
 class PathCondition(NamedTuple):
     loc: str
     pc: z3.ExprRef
@@ -38,6 +37,16 @@ class PathCondition(NamedTuple):
     @property
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
+
+    @classmethod
+    @abc.abstractmethod
+    def parse_parts(cls, s):
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def parse_part(cls, s):
+        pass
 
     @classmethod
     def parse(cls, s):
@@ -230,7 +239,7 @@ class PCs(set):
             return self._pc
 
 
-class SymStatesMaker(metaclass=ABCMeta):
+class SymStatesMaker(metaclass=abc.ABCMeta):
     def __init__(self, filename, mainQName, funname, ninps, tmpdir):
         assert tmpdir.is_dir(), tmpdir
 
@@ -242,7 +251,7 @@ class SymStatesMaker(metaclass=ABCMeta):
 
     def compute(self):
         """
-        Run symbolic execution to obtain symbolic states
+        Run symbolic execution to obtain symstates
         """
 
         tasks = [depth for depth in range(
@@ -256,7 +265,7 @@ class SymStatesMaker(metaclass=ABCMeta):
         wrs = MP.run_mp("getting symstates", tasks, f, settings.DO_MP)
 
         if not wrs:
-            mlog.warning("cannot obtain symbolic states, unreachable locs?")
+            mlog.warning("cannot obtain symstates, unreachable locs?")
             sys.exit(0)
 
         symstates = self.merge(wrs, self.pc_cls)
@@ -289,8 +298,6 @@ class SymStatesMaker(metaclass=ABCMeta):
 
         cmd = self.mk(depth)
         timeout = depth
-        mlog.debug(
-            f"Obtaining symbolic states at depth {depth} (timeout {timeout}s)")
         mlog.debug(cmd)
 
         s = None
@@ -315,12 +322,14 @@ class SymStatesMaker(metaclass=ABCMeta):
             return None
 
         pcs = self.pc_cls.parse(s)
+        if pcs:
+            mlog.debug(f"Got {len(pcs)} symstates at depth {depth}")
         return pcs
 
     @classmethod
     def merge(cls, depthss, pc_cls):
         """
-        Merge PC's info into symbolic states sd[loc][depth]
+        Merge PC's info into symstates sd[loc][depth]
         """
         assert isinstance(depthss, list) and depthss, depthss
         assert all(
@@ -367,16 +376,16 @@ class SymStatesMaker(metaclass=ABCMeta):
             if not symstates[loc][depth]
         ]
         for loc, depth in empties:
-            mlog.debug(f"{loc}: no new symbolic states at depth {depth}")
+            mlog.debug(f"{loc}: no new symstates at depth {depth}")
             symstates[loc].pop(depth)
 
         empties = [loc for loc in symstates if not symstates[loc]]
         for loc in empties:
-            mlog.warning(f"{loc}: no symbolic states found")
+            mlog.warning(f"{loc}: no symstates found")
             symstates.pop(loc)
 
         if all(not symstates[loc] for loc in symstates):
-            mlog.error("No symbolic states found for any locs. Exit!")
+            mlog.error("No symstates found for any locs. Exit!")
             sys.exit(1)
 
         return symstates
@@ -450,7 +459,10 @@ class SymStatesMakerJava(SymStatesMaker):
 
 
 class SymStatesDepth(dict):  # depth -> PCs
-    pass
+
+    @property
+    def siz(self):
+        return sum(map(len, self.values()))
 
 
 class SymStates(dict):
@@ -465,6 +477,10 @@ class SymStates(dict):
         self.solver_stats_ = []  # periodically save solver_stats results here
 
         super().__init__(dict())
+
+    @property
+    def siz(self):
+        return sum(symstatesdepth.siz for symstatesdepth in self.values())
 
     def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
         symstatesmaker = symstatesmaker_cls(
@@ -518,7 +534,7 @@ class SymStates(dict):
             inv, infer.inv.Inv) or z3.is_expr(inv), inv
         assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
-        
+
         try:
             inv_expr = inv.expr
             if inv_expr is Z3.zFalse:
@@ -616,7 +632,7 @@ class SymStates(dict):
 
     def maximize(self, loc, term_expr, iupper):
         """
-        maximize value of term using symbolic states
+        maximize value of term using symstates
         """
         assert z3.is_expr(term_expr), term_expr
 

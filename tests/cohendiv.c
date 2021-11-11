@@ -2,10 +2,10 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace0(int x, int y){}
+//void vtrace0(int x, int y){}
 void vtrace1(int q, int r, int a, int b, int x, int y){}
-void vtrace2(int q, int r, int a, int b, int x, int y){}
-void vtrace3(int q, int r, int x, int y){}
+//void vtrace2(int q, int r, int a, int b, int x, int y){}
+void vtrace2(int q, int r, int x, int y){}
 
 int mainQ(int x, int y){
     vassume(x >= 1 && y >= 1);
@@ -15,14 +15,15 @@ int mainQ(int x, int y){
     int a=0;
     int b=0;
     while(1) {
-	vtrace1(q, r, a, b, x, y);  //loop invariants
+	
 	if(!(r>=y))
 	    break;
 	a=1;
 	b=y;
 	  
 	while (1){
-	    vtrace2(q, r, a, b, x, y);  //loop invariants
+	    vtrace1(q, r, a, b, x, y);  //loop invariants
+	    //vtrace2(q, r, a, b, x, y);  //loop invariants
 	    if(!(r >= 2*b))
 		break;
 	       
@@ -32,7 +33,7 @@ int mainQ(int x, int y){
 	r=r-b;
 	q=q+a;
     }
-    vtrace3(q, r, x, y);  //postconditions
+    vtrace2(q, r, x, y);  //postconditions
     return q;
 }
 

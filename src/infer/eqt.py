@@ -19,14 +19,15 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 class Eqt(infer.inv.Inv):
     def __init__(self, eqt, stat=None):
         assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
+
         super().__init__(eqt, stat)
 
     @property
-    def mystr(self):
+    def mystr(self) -> str:
         return f"{self.inv.lhs} == {self.inv.rhs}"
 
 
-class Infer(infer.infer._Iterative):
+class Infer(infer.infer._CEGIR):
 
     @classmethod
     def gen_from_traces(cls, deg, traces, symbols):

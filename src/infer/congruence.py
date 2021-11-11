@@ -52,8 +52,6 @@ class MyCongruence(typing.NamedTuple):
 
 class Congruence(infer.inv.Inv):
     def __init__(self, mycongruence, stat=None):
-        """
-            """
         assert isinstance(mycongruence, MyCongruence), mycongruence
 
         super().__init__(mycongruence, stat)
@@ -78,7 +76,7 @@ class Congruence(infer.inv.Inv):
 
 class Infer(infer.infer._Infer):
 
-    def gen(self, traces: data.traces.DTraces, inps: data.traces.Inps) -> infer.inv.DInvs:
+    def gen(self) -> infer.inv.DInvs:
 
         locs = traces.keys()
         # tasks = [
