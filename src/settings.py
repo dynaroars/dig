@@ -94,7 +94,6 @@ class Java:
     JAVA_RUN = f"{JAVA_CMD} " "-ea -cp {tracedir} {funname}"
     JAVA_RUN = partial(JAVA_RUN.format)
 
-
 class C:
     SE_MIN_DEPTH = 20
 

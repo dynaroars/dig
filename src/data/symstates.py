@@ -26,7 +26,8 @@ import analysis
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-class PathCondition(NamedTuple):
+
+class PathCond(NamedTuple):
     loc: str
     pc: z3.ExprRef
     slocal: z3.ExprRef
@@ -60,7 +61,7 @@ class PathCondition(NamedTuple):
         return pcs
 
 
-class PC_CIVL(PathCondition):
+class PathCondCIVL(PathCond):
 
     @classmethod
     def parse_parts(cls, lines):
@@ -87,13 +88,13 @@ class PC_CIVL(PathCondition):
         return parts
 
     @classmethod
-    def parse_part(cls, ss):
+    def parse_part(cls, symstates):
         """
         ['vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y',
         'path condition: (0<=(X_x-1))&&(0<=(X_y-1))']
         """
-        assert isinstance(ss, list) and len(ss) == 2, ss
-        slocal, pc = ss
+        assert isinstance(symstates, list) and len(symstates) == 2, symstates
+        slocal, pc = symstates
         pc = pc.split(":")[1].strip()  # path condition: ...
         pc = None if pc == "true" else cls.replace_str(pc)
         loc, slocal = slocal.split(":")
@@ -108,16 +109,16 @@ class PC_CIVL(PathCondition):
     def replace_str(cls, s):
         return (
             s.replace(" = ", " == ")
-            .replace(";", " and ")
-            .replace("&&", "and")
-            .replace("||", "or")
-            .replace("div ", "/ ")
-            .replace("^", "**")
-            .strip()
+                .replace(";", " and ")
+                .replace("&&", "and")
+                .replace("||", "or")
+                .replace("div ", "/ ")
+                .replace("^", "**")
+                .strip()
         )
 
 
-class PC_JPF(PathCondition):
+class PathCondJPF(PathCond):
 
     @classmethod
     def parse_parts(cls, lines, delim="**********"):
@@ -197,13 +198,13 @@ class PC_JPF(PathCondition):
     def replace_str(cls, s):
         return (
             s.replace("&&", "")
-            .replace(" = ", "==")
-            .replace("CONST_", "")
-            .replace("REAL_", "")
-            .replace("%NonLinInteger%", "")
-            .replace("SYM:", "")
-            .replace("CON:", "")
-            .strip()
+                .replace(" = ", "==")
+                .replace("CONST_", "")
+                .replace("REAL_", "")
+                .replace("%NonLinInteger%", "")
+                .replace("SYM:", "")
+                .replace("CON:", "")
+                .strip()
         )
 
 
@@ -217,7 +218,7 @@ class PCs(set):
         self.depth = depth
 
     def add(self, pc):
-        assert isinstance(pc, PathCondition), pc
+        assert isinstance(pc, PathCond), pc
         super().add(pc)
 
     @property
@@ -406,7 +407,7 @@ def merge(ds):
 
 
 class SymStatesMakerC(SymStatesMaker):
-    pc_cls = PC_CIVL
+    pc_cls = PathCondCIVL
     mindepth = settings.C.SE_MIN_DEPTH
 
     def mk(self, depth):
@@ -417,7 +418,7 @@ class SymStatesMakerC(SymStatesMaker):
 
 
 class SymStatesMakerJava(SymStatesMaker):
-    pc_cls = PC_JPF
+    pc_cls = PathCondJPF
     mindepth = settings.Java.SE_MIN_DEPTH
 
     def mk(self, depth):
@@ -510,6 +511,7 @@ class SymStates(dict):
                 (loc, str(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
                 for loc, inv in tasks
             ]
+
         wrs = MP.run_mp("prove", tasks, f, settings.DO_MP)
         mCexs = []
         mdinvs = infer.inv.DInvs()
@@ -580,9 +582,9 @@ class SymStates(dict):
 
         nochanges = 0
         while (
-            stat != z3.sat
-            and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
-            and depth_idx < len(depths) - 1
+                stat != z3.sat
+                and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+                and depth_idx < len(depths) - 1
         ):
             depth_idx_ = depth_idx + 1
             cexs_, is_succ_, stat_ = f(depths[depth_idx_])
@@ -668,10 +670,10 @@ class SymStates(dict):
         nochanges = 0
         changes = 0
         while (
-            maxv is not None
-            and changes <= settings.SE_DEPTH_NOCHANGES_MAX
-            and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
-            and depth_idx < len(depths) - 1
+                maxv is not None
+                and changes <= settings.SE_DEPTH_NOCHANGES_MAX
+                and nochanges <= settings.SE_DEPTH_NOCHANGES_MAX
+                and depth_idx < len(depths) - 1
         ):
 
             depth_idx_ = depth_idx + 1

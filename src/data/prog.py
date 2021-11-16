@@ -24,7 +24,6 @@ import data.traces
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-
 class Prog:
     def __init__(self, exe_cmd, inp_decls, inv_decls):
         assert isinstance(exe_cmd, str), exe_cmd
@@ -280,6 +279,7 @@ class Src(metaclass=abc.ABCMeta):
             inv_decls,
             mainQ_name,
         )
+
     @abc.abstractmethod
     def check(self, filename, tmpdir):
         pass

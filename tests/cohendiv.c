@@ -16,22 +16,22 @@ int mainQ(int x, int y){
     int b=0;
     while(1) {
 	
-	if(!(r>=y))
-	    break;
-	a=1;
-	b=y;
-	  
-	while (1){
-	    vtrace1(q, r, a, b, x, y);  //loop invariants
-	    //vtrace2(q, r, a, b, x, y);  //loop invariants
-	    if(!(r >= 2*b))
-		break;
-	       
-	    a = 2*a;
-	    b = 2*b;
-	}
-	r=r-b;
-	q=q+a;
+        if(!(r>=y))
+            break;
+        a=1;
+        b=y;
+
+        while (1){
+            vtrace1(q, r, a, b, x, y);  //loop invariants
+            //vtrace2(q, r, a, b, x, y);  //loop invariants
+            if(!(r >= 2*b))
+            break;
+
+            a = 2*a;
+            b = 2*b;
+        }
+        r=r-b;
+        q=q+a;
     }
     vtrace2(q, r, x, y);  //postconditions
     return q;

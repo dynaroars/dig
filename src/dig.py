@@ -2,6 +2,7 @@ import pdb
 import sys
 import datetime
 import time
+import argparse
 from pathlib import Path
 
 DBG = pdb.set_trace
@@ -19,7 +20,6 @@ Run on traces
 - sage -python -O dig.py ../tests/traces/CohenDiv1.csv -log 3
 """
 if __name__ == "__main__":
-    import argparse
 
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
