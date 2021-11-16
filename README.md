@@ -24,6 +24,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 
 ## Setup using Docker
 
+
 ```bash
 # clone DIG
 $ git clone --depth 1 https://github.com/unsat/dig.git 
