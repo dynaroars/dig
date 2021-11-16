@@ -1,14 +1,11 @@
 import ast
 import pdb
 import operator
-import multiprocessing
 import functools
 import typing
-import queue
 import z3
 
 import helpers.vcommon as CM
-from helpers.miscs import Miscs
 
 import settings
 
@@ -19,6 +16,7 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)
+    TIMEOUT = settings.SOLVER_TIMEOUT * 1000
 
     @classmethod
     def _process_fs(cls, fs, and_or_or_f):
@@ -77,8 +75,8 @@ class Z3:
         assert isinstance(maximize, bool), maximize
 
         solver = z3.Optimize() if maximize else z3.Solver()
-        solver.set(timeout=settings.SOLVER_TIMEOUT * 1000)
-        solver.set("timeout", settings.SOLVER_TIMEOUT * 1000)
+        solver.set(timeout=cls.TIMEOUT)
+        solver.set("timeout", cls.TIMEOUT)
         return solver
 
     @classmethod
@@ -167,7 +165,7 @@ class Z3:
 
     @classmethod
     def is_proved(cls, claim):
-        rs, stat = cls.get_models(claim, 1)
+        _, stat = cls.get_models(claim, 1)
         return stat == z3.unsat
 
     @classmethod

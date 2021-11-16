@@ -5,6 +5,7 @@ $ python -m doctest -v common.py
 """
 
 def pause(s=None):
+    """ do something """
     input("Press any key to continue ..." if s is None else s)
 
 
