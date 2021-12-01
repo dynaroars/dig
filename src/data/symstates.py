@@ -10,6 +10,8 @@ import pdb
 from multiprocessing import Queue
 from queue import Empty
 import subprocess
+import typing
+from typing import List, Tuple, Union
 
 import z3
 
@@ -41,16 +43,22 @@ class PathCond(NamedTuple):
 
     @classmethod
     @abc.abstractmethod
-    def parse_parts(cls, s):
+    def parse_parts(cls, ss: List[str]) -> list:
         pass
 
     @classmethod
     @abc.abstractmethod
-    def parse_part(cls, s):
+    def parse_part(cls, s) -> Tuple:
         pass
 
     @classmethod
-    def parse(cls, s):
+    @abc.abstractmethod
+    @functools.cache
+    def replace_str(cls, mystr: str) -> str:
+        pass
+
+    @classmethod
+    def parse(cls, s: str) -> Union[None, List[Tuple]]:
         assert isinstance(s, str), s
 
         parts = cls.parse_parts(s.splitlines())
@@ -64,7 +72,7 @@ class PathCond(NamedTuple):
 class PathCondCIVL(PathCond):
 
     @classmethod
-    def parse_parts(cls, lines):
+    def parse_parts(cls, lines) -> list:
         """
         vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
         path condition: (0<=(X_x-1))&&(0<=(X_y-1))
@@ -87,8 +95,9 @@ class PathCondCIVL(PathCond):
         parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
         return parts
 
+
     @classmethod
-    def parse_part(cls, symstates):
+    def parse_part(cls, symstates: List) -> Tuple:
         """
         ['vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y',
         'path condition: (0<=(X_x-1))&&(0<=(X_y-1))']
@@ -106,22 +115,16 @@ class PathCondCIVL(PathCond):
 
     @classmethod
     @functools.cache
-    def replace_str(cls, s):
+    def replace_str(cls, mystr: str) -> str:
         return (
-            s.replace(" = ", " == ")
-                .replace(";", " and ")
-                .replace("&&", "and")
-                .replace("||", "or")
-                .replace("div ", "/ ")
-                .replace("^", "**")
-                .strip()
+            mystr.replace(" = ", " == ").replace(";", " and ").replace("&&", "and").replace("||", "or").replace("div ", "/ ").replace("^", "**").strip()
         )
 
 
 class PathCondJPF(PathCond):
 
     @classmethod
-    def parse_parts(cls, lines, delim="**********"):
+    def parse_parts(cls, lines, delim="**********") -> list:
         """
         Return a list of strings representing path conditions
         [['loc: vtrace1(IIIIII)V',
@@ -159,7 +162,7 @@ class PathCondJPF(PathCond):
         return parts
 
     @classmethod
-    def parse_part(cls, ss):
+    def parse_part(cls, ss: List) -> Tuple:
         """
         vtrace1
         [('int', 'x'), ('int', 'y'), ('int', 'q'),
@@ -195,7 +198,7 @@ class PathCondJPF(PathCond):
 
     @classmethod
     @functools.cache
-    def replace_str(cls, s):
+    def replace_str(cls, s: str) -> str:
         return (
             s.replace("&&", "")
                 .replace(" = ", "==")
@@ -249,6 +252,10 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         self.funname = funname
         self.tmpdir = tmpdir
         self.ninps = ninps
+
+    @abc.abstractmethod
+    def mk(self, depth):
+        pass
 
     def compute(self):
         """

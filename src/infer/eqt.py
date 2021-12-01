@@ -61,10 +61,10 @@ class Infer(infer.infer._CEGIR):
 
         return [Eqt(eqt)for eqt in eqts]
 
-    def gen(self, deg) -> infer.inv.DInvs:
+    def gen(self, deg) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
         assert deg >= 1, deg
 
-        locs = self.prog.inv_decls.keys()
+        locs = self.prog.locs
         inps = data.traces.Inps()
         dtraces = data.traces.DTraces.mk(locs)
 
@@ -96,6 +96,7 @@ class Infer(infer.infer._CEGIR):
         return dinvs, dtraces
 
     # PRIVATE
+    @classmethod
     def _add_exprs(cls, template, n_eqts_needed, traces, exprs):
         assert isinstance(traces, data.traces.Traces), traces
 
@@ -160,7 +161,7 @@ class Infer(infer.infer._CEGIR):
         """
 
         assert deg >= 1, deg
-        assert isinstance(dtraces, data.traces.DTraces), traces
+        assert isinstance(dtraces, data.traces.DTraces), dtraces
         assert isinstance(inps, data.traces.Inps), inps
         assert isinstance(rate, float) and rate >= 0.1, rate
 
@@ -191,7 +192,7 @@ class Infer(infer.infer._CEGIR):
 
         return ts, uks, exprs
 
-    def _infer(self, loc: str, ts: list, uks: list, exprs: set):
+    def _infer(self, loc: str, ts: list, uks: list, exprs: list) -> set:
         assert isinstance(loc, str) and loc, loc
         assert isinstance(ts, list), ts
         assert isinstance(uks, list), uks

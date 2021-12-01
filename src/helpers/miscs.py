@@ -154,6 +154,7 @@ class Miscs:
         ...
         AssertionError: (1, 3)
         """
+
         assert nvs >= 1, nvs
         assert nts >= nvs, (nts, nvs)
         assert max_deg >= 1, max_deg
@@ -321,7 +322,9 @@ class Miscs:
         return eqts
 
     @classmethod
-    def solve_eqts(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]], terms: List[Any], uks: List[sympy.Symbol]) -> List[sympy.Eq]:
+    def solve_eqts(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]], 
+                    terms: List[Any], uks: List[sympy.Symbol]) -> List[sympy.Eq]:
+                    
         assert isinstance(eqts, list) and eqts, eqts
         assert isinstance(terms, list) and terms, terms
         assert isinstance(uks, list) and uks, uks

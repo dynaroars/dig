@@ -131,12 +131,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         st = time.time()
         self.symstates = self.get_symbolic_states()
         et = time.time() - st
-        self.locs = self.inv_decls.keys()
+        self.locs = self.prog.locs
 
         self.time_d["symbolic_states"] = et
 
         # remove locations with no symbolic states
-        for loc in list(self.inv_decls.keys()):
+        for loc in list(self.prog.locs):
             if loc not in self.symstates:
                 mlog.warning(f"{loc}: no symbolic states. Skip")
                 self.inv_decls.pop(loc)
@@ -194,9 +194,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         Clean up tmpdir
         """
         # clean up
-        import shutil
-
-        shutil.rmtree(self.tmpdir_del)
+        # import shutil
+        # shutil.rmtree(self.tmpdir_del)
 
         # analyze and save results
         from analysis import Result, Analysis

@@ -35,6 +35,10 @@ class Prog:
         self.inv_decls = inv_decls
         self._cache = {}  # inp -> traces (str)
 
+    @property
+    def locs(self):
+        return self.inv_decls.keys()
+
     # PUBLIC METHODS
     def get_traces(self, inps: data.traces.Inps):
         """

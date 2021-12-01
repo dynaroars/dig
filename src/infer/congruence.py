@@ -78,12 +78,13 @@ class Infer(infer.infer._Infer):
 
     def gen(self) -> infer.inv.DInvs:
 
-        locs = traces.keys()
-        # tasks = [
-        #     (loc, self._get_init_traces
-        #     ]
+        locs = self.prog.locs
+        tasks = [(loc, self._get_init_traces(loc)) for loc in locs]
 
         return infer.inv.DInvs()
+
+    def _get_init_traces(self, loc):
+        pass
 
     @classmethod
     def gen_from_traces(cls, traces, symbols):
