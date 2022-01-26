@@ -315,7 +315,7 @@ class CInvs:
         for i, inv in enumerate(invs):
             deg = self.get_max_deg(inv)
             inv = inv if isinstance(inv, str) else inv.__str__(print_stat)
-            ss.append(inv if writeresults else f"{i + 1}. {inv} {deg}")
+            ss.append(f"{inv} {deg}" if writeresults else f"{i + 1}. {inv}")
 
         return ('; ' if writeresults else '\n').join(ss)
 
