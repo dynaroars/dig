@@ -126,59 +126,59 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 self.filename, self.inv_decls, dtraces, test_dtraces=None)
 
             dinvs = digtraces.start(self.seed, maxdeg)
-            return dinvs
+        else:
 
-        st = time.time()
-        self.symstates = self.get_symbolic_states()
-        et = time.time() - st
-        self.locs = self.prog.locs
+            st = time.time()
+            self.symstates = self.get_symbolic_states()
+            et = time.time() - st
+            self.locs = self.prog.locs
 
-        self.time_d["symbolic_states"] = et
+            self.time_d["symbolic_states"] = et
 
-        # remove locations with no symbolic states
-        for loc in list(self.prog.locs):
-            if loc not in self.symstates:
-                mlog.warning(f"{loc}: no symbolic states. Skip")
-                self.inv_decls.pop(loc)
+            # remove locations with no symbolic states
+            for loc in list(self.prog.locs):
+                if loc not in self.symstates:
+                    mlog.warning(f"{loc}: no symbolic states. Skip")
+                    self.inv_decls.pop(loc)
 
-        mlog.info(
-            f"got {self.symstates.siz} symstates for {len(self.locs)} locs in {et:.2f}s"
-        )
-        tasks = []
-        if settings.DO_EQTS:
-            def f():
-                return self._infer(self.EQTS, lambda: self._infer_eqts(maxdeg))
-            tasks.append(f)
+            mlog.info(
+                f"got {self.symstates.siz} symstates for {len(self.locs)} locs in {et:.2f}s"
+            )
+            tasks = []
+            if settings.DO_EQTS:
+                def f():
+                    return self._infer(self.EQTS, lambda: self._infer_eqts(maxdeg))
+                tasks.append(f)
 
-        if settings.DO_IEQS:
-            def f():
-                return self._infer(self.IEQS, self._infer_ieqs)
-            tasks.append(f)
+            if settings.DO_IEQS:
+                def f():
+                    return self._infer(self.IEQS, self._infer_ieqs)
+                tasks.append(f)
 
-        if settings.DO_MINMAXPLUS:
-            def f():
-                return self._infer(self.MINMAX, self._infer_minmax)
-            tasks.append(f)
+            if settings.DO_MINMAXPLUS:
+                def f():
+                    return self._infer(self.MINMAX, self._infer_minmax)
+                tasks.append(f)
 
-        def f(tasks):
-            rs = [_f() for _f in tasks]
-            return rs
+            def f(tasks):
+                rs = [_f() for _f in tasks]
+                return rs
 
-        wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
+            wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
 
-        dinvs = infer.inv.DInvs()
-        dtraces = data.traces.DTraces.mk(self.locs)
+            dinvs = infer.inv.DInvs()
+            dtraces = data.traces.DTraces.mk(self.locs)
 
-        for typ, (dinvs_, dtraces_), et in wrs:
-            self.time_d[typ] = et
-            dinvs.merge(dinvs_)
-            if dtraces_:
-                dtraces.merge(dtraces_)
+            for typ, (dinvs_, dtraces_), et in wrs:
+                self.time_d[typ] = et
+                dinvs.merge(dinvs_)
+                if dtraces_:
+                    dtraces.merge(dtraces_)
 
-        dinvs = self.sanitize(dinvs, dtraces)
+            dinvs = self.sanitize(dinvs, dtraces)
 
-        self.time_d["total"] = time.time() - st
-        self.cleanup(dinvs, dtraces)
+            self.time_d["total"] = time.time() - st
+            self.cleanup(dinvs, dtraces)
 
         if settings.WRITE_VTRACES:
             tracefile = Path(settings.WRITE_VTRACES)
