@@ -321,29 +321,43 @@ class DigTraces(Dig):
         def _f(l):
             return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
 
-        return self._mk_tasks(settings.DO_ARRAYS, lambda l: self.inv_decls[l].array_only, _f)
+        def _g(l):
+            return self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_ARRAYS, _g,  _f)
 
     def _eqts_tasks(self, maxdeg):
         autodeg = self.get_auto_deg(maxdeg)
 
         def _f(l):
             return infer.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
-        return self._mk_tasks(settings.DO_EQTS, lambda l: not self.inv_decls[l].array_only, _f)
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_EQTS, _g, _f)
 
     def _ieqs_tasks(self):
         def _f(l):
             return infer.oct.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
-        return self._mk_tasks(settings.DO_IEQS, lambda l: not self.inv_decls[l].array_only, _f)
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_IEQS, _g,  _f)
 
     def _minmax_tasks(self):
         def _f(l):
             return infer.mp.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
-        return self._mk_tasks(settings.DO_MINMAXPLUS, lambda l: not self.inv_decls[l].array_only, _f)
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_MINMAXPLUS, _g, _f)
 
     def _congruences_tasks(self):
         def _f(l):
             return infer.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
-        return self._mk_tasks(settings.DO_CONGRUENCES, lambda l: not self.inv_decls[l].array_only, _f)
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_CONGRUENCES, _g,  _f)
 
     def _mk_tasks(self, cond1, cond2, _f):
         if not cond1:

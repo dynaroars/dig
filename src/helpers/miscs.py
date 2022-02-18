@@ -322,9 +322,9 @@ class Miscs:
         return eqts
 
     @classmethod
-    def solve_eqts(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]], 
-                    terms: List[Any], uks: List[sympy.Symbol]) -> List[sympy.Eq]:
-                    
+    def solve_eqts(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]],
+                   terms: List[Any], uks: List[sympy.Symbol]) -> List[sympy.Eq]:
+
         assert isinstance(eqts, list) and eqts, eqts
         assert isinstance(terms, list) and terms, terms
         assert isinstance(uks, list) and uks, uks
@@ -456,31 +456,30 @@ class MP:
             cpu_id = i % n_cpus
             wloads[cpu_id].append(task)
 
-        _wloads = [wl for wl in sorted(
-            wloads.values(), key=lambda wl: len(wl))]
-
+        _wloads = [wl for wl in sorted(wloads.values(), key=len)]
         return _wloads
 
-    @staticmethod
-    def run_mp(taskname: str, tasks: List[Any], f: Callable[[List[Any]], Any], DO_MP: bool):
+    @classmethod
+    def wprocess(cls, f, mytasks: List[Any], myQ: Union[None, multiprocessing.Queue]):
+        try:
+            rs = f(mytasks)
+        except BaseException as ex:
+            mlog.debug(f"Got exception in worker: {ex}")
+            if myQ is None:
+                raise
+            else:
+                rs = ex
+
+        if myQ is None:
+            return rs
+        else:
+            myQ.put(rs)
+
+    @classmethod
+    def run_mp(cls, taskname: str, tasks: List[Any], f: Callable[[List[Any]], Any], DO_MP: bool):
         """
         Run wprocess on tasks in parallel
         """
-
-        def wprocess(mytasks: List[Any], myQ: Union[None, multiprocessing.Queue]):
-            try:
-                rs = f(mytasks)
-            except BaseException as ex:
-                mlog.debug(f"Got exception in worker: {ex}")
-                if myQ is None:
-                    raise
-                else:
-                    rs = ex
-
-            if myQ is None:
-                return rs
-            else:
-                myQ.put(rs)
 
         n_cpus = multiprocessing.cpu_count()
         if DO_MP and len(tasks) >= 2 and n_cpus >= 2:
@@ -492,7 +491,7 @@ class MP:
             )
 
             workers = [
-                multiprocessing.Process(target=wprocess, args=(wl, Q)) for wl in wloads
+                multiprocessing.Process(target=cls.wprocess, args=(f, wl, Q)) for wl in wloads
             ]
 
             for w in workers:
@@ -508,7 +507,7 @@ class MP:
                     raise rs
 
         else:
-            wrs = wprocess(tasks, myQ=None)
+            wrs = cls.wprocess(f, tasks, myQ=None)
 
         return wrs
 
