@@ -1,3 +1,7 @@
+from __future__ import annotations
+from typing import Type, TypeVar, Union, Optional, Callable
+from typing import List, Iterable, Any, Tuple, Dict, Sequence, Set, FrozenSet
+
 import ast
 import pdb
 import operator
@@ -19,7 +23,8 @@ class Z3:
     TIMEOUT = settings.SOLVER_TIMEOUT * 1000
 
     @classmethod
-    def _process_fs(cls, fs, and_or_or_f):
+    def _process_fs(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]],
+        and_or_or_f: Callable[[List[z3.ExprRef]], z3.ExprRef]) -> Union[None, z3.ExprRef]:
         assert (isinstance(fs, list) and
                 all(isinstance(f, z3.ExprRef) or f is None for f in fs)), fs
 
@@ -32,19 +37,19 @@ class Z3:
         return and_or_or_f(fs)
 
     @classmethod
-    def _and(cls, fs):
+    def _and(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]]) -> Union[None, z3.ExprRef]:
         return cls._process_fs(fs, z3.And)
 
     @classmethod
-    def _or(cls, fs):
+    def _or(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]]) -> Union[None, z3.ExprRef]:
         return cls._process_fs(fs, z3.Or)
 
     @classmethod
-    def is_var(cls, v):
+    def is_var(cls: Type[Z3], v: Any) -> bool:
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 
     @classmethod
-    def _get_vars(cls, f, rs):
+    def _get_vars(cls: Type[Z3], f: z3.ExprRef, rs: Set[Any]):
         """
         Helper method to obtain variables from a formula f recursively.
         Results are stored in the list rs.
@@ -59,19 +64,19 @@ class Z3:
 
     @classmethod
     @functools.cache
-    def get_vars(cls, f: z3.ExprRef) -> typing.FrozenSet[z3.ExprRef]:
+    def get_vars(cls: Type[Z3], f: z3.ExprRef) -> FrozenSet[z3.ExprRef]:
         """
         >>> x,y,z = z3.Ints("x y z")
         >>> assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
         assert isinstance(f, z3.ExprRef), f
 
-        rs = set()
+        rs: Set[Any] = set()
         cls._get_vars(f, rs)
         return frozenset(rs)
 
     @classmethod
-    def create_solver(cls, maximize=False):
+    def create_solver(cls: Type[Z3], maximize: bool = False) -> Union[z3.Optimize, z3.Solver]:
         assert isinstance(maximize, bool), maximize
 
         solver = z3.Optimize() if maximize else z3.Solver()
@@ -80,7 +85,7 @@ class Z3:
         return solver
 
     @classmethod
-    def extract(cls, models, f):
+    def extract(cls: Type[Z3], models: List[z3.ModelRef], f: Callable[[str], str]) -> Tuple[List[Dict[str, str]], bool]:
         assert (
                 models is None
                 or models is False
@@ -91,7 +96,7 @@ class Z3:
                 )
         ), models
 
-        cexs = set()
+        cexs: List = list()
         is_succ = models is not None
         if is_succ and models:  # disproved
             cexs = []
@@ -108,7 +113,7 @@ class Z3:
         return cexs, is_succ
 
     @classmethod
-    def get_models(cls, f, k):
+    def get_models(cls: Type[Z3], f: z3.Expr, k: int) -> Tuple[Union[None, bool, List[Union[z3.Optimize, z3.Solver]]], int]:
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -147,7 +152,7 @@ class Z3:
 
         stat = solver.check()
         if stat == z3.unknown:  # for unknown/unsat/sat, use == instead of is
-            rs = None
+            rs: Union[None, bool, List[Any]] = None
         elif stat == z3.unsat and i == 0:
             rs = False
         else:
@@ -164,12 +169,12 @@ class Z3:
         return rs, stat
 
     @classmethod
-    def is_proved(cls, claim):
+    def is_proved(cls: Type[Z3], claim: z3.Expr) -> bool:
         _, stat = cls.get_models(claim, 1)
         return stat == z3.unsat
 
     @classmethod
-    def imply(cls, fs, g):
+    def imply(cls: Type[Z3], fs: List[z3.Expr], g: z3.Expr) -> bool:
         """
         >>> var('x y')
         (x, y)
@@ -210,7 +215,7 @@ class Z3:
         return cls._imply(fs, g)
 
     @classmethod
-    def _imply(cls, fs, g, is_conj=True):
+    def _imply(cls: Type[Z3], fs: List[z3.Expr], g: z3.Expr, is_conj: Optional[bool] = True) -> bool:
         assert z3.is_expr(g), g
 
         if is_conj:  # And(fs) => g
@@ -318,7 +323,7 @@ class Z3:
 
     @staticmethod
     @functools.cache
-    def simplify(f):
+    def simplify(f: z3.Expr) -> z3.Expr:
         assert z3.is_expr(f), f
         simpl = z3.Tactic("ctx-solver-simplify")
         simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
@@ -329,7 +334,7 @@ class Z3:
         return f
 
     @staticmethod
-    def to_smt2_str(f, status="unknown", name="benchmark", logic=""):
+    def to_smt2_str(f: z3.Expr, status: str = "unknown", name: str = "benchmark", logic: str = "") -> str:
         v = (z3.Ast * 0)()
         s = z3.Z3_benchmark_to_smtlib_string(
             f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast()
@@ -337,14 +342,14 @@ class Z3:
         return s
 
     @classmethod
-    def from_smt2_str(cls, s):
+    def from_smt2_str(cls: Type[Z3], s: str) -> z3.Expr:
         assertions = z3.parse_smt2_string(s)
         expr = cls.zTrue if not assertions else assertions[0]
         assert z3.is_expr(expr), expr
         return expr
 
     @classmethod
-    def model_str(cls, m, as_str=True):
+    def model_str(cls: Type[Z3], m: Union[List, z3.ModelRef], as_str: bool = True) -> Union[List, str]:
         """
         Returned a 'sorted' model by its keys.
         e.g. if the model is y = 3 , x = 10, then the result is

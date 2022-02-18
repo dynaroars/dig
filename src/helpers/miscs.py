@@ -117,7 +117,7 @@ class Miscs:
         terms = [sympy.prod(c) for c in combs]
         return terms
 
-    @ classmethod
+    @classmethod
     def get_max_deg(cls: Type[Miscs], p: Union[int, sympy.Expr]) -> int:
         """
         get the max degree of a polynomial

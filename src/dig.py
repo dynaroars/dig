@@ -255,8 +255,8 @@ if __name__ == "__main__":
         dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
 
         print(dinvs)
-        # write results to file
 
+        # write results to file
         if args.writeresults:
             resultfile = Path(args.writeresults)
             invs = dinvs.__str__(writeresults=True)

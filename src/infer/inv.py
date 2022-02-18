@@ -281,7 +281,20 @@ class CInvs:
                 mylist = self.falseinvs
             mylist.append(inv)
 
-    def __str__(self, print_stat=False, print_first_n=None, writeresults=False):
+    @classmethod
+    def get_max_deg(cls, inv):
+        try: 
+            p = inv.inv
+            if p.is_Relational:
+                return Miscs.get_max_deg(p.lhs)
+            else:
+                return None
+        except AttributeError:
+            return None
+
+
+    def __str__(self, print_stat=False, print_first_n=None,
+                writeresults=False):
         ss = []
 
         def mylen(x):
@@ -300,8 +313,9 @@ class CInvs:
             invs = invs[:print_first_n] + ["..."]
 
         for i, inv in enumerate(invs):
+            deg = self.get_max_deg(inv)
             inv = inv if isinstance(inv, str) else inv.__str__(print_stat)
-            ss.append(inv if writeresults else f"{i + 1}. {inv}")
+            ss.append(f"{inv} {deg}" if writeresults else f"{i + 1}. {inv}")
 
         return ('; ' if writeresults else '\n').join(ss)
 
