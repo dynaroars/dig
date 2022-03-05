@@ -241,8 +241,7 @@ class PCs(set):
             _pc = z3.Or([p.pc for p in self])
             self._pc = Z3.simplify(_pc)
             return self._pc
-
-
+    
 class SymStatesMaker(metaclass=abc.ABCMeta):
     def __init__(self, filename, mainQName, funname, ninps, tmpdir):
         assert tmpdir.is_dir(), tmpdir
@@ -259,11 +258,10 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
 
     def compute(self):
         """
-        Run symbolic execution to obtain symstates
+        Run symbolic execution to obtain symbolic states
         """
-
-        tasks = [depth for depth in range(
-            self.mindepth, settings.SE_MAXDEPTH + 1)]
+        tasks = [depth for depth in 
+                    range(self.mindepth, settings.SE_MAXDEPTH + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -467,7 +465,6 @@ class SymStatesMakerJava(SymStatesMaker):
 
 
 class SymStatesDepth(dict):  # depth -> PCs
-
     @property
     def siz(self):
         return sum(map(len, self.values()))
@@ -721,7 +718,8 @@ class SymStates(dict):
 
         return maxv, stat
 
-    def mmaximize(self, ss, term_expr, iupper):
+    @classmethod
+    def mmaximize(cls, ss:z3.ExprRef, term_expr:z3.ExprRef, iupper:int):
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
         assert isinstance(iupper, int) and iupper >= 1, iupper
@@ -750,8 +748,8 @@ class SymStates(dict):
         return None, stat
 
     # helpers
-
-    def get_ss_at_depth(self, ssd, depth=None):
+    @classmethod
+    def get_ss_at_depth(cls, ssd, depth=None):
         assert isinstance(ssd, SymStatesDepth), ssd
 
         assert depth is None or depth >= 0, depth

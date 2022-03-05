@@ -17,7 +17,6 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-
 class Miscs:
 
     @staticmethod
