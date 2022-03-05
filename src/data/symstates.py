@@ -723,7 +723,6 @@ class SymStates(dict):
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
         assert isinstance(iupper, int) and iupper >= 1, iupper
-
         opt = Z3.create_solver(maximize=True)
         opt.add(ss)
         h = opt.maximize(term_expr)
@@ -732,7 +731,6 @@ class SymStates(dict):
         except Exception as ex:
             mlog.warning(f"maximize: {ex} {term_expr}")
             stat = z3.unknown
-
         assert stat == z3.sat or stat == z3.unknown, stat
         v = None
         if stat == z3.sat:
@@ -744,7 +742,6 @@ class SymStates(dict):
                         return v, stat
                 except ValueError:  # invalid literal for 3/4
                     pass
-
         return None, stat
 
     # helpers
