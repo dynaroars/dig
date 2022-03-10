@@ -265,8 +265,8 @@ class DTraces(dict):
         ...
         """
         assert inv_decls and isinstance(inv_decls, data.prog.DSymbs), inv_decls
-        assert isinstance(
-            tracefile, Path) and tracefile.suffix == ".csv", tracefile
+        assert isinstance(tracefile, Path) and tracefile.suffix == ".csv", tracefile
+            
 
         ss = []
         for loc in self:

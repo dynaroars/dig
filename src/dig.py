@@ -174,6 +174,15 @@ if __name__ == "__main__":
         default=None,
         help="write vtraces to a csv file"
     )
+
+    ag(
+        "--writesstates",
+        "-writesstates",
+        type=str,
+        default=None,
+        help="write symbolic states to a txt file; also stop after writing"
+    )
+
     ag(
         "--test_tracefile",
         "-test_tracefile",

@@ -20,6 +20,7 @@ DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = False  # write vtraces to csv
+WRITE_SSTATES = False  # write symbolic states to csv
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
@@ -198,6 +199,12 @@ def setup(settings, args):
             settings.WRITE_VTRACES = args.writevtraces
         else:
             opts.append("-writevtraces")
+    
+    if args.writesstates:
+        if settings:
+            settings.WRITE_SSTATES = args.writesstates
+        else:
+            opts.append("-writesstates")
 
     if args.inpMaxV and args.inpMaxV >= 1:
         if settings:

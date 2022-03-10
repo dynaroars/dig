@@ -4,6 +4,7 @@ import random
 import time
 from pathlib import Path
 import settings
+import sys
 
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
@@ -129,7 +130,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         else:
 
             st = time.time()
-            self.symstates = self.get_symbolic_states()
+            self.symstates = self.get_symbolic_states()            
+            #print(self.symstates)
+            #DBG()
             et = time.time() - st
             self.locs = self.prog.locs
 
@@ -144,6 +147,13 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             mlog.info(
                 f"got {self.symstates.siz} symstates for {len(self.locs)} locs in {et:.2f}s"
             )
+
+            if settings.WRITE_SSTATES:
+                sstatesfile = Path(settings.WRITE_SSTATES)
+                self.symstates.vwrite(sstatesfile)
+                mlog.info(f"symstates written to '{sstatesfile}'")
+                sys.exit(0)
+
             tasks = []
             if settings.DO_EQTS:
                 def f():

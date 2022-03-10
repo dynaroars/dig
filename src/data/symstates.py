@@ -8,6 +8,7 @@ from collections import defaultdict
 import abc
 import pdb
 from multiprocessing import Queue
+from pathlib import Path
 from queue import Empty
 import subprocess
 import typing
@@ -210,7 +211,6 @@ class PathCondJPF(PathCond):
                 .strip()
         )
 
-
 class PCs(set):
     def __init__(self, loc, depth):
         assert isinstance(loc, str), loc
@@ -392,7 +392,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
 
         if all(not symstates[loc] for loc in symstates):
             mlog.error("No symstates found for any locs. Exit!")
-            sys.exit(1)
+            sys.exit(0)
 
         return symstates
 
@@ -494,6 +494,47 @@ class SymStates(dict):
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
+    
+    def vwrite(self, sstatesfile):
+        assert isinstance(sstatesfile, Path), sstatesfile
+        import json
+
+        inps = [Z3.to_smt2_str(inp) for inp in self.inp_exprs]
+        ss = {}
+        for loc in self:
+            if loc not in ss and self[loc]: 
+                ss[loc] = {}
+            for depth in self[loc]:
+                ss[loc][depth] = Z3.to_smt2_str(self[loc][depth].myexpr)
+
+        data ={
+            "inps": inps,
+            "ss": ss
+        }
+        jdata = json.dumps(data)
+        sstatesfile.write_text(jdata)
+
+    def vread(self, sstatesfile:Path):
+        assert sstatesfile.is_file()
+        jdata = sstatesfile.read_text()
+        return jdata        
+
+
+
+"""     def vwrite_old(self, sstatesfile):
+        assert isinstance(sstatesfile, Path), sstatesfile
+
+        ss = [f"{len(self.inp_exprs)} inps"]
+        for inp in self.inp_exprs:
+            ss.append(Z3.to_smt2_str(inp))
+        
+        ss.append(f"{len(self)} locs")
+        for loc in self:
+            maxdepth = max(self[loc].keys())
+            pcs:PCs = self[loc][maxdepth]
+            expr = Z3.to_smt2_str(pcs.myexpr)
+            ss.append(f"loc {loc}, symstate depth {maxdepth}\n{expr}")
+        sstatesfile.write_text("\n".join(ss)) """
 
     def check(self, dinvs, inps):
         """
