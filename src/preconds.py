@@ -1,6 +1,8 @@
 import pdb
-import z3
+from pathlib import Path
 from typing import Union
+import json
+import z3
 
 import settings
 from helpers.miscs import Miscs
@@ -9,13 +11,15 @@ from data.symstates import SymStates
 
 DBG = pdb.set_trace
 
+def mysimplify(expr):
+    return z3.Tactic('ctx-solver-simplify')(expr)[0]
 def approx_term(f, term):
     assert z3.is_expr(f), f    
-    v, stat = SymStates.mmaximize(f, term, iupper=100)
+    v, stat = SymStates.mmaximize(f, term, iupper=5)
     if v is not None:
         assert isinstance(v, int), v
         f_approx = term <= v
-        print(f, f_approx)
+        #print(f, f_approx)
         return f_approx
     return None
 
@@ -42,24 +46,44 @@ def approx(f_y, f_n, terms)->Union[None, z3.ExprRef]:
         f_y_ = None
         f_n_ = None
     
+    #f_y_ = z3.Tactic('ctx-solver-simplify')(f_y_)[0]
+    #f_n_ = z3.Tactic('ctx-solver-simplify')(f_n_)[0]
     return f_y_, f_n_ 
 
 def precond(f_y, f_n, inputs):
     assert z3.is_expr(f_y)
     assert z3.is_expr(f_n)
 
-    terms = Miscs.get_terms_fixed_coefs(inputs, 1, settings.ICOEFS)
-    print(terms)                
+    terms = Miscs.get_terms_fixed_coefs(inputs, 2, settings.ICOEFS)
+    # print(terms)
     f_y_, f_n_ = approx(f_y, f_n, terms)
     print("result f_y_", f_y_)
-    print("result f_n_", f_n_)
+    # print("result f_n_", f_n_)
     return f_y_, f_n_
 
 
 def go(filename):
     data = filename.read_text()
+    data = json.loads(data)
     inps = data["inps"]
+    inps = [z3.Int(inp) for inp in inps]
     ss = data["ss"]
+    for loc in ss:
+        assert len(ss[loc]) == 1, ss[loc].keys()
+        ss[loc] = Z3.from_smt2_str(list(ss[loc].values())[0])
+
+    for loc in ss:
+        if '_else' in loc:
+            continue
+        if 'pc0' not in loc:
+            continue
+        f_y = ss[loc]
+        f_n = ss[f"{loc}_else"]
+        print(f_y)
+        print(f"analyzing preconds reaching '{loc}'")
+        precond(f_y, f_n, inps)
+
+go(Path('ss.json'))
 
 
 # ex1

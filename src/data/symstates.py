@@ -460,7 +460,7 @@ class SymStatesMakerJava(SymStatesMaker):
         filename = self.tmpdir / f"{self.funname}_{max_int}_{depth}.jpf"
 
         assert not filename.is_file(), filename
-        CM.vwrite(filename, contents)
+        filename.write_text(contents)
         return filename
 
 
@@ -497,44 +497,27 @@ class SymStates(dict):
     
     def vwrite(self, sstatesfile):
         assert isinstance(sstatesfile, Path), sstatesfile
-        import json
-
-        inps = [Z3.to_smt2_str(inp) for inp in self.inp_exprs]
+        inps = [inp.name for inp in self.inp_decls]
         ss = {}
         for loc in self:
             if loc not in ss and self[loc]: 
                 ss[loc] = {}
+                print('loc', loc)
             for depth in self[loc]:
+                print(self[loc][depth].myexpr)
                 ss[loc][depth] = Z3.to_smt2_str(self[loc][depth].myexpr)
-
-        data ={
+        data = {
             "inps": inps,
             "ss": ss
         }
+        import json
         jdata = json.dumps(data)
         sstatesfile.write_text(jdata)
 
     def vread(self, sstatesfile:Path):
         assert sstatesfile.is_file()
         jdata = sstatesfile.read_text()
-        return jdata        
-
-
-
-"""     def vwrite_old(self, sstatesfile):
-        assert isinstance(sstatesfile, Path), sstatesfile
-
-        ss = [f"{len(self.inp_exprs)} inps"]
-        for inp in self.inp_exprs:
-            ss.append(Z3.to_smt2_str(inp))
-        
-        ss.append(f"{len(self)} locs")
-        for loc in self:
-            maxdepth = max(self[loc].keys())
-            pcs:PCs = self[loc][maxdepth]
-            expr = Z3.to_smt2_str(pcs.myexpr)
-            ss.append(f"loc {loc}, symstate depth {maxdepth}\n{expr}")
-        sstatesfile.write_text("\n".join(ss)) """
+        return jdata
 
     def check(self, dinvs, inps):
         """
