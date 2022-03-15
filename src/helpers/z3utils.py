@@ -113,7 +113,8 @@ class Z3:
         return cexs, is_succ
 
     @classmethod
-    def get_models(cls: Type[Z3], f: z3.Expr, k: int) -> Tuple[Union[None, bool, List[Union[z3.Optimize, z3.Solver]]], int]:
+    def get_models(cls: Type[Z3], f: z3.Expr, k: int) 
+        -> Tuple[Union[None, bool, List[Union[z3.Optimize, z3.Solver]]], int]:
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
