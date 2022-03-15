@@ -69,8 +69,7 @@ def go(filename):
     inps = [z3.Int(inp) for inp in inps]
     ss = data["ss"]
     for loc in ss:
-        assert len(ss[loc]) == 1, ss[loc].keys()
-        ss[loc] = Z3.from_smt2_str(list(ss[loc].values())[0])
+        ss[loc] = z3.Or([Z3.from_smt2_str(ss[loc][depth]) for depth in ss[loc]])
 
     for loc in ss:
         if '_else' in loc:

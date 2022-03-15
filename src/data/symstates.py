@@ -502,9 +502,7 @@ class SymStates(dict):
         for loc in self:
             if loc not in ss and self[loc]: 
                 ss[loc] = {}
-                print('loc', loc)
             for depth in self[loc]:
-                print(self[loc][depth].myexpr)
                 ss[loc][depth] = Z3.to_smt2_str(self[loc][depth].myexpr)
         data = {
             "inps": inps,
