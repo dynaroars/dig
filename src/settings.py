@@ -19,8 +19,9 @@ DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
-WRITE_VTRACES = False  # write vtraces to csv
-WRITE_SSTATES = False  # write symbolic states to csv
+WRITE_VTRACES = None  # write vtraces to csv
+WRITE_SSTATES = None  # write symbolic states to a json file
+READ_SSTATES = None  # read symbolic states from a json file
 BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
@@ -94,6 +95,7 @@ class Java:
 
     JAVA_RUN = f"{JAVA_CMD} " "-ea -cp {tracedir} {funname}"
     JAVA_RUN = partial(JAVA_RUN.format)
+
 
 class C:
     SE_MIN_DEPTH = 20
@@ -205,6 +207,12 @@ def setup(settings, args):
             settings.WRITE_SSTATES = args.writesstates
         else:
             opts.append("-writesstates")
+
+    if args.readsstates:
+        if settings:
+            settings.READ_SSTATES = args.readsstates
+        else:
+            opts.append("-readsstates")
 
     if args.inpMaxV and args.inpMaxV >= 1:
         if settings:

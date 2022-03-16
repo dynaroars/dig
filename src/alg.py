@@ -127,32 +127,21 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 self.filename, self.inv_decls, dtraces, test_dtraces=None)
 
             dinvs = digtraces.start(self.seed, maxdeg)
-        else:
 
+        else:  #use symbolic states
             st = time.time()
-            self.symstates = self.get_symbolic_states()            
-            #print(self.symstates)
-            #DBG()
+            self.symstates = self.get_symbolic_states()
             et = time.time() - st
-            self.locs = self.prog.locs
-
             self.time_d["symbolic_states"] = et
 
+            self.locs = self.prog.locs
             # remove locations with no symbolic states
             for loc in list(self.prog.locs):
                 if loc not in self.symstates:
                     mlog.warning(f"{loc}: no symbolic states. Skip")
                     self.inv_decls.pop(loc)
-
-            mlog.info(
-                f"got {self.symstates.siz} symstates for {len(self.locs)} locs in {et:.2f}s"
-            )
-
-            if settings.WRITE_SSTATES:
-                sstatesfile = Path(settings.WRITE_SSTATES)
-                self.symstates.vwrite(sstatesfile)
-                mlog.info(f"symstates written to '{sstatesfile}'")
-                sys.exit(0)
+            
+            mlog.info(f"got symbolic states in {et:.2f}s")
 
             tasks = []
             if settings.DO_EQTS:
@@ -249,13 +238,29 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
     def get_symbolic_states(self):
         symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
-        symstates.compute(
-            self.symstatesmaker_cls,
-            self.symexefile,
-            self.mysrc.mainQ_name,
-            self.mysrc.funname,
-            self.mysrc.symexedir,
-        )
+
+        if settings.READ_SSTATES:
+            sstatesfile = Path(settings.READ_SSTATES)
+            symstates.vread(sstatesfile)
+            mlog.info(f"symstates read from '{sstatesfile}'")
+        else:
+            symstates.compute(
+                self.symstatesmaker_cls,
+                self.symexefile,
+                self.mysrc.mainQ_name,
+                self.mysrc.funname,
+                self.mysrc.symexedir,
+            )
+            mlog.info(
+                f"got {symstates.siz} symstates for {len(symstates)} locs"
+            )
+
+            if settings.WRITE_SSTATES:
+                sstatesfile = Path(settings.WRITE_SSTATES)
+                symstates.vwrite(sstatesfile)
+                mlog.info(f"symstates written to '{sstatesfile}'")
+                sys.exit(0)
+
         return symstates
 
 

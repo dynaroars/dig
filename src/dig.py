@@ -180,7 +180,15 @@ if __name__ == "__main__":
         "-writesstates",
         type=str,
         default=None,
-        help="write symbolic states to a txt file; also stop after writing"
+        help="write symbolic states to file; also stop after writing"
+    )
+
+    ag(
+        "--readsstates",
+        "-readsstates",
+        type=str,
+        default=None,
+        help="read symbolic states to a file"
     )
 
     ag(

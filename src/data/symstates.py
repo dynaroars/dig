@@ -96,7 +96,6 @@ class PathCondCIVL(PathCond):
         parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
         return parts
 
-
     @classmethod
     def parse_part(cls, symstates: List) -> Tuple:
         """
@@ -211,7 +210,7 @@ class PathCondJPF(PathCond):
                 .strip()
         )
 
-class PCs(set):
+class PCs(set):  #{PathConds}
     def __init__(self, loc, depth):
         assert isinstance(loc, str), loc
         assert depth >= 1, depth
@@ -241,6 +240,9 @@ class PCs(set):
             _pc = z3.Or([p.pc for p in self])
             self._pc = Z3.simplify(_pc)
             return self._pc
+
+    def vread(self, expr):
+        self._expr = Z3.from_smt2_str(expr)    
     
 class SymStatesMaker(metaclass=abc.ABCMeta):
     def __init__(self, filename, mainQName, funname, ninps, tmpdir):
@@ -469,7 +471,6 @@ class SymStatesDepth(dict):  # depth -> PCs
     def siz(self):
         return sum(map(len, self.values()))
 
-
 class SymStates(dict):
     # loc -> SymStatesDepth
 
@@ -496,6 +497,9 @@ class SymStates(dict):
             self[loc] = SymStatesDepth(ss[loc])
     
     def vwrite(self, sstatesfile):
+        """
+        write symbolic states to a file
+        """
         assert isinstance(sstatesfile, Path), sstatesfile
         inps = [inp.name for inp in self.inp_decls]
         ss = {}
@@ -512,10 +516,19 @@ class SymStates(dict):
         jdata = json.dumps(data)
         sstatesfile.write_text(jdata)
 
-    def vread(self, sstatesfile:Path):
+    def vread(self, sstatesfile: Path):
+        """
+        (re)create symbolic states from a file
+        """
         assert sstatesfile.is_file()
-        jdata = sstatesfile.read_text()
-        return jdata
+        import json
+        data = json.loads(sstatesfile.read_text())
+        ss = data["ss"]
+        for loc in ss:
+            self[loc] = SymStatesDepth()
+            for depth in ss[loc]:
+                self[loc][depth] = PCs(loc, depth)
+                self[loc][depth].vread(ss[loc][depth])
 
     def check(self, dinvs, inps):
         """
