@@ -169,12 +169,12 @@ class Z3:
         return rs, stat
 
     @classmethod
-    def is_proved(cls: Type[Z3], claim: z3.Expr) -> bool:
-        _, stat = cls.get_models(claim, 1)
+    def is_valid(cls: Type[Z3], claim: z3.ExprRef) -> bool:
+        _, stat = cls.get_models(z3.Not(claim), 1)
         return stat == z3.unsat
 
     @classmethod
-    def imply(cls: Type[Z3], fs: List[z3.Expr], g: z3.Expr) -> bool:
+    def imply(cls: Type[Z3], fs: List[z3.ExprRef], g: z3.ExprRef) -> bool:
         """
         >>> var('x y')
         (x, y)

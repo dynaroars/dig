@@ -39,6 +39,9 @@ def approx_terms(f, terms) -> List:
 
 
 def myimply(f: z3.ExprRef, ors: List[z3.ExprRef]) -> z3.ExprRef:
+    assert z3.is_expr(f), f
+    assert isinstance(ors, list) and ors, ors
+
     ors_ = []
     for x in ors:
         ret = Z3._imply(f, x)
@@ -46,7 +49,13 @@ def myimply(f: z3.ExprRef, ors: List[z3.ExprRef]) -> z3.ExprRef:
         if not ret:
             ors_.append(x)
 
-    ret = z3.simplify(z3.And(f, Z3._or(ors_)))
+    print('f',f)
+    print('ors_', ors_)
+    ors_ = Z3._or(ors_)
+    if ors_ is None: 
+        ret = f 
+    else:
+        ret = z3.simplify(z3.And(f, ors_))
     print("myimplfy", ret)
     return ret
 
@@ -59,17 +68,35 @@ def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
         y = z3.simplify(Z3._and(ys))
         n = z3.Not(y)
     elif not ys and ns:
-        DBG()
-        ns = z3.simplify(Z3._and(ns))
-        y = z3.Not(ns)
+        n = z3.simplify(Z3._and(ns))
+        y = z3.Not(n)
     else:
         assert ys and ns, (ys, ns)
 
-        ys_: z3.ExprRef = Z3._and(ys)
-        ns_: z3.ExprRef = Z3._and(ns)
+        #obtain common ones
+        commons = set()
+        for y in ys:
+            for n in ns:
+                if Z3.is_valid(y == n):
+                    commons.add(y)
 
-        y = myimply(ys_, [z3.Not(x) for x in ns])
-        n = myimply(ns_, [z3.Not(x) for x in ys])
+        ys = [y for y in ys if y not in commons]
+        ns = [n for n in ns if n not in commons]
+        if not ys and not ns:
+            y = None
+            n = None
+        elif ys and not ns:
+            y = z3.simplify(Z3._and(ys))
+            n = z3.Not(y)
+        elif not ys and ns:
+            n = z3.simplify(Z3._and(ns))
+            y = z3.Not(n)
+        else:
+            ys_: z3.ExprRef = Z3._and(ys)
+            ns_: z3.ExprRef = Z3._and(ns)
+
+            y = myimply(ys_, [z3.Not(x) for x in ns])
+            n = myimply(ns_, [z3.Not(x) for x in ys])
 
     return y,n
     
