@@ -27,7 +27,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 
 ```bash
 # clone DIG
-$ git clone --depth 1 https://github.com/unsat/dig.git 
+$ git clone --depth 1 https://github.com/dynaroars/dig.git 
 
 # Then go to DIG's directory 
 $ cd dig # in DIG's directory
