@@ -1,6 +1,6 @@
 import pdb
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 import json
 import z3
 
@@ -12,10 +12,12 @@ from data.symstates import SymStates
 IUPPER = 10
 DBG = pdb.set_trace
 
+
 def mysimplify(expr):
     return z3.Tactic('ctx-solver-simplify')(expr)[0]
 
-def approx_term(f, term) -> Union[None, z3.ExprREf]:
+
+def approx_term(f, term) -> Union[None, z3.ExprRef]:
     assert z3.is_expr(f), f
 
     v, stat = SymStates.mmaximize(f, term, iupper=IUPPER)
@@ -35,6 +37,7 @@ def approx_terms(f, terms) -> List:
     #return ret
     return approxs
 
+
 def myimply(f:z3.ExprRef, ors:List[z3.ExprRef]):
     ors_ = []
     for x in ors:
@@ -42,7 +45,8 @@ def myimply(f:z3.ExprRef, ors:List[z3.ExprRef]):
             ors_.append(x)
 
     return z3.And(f, Z3._or(ors_))
-    
+
+
 def combine(ys:List[z3.ExprRef], ns:List[z3.ExprRef]):
     if not ys and not ns:
         y = None
@@ -110,7 +114,7 @@ def go(filename):
     for loc in ss:
         if '_else' in loc:
             continue
-        if 'pc' not in loc:
+        if 'pc0' not in loc:
             continue
         f_y = ss[loc]
         f_n = ss[f"{loc}_else"]

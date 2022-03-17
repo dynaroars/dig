@@ -520,7 +520,8 @@ class SymStates(dict):
         """
         (re)create symbolic states from a file
         """
-        assert sstatesfile.is_file()
+        assert sstatesfile.is_file(), sstatesfile
+        
         import json
         data = json.loads(sstatesfile.read_text())
         ss = data["ss"]
