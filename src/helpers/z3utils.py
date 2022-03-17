@@ -215,7 +215,10 @@ class Z3:
         return cls._imply(fs, g)
 
     @classmethod
-    def _imply(cls: Type[Z3], fs: List[z3.Expr], g: z3.Expr, is_conj: Optional[bool] = True) -> bool:
+    def _imply(cls: Type[Z3], 
+                fs: Union(z3.ExprRef, List[z3.ExprRef]), 
+                g: z3.ExprRef, 
+                is_conj: Optional[bool] = True) -> bool:
         assert z3.is_expr(g), g
 
         if is_conj:  # And(fs) => g

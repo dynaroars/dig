@@ -38,16 +38,20 @@ def approx_terms(f, terms) -> List:
     return approxs
 
 
-def myimply(f:z3.ExprRef, ors:List[z3.ExprRef]):
+def myimply(f: z3.ExprRef, ors: List[z3.ExprRef]) -> z3.ExprRef:
     ors_ = []
     for x in ors:
-        if not z3.Implies(f,x):
+        ret = Z3._imply(f, x)
+        print(f"{f} => {x} {ret}")
+        if not ret:
             ors_.append(x)
 
-    return z3.And(f, Z3._or(ors_))
+    ret = z3.simplify(z3.And(f, Z3._or(ors_)))
+    print("myimplfy", ret)
+    return ret
 
 
-def combine(ys:List[z3.ExprRef], ns:List[z3.ExprRef]):
+def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
     if not ys and not ns:
         y = None
         n = None
@@ -55,46 +59,55 @@ def combine(ys:List[z3.ExprRef], ns:List[z3.ExprRef]):
         y = z3.simplify(Z3._and(ys))
         n = z3.Not(y)
     elif not ys and ns:
+        DBG()
         ns = z3.simplify(Z3._and(ns))
         y = z3.Not(ns)
     else:
-        y = myimply(Z3._and(ys), [z3.Not(x) for x in ns])
-        n = myimply(Z3._and(ns), [z3.Not(x) for x in ys])
+        assert ys and ns, (ys, ns)
+
+        ys_: z3.ExprRef = Z3._and(ys)
+        ns_: z3.ExprRef = Z3._and(ns)
+
+        y = myimply(ys_, [z3.Not(x) for x in ns])
+        n = myimply(ns_, [z3.Not(x) for x in ys])
 
     return y,n
     
         
 
 def approx(f_y, f_n, terms)->Union[None, z3.ExprRef]:
-    f_y_approx = approx_terms(f_y, terms)
-    # print('1', f_y_approx)
-    f_n_approx = approx_terms(f_n, terms)
-    # print('2', f_n_approx)
+    f_y_approx: List[z3.ExprRef] = approx_terms(f_y, terms)
+    print('1', f_y_approx)
+    f_n_approx: List[z3.ExprRef] = approx_terms(f_n, terms)
+    print('2', f_n_approx)
 
-    if f_y_approx is not None and f_n_approx is not None:
-        f_y_ = z3.simplify(z3.And(f_y_approx, z3.Not(f_n_approx)))
-        f_n_ = z3.simplify(z3.And(f_n_approx, z3.Not(f_y_approx)))
-    elif f_y_approx is not None and f_n_approx is None:
-        f_y_ = z3.simplify(f_y_approx)
-        f_n_ = z3.simplify(z3.Not(f_y_approx))
-    elif f_y_approx is None and f_n_approx is not None:
-        f_y_ = z3.simplify(z3.Not(f_n_approx))
-        f_n_ = z3.simplify(f_n_approx)
-    else:
-        assert f_y_approx is None and f_n_approx is None
-        f_y_ = None
-        f_n_ = None
+    f_y_, f_n_ = combine(f_y_approx, f_n_approx)
+
+    # if f_y_approx is not None and f_n_approx is not None:
+    #     f_y_ = z3.simplify(z3.And(f_y_approx, z3.Not(f_n_approx)))
+    #     f_n_ = z3.simplify(z3.And(f_n_approx, z3.Not(f_y_approx)))
+    # elif f_y_approx is not None and f_n_approx is None:
+    #     f_y_ = z3.simplify(f_y_approx)
+    #     f_n_ = z3.simplify(z3.Not(f_y_approx))
+    # elif f_y_approx is None and f_n_approx is not None:
+    #     f_y_ = z3.simplify(z3.Not(f_n_approx))
+    #     f_n_ = z3.simplify(f_n_approx)
+    # else:
+    #     assert f_y_approx is None and f_n_approx is None
+    #     f_y_ = None
+    #     f_n_ = None
     
     #f_y_ = z3.Tactic('ctx-solver-simplify')(f_y_)[0]
     #f_n_ = z3.Tactic('ctx-solver-simplify')(f_n_)[0]
     return f_y_, f_n_ 
 
 def precond(f_y, f_n, inputs):
-    assert z3.is_expr(f_y)
-    assert z3.is_expr(f_n)
+    assert z3.is_expr(f_y), f_y
+    assert z3.is_expr(f_n), f_n
+    assert isinstance(inputs, list), inputs
 
-    terms = Miscs.get_terms_fixed_coefs(inputs, 2, settings.ICOEFS)
-    #print(terms)
+    terms = Miscs.get_terms_fixed_coefs(inputs, 1, settings.ICOEFS)
+    print(terms)
     f_y_, f_n_ = approx(f_y, f_n, terms)
     print("result f_y_", f_y_)
     # print("result f_n_", f_n_)
@@ -121,7 +134,8 @@ def go(filename):
         print(f"analyzing preconds reaching '{loc}'")
         precond(f_y, f_n, inps)
 
-go(Path('ss.txt'))
+go(Path('ss_json/pldi09_fig2.json'))
+go(Path('ss_json/ex7.json'))
 
 
 # ex1
