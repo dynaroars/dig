@@ -40,105 +40,81 @@ def approx_terms(f, terms) -> List:
 
 def myimply(f: z3.ExprRef, ors: List[z3.ExprRef]) -> z3.ExprRef:
     assert z3.is_expr(f), f
-    assert isinstance(ors, list) and ors, ors
+    assert isinstance(ors, list) and all(z3.is_expr(x) for x in ors) and ors, ors
 
     ors_ = []
     for x in ors:
-        ret = Z3._imply(f, x)
-        print(f"{f} => {x} {ret}")
+        ret = Z3.is_valid(z3.Implies(f, x))
         if not ret:
             ors_.append(x)
 
-    print('f',f)
-    print('ors_', ors_)
     ors_ = Z3._or(ors_)
     if ors_ is None: 
         ret = f 
     else:
         ret = z3.simplify(z3.And(f, ors_))
-    print("myimplfy", ret)
     return ret
 
 
 def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
+
+    commons = set()
+    for y in ys:
+        for n in ns:
+            if Z3.is_valid(y == n):
+                commons.add(y)
+
+    if commons:
+        ys = [y for y in ys if y not in commons]
+        ns = [n for n in ns if n not in commons]
+        c = z3.simplify(Z3._and(list(commons)))
+    else:
+        c = Z3.zTrue
+
     if not ys and not ns:
-        y = None
-        n = None
+        y = Z3.zTrue
+        n = Z3.zTrue
     elif ys and not ns:
-        y = z3.simplify(Z3._and(ys))
+        y = Z3._and(ys)
         n = z3.Not(y)
     elif not ys and ns:
-        n = z3.simplify(Z3._and(ns))
+        n = Z3._and(ns)
         y = z3.Not(n)
     else:
         assert ys and ns, (ys, ns)
+        ys_: z3.ExprRef = Z3._and(ys)
+        ns_: z3.ExprRef = Z3._and(ns)
 
-        #obtain common ones
-        commons = set()
-        for y in ys:
-            for n in ns:
-                if Z3.is_valid(y == n):
-                    commons.add(y)
-
-        ys = [y for y in ys if y not in commons]
-        ns = [n for n in ns if n not in commons]
-        if not ys and not ns:
-            y = None
-            n = None
-        elif ys and not ns:
-            y = z3.simplify(Z3._and(ys))
-            n = z3.Not(y)
-        elif not ys and ns:
-            n = z3.simplify(Z3._and(ns))
-            y = z3.Not(n)
-        else:
-            ys_: z3.ExprRef = Z3._and(ys)
-            ns_: z3.ExprRef = Z3._and(ns)
-
-            y = myimply(ys_, [z3.Not(x) for x in ns])
-            n = myimply(ns_, [z3.Not(x) for x in ys])
-
-    return y,n
+        y = myimply(ys_, [z3.Not(x) for x in ns])
+        n = myimply(ns_, [z3.Not(x) for x in ys])
+    
+    y = z3.simplify(y)
+    n = z3.simplify(n)
+    return c, y, n
     
         
-
-def approx(f_y, f_n, terms)->Union[None, z3.ExprRef]:
-    f_y_approx: List[z3.ExprRef] = approx_terms(f_y, terms)
-    print('1', f_y_approx)
-    f_n_approx: List[z3.ExprRef] = approx_terms(f_n, terms)
-    print('2', f_n_approx)
-
-    f_y_, f_n_ = combine(f_y_approx, f_n_approx)
-
-    # if f_y_approx is not None and f_n_approx is not None:
-    #     f_y_ = z3.simplify(z3.And(f_y_approx, z3.Not(f_n_approx)))
-    #     f_n_ = z3.simplify(z3.And(f_n_approx, z3.Not(f_y_approx)))
-    # elif f_y_approx is not None and f_n_approx is None:
-    #     f_y_ = z3.simplify(f_y_approx)
-    #     f_n_ = z3.simplify(z3.Not(f_y_approx))
-    # elif f_y_approx is None and f_n_approx is not None:
-    #     f_y_ = z3.simplify(z3.Not(f_n_approx))
-    #     f_n_ = z3.simplify(f_n_approx)
-    # else:
-    #     assert f_y_approx is None and f_n_approx is None
-    #     f_y_ = None
-    #     f_n_ = None
-    
-    #f_y_ = z3.Tactic('ctx-solver-simplify')(f_y_)[0]
-    #f_n_ = z3.Tactic('ctx-solver-simplify')(f_n_)[0]
-    return f_y_, f_n_ 
+def check(f:z3.ExprRef, ss:z3.ExprRef) -> bool:
+    claim = z3.Not(z3.Implies(f, ss)) #f is an underapprox of ss
+    models, stat = Z3.get_models(f, k=2)
+    cexs, is_succ = Z3.extract(models, int)
+    print(stat,is_succ)
+    print(cexs)
+    DBG()
 
 def precond(f_y, f_n, inputs):
     assert z3.is_expr(f_y), f_y
     assert z3.is_expr(f_n), f_n
     assert isinstance(inputs, list), inputs
 
-    terms = Miscs.get_terms_fixed_coefs(inputs, 1, settings.ICOEFS)
-    print(terms)
-    f_y_, f_n_ = approx(f_y, f_n, terms)
-    print("result f_y_", f_y_)
+    terms = Miscs.get_terms_fixed_coefs(inputs, 2, settings.ICOEFS)
+    f_y_approx: List[z3.ExprRef] = approx_terms(f_y, terms)
+    f_n_approx: List[z3.ExprRef] = approx_terms(f_n, terms)
+    c,y,n = combine(f_y_approx, f_n_approx)  
+    print(f"c: {c}; y: {y}; n: {n}")
+    #check(y, f_y)
+    check(n, f_n)
     # print("result f_n_", f_n_)
-    return f_y_, f_n_
+    return c,y, n
 
 
 def go(filename):
@@ -158,10 +134,10 @@ def go(filename):
             continue
         f_y = ss[loc]
         f_n = ss[f"{loc}_else"]
-        print(f"analyzing preconds reaching '{loc}'")
+        print(f"- analyzing preconds reaching '{loc}'")
         precond(f_y, f_n, inps)
 
-go(Path('ss_json/pldi09_fig2.json'))
+#go(Path('ss_json/pldi09_fig2.json'))
 go(Path('ss_json/ex7.json'))
 
 

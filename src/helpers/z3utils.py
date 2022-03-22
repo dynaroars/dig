@@ -6,7 +6,6 @@ import ast
 import pdb
 import operator
 import functools
-import typing
 import z3
 
 import helpers.vcommon as CM
@@ -17,14 +16,17 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
+
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)
     TIMEOUT = settings.SOLVER_TIMEOUT * 1000
 
     @classmethod
-    def _process_fs(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]],
-        and_or_or_f: Callable[[List[z3.ExprRef]], z3.ExprRef]) -> Union[None, z3.ExprRef]:
+    def _process_fs(cls: Type[Z3], 
+                    fs: List[Union[None, z3.ExprRef]],
+                    and_or_f: Callable[[List[z3.ExprRef]], z3.ExprRef]) -> Union[None, z3.ExprRef]:
+
         assert (isinstance(fs, list) and
                 all(isinstance(f, z3.ExprRef) or f is None for f in fs)), fs
 
@@ -34,7 +36,7 @@ class Z3:
         if len(fs) == 1:
             return fs[0]
 
-        return and_or_or_f(fs)
+        return and_or_f(fs)
 
     @classmethod
     def _and(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]]) -> Union[None, z3.ExprRef]:
@@ -76,7 +78,9 @@ class Z3:
         return frozenset(rs)
 
     @classmethod
-    def create_solver(cls: Type[Z3], maximize: bool = False) -> Union[z3.Optimize, z3.Solver]:
+    def create_solver(cls: Type[Z3], 
+                        maximize: bool = False
+                        ) -> Union[z3.Optimize, z3.Solver]:
         assert isinstance(maximize, bool), maximize
 
         solver = z3.Optimize() if maximize else z3.Solver()
@@ -85,7 +89,9 @@ class Z3:
         return solver
 
     @classmethod
-    def extract(cls: Type[Z3], models: List[z3.ModelRef], f: Callable[[str], str]) -> Tuple[List[Dict[str, str]], bool]:
+    def extract(cls: Type[Z3], models: List[z3.ModelRef], 
+                f: Callable[[str], str]) -> Tuple[List[Dict[str, str]], bool]:
+
         assert (
                 models is None
                 or models is False
@@ -113,7 +119,10 @@ class Z3:
         return cexs, is_succ
 
     @classmethod
-    def get_models(cls: Type[Z3], f: z3.Expr, k: int) -> Tuple[Union[None, bool, List[Union[z3.Optimize, z3.Solver]]], int]:
+    def get_models(cls: Type[Z3],
+                   f: z3.ExprRef,
+                   k: int
+                  ) -> Tuple[Union[None, bool, List[Union[z3.Optimize, z3.Solver]]], int]:
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
