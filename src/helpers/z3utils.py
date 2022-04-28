@@ -247,9 +247,9 @@ class Z3:
     @classmethod
     def parse(cls, node):
         """
-        Parse sage expr to z3
-        e.g., parse(str(sage_expr), use_reals=False)
-
+        Parse a string to a Z3 expression
+        E.g.,  parse("x>=10*10")
+        
         Note cannot parse something like tCtr == y - 1/2*sqrt(4*y**2 - 8*x + 4*y + 1) + 1/2
         """
         # print(ast.dump(node))

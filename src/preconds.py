@@ -9,7 +9,7 @@ from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 from data.symstates import SymStates
 
-IUPPER = 10
+IUPPER = 100
 DBG = pdb.set_trace
 
 
@@ -31,7 +31,7 @@ def approx_term(f, term) -> Union[None, z3.ExprRef]:
 def approx_terms(f, terms) -> List:
     approxs = [approx_term(f, t) for t in terms]
     approxs = [a for a in approxs if a is not None]
-    # print(f)
+    print("approx terms", f, approxs)
     # print(approxs)
     #ret = Z3._and(approxs)
     #return ret
@@ -39,12 +39,14 @@ def approx_terms(f, terms) -> List:
 
 
 def myimply(f: z3.ExprRef, ors: List[z3.ExprRef]) -> z3.ExprRef:
+    print('myimply', f, ors)
     assert z3.is_expr(f), f
     assert isinstance(ors, list) and all(z3.is_expr(x) for x in ors) and ors, ors
 
     ors_ = []
     for x in ors:
         ret = Z3.is_valid(z3.Implies(f, x))
+        print(f"{f}=>{x}", ret)
         if not ret:
             ors_.append(x)
 
@@ -53,10 +55,13 @@ def myimply(f: z3.ExprRef, ors: List[z3.ExprRef]) -> z3.ExprRef:
         ret = f 
     else:
         ret = z3.simplify(z3.And(f, ors_))
+        #myret = mysimplify(z3.And(f, ors_))
     return ret
 
 
 def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
+    print('combine ys', ys)
+    print('combine ns', ns)
 
     commons = set()
     for y in ys:
@@ -68,6 +73,7 @@ def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
         ys = [y for y in ys if y not in commons]
         ns = [n for n in ns if n not in commons]
         c = z3.simplify(Z3._and(list(commons)))
+        print('commons', c)
     else:
         c = Z3.zTrue
 
@@ -82,8 +88,8 @@ def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
         y = z3.Not(n)
     else:
         assert ys and ns, (ys, ns)
-        ys_: z3.ExprRef = Z3._and(ys)
-        ns_: z3.ExprRef = Z3._and(ns)
+        ys_: z3.ExprRef = z3.simplify(Z3._and([c]+ys))
+        ns_: z3.ExprRef = z3.simplify(Z3._and([c]+ns))
 
         y = myimply(ys_, [z3.Not(x) for x in ns])
         n = myimply(ns_, [z3.Not(x) for x in ys])
@@ -93,13 +99,34 @@ def combine(ys: List[z3.ExprRef], ns: List[z3.ExprRef]):
     return c, y, n
     
         
-def check(f:z3.ExprRef, ss:z3.ExprRef) -> bool:
-    claim = z3.Not(z3.Implies(f, ss)) #f is an underapprox of ss
-    models, stat = Z3.get_models(f, k=2)
+def check(f: z3.ExprRef, ss: z3.ExprRef, inps) -> Union[bool, List]:
+
+    fake_inps = [(x,f"X_{x}") for x in inps if str(x) in str(ss)]
+    fake_inps = [x == z3.Int(y) for x,y in fake_inps]
+
+    print('check')
+    print('fake_inps', fake_inps)
+    print('f',f)
+    print('ss',ss)
+
+    if fake_inps:
+        f = z3.simplify(z3.And(f,*fake_inps))
+
+
+    claim = z3.simplify(z3.Not(z3.Implies(f, ss)))
+    print('claim', claim)
+    models, stat = Z3.get_models(claim, k=2)
+    if stat == z3.unsat:
+        print(f"GOOD: {f} is a good approx of {ss}")
+        return True
+    else:
+        print(f"BAD: {f} is not a good approx of {ss}")
+        pass
+    
     cexs, is_succ = Z3.extract(models, int)
     print(stat,is_succ)
     print(cexs)
-    DBG()
+    return cexs
 
 def precond(f_y, f_n, inputs):
     assert z3.is_expr(f_y), f_y
@@ -109,12 +136,15 @@ def precond(f_y, f_n, inputs):
     terms = Miscs.get_terms_fixed_coefs(inputs, 2, settings.ICOEFS)
     f_y_approx: List[z3.ExprRef] = approx_terms(f_y, terms)
     f_n_approx: List[z3.ExprRef] = approx_terms(f_n, terms)
-    c,y,n = combine(f_y_approx, f_n_approx)  
+    DBG()
+    c,y,n = combine(f_y_approx, f_n_approx) 
+    y = z3.simplify(z3.And(c, y))
+    n = z3.simplify(z3.And(c, n))
     print(f"c: {c}; y: {y}; n: {n}")
-    #check(y, f_y)
-    check(n, f_n)
+    check(y, f_y, inputs)
+    #check(n, f_n)
     # print("result f_n_", f_n_)
-    return c,y, n
+    return y, n
 
 
 def go(filename):
@@ -130,15 +160,19 @@ def go(filename):
     for loc in ss:
         if '_else' in loc:
             continue
-        if 'pc0' not in loc:
+        if 'pc2' not in loc:
             continue
         f_y = ss[loc]
         f_n = ss[f"{loc}_else"]
         print(f"- analyzing preconds reaching '{loc}'")
         precond(f_y, f_n, inps)
 
-#go(Path('ss_json/pldi09_fig2.json'))
-go(Path('ss_json/ex7.json'))
+go(Path('ss_json/pldi09_fig2.json'))
+#go(Path('ss_json/ex7.json'))
+#go(Path('ss_json/ex7-eq.json'))
+#go(Path('ss_json/ex7-eq9.json'))
+#go(Path('ss_json/ex7-linear.json'))
+#go(Path('ss_json/ex7-linear-le.json'))
 
 
 # ex1
