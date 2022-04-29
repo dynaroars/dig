@@ -212,6 +212,7 @@ class Miscs:
 
         return set(rs)
 
+
     @classmethod
     def reduce_eqts(cls: Type[Miscs], ps: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
         """

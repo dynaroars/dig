@@ -108,13 +108,14 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
             for inv in refs[loc].keys():
                 ieqs.setdefault(loc, infer.inv.Invs()).add(inv)
 
-        cexs, ieqs = self.check(ieqs, inps=None)
+        _, ieqs = self.check(ieqs, inps=None)
         ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
         mlog.debug(
             f"inferring upperbounds for {len(tasks)} terms at {len(locs)} locs")
 
+        # computing convex hull
         def f(tasks):
             return [
                 (loc, term, self.symstates.maximize(
@@ -174,18 +175,24 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         """
         Compute convex hulls from traces
         """
-
         assert isinstance(traces, data.traces.Traces), traces
         assert isinstance(symbols, data.prog.Symbs), symbols
+
         maxV = cls.IUPPER
         minV = -1 * maxV
 
-        terms = cls.my_get_terms(symbols.symbolic)
+        tasks = cls.my_get_terms(symbols.symbolic)
+
+        def f(tasks):
+            rs = [(term, int(max(term.eval_traces(traces)))) 
+                    for term in tasks]
+            return rs
+
+        wrs = MP.run_mp("getting upperbounds", tasks, f, settings.DO_MP)
+
         ps = []
-        for term in terms:
-            upperbound = int(max(term.eval_traces(traces)))
+        for term, upperbound in wrs:
             if minV <= upperbound <= maxV:
                 p = cls.inv_cls(term.mk_le(upperbound))
                 ps.append(p)
-
         return ps

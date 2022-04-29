@@ -675,6 +675,7 @@ class SymStates(dict):
     def maximize(self, loc, term_expr, iupper):
         """
         maximize value of term using symstates
+        Essentially computing convex hull
         """
         assert z3.is_expr(term_expr), term_expr
 
@@ -756,6 +757,7 @@ class SymStates(dict):
 
     @classmethod
     def mmaximize(cls, ss:z3.ExprRef, term_expr:z3.ExprRef, iupper:int):
+
         assert z3.is_expr(ss), ss
         assert z3.is_expr(term_expr), term_expr
         assert isinstance(iupper, int) and iupper >= 1, iupper
