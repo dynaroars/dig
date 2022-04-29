@@ -90,7 +90,7 @@ class Infer(infer.infer._Infer):
     def gen_from_traces(cls, traces, symbols):
         ps = []
         terms = Miscs.get_terms_fixed_coefs(
-            symbols.sageExprs, settings.ITERMS, settings.ICOEFS)
+            symbols.symbolic, settings.ITERMS, settings.ICOEFS)
         for term in terms:
             term_vals = infer.inv.RelTerm(term).eval_traces(traces)
             if len(set(term_vals)) == 1:  # all are same
@@ -104,7 +104,7 @@ class Infer(infer.infer._Infer):
         return ps
 
     @classmethod
-    def _solve(cls, X: typing.List[int]) -> typing.Tuple[typing.Optional[int], int]:
+    def _solve(cls, X: typing.List[int]) -> typing.Tuple[typing.Optional[int], typing.Optional[int]]:
         assert(X), X
         b = None
         Y = [X[0] - v for v in X]

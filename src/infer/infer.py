@@ -1,19 +1,15 @@
 import abc
 import pdb
 from time import time
-import operator
-import z3
-import sympy
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
-from helpers.z3utils import Z3
 
 import settings
 
 import data.prog
-import infer.inv
 import data.symstates
+import infer.inv
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -90,7 +86,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         locs = self.inv_decls.keys()
 
         def _terms(loc):
-            return self.inv_decls[loc].sageExprs
+            return self.inv_decls[loc].symbolic
 
         # remove terms exceeding maxV
         termss = [self.get_terms(_terms(loc)) for loc in locs]
@@ -175,12 +171,16 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     def gen_from_traces(cls, traces, symbols):
-        assert isinstance(traces, data.traces.Traces), traces
+        """
+        Compute convex hulls from traces
+        """
 
+        assert isinstance(traces, data.traces.Traces), traces
+        assert isinstance(symbols, data.prog.Symbs), symbols
         maxV = cls.IUPPER
         minV = -1 * maxV
 
-        terms = cls.my_get_terms(symbols.sageExprs)
+        terms = cls.my_get_terms(symbols.symbolic)
         ps = []
         for term in terms:
             upperbound = int(max(term.eval_traces(traces)))

@@ -169,13 +169,13 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
         return f"{self.typ} {self.name}"
 
     @property
-    def sageExpr(self):
+    def symbolic(self):
         try:
-            ret = self._sageExpr
+            ret = self._symbolic
             return ret
         except AttributeError:
-            self._sageExpr = sympy.Symbol(self.name)
-            return self._sageExpr
+            self._symbolic = sympy.Symbol(self.name)
+            return self._symbolic
 
     @property
     def expr(self):
@@ -183,7 +183,7 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
             ret = self._expr
             return ret
         except AttributeError:
-            self._expr = Z3.parse(str(self.sageExpr))
+            self._expr = Z3.parse(str(self.symbolic))
             return self._expr
 
 
@@ -209,8 +209,8 @@ class Symbs(tuple):
         return tuple(s.typ for s in self)
 
     @property
-    def sageExprs(self):
-        return tuple(s.sageExpr for s in self)
+    def symbolic(self):
+        return tuple(s.symbolic for s in self)
  
     @property
     def exprs(self):

@@ -7,13 +7,10 @@ import pdb
 import operator
 import functools
 import z3
-
 import helpers.vcommon as CM
-
 import settings
 
 DBG = pdb.set_trace
-
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
@@ -335,7 +332,7 @@ class Z3:
 
     @staticmethod
     @functools.cache
-    def simplify(f: z3.Expr) -> z3.Expr:
+    def simplify(f: z3.ExprRef) -> z3.ExprRef:
         assert z3.is_expr(f), f
         simpl = z3.Tactic("ctx-solver-simplify")
         simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
@@ -346,7 +343,7 @@ class Z3:
         return f
 
     @staticmethod
-    def to_smt2_str(f: z3.Expr, status: str = "unknown", name: str = "benchmark", logic: str = "") -> str:
+    def to_smt2_str(f: z3.ExprRef, status: str = "unknown", name: str = "benchmark", logic: str = "") -> str:
         v = (z3.Ast * 0)()
         s = z3.Z3_benchmark_to_smtlib_string(
             f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast()
@@ -354,7 +351,7 @@ class Z3:
         return s
 
     @classmethod
-    def from_smt2_str(cls: Type[Z3], s: str) -> z3.Expr:
+    def from_smt2_str(cls: Type[Z3], s: str) -> z3.ExprRef:
         assertions = z3.parse_smt2_string(s)
         expr = cls.zTrue if not assertions else assertions[0]
         assert z3.is_expr(expr), expr
