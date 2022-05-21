@@ -370,7 +370,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 Technical information about DIG can be found from these papers.  The `Symbolic States` paper (`TSE21`) is probably a good start.
 
-1. ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. **Using Symbolic States to Infer Numerical Invariants, Transactions on Software Engineering (TSE)**. to appear, 2021
+1. ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. [**Using Symbolic States to Infer Numerical Invariants, Transactions on Software Engineering (TSE)**](https://nguyenthanhvuh.github.io/pubs/nguyen2021using.pdf). 2021
 1. Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
 1. ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
 1. ThanhVu Nguyen, Matthew Dwyer, and William Visser. **SymInfer: Inferring Program Invariants using Symbolic States**. In Automated Software Engineering (ASE). IEEE, 2017.
