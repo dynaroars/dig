@@ -20,7 +20,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
 - array analysis, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 
-To understand DIG's usage, a good starting point is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
+> To understand DIG's usage, a good starting point is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
 
 ---
 
