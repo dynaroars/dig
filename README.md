@@ -13,7 +13,7 @@ DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants usi
 DIG uses symbolic execution to collect symbolic states to check candidate invariants.
 
 
-DIG's numerical relations (in particular, nonlinear equalities) have been used for
+DIG's numerical relations (in particular, nonlinear equalities) have been used for:
 - nonlinear program understanding and correctness checking (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
 - complexity analysis by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
 - recurrence relations for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, (`SEAD20`)
