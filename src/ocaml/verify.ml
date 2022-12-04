@@ -1,4 +1,4 @@
-open Cil
+open GoblintCil
 module E = Errormsg
 module H = Hashtbl
 module P = Printf
@@ -8,7 +8,7 @@ module CM = Common
 
 let modify_vtrace (vtrace:fundec) (inv:string) =
   let error:instr = CM.mkCall "__VERIFIER_error" [] in
-  let ifblock:stmtkind = If(Const (CStr inv), mkBlock [], mkBlock ([mkStmtOneInstr error]), !currentLoc) in
+  let ifblock:stmtkind = If(Const (CStr(inv, No_encoding)), mkBlock [], mkBlock ([mkStmtOneInstr error]), !currentLoc, !currentLoc) in
   vtrace.sbody.bstmts <- mkStmt ifblock :: vtrace.sbody.bstmts
 
 class change_vassume_visitor vassume changeto = object
@@ -19,7 +19,7 @@ class change_vassume_visitor vassume changeto = object
 
   method vinst i =
     match i with
-    | Call(lvopt, (Lval(Var(vi),NoOffset)), args,loc)
+    | Call(lvopt, (Lval(Var(vi),NoOffset)), args,loc, loc2) (*second loc might be incorrect*)
          when vi.vname = vassume ->
        let i' = CM.mkCall changeto args in
        ChangeTo([i'])

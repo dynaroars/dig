@@ -1,16 +1,6 @@
 OCAML_OPTIONS = \
-  -I ../../EXTERNAL_FILES/cil/_build/src \
-  -I ../../EXTERNAL_FILES/cil/_build/src/ext \
-  -I ../../EXTERNAL_FILES/cil/_build/src/frontc \
-  -I ../../EXTERNAL_FILES/cil/_build/src/ocamlutil \
-
-
-  # -I ../../EXTERNAL_FILES/cil-cil-1.7.3/_build/src \
-  # -I ../../EXTERNAL_FILES/cil-cil-1.7.3/_build/src/ext \
-  # -I ../../EXTERNAL_FILES/cil-cil-1.7.3/_build/src/frontc \
-  # -I ../../EXTERNAL_FILES/cil-cil-1.7.3/_build/ocamlutil \
-
-
+  -I /usr/lib/ocaml/goblint-cil/ \
+  -I /usr/lib/ocaml/zarith/ \
 OCAMLC =        ocamlc                          $(OCAML_OPTIONS)
 OCAMLOPT =      ocamlopt                        $(OCAML_OPTIONS)
 OCAMLDEP =      ocamldep                        $(OCAML_OPTIONS)
@@ -39,14 +29,14 @@ INSTR_MODULES = \
 	instr.cmo \
 
 instr.exe: $(INSTR_MODULES:.cmo=.cmx)
-		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
+		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa zarith.cmxa goblintCil.cmxa $^
 
 VERIFY_MODULES = \
 	common.cmo \
 	verify.cmo \
 
 verify.exe: $(VERIFY_MODULES:.cmo=.cmx)
-		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa nums.cmxa cil.cmxa $^
+		$(OCAMLOPT) -o $@ unix.cmxa str.cmxa zarith.cmxa goblintCil.cmxa $^
 
 clean:
 	rm -f *.cmo *.cmi *.d *.cmx *.dx *.o instr.exe

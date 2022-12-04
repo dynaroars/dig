@@ -1,4 +1,4 @@
-open Cil
+open GoblintCil
 module E = Errormsg
 module H = Hashtbl
 module P = Printf
@@ -74,7 +74,7 @@ let mkVi ?(ftype=TVoid []) fname: varinfo = makeVarinfo true fname ftype
 let expOfVi (vi:varinfo): exp = Lval (var vi)
 let mkCall ?(ftype=TVoid []) ?(av=None) (fname:string) args : instr = 
   let f = var(mkVi ~ftype:ftype fname) in
-  Call(av, Lval f, args, !currentLoc)
+  Call(av, Lval f, args, !currentLoc, !currentLoc) (*second currentLoc might be incorrect*)
 			   
 let find_fun (ast:file) (fun_name:string) : fundec = 
   let fd = ref None in
