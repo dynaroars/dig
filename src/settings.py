@@ -79,7 +79,6 @@ class Java:
 
     JPF_HOME = Path(os.path.expandvars("$JPF_HOME")) / "jpf-core"
     JPF_JAR = JPF_HOME / "build/RunJPF.jar"
-    # assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
     JPF_RUN = f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} " "{jpffile}"
@@ -115,7 +114,8 @@ class C:
     C_RUN = partial(C_RUN.format)
 
     CIVL_HOME = Path("../EXTERNAL_FILES/civl")
-    CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
+    CIVL_JAR = CIVL_HOME / "lib" 
+    CIVL_JAR = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"][0]
     CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file}"
     CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
 
