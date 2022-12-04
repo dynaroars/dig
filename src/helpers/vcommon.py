@@ -1,12 +1,13 @@
+"""
+To run doctest
+$ ~/miniconda3/bin/python3 -m doctest -v helpers/vcommon.py 
+"""
+
+
 from typing import List, Iterable, Any, Tuple, Dict, Sequence, Set
 from typing import Type, TypeVar, Union, Optional, Callable
 from typing import Iterator
 import logging
-
-"""
-To run doctest
-$ python -m doctest -v common.py
-"""
 
 def pause(s: Optional[str]=None):
     """ do something """

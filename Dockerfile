@@ -35,8 +35,8 @@ RUN make clean; make
 
 ## CIVL
 WORKDIR /dig/EXTERNAL_FILES
-RUN tar xf CIVL-1.20_5259.tgz ; ln -sf CIVL-1.20_5259 civl ; ln -sf civl/lib/ lib
-RUN cp dot_sarl ~/.sarl
+RUN tar xf CIVL-1.21_5476.tgz ; ln -sf CIVL-1.21_5476/ civl 
+RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
 
 
 ## now can run DIG on trace files
