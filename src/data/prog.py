@@ -22,6 +22,7 @@ import helpers.vcommon as CM
 import data.traces
 
 from beartype import beartype
+from beartype.typing import Set, Tuple, List
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -40,7 +41,8 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
     def is_real(self):
         return self.typ in {"D", "F"}
 
-    def __str__(self):
+    @beartype
+    def __str__(self) -> str:
         return f"{self.typ} {self.name}"
 
     @property
@@ -118,8 +120,6 @@ class Symbs(tuple):
 
 
 # inv_decls = {loc: Symbs}
-
-
 class DSymbs(dict):
     pass
 
@@ -131,8 +131,9 @@ class Prog:
         self.inv_decls = inv_decls
         self._cache = {}  # inp -> traces (str)
 
+    @beartype
     @property
-    def locs(self) -> None:
+    def locs(self): 
         return self.inv_decls.keys()
 
     # PUBLIC METHODS
@@ -148,7 +149,8 @@ class Prog:
         assert all(loc in self.inv_decls for loc in traces), traces.keys()
         return traces
 
-    def gen_rand_inps(self, n_needed:int=1):
+    @beartype
+    def gen_rand_inps(self, n_needed:int=1) -> Set[Tuple]:
         assert n_needed >= 1, n_needed
         try:
             valid_ranges = self._valid_ranges
@@ -169,7 +171,8 @@ class Prog:
         return inps
 
     # PRIVATE METHODS
-    def _get_traces(self, inp:data.traces.Inp):
+    @beartype
+    def _get_traces(self, inp:data.traces.Inp) -> List[str]:
         assert isinstance(inp, data.traces.Inp), inp
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
@@ -249,7 +252,9 @@ class Prog:
 
 
 class Src(metaclass=abc.ABCMeta):
-    def __init__(self, filename, tmpdir):
+
+    @beartype
+    def __init__(self, filename:Path, tmpdir:Path) -> None:
         assert filename.is_file(), filename
         assert tmpdir.is_dir(), tmpdir
 
@@ -348,20 +353,23 @@ class Java(Src):
 class C(Src):
     instrument_cmd = settings.C.INSTRUMENT
 
-    def __init__(self, filename, tmpdir):
+    @beartype
+    def __init__(self, filename:Path, tmpdir:Path) -> None:
         super().__init__(filename, tmpdir)
 
         self.traceexe = self.tracefile.with_suffix(".exe")
         self._compile_test(self.tracefile, self.traceexe)
 
-    def check(self, filename, tmpdir):
+    @beartype
+    def check(self, filename:Path, tmpdir:Path) -> Tuple[Path,Path,str]:
         basename = Path(filename.name)
         funname = basename.stem
         self._compile_test(filename, tmpdir / f"{funname}.exe")
         return filename, basename, funname
 
+    @beartype
     @classmethod
-    def _compile_test(cls, filename, out):
+    def _compile_test(cls, filename:Path, out:Path) -> None:
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
         subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out

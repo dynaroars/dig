@@ -294,17 +294,22 @@ class DigSymStatesC(DigSymStates):
     mysrc_cls = data.prog.C
     symstatesmaker_cls = data.symstates.SymStatesMakerC
 
+    @beartype
     @property
-    def symexefile(self):
+    def symexefile(self) -> Path:
         return self.mysrc.symexefile
 
+    @beartype
     @property
-    def exe_cmd(self):
+    def exe_cmd(self) -> str:
         return settings.C.C_RUN(exe=self.mysrc.traceexe)
 
 
 class DigTraces(Dig):
-    def __init__(self, filename, inv_decls, dtraces, test_dtraces):
+
+    @beartype
+    def __init__(self, filename:Path, inv_decls:data.prog.DSymbs,
+                 dtraces:data.traces.DTraces, test_dtraces:Union[data.traces.DTraces,None]) -> None:
         super().__init__(filename)
 
         self.inv_decls = inv_decls
@@ -312,7 +317,8 @@ class DigTraces(Dig):
         if test_dtraces:
             self.test_dtraces = test_dtraces
 
-    def start(self, seed, maxdeg):
+    @beartype
+    def start(self, seed:float, maxdeg:Union[int, None]) -> infer.inv.DInvs:
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)

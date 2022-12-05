@@ -25,8 +25,8 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 class Miscs:
 
-    @staticmethod
     @beartype
+    @staticmethod
     def is_expr(x: Any) -> bool:
         return isinstance(x, sympy.Expr)
 
