@@ -3,9 +3,11 @@ import pdb
 import random
 import time
 from pathlib import Path
-import settings
 import sys
+from beartype import beartype
+from beartype.typing import Union, Tuple
 
+import settings
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
@@ -19,9 +21,6 @@ import infer.eqt
 import infer.oct
 import infer.mp
 import infer.congruence
-
-from beartype import beartype
-from beartype.typing import Union, Tuple
 
 DBG = pdb.set_trace
 
@@ -202,10 +201,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         Save and analyze result
         Clean up tmpdir
         """
-        # clean up
-        # import shutil
-        # shutil.rmtree(self.tmpdir_del)
-
         # analyze and save results
         from analysis import Result, Analysis
 
