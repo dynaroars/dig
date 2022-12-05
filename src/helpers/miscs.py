@@ -16,9 +16,9 @@ from sympy.solvers.solveset import linsolve
 import helpers.vcommon as CM
 import settings
 
-from typing import Type, TypeVar, Union, Optional, Callable
-from typing import List, Iterable, Any, Tuple, Dict, Sequence, Set
-
+from beartype import beartype
+from beartype.typing import (Type, TypeVar, Union, Optional, Callable,
+                             List, Iterable, Any, Tuple, Dict, Sequence, Set)
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -26,6 +26,7 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 class Miscs:
 
     @staticmethod
+    @beartype
     def is_expr(x: Any) -> bool:
         return isinstance(x, sympy.Expr)
 
@@ -50,10 +51,11 @@ class Miscs:
     str2rat_cache: Dict[str, sympy.Rational] = {}
 
     @staticmethod
+    @beartype
     def str2list(s: str) -> Tuple:
-        assert isinstance(s, str), s
         rs = tuple(eval(s))
         return rs
+
 
     @staticmethod
     @functools.cache
@@ -80,6 +82,7 @@ class Miscs:
         return sympy.Rational(s)
 
     @staticmethod
+    @beartype
     def create_uks(ts: List[Any], prefix: str = "uk") -> List[sympy.Symbol]:
         uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
         assert not set(ts).intersection(set(uks)), "name conflict"
@@ -99,6 +102,7 @@ class Miscs:
         return terms, uks, n_eqts_needed
 
     @staticmethod
+    @beartype
     def get_terms(symbols: List[sympy.Symbol], deg: int) -> List[Any]:
         """
         get a list of terms from the given list of vars and deg
@@ -185,7 +189,7 @@ class Miscs:
         return deg
 
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz, icoef, do_create_terms=True):
+    def get_terms_fixed_coefs(ss, subset_siz:List[Any], icoef:int, do_create_terms:bool=True) -> Set[Any]:
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
@@ -253,6 +257,7 @@ class Miscs:
         return ps_ if len(ps_) < len(ps) else ps
 
     @staticmethod
+    @beartype
     def elim_denom(p: Union[sympy.Expr, sympy.Rel]) -> Union[sympy.Expr, sympy.Rel]:
         """
         Eliminate (Integer) denominators in expression operands.
@@ -386,7 +391,8 @@ class Miscs:
         return sols
 
     @staticmethod
-    def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float):
+    @beartype
+    def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float) -> None:
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
         mlog.debug(
@@ -395,6 +401,7 @@ class Miscs:
         )
 
     @staticmethod
+    @beartype
     def simplify_idxs(ordered_idxs: List[int], imply_f: Callable[[Set[int], int], bool]) -> List[int]:
         """
         attempt to remove i in idxs if imply_f returns true
@@ -427,13 +434,15 @@ class Miscs:
         return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
 
     @staticmethod
+    @beartype    
     def merge_dict(l: List[Dict[Any, Any]]) -> Dict[Any, Any]:
         return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
 
 
 class MP:
     @staticmethod
-    def get_workload(tasks: List[Any], n_cpus: int) -> List[List[Any]]:
+    @beartype
+    def get_workload(tasks: Iterable[Any], n_cpus: int) -> List[List[Any]]:
         """
         >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
@@ -481,7 +490,8 @@ class MP:
             myQ.put(rs)
 
     @classmethod
-    def run_mp(cls, taskname: str, tasks: List[Any], f: Callable[[List[Any]], Any], DO_MP: bool):
+    @beartype
+    def run_mp(cls, taskname: str, tasks: List[Any], f: Callable[[List[Any]], Any], DO_MP: bool) -> List[Any]:
         """
         Run wprocess on tasks in parallel
         """

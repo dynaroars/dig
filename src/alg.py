@@ -20,6 +20,9 @@ import infer.oct
 import infer.mp
 import infer.congruence
 
+from beartype import beartype
+from beartype.typing import Union, Tuple
+
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -32,13 +35,16 @@ class Dig(metaclass=abc.ABCMeta):
     CONGRUENCE = "congruence"
     PREPOSTS = "preposts"
 
-    def __init__(self, filename):
+    @beartype
+    def __init__(self, filename:Path) -> None:
+        
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
     @abc.abstractmethod
-    def start(self, seed, maxdeg: int):
+    @beartype
+    def start(self, seed:float, maxdeg: Union[int,None]) -> None:
         self.seed = seed
         random.seed(seed)
         mlog.debug(
@@ -46,12 +52,14 @@ class Dig(metaclass=abc.ABCMeta):
             f"(test {random.randint(0, 100)})"
         )
 
-    def get_auto_deg(self, maxdeg):
+    @beartype
+    def get_auto_deg(self, maxdeg: Union[int, None]) -> int:
         maxvars = max(self.inv_decls.values(), key=len)
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
-    def sanitize(self, dinvs, dtraces):
+    @beartype
+    def sanitize(self, dinvs:infer.inv.DInvs, dtraces:data.traces.DTraces) -> infer.inv.DInvs:
         if not dinvs.siz:
             return dinvs
 
@@ -83,11 +91,12 @@ class Dig(metaclass=abc.ABCMeta):
 
 
 class DigSymStates(Dig, metaclass=abc.ABCMeta):
-
-    def __init__(self, filename):
+    @beartype
+    def __init__(self, filename:Path) -> None:
         super().__init__(filename)
 
-    def start(self, seed, maxdeg):
+    @beartype
+    def start(self, seed:float, maxdeg:Union[int,None]) -> infer.inv.DInvs:
 
         if not(maxdeg is None or maxdeg >= 1):
             raise ValueError(f"maxdeg has invalid value {maxdeg}")
@@ -187,7 +196,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         print(f"tmpdir: {self.tmpdir}")
         return dinvs
 
-    def cleanup(self, dinvs, dtraces):
+    @beartype
+    def cleanup(self, dinvs:infer.inv.DInvs, dtraces:data.traces.DTraces) -> None:
         """
         Save and analyze result
         Clean up tmpdir
@@ -225,7 +235,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         return typ, (dinvs, dtraces),  et
 
-    def _infer_eqts(self, maxdeg):
+    @beartype
+    def _infer_eqts(self, maxdeg:Union[int,None]) -> Tuple[infer.inv.DInvs, data.traces.DTraces]:
         dinvs, dtraces = infer.eqt.Infer(
             self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
         return dinvs, dtraces

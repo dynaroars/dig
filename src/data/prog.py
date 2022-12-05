@@ -21,135 +21,10 @@ import helpers.vcommon as CM
 
 import data.traces
 
+from beartype import beartype
+
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
-
-class Prog:
-    def __init__(self, exe_cmd, inp_decls, inv_decls):
-        assert isinstance(exe_cmd, str), exe_cmd
-        assert isinstance(inp_decls, Symbs), inp_decls  # I x, I y
-        assert isinstance(inv_decls, DSymbs), inv_decls
-
-        self.exe_cmd = exe_cmd
-        self.inp_decls = inp_decls
-        self.inv_decls = inv_decls
-        self._cache = {}  # inp -> traces (str)
-
-    @property
-    def locs(self):
-        return self.inv_decls.keys()
-
-    # PUBLIC METHODS
-    def get_traces(self, inps: data.traces.Inps):
-        """
-        front end to obtain traces from inps
-        """
-        assert isinstance(inps, data.traces.Inps), inps
-
-        traces = self._get_traces_mp(inps)
-        traces = itertools.chain.from_iterable(traces.values())
-        traces = data.traces.DTraces.parse(traces, self.inv_decls)
-        assert all(loc in self.inv_decls for loc in traces), traces.keys()
-        return traces
-
-    def gen_rand_inps(self, n_needed=1):
-        assert n_needed >= 1, n_needed
-        try:
-            valid_ranges = self._valid_ranges
-            inps = set()
-        except AttributeError:
-            valid_ranges, inps = self._get_valid_inp_ranges()
-            self._valid_ranges = valid_ranges
-
-        while len(inps) < n_needed:
-            old_siz = len(inps)
-            for inp_range in valid_ranges:
-                myinp = self._get_inp_from_range(inp_range)
-                inps.add(myinp)
-
-            if len(inps) == old_siz:
-                mlog.debug(f"can't gen new rand inps (current {len(inps)})")
-                break
-        return inps
-
-    # PRIVATE METHODS
-    def _get_traces(self, inp:data.traces.Inp):
-        assert isinstance(inp, data.traces.Inp), inp
-
-        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
-                for v in inp.vs)
-        inp_ = " ".join(map(str, inp_))
-        cmd = f"{self.exe_cmd} {inp_}"
-        mlog.debug(cmd)
-
-        # do not check cmd status, could get error status due to incorrect input
-        cp = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
-        traces = cp.stdout.splitlines()
-        return traces
-
-    def _get_traces_mp(self, inps):
-        """
-        run program on inps and obtain traces in parallel
-        return {inp: traces}
-        """
-        assert isinstance(inps, data.traces.Inps), inps
-
-        tasks = [inp for inp in inps if inp not in self._cache]
-
-        def f(tasks):
-            return [(inp, self._get_traces(inp)) for inp in tasks]
-
-        wrs = MP.run_mp("get traces", tasks, f, settings.DO_MP)
-
-        for inp, traces in wrs:
-            assert inp not in self._cache
-            self._cache[inp] = traces
-
-        return {inp: self._cache[inp] for inp in inps}
-
-    def _get_valid_inp_ranges(self):
-
-        dr = {}  # Inp => range
-        di = {}  # Inp => inp
-        inp_ranges = self._get_inp_ranges(len(self.inp_decls))
-        for inp_range in inp_ranges:
-            inp = self._get_inp_from_range(inp_range)
-            my_inp = data.traces.Inp(self.inp_decls.names, inp)
-            dr[my_inp] = inp_range
-            di[my_inp] = inp
-
-        my_inps = data.traces.Inps(di.keys())
-        mytraces = self._get_traces_mp(my_inps)
-
-        valid_ranges, valid_inps = set(), set()
-        for my_inp in mytraces:
-            if mytraces[my_inp]:
-                valid_ranges.add(dr[my_inp])
-                valid_inps.add(di[my_inp])
-            else:
-                mlog.debug(f"inp range {dr[my_inp]} invalid")
-
-        return valid_ranges, valid_inps
-
-    @classmethod
-    def _get_inp_from_range(cls, inp_range):
-        return tuple(random.randrange(ir[0], ir[1]) for ir in inp_range)
-
-    @classmethod
-    def _get_inp_ranges(cls, n_inps):
-        small = 0.10
-        large = 1 - small
-        maxV = settings.INP_MAX_V
-        rinps = [(0, int(maxV * small)), (int(maxV * large), maxV)]
-        if n_inps <= settings.INP_RANGE_V:
-            # consider some ranges for smaller #'s of inps
-            tiny = 0.05
-            rinps.extend([(0, int(maxV * tiny))])
-
-        # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
-        rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
-        return rinps_i
-
 
 class Symb(namedtuple("Symb", ("name", "typ"))):
     """
@@ -247,6 +122,130 @@ class Symbs(tuple):
 
 class DSymbs(dict):
     pass
+
+class Prog:
+    @beartype
+    def __init__(self, exe_cmd:str, inp_decls:Symbs, inv_decls:DSymbs) -> None:
+        self.exe_cmd = exe_cmd
+        self.inp_decls = inp_decls
+        self.inv_decls = inv_decls
+        self._cache = {}  # inp -> traces (str)
+
+    @property
+    def locs(self) -> None:
+        return self.inv_decls.keys()
+
+    # PUBLIC METHODS
+    
+    @beartype
+    def get_traces(self, inps: data.traces.Inps) -> data.traces.DTraces:
+        """
+        front end to obtain traces from inps
+        """
+        traces = self._get_traces_mp(inps)
+        traces = itertools.chain.from_iterable(traces.values())
+        traces = data.traces.DTraces.parse(traces, self.inv_decls)
+        assert all(loc in self.inv_decls for loc in traces), traces.keys()
+        return traces
+
+    def gen_rand_inps(self, n_needed:int=1):
+        assert n_needed >= 1, n_needed
+        try:
+            valid_ranges = self._valid_ranges
+            inps = set()
+        except AttributeError:
+            valid_ranges, inps = self._get_valid_inp_ranges()
+            self._valid_ranges = valid_ranges
+
+        while len(inps) < n_needed:
+            old_siz = len(inps)
+            for inp_range in valid_ranges:
+                myinp = self._get_inp_from_range(inp_range)
+                inps.add(myinp)
+
+            if len(inps) == old_siz:
+                mlog.debug(f"can't gen new rand inps (current {len(inps)})")
+                break
+        return inps
+
+    # PRIVATE METHODS
+    def _get_traces(self, inp:data.traces.Inp):
+        assert isinstance(inp, data.traces.Inp), inp
+
+        inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
+                for v in inp.vs)
+        inp_ = " ".join(map(str, inp_))
+        cmd = f"{self.exe_cmd} {inp_}"
+        mlog.debug(cmd)
+
+        # do not check cmd status, could get error status due to incorrect input
+        cp = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
+        traces = cp.stdout.splitlines()
+        return traces
+
+    def _get_traces_mp(self, inps):
+        """
+        run program on inps and obtain traces in parallel
+        return {inp: traces}
+        """
+        assert isinstance(inps, data.traces.Inps), inps
+
+        tasks = [inp for inp in inps if inp not in self._cache]
+
+        def f(tasks):
+            return [(inp, self._get_traces(inp)) for inp in tasks]
+
+        wrs = MP.run_mp("get traces", tasks, f, settings.DO_MP)
+
+        for inp, traces in wrs:
+            assert inp not in self._cache
+            self._cache[inp] = traces
+
+        return {inp: self._cache[inp] for inp in inps}
+
+    def _get_valid_inp_ranges(self):
+
+        dr = {}  # Inp => range
+        di = {}  # Inp => inp
+        inp_ranges = self._get_inp_ranges(len(self.inp_decls))
+        for inp_range in inp_ranges:
+            inp = self._get_inp_from_range(inp_range)
+            my_inp = data.traces.Inp(self.inp_decls.names, inp)
+            dr[my_inp] = inp_range
+            di[my_inp] = inp
+
+        my_inps = data.traces.Inps(di.keys())
+        mytraces = self._get_traces_mp(my_inps)
+
+        valid_ranges, valid_inps = set(), set()
+        for my_inp in mytraces:
+            if mytraces[my_inp]:
+                valid_ranges.add(dr[my_inp])
+                valid_inps.add(di[my_inp])
+            else:
+                mlog.debug(f"inp range {dr[my_inp]} invalid")
+
+        return valid_ranges, valid_inps
+
+    @classmethod
+    def _get_inp_from_range(cls, inp_range):
+        return tuple(random.randrange(ir[0], ir[1]) for ir in inp_range)
+
+    @classmethod
+    def _get_inp_ranges(cls, n_inps):
+        small = 0.10
+        large = 1 - small
+        maxV = settings.INP_MAX_V
+        rinps = [(0, int(maxV * small)), (int(maxV * large), maxV)]
+        if n_inps <= settings.INP_RANGE_V:
+            # consider some ranges for smaller #'s of inps
+            tiny = 0.05
+            rinps.extend([(0, int(maxV * tiny))])
+
+        # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
+        rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
+        return rinps_i
+
 
 
 class Src(metaclass=abc.ABCMeta):
