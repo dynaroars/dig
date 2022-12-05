@@ -12,6 +12,8 @@ from helpers.miscs import Miscs
 import data.prog
 import settings
 
+from beartype import beartype
+
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
@@ -25,7 +27,7 @@ class SymbsVals(typing.NamedTuple):
     def mk(cls, ss, vs):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
-        return cls (ss, vs)
+        return cls(ss, vs)
 
     def __str__(self):
         return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
@@ -106,7 +108,9 @@ class Trace(SymbsVals):
 
 
 class Traces(SymbsValsSet):
-    def __str__(self, printDetails=False):
+
+    @beartype
+    def __str__(self, printDetails:bool=False)->str:
         if printDetails:
             return ", ".join(map(str, sorted(self)))
         else:

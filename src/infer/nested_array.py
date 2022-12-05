@@ -13,6 +13,8 @@ import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
 
+import data.traces
+
 import infer.inv
 import infer.infer
 
@@ -1455,43 +1457,3 @@ def get_constraints(m, result_as_dict=False):
 
     return rs
 
-    # @classmethod
-    # def mk_template_NOTUSED(cls, terms, rv, prefix=None, ret_coef_vs=False):
-    #     """
-    #     get a template from terms.
-    #     Examples:
-    #     # >>> var('a,b,x,y')
-    #     (a, b, x, y)
-    #     # >>> Miscs.mk_template([1, a, b, x, y],0,prefix=None)
-    #     (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
-    #      a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
-    #     # >>> Miscs.mk_template([1, x, y],0, op=operator.gt,prefix=None,ret_coef_vs=True)
-    #     (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
-    #     # >>> Miscs.mk_template([1, a, b, x, y],None,prefix=None)
-    #     (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
-    #      a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
-    #     # >>> Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
-    #     (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
-    #      a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
-    #     # >>> var('x1')
-    #     x1
-    #     # >>> Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
-    #     Traceback (most recent call last):
-    #     ...
-    #     AssertionError: name conflict
-    #     """
-
-    #     assert rv is not None and isinstance(rv, int), rv
-
-    #     if not prefix:
-    #         prefix = "uk_"
-    #     uks = [sympy.Symbol(prefix + str(i)) for i in range(len(terms))]
-
-    #     assert not set(terms).intersection(set(uks)), "name conflict"
-
-    #     template = sum(map(sympy.prod, zip(uks, terms)))
-
-    #     if rv != 0:  #
-    #         template = template - rv
-
-    #     return template, uks if ret_coef_vs else template

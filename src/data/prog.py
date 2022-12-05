@@ -22,7 +22,7 @@ import helpers.vcommon as CM
 import data.traces
 
 from beartype import beartype
-from beartype.typing import Set, Tuple, List
+from beartype.typing import Set, Tuple, List, Dict
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -33,12 +33,14 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
     e.g., (x, 'I') means x is an integer
     """
 
+    @beartype
     @property
-    def is_array(self):
+    def is_array(self) -> bool:
         return self.typ == "array"
 
+    @beartype
     @property
-    def is_real(self):
+    def is_real(self) -> bool:
         return self.typ in {"D", "F"}
 
     @beartype
@@ -88,9 +90,10 @@ class Symbs(tuple):
     @property
     def symbolic(self):
         return tuple(s.symbolic for s in self)
- 
+
+    @beartype
     @property
-    def exprs(self):
+    def exprs(self) -> List:
         try:
             ret = self._exprs
             return ret
@@ -99,14 +102,14 @@ class Symbs(tuple):
             return self._exprs 
 
 
+    @beartype
     @classmethod
-    def mk(cls, ls):
+    def mk(cls, ls:List[str]) -> Tuple:
         """
         I x , D y .. ->  {x: int, y: double}
 
         x , y .. ->  {x: int, y: double}
         """
-        assert isinstance(ls, list), ls
         symbs = []
         for x in ls:
             x = x.strip()
@@ -173,7 +176,6 @@ class Prog:
     # PRIVATE METHODS
     @beartype
     def _get_traces(self, inp:data.traces.Inp) -> List[str]:
-        assert isinstance(inp, data.traces.Inp), inp
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                 for v in inp.vs)
@@ -186,12 +188,12 @@ class Prog:
         traces = cp.stdout.splitlines()
         return traces
 
-    def _get_traces_mp(self, inps):
+    @beartype
+    def _get_traces_mp(self, inps:data.traces.Inps) -> Dict:
         """
         run program on inps and obtain traces in parallel
         return {inp: traces}
         """
-        assert isinstance(inps, data.traces.Inps), inps
 
         tasks = [inp for inp in inps if inp not in self._cache]
 
