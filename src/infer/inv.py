@@ -8,6 +8,8 @@ from typing import NamedTuple
 
 import sympy
 import z3
+from beartype import beartype
+from beartype.typing import Union
 
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
@@ -26,7 +28,8 @@ class Inv(metaclass=abc.ABCMeta):
     DISPROVED = "d"
     UNKNOWN = "u"
 
-    def __init__(self, inv, stat=None):
+    @beartype
+    def __init__(self, inv:Union[int, tuple, str, sympy.Equality, sympy.Le], stat=None) -> None:
         """
         stat = None means never been checked
         """

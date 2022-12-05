@@ -7,6 +7,8 @@ from collections.abc import Iterable
 
 import sympy
 import z3
+from beartype import beartype
+from beartype.typing import List, Dict, Union
 
 import settings
 import helpers.vcommon as CM
@@ -27,13 +29,13 @@ special_str = "_special"
 
 class NestedArray(infer.inv.Inv):
 
-    def __init__(self, rel, stat=None):
-        assert isinstance(rel, str) and rel, rel
-
+    @beartype
+    def __init__(self, rel:str, stat=None) -> None:
         super().__init__(rel, stat)
 
+    @beartype
     @property
-    def mystr(self):
+    def mystr(self) -> str:
         return str(self.inv)
 
     @staticmethod
@@ -198,15 +200,18 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
         return super().__new__(cls, root, tuple(children), commute)
 
+    @beartype
     @property
-    def nchildren(self) -> bool:
+    def nchildren(self) -> int:
         return len(self.children)
 
+    @beartype
     @property
     def is_leaf(self) -> bool:
         return not self.children
 
-    def __str__(self, leaf_content=None):
+    @beartype
+    def __str__(self, leaf_content=None) -> str:
         """
         Examples:
         >>> t = Tree()
@@ -357,15 +362,17 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         # print('rs',  ';'.join(map(str, rs)))
         return rs
 
+    @beartype
     @property
-    def is_node(self):
+    def is_node(self) -> bool:
         """
         >>> assert Tree('a',[None,None]).is_node is True
         >>> assert not Tree('a',[Tree('b',[None]), None]).is_node
         """
         return all(c.is_leaf for c in self.children)
 
-    def get_non_leaf_nodes(self, nodes=[]):
+    @beartype
+    def get_non_leaf_nodes(self, nodes:List=[]) -> List[str]:
         """
         Returns the *names* of the non-leaves nodes
 
@@ -385,7 +392,8 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             nodes = [self.root] + list(itertools.chain(*nodes_))
             return nodes
 
-    def gen_formula(self, v, data):
+    @beartype
+    def gen_formula(self, v:int, data:Dict[str, List]) -> Union[z3.ExprRef, None]:
         """
         Generate a formula recursively to represent the data structure of tree based on
         input value v and data.
@@ -460,8 +468,9 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
     ##### Static methods for Tree #####
 
+    @beartype
     @staticmethod
-    def uniq(trees, tree):
+    def uniq(trees:List, tree) -> List:
         assert isinstance(trees, list) and all(isinstance(t, Tree)
                                                for t in trees) and trees, trees
         assert isinstance(tree, Tree), tree
