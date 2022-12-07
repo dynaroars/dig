@@ -216,7 +216,7 @@ class Results:
             for t in r.time_d:
                 time_d[t].append(r.time_d[t])
         time_s = ', '.join("{} {:.1f}s".format(t, f(time_d[t]))
-                           for t in sorted(time_d))
+                           for t in time_d)
 
         print(f"* prog {self.prog} locs {nlocs}; "
               f"{invtypss} V {V} T {T} D {D}; NL {NL} ({D}) ;")

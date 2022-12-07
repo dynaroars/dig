@@ -12,9 +12,9 @@ from pathlib import Path
 from queue import Empty
 import subprocess
 import typing
-from typing import List, Tuple, Union
 
 import z3
+from beartype import beartype
 
 from typing import NamedTuple
 import settings
@@ -42,15 +42,18 @@ class PathCond(NamedTuple):
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
 
+    @beartype
     @classmethod
     @abc.abstractmethod
-    def parse_parts(cls, ss: List[str]) -> list:
+    def parse_parts(cls, ss: list[str]) -> list:
         pass
 
+    @beartype
     @classmethod
     @abc.abstractmethod
-    def parse_part(cls, s) -> Tuple:
+    def parse_part(cls, s) -> tuple:
         pass
+
 
     @classmethod
     @abc.abstractmethod
@@ -58,8 +61,9 @@ class PathCond(NamedTuple):
     def replace_str(cls, mystr: str) -> str:
         pass
 
+    @beartype    
     @classmethod
-    def parse(cls, s: str) -> Union[None, List[Tuple]]:
+    def parse(cls, s: str) -> None | list[tuple]:
         assert isinstance(s, str), s
 
         parts = cls.parse_parts(s.splitlines())
@@ -72,8 +76,9 @@ class PathCond(NamedTuple):
 
 class PathCondCIVL(PathCond):
 
+    @beartype
     @classmethod
-    def parse_parts(cls, lines) -> list:
+    def parse_parts(cls, lines:list[str]) -> list[list]:
         """
         vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
         path condition: (0<=(X_x-1))&&(0<=(X_y-1))
@@ -96,8 +101,9 @@ class PathCondCIVL(PathCond):
         parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
         return parts
 
+    @beartype
     @classmethod
-    def parse_part(cls, symstates: List) -> Tuple:
+    def parse_part(cls, symstates: list) -> tuple:
         """
         ['vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y',
         'path condition: (0<=(X_x-1))&&(0<=(X_y-1))']
@@ -162,7 +168,7 @@ class PathCondJPF(PathCond):
         return parts
 
     @classmethod
-    def parse_part(cls, ss: List) -> Tuple:
+    def parse_part(cls, ss: list) -> tuple:
         """
         vtrace1
         [('int', 'x'), ('int', 'y'), ('int', 'q'),

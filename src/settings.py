@@ -58,15 +58,8 @@ TRACE_INDICATOR = "vtrace"
 MAINQ_FUN = "mainQ"
 
 # Must be Java 8 because JPF/SPF requires Java 8
-# JAVA_HOME = Path(os.path.expandvars("$JAVA8_HOME"))
-# JAVAC_CMD = JAVA_HOME / "bin/javac"
-# JAVA_CMD = JAVA_HOME / "bin/java"
 JAVAC_CMD = Path("/usr/bin/javac")
 JAVA_CMD = Path("/usr/bin/java")
-
-# assert JAVAC_CMD.is_file(), JAVAC_CMD
-# assert JAVA_CMD.is_file(), JAVA_CMD
-
 
 class Java:
     SE_MIN_DEPTH = 7

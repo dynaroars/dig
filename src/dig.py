@@ -188,7 +188,7 @@ if __name__ == "__main__":
         "-readsstates",
         type=str,
         default=None,
-        help="read symbolic states to a file"
+        help="read symbolic states from a file"
     )
 
     ag(

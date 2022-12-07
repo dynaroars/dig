@@ -153,7 +153,7 @@ class Prog:
         return traces
 
     @beartype
-    def gen_rand_inps(self, n_needed:int=1) -> Set[Tuple]:
+    def gen_rand_inps(self, n_needed:int=1) -> set[tuple]:
         assert n_needed >= 1, n_needed
         try:
             valid_ranges = self._valid_ranges

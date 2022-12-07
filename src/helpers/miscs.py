@@ -17,8 +17,8 @@ import helpers.vcommon as CM
 import settings
 
 from beartype import beartype
-from beartype.typing import (Type, TypeVar, Union, Optional, Callable,
-                             List, Iterable, Any, Tuple, Dict, Sequence, Set)
+from beartype.typing import (Type, TypeVar, Union, Optional, Callable, Any, Sequence)
+                             
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -31,7 +31,7 @@ class Miscs:
         return isinstance(x, sympy.Expr)
 
     @classmethod
-    def get_vars(cls: Type[Miscs], props: Any) -> List[sympy.Symbol]:
+    def get_vars(cls: Type[Miscs], props: Any) -> list[sympy.Symbol]:
         """
         Returns a list of uniq variables from a list of properties
 
@@ -48,11 +48,11 @@ class Miscs:
         vs = (v for p in props for v in p.free_symbols)
         return sorted(set(vs), key=str)
 
-    str2rat_cache: Dict[str, sympy.Rational] = {}
+    str2rat_cache: dict[str, sympy.Rational] = {}
 
+    @beartype    
     @staticmethod
-    @beartype
-    def str2list(s: str) -> Tuple:
+    def str2list(s: str) -> tuple:
         rs = tuple(eval(s))
         return rs
 
@@ -81,15 +81,15 @@ class Miscs:
         """
         return sympy.Rational(s)
 
+    @beartype    
     @staticmethod
-    @beartype
-    def create_uks(ts: List[Any], prefix: str = "uk") -> List[sympy.Symbol]:
+    def create_uks(ts: list[Any], prefix: str = "uk") -> list[sympy.Symbol]:
         uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
         assert not set(ts).intersection(set(uks)), "name conflict"
         return uks
 
     @classmethod
-    def init_terms(cls: Type[Miscs], vs: List[str], deg: int, rate: float) -> Tuple[List[Any], List[sympy.Symbol], int]:
+    def init_terms(cls: Type[Miscs], vs: list[str], deg: int, rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
         assert vs, vs
         assert deg >= 1, deg
         assert rate >= 0.1, rate
@@ -101,9 +101,9 @@ class Miscs:
         n_eqts_needed = int(rate * len(uks))
         return terms, uks, n_eqts_needed
 
+    @beartype    
     @staticmethod
-    @beartype
-    def get_terms(symbols: List[sympy.Symbol], deg: int) -> List[Any]:
+    def get_terms(symbols: list[sympy.Symbol], deg: int) -> list[Any]:
         """
         get a list of terms from the given list of vars and deg
         the number of terms is len(rs) == binomial(len(symbols)+d, d)
@@ -189,7 +189,7 @@ class Miscs:
         return deg
 
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz:List[Any], icoef:int, do_create_terms:bool=True) -> Set[Any]:
+    def get_terms_fixed_coefs(ss, subset_siz:list[Any], icoef:int, do_create_terms:bool=True) -> set[Any]:
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
@@ -223,7 +223,7 @@ class Miscs:
 
 
     @classmethod
-    def reduce_eqts(cls: Type[Miscs], ps: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
+    def reduce_eqts(cls: Type[Miscs], ps: list[Union[sympy.Expr, sympy.Rel]]) -> list[Union[sympy.Expr, sympy.Rel]]:
         """
         Return the basis (e.g., a min subset of ps that implies ps)
         of the set of polynomial eqts using Groebner basis.
@@ -256,9 +256,9 @@ class Miscs:
         mlog.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
         return ps_ if len(ps_) < len(ps) else ps
 
+    @beartype    
     @staticmethod
-    @beartype
-    def elim_denom(p: Union[sympy.Expr, sympy.Rel]) -> Union[sympy.Expr, sympy.Rel]:
+    def elim_denom(p: sympy.Expr | sympy.Rel) -> sympy.Expr | sympy.Rel:
         """
         Eliminate (Integer) denominators in expression operands.
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
@@ -284,7 +284,7 @@ class Miscs:
         return p * sympy.lcm(denoms)
 
     @classmethod
-    def get_coefs(cls: Type[Miscs], p: Union[sympy.Expr, sympy.Rel]) -> List[Union[int, float]]:
+    def get_coefs(cls: Type[Miscs], p: Union[sympy.Expr, sympy.Rel]) -> list[Union[int, float]]:
         """
         Return coefficients of an expression
 
@@ -297,7 +297,7 @@ class Miscs:
         return list(p.as_coefficients_dict().values())
 
     @classmethod
-    def remove_ugly(cls: Type[Miscs], ps: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
+    def remove_ugly(cls: Type[Miscs], ps: list[Union[sympy.Expr, sympy.Rel]]) -> list[Union[sympy.Expr, sympy.Rel]]:
 
         @functools.cache
         def is_nice_coef(c: Union[int, float]) -> bool:
@@ -318,7 +318,7 @@ class Miscs:
         return ps_
 
     @classmethod
-    def refine(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]]) -> List[Union[sympy.Expr, sympy.Rel]]:
+    def refine(cls: Type[Miscs], eqts: list[Union[sympy.Expr, sympy.Rel]]) -> list[Union[sympy.Expr, sympy.Rel]]:
 
         if not eqts:
             return eqts
@@ -332,8 +332,8 @@ class Miscs:
         return eqts
 
     @classmethod
-    def solve_eqts(cls: Type[Miscs], eqts: List[Union[sympy.Expr, sympy.Rel]],
-                   terms: List[Any], uks: List[sympy.Symbol]) -> List[sympy.Eq]:
+    def solve_eqts(cls: Type[Miscs], eqts: list[Union[sympy.Expr, sympy.Rel]],
+                   terms: list[Any], uks: list[sympy.Symbol]) -> list[sympy.Eq]:
 
         assert isinstance(eqts, list) and eqts, eqts
         assert isinstance(terms, list) and terms, terms
@@ -356,7 +356,7 @@ class Miscs:
 
     @classmethod
     def instantiate_template(cls, terms, uks, vs):
-        # def instantiate_template(cls: Type[Miscs], terms: List[Any], uks: List[sympy.Symbol], vs: List[str]):
+        # def instantiate_template(cls: Type[Miscs], terms: list[Any], uks: list[sympy.Symbol], vs: list[str]):
         """
         Instantiate a template with solved coefficient values
 
@@ -390,8 +390,8 @@ class Miscs:
                 for i, uk in enumerate(uk_vs)]
         return sols
 
-    @staticmethod
     @beartype
+    @staticmethod
     def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float) -> None:
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
@@ -400,9 +400,9 @@ class Miscs:
             f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})"
         )
 
-    @staticmethod
     @beartype
-    def simplify_idxs(ordered_idxs: List[int], imply_f: Callable[[Set[int], int], bool]) -> List[int]:
+    @staticmethod
+    def simplify_idxs(ordered_idxs: list[int], imply_f: Callable[[set[int], int], bool]) -> list[int]:
         """
         attempt to remove i in idxs if imply_f returns true
         Note: the order of idxs determine what to get checked (and removed)
@@ -422,7 +422,7 @@ class Miscs:
         return sorted(results)
 
     @staticmethod
-    def create_dict(l: List[Tuple[Any, Any]]) -> Dict[Any, Any]:
+    def create_dict(l: list[tuple[Any, Any]]) -> dict[Any, Any]:
         """
         given a list of set of type [(k1,v1),..,(kn,vn)]
         generates a dict where keys are k's and values are [v's]
@@ -435,14 +435,14 @@ class Miscs:
 
     @staticmethod
     @beartype    
-    def merge_dict(l: List[Dict[Any, Any]]) -> Dict[Any, Any]:
+    def merge_dict(l: list[dict[Any, Any]]) -> dict[Any, Any]:
         return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
 
 
 class MP:
+    @beartype    
     @staticmethod
-    @beartype
-    def get_workload(tasks: Iterable[Any], n_cpus: int) -> List[List[Any]]:
+    def get_workload(tasks: Iterable[Any], n_cpus: int) -> list[list[Any]]:
         """
         >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
@@ -474,7 +474,7 @@ class MP:
         return _wloads
 
     @classmethod
-    def wprocess(cls, f, mytasks: List[Any], myQ: Union[None, multiprocessing.Queue]):
+    def wprocess(cls, f, mytasks: list[Any], myQ: Union[None, multiprocessing.Queue]):
         try:
             rs = f(mytasks)
         except BaseException as ex:
@@ -491,7 +491,7 @@ class MP:
 
     @classmethod
     @beartype
-    def run_mp(cls, taskname: str, tasks: List[Any], f: Callable[[List[Any]], Any], DO_MP: bool) -> List[Any]:
+    def run_mp(cls, taskname: str, tasks: list[Any], f: Callable[[list[Any]], Any], DO_MP: bool) -> list[Any]:
         """
         Run wprocess on tasks in parallel
         """

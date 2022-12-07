@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 import sys
 from beartype import beartype
-from beartype.typing import Union, Tuple
 
 import settings
 from helpers.miscs import Miscs, MP
@@ -41,9 +40,9 @@ class Dig(metaclass=abc.ABCMeta):
         self.filename = filename
         self.time_d = {}  # time results
 
+    @beartype        
     @abc.abstractmethod
-    @beartype
-    def start(self, seed:float, maxdeg: Union[int,None]) -> None:
+    def start(self, seed:float, maxdeg: int | None) -> None:
         self.seed = seed
         random.seed(seed)
         mlog.debug(
@@ -52,7 +51,7 @@ class Dig(metaclass=abc.ABCMeta):
         )
 
     @beartype
-    def get_auto_deg(self, maxdeg: Union[int, None]) -> int:
+    def get_auto_deg(self, maxdeg: int | None) -> int:
         maxvars = max(self.inv_decls.values(), key=len)
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
@@ -95,7 +94,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         super().__init__(filename)
 
     @beartype
-    def start(self, seed:float, maxdeg:Union[int,None]) -> infer.inv.DInvs:
+    def start(self, seed:float, maxdeg:int | None) -> infer.inv.DInvs:
 
         if not(maxdeg is None or maxdeg >= 1):
             raise ValueError(f"maxdeg has invalid value {maxdeg}")
@@ -215,7 +214,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()  # output stats
 
-    def _infer(self, typ, f):
+    @beartype
+    def _infer(self, typ:str, f):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE, self.PREPOSTS}, typ
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
@@ -231,7 +231,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         return typ, (dinvs, dtraces),  et
 
     @beartype
-    def _infer_eqts(self, maxdeg:Union[int,None]) -> Tuple[infer.inv.DInvs, data.traces.DTraces]:
+    def _infer_eqts(self, maxdeg:int | None) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
         dinvs, dtraces = infer.eqt.Infer(
             self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
         return dinvs, dtraces
@@ -274,12 +274,14 @@ class DigSymStatesJava(DigSymStates):
     mysrc_cls = data.prog.Java
     symstatesmaker_cls = data.symstates.SymStatesMakerJava
 
+    @beartype
     @property
-    def symexefile(self):
+    def symexefile(self) -> Path:
         return self.filename
 
+    @beartype
     @property
-    def exe_cmd(self):
+    def exe_cmd(self) -> str:
         return settings.Java.JAVA_RUN(
             tracedir=self.mysrc.tracedir, funname=self.mysrc.funname
         )
@@ -304,7 +306,7 @@ class DigTraces(Dig):
 
     @beartype
     def __init__(self, filename:Path, inv_decls:data.prog.DSymbs,
-                 dtraces:data.traces.DTraces, test_dtraces:Union[data.traces.DTraces,None]) -> None:
+                 dtraces:data.traces.DTraces, test_dtraces:data.traces.DTraces | None) -> None:
         super().__init__(filename)
 
         self.inv_decls = inv_decls
@@ -313,7 +315,7 @@ class DigTraces(Dig):
             self.test_dtraces = test_dtraces
 
     @beartype
-    def start(self, seed:float, maxdeg:Union[int, None]) -> infer.inv.DInvs:
+    def start(self, seed:float, maxdeg:int | None) -> infer.inv.DInvs:
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
