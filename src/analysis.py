@@ -228,7 +228,6 @@ class Results:
                 f"-> checks {check_solvercallss} {check_changedepthss} {check_changevalss}")
 
             print(f"-> max {max_solvercallss} {max_changedepthss}")
-            # , max_changevalss
 
         if nruns > 1:
             print(f"runs {nruns}")
@@ -422,4 +421,3 @@ class Analysis:
                 continue
             stats = Results(prog, results)
             stats.start(median_low)
-            # stats.analyze(mean)

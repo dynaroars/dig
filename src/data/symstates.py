@@ -35,7 +35,8 @@ class PathCond(NamedTuple):
     pc: z3.ExprRef
     slocal: z3.ExprRef
 
-    def __str__(self):
+    @beartype
+    def __str__(self) -> str:
         return f"loc: {self.loc}\npc: {self.pc}\nslocal: {self.slocal}"
 
     @property
@@ -129,8 +130,9 @@ class PathCondCIVL(PathCond):
 
 class PathCondJPF(PathCond):
 
+    @beartype
     @classmethod
-    def parse_parts(cls, lines, delim="**********") -> list:
+    def parse_parts(cls, lines:list[str], delim:str="**********") -> list[str]:
         """
         Return a list of strings representing path conditions
         [['loc: vtrace1(IIIIII)V',
@@ -167,8 +169,9 @@ class PathCondJPF(PathCond):
 
         return parts
 
+    @beartype
     @classmethod
-    def parse_part(cls, ss: list) -> tuple:
+    def parse_part(cls, ss: list[str]) -> tuple[int, str, str]:
         """
         vtrace1
         [('int', 'x'), ('int', 'y'), ('int', 'q'),
@@ -217,20 +220,22 @@ class PathCondJPF(PathCond):
         )
 
 class PCs(set):  #{PathConds}
-    def __init__(self, loc, depth):
-        assert isinstance(loc, str), loc
+
+    @beartype
+    def __init__(self, loc:str, depth:int) -> None:
         assert depth >= 1, depth
 
         super().__init__(set())
         self.loc = loc
         self.depth = depth
 
-    def add(self, pc):
-        assert isinstance(pc, PathCond), pc
+    @beartype
+    def add(self, pc:PathCond):
         super().add(pc)
 
+    @beartype
     @property
-    def myexpr(self):
+    def myexpr(self) -> z3.ExprRef:
         try:
             return self._expr
         except AttributeError:
@@ -238,8 +243,9 @@ class PCs(set):  #{PathConds}
             self._expr = Z3.simplify(_expr)
             return self._expr
 
+    @beartype
     @property
-    def mypc(self):
+    def mypc(self) -> z3.ExprRef:
         try:
             return self._pc
         except AttributeError:
@@ -247,235 +253,10 @@ class PCs(set):  #{PathConds}
             self._pc = Z3.simplify(_pc)
             return self._pc
 
-    def vread(self, expr):
+    @beartype
+    def vread(self, expr:str) -> None:
         self._expr = Z3.from_smt2_str(expr)    
     
-class SymStatesMaker(metaclass=abc.ABCMeta):
-    def __init__(self, filename, mainQName, funname, ninps, tmpdir):
-        assert tmpdir.is_dir(), tmpdir
-
-        self.filename = filename
-        self.mainQName = mainQName
-        self.funname = funname
-        self.tmpdir = tmpdir
-        self.ninps = ninps
-
-    @abc.abstractmethod
-    def mk(self, depth):
-        pass
-
-    def compute(self):
-        """
-        Run symbolic execution to obtain symbolic states
-        """
-        tasks = [depth for depth in 
-                    range(self.mindepth, settings.SE_MAXDEPTH + 1)]
-
-        def f(tasks):
-            rs = [(depth, self.get_ss(depth)) for depth in tasks]
-            rs = [(depth, ss) for depth, ss in rs if ss]
-            return rs
-
-        wrs = MP.run_mp("getting symstates", tasks, f, settings.DO_MP)
-
-        if not wrs:
-            mlog.warning("cannot obtain symstates, unreachable locs?")
-            sys.exit(0)
-
-        symstates = self.merge(wrs, self.pc_cls)
-
-        # precompute all z3 exprs
-        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
-
-        def f(tasks):
-            rs = [symstates[loc][depth] for loc, depth in tasks]
-            rs = [
-                (loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
-                for pcs, (loc, depth) in zip(rs, tasks)
-            ]
-            return rs
-
-        wrs = MP.run_mp("symstates exprs", tasks, f, settings.DO_MP)
-
-        for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
-            pcs = symstates[loc][depth]
-
-            pcs._expr = Z3.from_smt2_str(myexpr)
-            pcs._pc = Z3.from_smt2_str(mypc)
-
-            mlog.debug(
-                f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
-        return symstates
-
-    def get_ss(self, depth):
-        assert depth >= 1, depth
-
-        cmd = self.mk(depth)
-        timeout = depth
-        mlog.debug(cmd)
-
-        s = None
-        try:
-            cp = subprocess.run(
-                shlex.split(cmd),
-                timeout=timeout,
-                capture_output=True,
-                check=True,
-                text=True,
-            )
-            s = cp.stdout
-        except subprocess.TimeoutExpired as ex:
-            mlog.debug(
-                f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
-                f"time out after {ex.timeout}s"
-            )
-            s = ex.stdout
-            s = s if isinstance(s, str) else str(s)
-        except subprocess.CalledProcessError as ex:
-            mlog.warning(f"{ex}\n{cmd}")
-            return None
-
-        pcs = self.pc_cls.parse(s)
-        if pcs:
-            mlog.debug(f"Got {len(pcs)} symstates at depth {depth}")
-        return pcs
-
-    @classmethod
-    def merge(cls, depthss, pc_cls):
-        """
-        Merge PC's info into symstates sd[loc][depth]
-        """
-        assert isinstance(depthss, list) and depthss, depthss
-        assert all(
-            depth >= 1 and isinstance(ss, list) for depth, ss in depthss
-        ), depthss
-
-        @functools.cache
-        def zpc(p):
-            return Z3.zTrue if p is None else Z3.parse(p)
-
-        @functools.cache
-        def zslocal(p):
-            return Z3.parse(p)
-
-        symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
-        for depth, ss in depthss:
-            for (loc, pcs, slocals) in ss:
-                try:
-                    pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
-                    symstates[loc][depth].add(pc)
-                except MemoryError:
-                    mlog.error(f"cannot parse pcs {pcs}")
-                    mlog.error(f"cannot parse slocals {slocals}")
-
-        # only store incremental states at each depth
-        for loc in symstates:
-            depths = sorted(symstates[loc])
-            if len(depths) < 2:
-                continue
-
-            for i in range(len(depths)):
-                iss = symstates[loc][depths[i]]
-                for j in range(i):
-                    jss = symstates[loc][depths[j]]
-                    for s in jss:
-                        if s in iss:
-                            iss.remove(s)
-
-        # clean up
-        empties = [
-            (loc, depth)
-            for loc in symstates
-            for depth in symstates[loc]
-            if not symstates[loc][depth]
-        ]
-        for loc, depth in empties:
-            mlog.debug(f"{loc}: no new symstates at depth {depth}")
-            symstates[loc].pop(depth)
-
-        empties = [loc for loc in symstates if not symstates[loc]]
-        for loc in empties:
-            mlog.warning(f"{loc}: no symstates found")
-            symstates.pop(loc)
-
-        if all(not symstates[loc] for loc in symstates):
-            mlog.error("No symstates found for any locs. Exit!")
-            sys.exit(0)
-
-        return symstates
-
-
-def merge(ds):
-    newD = {}
-    for d in ds:
-        for loc in d:
-            assert d[loc]
-            newD.setdefault(loc, {})
-            for inv in d[loc]:
-                assert d[loc][inv]
-                newD[loc].setdefault(inv, [])
-                for e in d[loc][inv]:
-                    newD[loc][inv].append(e)
-    return newD
-
-
-class SymStatesMakerC(SymStatesMaker):
-    pc_cls = PathCondCIVL
-    mindepth = settings.C.SE_MIN_DEPTH
-
-    def mk(self, depth):
-        """
-        civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
-        """
-        return settings.C.CIVL_RUN(maxdepth=depth, file=self.filename)
-
-
-class SymStatesMakerJava(SymStatesMaker):
-    pc_cls = PathCondJPF
-    mindepth = settings.Java.SE_MIN_DEPTH
-
-    def mk(self, depth):
-        max_val = settings.INP_MAX_V
-        return settings.Java.JPF_RUN(jpffile=self.mk_JPF_runfile(max_val, depth))
-
-    def mk_JPF_runfile(self, max_int, depth):
-        assert max_int >= 0, max_int
-
-        symargs = ["sym"] * self.ninps
-        symargs = "#".join(symargs)
-        stmts = [
-            f"target={self.funname}",
-            f"classpath={self.tmpdir}",
-            f"symbolic.method={self.funname}.{self.mainQName}({symargs})",
-            "listener=gov.nasa.jpf.symbc.InvariantListenerVu",
-            "vm.storage.class=nil",
-            "search.multiple_errors=true",
-            f"symbolic.min_int={-max_int}",
-            f"symbolic.max_int={max_int}",
-            f"symbolic.min_long={-max_int}",
-            f"symbolic.max_long={max_int}",
-            f"symbolic.min_short={-max_int}",
-            f"symbolic.max_short={max_int}",
-            f"symbolic.min_float={-max_int}.0f",
-            f"symbolic.max_float={max_int}.0f",
-            f"symbolic.min_double={-max_int}.0",
-            f"symbolic.max_double={max_int}.0",
-            "symbolic.dp=z3bitvector",
-            f"search.depth_limit={depth}",
-        ]
-        contents = "\n".join(stmts)
-
-        filename = self.tmpdir / f"{self.funname}_{max_int}_{depth}.jpf"
-
-        assert not filename.is_file(), filename
-        filename.write_text(contents)
-        return filename
-
-
-class SymStatesDepth(dict):  # depth -> PCs
-    @property
-    def siz(self):
-        return sum(map(len, self.values()))
 
 class SymStates(dict):
     # loc -> SymStatesDepth
@@ -501,12 +282,12 @@ class SymStates(dict):
         ss = symstatesmaker.compute()
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
-    
-    def vwrite(self, sstatesfile):
+
+    @beartype
+    def vwrite(self, sstatesfile:Path) -> None:
         """
         write symbolic states to a file
         """
-        assert isinstance(sstatesfile, Path), sstatesfile
         inps = [inp.name for inp in self.inp_decls]
         ss = {}
         for loc in self:
@@ -522,7 +303,8 @@ class SymStates(dict):
         jdata = json.dumps(data)
         sstatesfile.write_text(jdata)
 
-    def vread(self, sstatesfile: Path):
+    @beartype
+    def vread(self, sstatesfile: Path) -> None:
         """
         (re)create symbolic states from a file
         """
@@ -537,13 +319,13 @@ class SymStates(dict):
                 self[loc][depth] = PCs(loc, depth)
                 self[loc][depth].vread(ss[loc][depth])
 
-    def check(self, dinvs, inps):
+    @beartype
+    def check(self, dinvs:infer.inv.DInvs, inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
         """
         Check invs, return cexs
         Also update inps
         """
-        assert isinstance(dinvs, infer.inv.DInvs), dinvs
-        assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
+        # assert not inps or (isinstance(inps, data.traces.Inps) and inps), inps
 
         mlog.debug(
             f"checking {dinvs.siz} invs:\n"
@@ -835,3 +617,238 @@ class SymStates(dict):
                 except:
                     mlog.exception(f"get_solver_stats() error")
                     break
+
+
+class SymStatesMaker(metaclass=abc.ABCMeta):
+
+    @beartype
+    def __init__(self, filename:Path, mainQName:str, funname:str, ninps:int, tmpdir:Path) -> None:
+        assert tmpdir.is_dir(), tmpdir
+
+        self.filename = filename
+        self.mainQName = mainQName
+        self.funname = funname
+        self.tmpdir = tmpdir
+        self.ninps = ninps
+
+    @abc.abstractmethod
+    def mk(self, depth):
+        pass
+
+    @beartype
+    def compute(self) -> defaultdict:
+        """
+        Run symbolic execution to obtain symbolic states
+        """
+        tasks = [depth for depth in 
+                    range(self.mindepth, settings.SE_MAXDEPTH + 1)]
+
+        def f(tasks):
+            rs = [(depth, self.get_ss(depth)) for depth in tasks]
+            rs = [(depth, ss) for depth, ss in rs if ss]
+            return rs
+
+        wrs = MP.run_mp("getting symstates", tasks, f, settings.DO_MP)
+
+        if not wrs:
+            mlog.warning("cannot obtain symstates, unreachable locs?")
+            sys.exit(0)
+
+        symstates = self.merge(wrs, self.pc_cls)
+
+        # precompute all z3 exprs
+        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
+
+        def f(tasks):
+            rs = [symstates[loc][depth] for loc, depth in tasks]
+            rs = [
+                (loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
+                for pcs, (loc, depth) in zip(rs, tasks)
+            ]
+            return rs
+
+        wrs = MP.run_mp("symstates exprs", tasks, f, settings.DO_MP)
+
+        for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
+            pcs = symstates[loc][depth]
+
+            pcs._expr = Z3.from_smt2_str(myexpr)
+            pcs._pc = Z3.from_smt2_str(mypc)
+
+            mlog.debug(
+                f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
+        return symstates
+
+    def get_ss(self, depth):
+        assert depth >= 1, depth
+
+        cmd = self.mk(depth)
+        timeout = depth
+        mlog.debug(cmd)
+
+        s = None
+        try:
+            cp = subprocess.run(
+                shlex.split(cmd),
+                timeout=timeout,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            s = cp.stdout
+        except subprocess.TimeoutExpired as ex:
+            mlog.debug(
+                f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
+                f"time out after {ex.timeout}s"
+            )
+            s = ex.stdout
+            s = s if isinstance(s, str) else str(s)
+        except subprocess.CalledProcessError as ex:
+            mlog.warning(f"{ex}\n{cmd}")
+            return None
+
+        pcs = self.pc_cls.parse(s)
+        if pcs:
+            mlog.debug(f"Got {len(pcs)} symstates at depth {depth}")
+        return pcs
+
+    @beartype
+    @classmethod
+    def merge(cls, depthss, pc_cls) -> defaultdict:
+        """
+        Merge PC's info into symstates sd[loc][depth]
+        """
+        assert isinstance(depthss, list) and depthss, depthss
+        assert all(
+            depth >= 1 and isinstance(ss, list) for depth, ss in depthss
+        ), depthss
+
+        @functools.cache
+        def zpc(p):
+            return Z3.zTrue if p is None else Z3.parse(p)
+
+        @functools.cache
+        def zslocal(p):
+            return Z3.parse(p)
+
+        symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
+        for depth, ss in depthss:
+            for (loc, pcs, slocals) in ss:
+                try:
+                    pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
+                    symstates[loc][depth].add(pc)
+                except MemoryError:
+                    mlog.error(f"cannot parse pcs {pcs}")
+                    mlog.error(f"cannot parse slocals {slocals}")
+
+        # only store incremental states at each depth
+        for loc in symstates:
+            depths = sorted(symstates[loc])
+            if len(depths) < 2:
+                continue
+
+            for i in range(len(depths)):
+                iss = symstates[loc][depths[i]]
+                for j in range(i):
+                    jss = symstates[loc][depths[j]]
+                    for s in jss:
+                        if s in iss:
+                            iss.remove(s)
+
+        # clean up
+        empties = [
+            (loc, depth)
+            for loc in symstates
+            for depth in symstates[loc]
+            if not symstates[loc][depth]
+        ]
+        for loc, depth in empties:
+            mlog.debug(f"{loc}: no new symstates at depth {depth}")
+            symstates[loc].pop(depth)
+
+        empties = [loc for loc in symstates if not symstates[loc]]
+        for loc in empties:
+            mlog.warning(f"{loc}: no symstates found")
+            symstates.pop(loc)
+
+        if all(not symstates[loc] for loc in symstates):
+            mlog.error("No symstates found for any locs. Exit!")
+            sys.exit(0)
+
+        return symstates
+
+
+@beartype
+def merge(ds) -> dict:
+    newD = {}
+    for d in ds:
+        for loc in d:
+            assert d[loc]
+            newD.setdefault(loc, {})
+            for inv in d[loc]:
+                assert d[loc][inv]
+                newD[loc].setdefault(inv, [])
+                for e in d[loc][inv]:
+                    newD[loc][inv].append(e)
+    return newD
+
+
+class SymStatesMakerC(SymStatesMaker):
+    pc_cls = PathCondCIVL
+    mindepth = settings.C.SE_MIN_DEPTH
+
+    def mk(self, depth):
+        """
+        civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
+        """
+        return settings.C.CIVL_RUN(maxdepth=depth, file=self.filename)
+
+
+class SymStatesMakerJava(SymStatesMaker):
+    pc_cls = PathCondJPF
+    mindepth = settings.Java.SE_MIN_DEPTH
+
+    def mk(self, depth):
+        max_val = settings.INP_MAX_V
+        return settings.Java.JPF_RUN(jpffile=self.mk_JPF_runfile(max_val, depth))
+
+    @beartype
+    def mk_JPF_runfile(self, max_int:int, depth:int) -> Path:
+        assert max_int >= 0, max_int
+
+        symargs = ["sym"] * self.ninps
+        symargs = "#".join(symargs)
+        stmts = [
+            f"target={self.funname}",
+            f"classpath={self.tmpdir}",
+            f"symbolic.method={self.funname}.{self.mainQName}({symargs})",
+            "listener=gov.nasa.jpf.symbc.InvariantListenerVu",
+            "vm.storage.class=nil",
+            "search.multiple_errors=true",
+            f"symbolic.min_int={-max_int}",
+            f"symbolic.max_int={max_int}",
+            f"symbolic.min_long={-max_int}",
+            f"symbolic.max_long={max_int}",
+            f"symbolic.min_short={-max_int}",
+            f"symbolic.max_short={max_int}",
+            f"symbolic.min_float={-max_int}.0f",
+            f"symbolic.max_float={max_int}.0f",
+            f"symbolic.min_double={-max_int}.0",
+            f"symbolic.max_double={max_int}.0",
+            "symbolic.dp=z3bitvector",
+            f"search.depth_limit={depth}",
+        ]
+        contents = "\n".join(stmts)
+
+        filename = self.tmpdir / f"{self.funname}_{max_int}_{depth}.jpf"
+
+        assert not filename.is_file(), filename
+        filename.write_text(contents)
+        return filename
+
+
+class SymStatesDepth(dict):  # depth -> PCs
+    @property
+    def siz(self):
+        return sum(map(len, self.values()))
+                
