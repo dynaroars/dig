@@ -1,6 +1,5 @@
-from __future__ import print_function
 from beartype import beartype
-import sys
+import copy
 import pdb
 DBG = pdb.set_trace
 # This is not required if you've installed pycparser into
@@ -10,7 +9,14 @@ from pycparser import parse_file, c_generator, c_ast, c_parser
 
 text = r"""
 void vtrace1(int q, int r, int a, int b){
+}
 
+void vtrace2(int x, int y){
+}
+
+int foo(int q, int r){
+   vassert(q > r);
+   return 0;
 }
 """
 # void func(void)
@@ -25,66 +31,96 @@ void vtrace1(int q, int r, int a, int b){
 
 
 class AddPrintfVisitor(c_ast.NodeVisitor):
-
+    """
+    add printf() calls to vtrace definitions
+    """
     @beartype
-    def __init__(self, funcname:str) -> None:
-        self.funcname = funcname
+    def __init__(self, vtrace:str) -> None:
+        self.vtrace = vtrace
 
     @beartype
     def visit_FuncDef(self, node:c_ast.Node) -> None:
-        if node.decl.name.startswith(self.funcname) and not node.body.block_items:
-            print('%s declared at %s' % (self.funcname, node.coord))
-            self.insert_funccall(node)
-
+        if node.decl.name.startswith(self.vtrace) and not node.body.block_items:
+            print(f"{node.decl.name} declared at {node.coord}")
+            self._insert_funccall(node)
 
     @beartype
-    def insert_funccall(self,node:c_ast.FuncDef)->None:
+    def _insert_funccall(self,node:c_ast.FuncDef)-> None:
         myvars = [p.name for p in node.decl.type.args.params]
-        printf_fcall  = self.create_printf(node.decl.name, myvars)
+        printf_fcall  = self._create_printf(node.decl.name, myvars)
         node.body.block_items = [printf_fcall]
 
     @beartype
-    def create_printf(self, myname:str, myvars:list[str]) -> c_ast.FuncCall:
+    def _create_printf(self, myname:str, myvars:list[str]) -> c_ast.FuncCall:
         value = "; ".join("%d" for _ in myvars) + "\\n"
         myvars_ = [c_ast.ID(name=x)  for x in myvars]
         exprs = [c_ast.Constant(type="string", value=f'\"{myname}; {value}"')] + myvars_
         funcCall = c_ast.FuncCall(name=c_ast.ID(name="printf"),args=c_ast.ExprList(exprs=exprs))
-        #funcCall.show()
         return funcCall
 
 
-class FindFuncDef(c_ast.NodeVisitor):
+class ChangeVassertVisitor(c_ast.NodeVisitor):
+    # change vassert call to assert call
+
     @beartype
-    def __init__(self, funname:str)->None:
-        self.funname
-        self.result = None
-    @beartype
-    def visit_FuncDef(self, node:c_ast.Node) -> None:
-        if node.decl.name == self.funname:
-            assert self.result is None, self.result
-            self.result = node
+    def __init__(self, fname:str, changeto:str) -> None:
+        self.fname = fname
+        self.changeto = changeto
         
-class ChangeVassumeVisitor(c_ast.NodeVisitor):
     @beartype
-    def __init__(self, changeto:str) -> None:
-        pass
-            
+    def visit_FuncCall(self, node:c_ast.Node) -> None:
+        if node.name.name == self.fname:
+            print(f"{node.name.name} call at {node.coord}")
+            self._change(node)
+
+    @beartype
+    def _change(self, fd:c_ast.FuncCall) -> None:
+        fd.name.name = self.changeto
 
 
-# def show_func_calls(filename, funcname):
+class PrintTypeVisitor(c_ast.NodeVisitor):
+    # print vtrace1; I x; I y; I r; I q
+
+    def __init__(self, vtrace:str, mainQ:str) -> None:
+        self.vtrace = vtrace
+        self.mainQ = mainQ
+    
+    def visit_FuncDef(self, node:c_ast.Node) -> None:
+        
+        if node.decl.name.startswith(self.vtrace) or node.decl.name == self.mainQ:
+            nts = [(p.name , p.type.type.names[0]) for p in node.decl.type.args.params]
+            nts = '; '.join(("I " if t == "int" else "D ") + n for n,t in nts)
+            print(f"{node.decl.name}; {nts}")
+
+class AddSymStatesVisitor(c_ast.NodeVisitor):
+    pass
+    
+# def show_func_calls(filename, vtrace):
 #     ast = parse_file(filename, use_cpp=True)
-#     v = FuncCallVisitor(funcname)
+#     v = FuncCallVisitor(vtrace)
 #     v.visit(ast)
 
 
 
 if __name__ == '__main__':
     parser = c_parser.CParser()
-    ast = parser.parse(text)
-    print(ast)
+    ast_instr = parser.parse(text)
+    ast_civl =  copy.deepcopy(parser.parse(text))
     
-    fc = AddPrintfVisitor("vtrace")
-    fc.visit(ast)
+    
+    #trace instrumentation
+    #add printf to vtrace definitions
+    AddPrintfVisitor("vtrace").visit(ast_instr)
+
+    #change vassume to assert
+    ChangeVassertVisitor("vassert", "assert").visit(ast_instr)
+
+    #civl instrumentation
+    PrintTypeVisitor("vtrace", "mainQ").visit(ast_civl)
+
+    generator = c_generator.CGenerator()
+    print(generator.visit(ast_instr))
+    
     # results = fc.results
     # if results:
     #     print(f"{len(results)} results")
@@ -104,8 +140,7 @@ if __name__ == '__main__':
     # print("After:")
     # ast.show(offset=2)
     # print("hello world")
-    generator = c_generator.CGenerator()
-    print(generator.visit(ast))
+
 
 
     
