@@ -1,11 +1,11 @@
 # DIG
 
 **DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
-- nonlinear / linear equalities among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
-- linear inequalities (including interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
-- min/max equalities/inequalities that represent a certain type of disjunctive invariants, e.g., `max(x,y) <= z + 2`
-- congruence relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
-- array invariants, e.g., `A[i] = B[C[3*i+2]]`
+- *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
+- *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
+- *min/max equalities/inequalities* that represent a certain type of *disjunctive* invariants, e.g., `max(x,y) <= z + 2`
+- *congruence* relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
+- *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
 
 The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
 
