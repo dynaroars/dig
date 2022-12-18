@@ -35,7 +35,8 @@ class Infer(infer.infer._CEGIR):
 
     @beartype
     @classmethod
-    def gen_from_traces(cls, deg:int, traces:data.traces.Traces, symbols) -> None:
+    def gen_from_traces(cls, deg:int,
+                        traces:data.traces.Traces, symbols) -> list[Eqt]:
 
         mydeg = deg
         eqts = []

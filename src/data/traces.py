@@ -1,9 +1,9 @@
-from time import time
 import pdb
 from pathlib import Path
 from collections.abc import Iterable
 import typing
 import sympy
+from beartype import beartype
 import z3
 
 import helpers.vcommon as CM
@@ -12,7 +12,6 @@ from helpers.miscs import Miscs
 import data.prog
 import settings
 
-from beartype import beartype
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -22,17 +21,20 @@ class SymbsVals(typing.NamedTuple):
     vs: tuple
     """ "
     ((x, y), (3, 4))
-    """   
+    """
+    @beartype
     @classmethod
-    def mk(cls, ss, vs):
+    def mk(cls, ss: tuple, vs: tuple):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
         return cls(ss, vs)
 
-    def __str__(self):
+    @beartype
+    def __str__(self) -> str:
         return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
 
-    def mk_expr(self, ss):
+    @beartype
+    def mk_expr(self, ss) -> z3.ExprRef:
         # create z3 expression
         assert len(ss) == len(self.vs), (ss, self.vs)
         try:
@@ -43,16 +45,17 @@ class SymbsVals(typing.NamedTuple):
 
 
 class SymbsValsSet(set):
-    def __init__(self, myset=set()):
-        assert all(isinstance(t, SymbsVals) for t in myset), myset
+    
+    @beartype
+    def __init__(self, myset=set()) -> None:
         super().__init__(myset)
 
-    def __contains__(self, t):
-        assert isinstance(t, SymbsVals), t
+    @beartype
+    def __contains__(self, t: SymbsVals) -> bool:
         return super().__contains__(t)
 
-    def add(self, t):
-        assert isinstance(t, SymbsVals), t
+    @beartype
+    def add(self, t: SymbsVals) -> None:
         return super().add(t)
 
 
@@ -110,7 +113,7 @@ class Trace(SymbsVals):
 class Traces(SymbsValsSet):
 
     @beartype
-    def __str__(self, printDetails:bool=False)->str:
+    def __str__(self, printDetails: bool=False) -> str:
         if printDetails:
             return ", ".join(map(str, sorted(self)))
         else:
@@ -139,12 +142,14 @@ class Traces(SymbsValsSet):
         cexs = [Trace.fromDict(cex) for cex in cexs]
         cexs = Traces(cexs)
         return cexs
-
+    
+    @beartype
     @property
-    def mydicts(self):
+    def mydicts(self) -> Iterable[dict]:
         return (trace.mydict for trace in self)
 
-    def instantiate(self, template, ntraces):
+    @beartype
+    def instantiate(self, template, ntraces: int | None) -> set[z3.ExprRef]:
         assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
 
@@ -168,7 +173,7 @@ class Traces(SymbsValsSet):
 
         return exprs
 
-    def padzeros(self, ss):
+    def padzeros(self, ss) :
         new_traces = Traces()
         for t in self:
             tss = set(t.ss)
@@ -186,17 +191,19 @@ class DTraces(dict):
     """
     {loc: Traces}
     """
-
+    @beartype
     @property
-    def siz(self):
+    def siz(self) -> int:
         return sum(map(len, self.values()))
 
-    def __str__(self, printDetails=False):
+    @beartype
+    def __str__(self, printDetails=False) -> str:
         return "\n".join(
             f"{loc}: {traces.__str__(printDetails)}" for loc, traces in self.items()
         )
-
-    def add(self, loc, trace):
+    
+    @beartype
+    def add(self, loc, trace) -> bool:
         assert isinstance(loc, str) and loc, loc
         assert isinstance(trace, Trace), trace
 
@@ -227,6 +234,7 @@ class DTraces(dict):
         assert locs
         return cls({loc: Traces() for loc in locs})
 
+    @beartype
     @staticmethod
     def parse(traces, inv_decls):
         """
@@ -234,7 +242,7 @@ class DTraces(dict):
         # >>> traces = ['vtrace1; 0; 285; 1; 9; 285; 9 ', 'vtrace1; 0; 285; 2; 18; 285; 9; ', 'vtrace1; 0; 285; 4; 36; 285; 9; ']
         # >>> DTraces.parse(traces)
         """
-        assert isinstance(inv_decls, data.prog.DSymbs) and inv_decls, inv_decls
+        assert inv_decls, inv_decls
         lines = [l.strip() for l in traces]
         lines = [l for l in lines if l]
 
@@ -256,7 +264,8 @@ class DTraces(dict):
 
         return dtraces
 
-    def vwrite(self, inv_decls, tracefile):
+    @beartype
+    def vwrite(self, inv_decls, tracefile: Path) -> None:
         """
         write traces to tracefile
         vtrace1; I q; I r; I a; I b; I x; I y
@@ -325,7 +334,7 @@ class Inp(SymbsVals):
 
 
 class Inps(SymbsValsSet):
-    def merge(self, ds, ss):
+    def merge(self, ds, ss) -> None:
         """
         ds can be
         1. cexs = {loc:{inv: {'x': val, 'y': val}}}

@@ -22,9 +22,8 @@ class _Infer(metaclass=abc.ABCMeta):
     """
     Base class for inference
     """
-
     @beartype
-    def __init__(self, symstates: None | data.symstates.SymStates,
+    def __init__(self, symstates: None | data.symstates.SymStates, 
                  prog: data.prog.Prog) -> None:
         self.symstates = symstates
         self.inv_decls = prog.inv_decls
@@ -39,7 +38,7 @@ class _Infer(metaclass=abc.ABCMeta):
     @beartype
     @classmethod
     @abc.abstractmethod
-    def gen_from_traces(cls, traces, symbols:tuple[sympy.core.symbol.Symbol,...]):
+    def gen_from_traces(cls, traces, symbols: tuple[sympy.core.symbol.Symbol, ...]):
         """
         Generating invariants directly from traces
         """
@@ -79,7 +78,8 @@ class _CEGIR(_Infer, metaclass=abc.ABCMeta):
 
 class _Opt(_Infer, metaclass=abc.ABCMeta):
     """
-    Find upperbound of polynomial and min/max terms using an SMT solver optimizer
+    Find upperbounds of polynomials and min/max terms 
+    using an SMT solver optimizer
     """
 
     @beartype
@@ -90,6 +90,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @beartype
     def gen(self) -> infer.inv.DInvs:
+        
         locs = self.inv_decls.keys()
 
         def _terms(loc):
@@ -181,7 +182,8 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @beartype
     @classmethod
-    def gen_from_traces(cls, traces:data.traces.Traces,
+    def gen_from_traces(cls, 
+                        traces:data.traces.Traces,
                         symbols:data.prog.Symbs) -> list[infer.inv.Inv]:
         """
         Compute convex hulls from traces
@@ -198,7 +200,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
         wrs = MP.run_mp("getting upperbounds", tasks, f, settings.DO_MP)
 
-        ps:list[infer.inv.Inv] = []
+        ps: list[infer.inv.Inv] = []
         for term, upperbound in wrs:
             if minV <= upperbound <= maxV:
                 p = cls.inv_cls(term.mk_le(upperbound))
