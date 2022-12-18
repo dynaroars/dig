@@ -1,14 +1,17 @@
 # DIG
 
 **DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
-- nonlinear / linear equalities among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
-- linear inequalities (including interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
-- min/max equalities/inequalities that represent a certain type of disjunctive invariants, e.g., `max(x,y) <= z + 2`
-- congruence relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
-- array invariants, e.g., `A[i] = B[C[3*i+2]]`
+- *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
+- *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
+- *min/max equalities/inequalities* that represent a certain type of *disjunctive* invariants, e.g., `max(x,y) <= z + 2`
+- *congruence* relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
+- *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
+- The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
 
-The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
+<details>
 
+<summary><kbd>details</kbd></summary>
+	
 DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis (over execution traces).  If source code (C, Java, Java Bytecode) is available, DIG can iteratively infer and check invariants.
 DIG uses symbolic execution to collect symbolic states to check candidate invariants.
 
@@ -20,7 +23,13 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 - termination and non-termination analyses (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
 - array analysis, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 
-> To understand DIG's usage, a good starting point is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
+</details>
+
+
+> A good starting point to understand more about DIG is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
+
+
+**Behcmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
 
 ---
 
