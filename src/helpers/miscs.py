@@ -5,7 +5,7 @@ $ ~/miniconda3/bin/python3 -m doctest -v helpers/miscs.py
 
 
 from __future__ import annotations
-from collections.abc import Iterable
+from collections.abc import Iterable, Callable
 from collections import defaultdict, OrderedDict
 import pdb
 import itertools
@@ -17,7 +17,7 @@ import helpers.vcommon as CM
 import settings
 
 from beartype import beartype
-from beartype.typing import (Type, TypeVar, Union, Optional, Callable, Any, Sequence)
+from beartype.typing import (Type, TypeVar, Any, Sequence)
                              
 DBG = pdb.set_trace
 
@@ -31,7 +31,7 @@ class Miscs:
         return isinstance(x, sympy.Expr)
 
     @classmethod
-    def get_vars(cls: Type[Miscs], props: Any) -> list[sympy.Symbol]:
+    def get_vars(cls, props: Any) -> list[sympy.Symbol]:
         """
         Returns a list of uniq variables from a list of properties
 
@@ -88,8 +88,9 @@ class Miscs:
         assert not set(ts).intersection(set(uks)), "name conflict"
         return uks
 
+    @beartype
     @classmethod
-    def init_terms(cls: Type[Miscs], vs: list[str], deg: int, rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
+    def init_terms(cls, vs: tuple[str,...], deg: int, rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
         assert vs, vs
         assert deg >= 1, deg
         assert rate >= 0.1, rate
@@ -116,8 +117,7 @@ class Miscs:
         """
 
         assert deg >= 0, deg
-        assert (symbols and
-                all(isinstance(s, sympy.Symbol) for s in symbols)), symbols
+        assert symbols, symbols
 
         # ss_ = ([1] if ss else (1,)) + ss
         symbols_ = [1] + symbols
@@ -125,8 +125,9 @@ class Miscs:
         terms = [sympy.prod(c) for c in combs]
         return terms
 
+    @beartype
     @classmethod
-    def get_max_deg(cls: Type[Miscs], p: Union[int, sympy.Expr]) -> int:
+    def get_max_deg(cls, p: int | sympy.Expr) -> int:
         """
         get the max degree of a polynomial
 
@@ -140,19 +141,19 @@ class Miscs:
         >>> assert(Miscs.get_max_deg(x*y**2 + 3*y) == 3)
         """
 
-        assert isinstance(p, (int, sympy.Expr)), p
         if isinstance(p, (int, sympy.core.numbers.Integer)):
             return 0
         elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
-            return sum(sympy.degree_list(p))
+            return int(sum(sympy.degree_list(p)))
         elif isinstance(p, sympy.Add):
             return max(cls.get_max_deg(a) for a in p.args)
         else:
             mlog.warning(f"cannot handle {p} of type {type(p)}")
             return 0
 
+    @beartype    
     @classmethod
-    def get_deg(cls: Type[Miscs], nvs: int, nts: int, max_deg: int = 7) -> int:
+    def get_deg(cls, nvs: int, nts: int, max_deg: int = 7) -> int:
         """
         Guess a max degree wrt to a (maximum) number of terms (nss)
 
@@ -177,8 +178,9 @@ class Miscs:
                 return d
         return max_deg
 
+    @beartype
     @classmethod
-    def get_auto_deg(cls: Type[Miscs], maxdeg: int, nvars: int, maxterm: int) -> int:
+    def get_auto_deg(cls, maxdeg: None | int, nvars: int, maxterm: int) -> int:
         if maxdeg:
             deg = maxdeg
             mlog.debug(f"using deg {deg}")
@@ -188,8 +190,9 @@ class Miscs:
 
         return deg
 
+    @beartype
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz:list[Any], icoef:int, do_create_terms:bool=True) -> set[Any]:
+    def get_terms_fixed_coefs(ss, subset_siz:int, icoef:int, do_create_terms:bool=True) -> set[Any]:
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
@@ -222,8 +225,9 @@ class Miscs:
         return set(rs)
 
 
+    @beartype
     @classmethod
-    def reduce_eqts(cls: Type[Miscs], ps: list[Union[sympy.Expr, sympy.Rel]]) -> list[Union[sympy.Expr, sympy.Rel]]:
+    def reduce_eqts(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
         """
         Return the basis (e.g., a min subset of ps that implies ps)
         of the set of polynomial eqts using Groebner basis.
@@ -283,8 +287,9 @@ class Miscs:
             return p
         return p * sympy.lcm(denoms)
 
+    @beartype
     @classmethod
-    def get_coefs(cls: Type[Miscs], p: Union[sympy.Expr, sympy.Rel]) -> list[Union[int, float]]:
+    def get_coefs(cls, p: sympy.Expr | sympy.Rel) -> list[sympy.core.numbers.Integer]:
         """
         Return coefficients of an expression
 
@@ -296,8 +301,9 @@ class Miscs:
         p = p.lhs if p.is_Equality else p
         return list(p.as_coefficients_dict().values())
 
+    @beartype
     @classmethod
-    def remove_ugly(cls: Type[Miscs], ps: list[Union[sympy.Expr, sympy.Rel]]) -> list[Union[sympy.Expr, sympy.Rel]]:
+    def remove_ugly(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr |  sympy.Rel]:
 
         @functools.cache
         def is_nice_coef(c: Union[int, float]) -> bool:
@@ -317,8 +323,9 @@ class Miscs:
 
         return ps_
 
+    @beartype
     @classmethod
-    def refine(cls: Type[Miscs], eqts: list[Union[sympy.Expr, sympy.Rel]]) -> list[Union[sympy.Expr, sympy.Rel]]:
+    def refine(cls, eqts: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
 
         if not eqts:
             return eqts
@@ -331,13 +338,14 @@ class Miscs:
 
         return eqts
 
+    @beartype
     @classmethod
-    def solve_eqts(cls: Type[Miscs], eqts: list[Union[sympy.Expr, sympy.Rel]],
+    def solve_eqts(cls, eqts: list[sympy.Expr | sympy.Rel],
                    terms: list[Any], uks: list[sympy.Symbol]) -> list[sympy.Eq]:
 
-        assert isinstance(eqts, list) and eqts, eqts
-        assert isinstance(terms, list) and terms, terms
-        assert isinstance(uks, list) and uks, uks
+        assert eqts, eqts
+        assert terms, terms
+        assert uks, uks
         assert len(terms) == len(uks), (terms, uks)
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
@@ -354,9 +362,9 @@ class Miscs:
         mlog.debug(f"got {len(eqts_)} eqts after refinement")
         return [sympy.Eq(eqt, 0) for eqt in eqts_]
 
+    @beartype
     @classmethod
-    def instantiate_template(cls, terms, uks, vs):
-        # def instantiate_template(cls: Type[Miscs], terms: list[Any], uks: list[sympy.Symbol], vs: list[str]):
+    def instantiate_template(cls, terms:list, uks:list, vs:list) -> list:
         """
         Instantiate a template with solved coefficient values
 
@@ -371,9 +379,8 @@ class Miscs:
         # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
-        assert isinstance(vs, list), vs
-        assert isinstance(terms, list) and terms, terms
-        assert isinstance(uks, list) and uks, uks
+        assert terms, terms
+        assert uks, uks
         assert len(terms) == len(uks) == len(vs), (terms, uks, vs)
 
         cs = [(t, u, v) for t, u, v in zip(terms, uks, vs) if v != 0]
@@ -474,7 +481,7 @@ class MP:
         return _wloads
 
     @classmethod
-    def wprocess(cls, f, mytasks: list[Any], myQ: Union[None, multiprocessing.Queue]):
+    def wprocess(cls, f, mytasks: list[Any], myQ: None | multiprocessing.Queue):
         try:
             rs = f(mytasks)
         except BaseException as ex:
@@ -489,8 +496,8 @@ class MP:
         else:
             myQ.put(rs)
 
+    @beartype            
     @classmethod
-    @beartype
     def run_mp(cls, taskname: str, tasks: list[Any], f: Callable[[list[Any]], Any], DO_MP: bool) -> list[Any]:
         """
         Run wprocess on tasks in parallel

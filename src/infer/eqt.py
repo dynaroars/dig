@@ -3,6 +3,7 @@ CEGIR alg for inferring equalities
 """
 import pdb
 import sympy
+from beartype import beartype
 
 import settings
 import helpers.vcommon as CM
@@ -17,11 +18,14 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 class Eqt(infer.inv.Inv):
-    def __init__(self, eqt, stat=None):
-        assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
+
+    @beartype
+    def __init__(self, eqt:sympy.Equality, stat=None)->None:
+        assert eqt.rhs == 0, eqt
 
         super().__init__(eqt, stat)
 
+    @beartype
     @property
     def mystr(self) -> str:
         return f"{self.inv.lhs} == {self.inv.rhs}"
@@ -29,9 +33,9 @@ class Eqt(infer.inv.Inv):
 
 class Infer(infer.infer._CEGIR):
 
+    @beartype
     @classmethod
-    def gen_from_traces(cls, deg, traces, symbols):
-        assert isinstance(traces, data.traces.Traces), traces
+    def gen_from_traces(cls, deg:int, traces:data.traces.Traces, symbols) -> None:
 
         mydeg = deg
         eqts = []
@@ -155,15 +159,16 @@ class Infer(infer.infer._CEGIR):
 
         return exprs
 
-    def _get_init_traces(self, loc, deg, dtraces, inps, rate):
+    @beartype
+    def _get_init_traces(self, loc:str, deg:int,
+                         dtraces:data.traces.DTraces,
+                         inps:data.traces.Inps, rate:float) -> tuple[list,list[sympy.core.symbol.Symbol],set]:
         """
         Initial loop to obtain (random) traces to bootstrap eqt solving
         """
 
         assert deg >= 1, deg
-        assert isinstance(dtraces, data.traces.DTraces), dtraces
-        assert isinstance(inps, data.traces.Inps), inps
-        assert isinstance(rate, float) and rate >= 0.1, rate
+        assert rate >= 0.1, rate
 
         mlog.debug(
             f"{loc}: generating random initial inps "
@@ -192,12 +197,11 @@ class Infer(infer.infer._CEGIR):
 
         return ts, uks, exprs
 
-    def _infer(self, loc: str, ts: list, uks: list, exprs: list) -> set:
-        assert isinstance(loc, str) and loc, loc
-        assert isinstance(ts, list), ts
-        assert isinstance(uks, list), uks
+    @beartype
+    def _infer(self, loc: str, ts: list, uks: list, exprs: set) -> set:
+        assert loc, loc
         assert len(ts) == len(uks), (ts, uks)
-        assert isinstance(exprs, set) and exprs, exprs
+        assert exprs, exprs
 
         template = sum(t*u for t, u in zip(ts, uks))
         cache = set()

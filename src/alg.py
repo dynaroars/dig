@@ -87,6 +87,7 @@ class Dig(metaclass=abc.ABCMeta):
 
 
 class DigSymStates(Dig, metaclass=abc.ABCMeta):
+    
     @beartype
     def __init__(self, filename:Path) -> None:
         super().__init__(filename)
@@ -213,7 +214,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         Analysis(self.tmpdir).start()  # output stats
 
     @beartype
-    def _infer(self, typ:str, _get_invs:Callable):
+    def _infer(self, typ:str, _get_invs:Callable) -> tuple:
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE, self.PREPOSTS}, typ
         
@@ -238,7 +239,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
     def _infer_ieqs(self):
         return infer.oct.Infer(self.symstates, self.prog).gen(), None
 
-    def _infer_minmax(self):
+    def _infer_minmax(self):       
         return infer.mp.Infer(self.symstates, self.prog).gen(), None
 
     @beartype
