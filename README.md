@@ -30,7 +30,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 > A good starting point to understand more about DIG is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
 
 
-**Behcmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
+**Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
 
 ---
 
