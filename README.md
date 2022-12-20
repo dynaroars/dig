@@ -1,6 +1,6 @@
 # DIG
 
-**DIG** is a tool for generating program invariants at arbitrary program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
+**DIG** is a tool for generating program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
 - *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
 - *min/max equalities/inequalities* that represent a certain type of *disjunctive* invariants, e.g., `max(x,y) <= z + 2`
@@ -189,7 +189,7 @@ void main(int argc, char **argv){
 
 ```
 
-* To find invariants at some location, we declare a function `vtraceX` where `X` is some distinct number and call that function at that location.
+* To find invariants at some abitrary location, we declare a function `vtraceX` where `X` is some distinct number and call that function at that location.
   * For example, in `cohendiv.c`,  we call `vtrace0`, `vtrace1` at the head of the outter and inner while loops find loop invariants  and  `vtrace2` before the function exit to find post conditions.
   * `vtraceX` takes a list of arguments that are variables in scope at the desired location. This tells DIG to find invariants over these variables.
 
