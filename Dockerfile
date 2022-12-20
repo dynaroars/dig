@@ -12,7 +12,7 @@ RUN /root/miniconda3/bin/conda install sympy pip -y
 RUN /root/miniconda3/bin/pip3 install z3-solver
 RUN /root/miniconda3/bin/pip3 install beartype
 
-# # # download Eclipse Foundation's AdoptOpenJDK build of jdk 8
+# # # download AdoptOpenJDK build of jdk 8
 # # RUN apt-get wget apt-transport-https gnupg -y
 # # RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
 # # RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
