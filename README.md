@@ -12,7 +12,7 @@
 
 <summary><kbd>details</kbd></summary>
 	
-DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis (over execution traces).  If source code (C, Java, Java Bytecode) is available, DIG can iteratively infer and check invariants.
+DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis, i.e., analyzing program execution traces.  If source code (C, Java, Java Bytecode) is available, DIG can iteratively infer and check invariants.
 DIG uses symbolic execution to collect symbolic states to check candidate invariants.
 DIG aims to be fully automated and can find good invariants with its default configuration (i.e., the user doesn't need to try different configurations for good performance).  
 
