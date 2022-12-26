@@ -197,16 +197,13 @@ class DTraces(dict):
         return sum(map(len, self.values()))
 
     @beartype
-    def __str__(self, printDetails=False) -> str:
+    def __str__(self, printDetails:bool=False) -> str:
         return "\n".join(
             f"{loc}: {traces.__str__(printDetails)}" for loc, traces in self.items()
         )
     
     @beartype
-    def add(self, loc, trace) -> bool:
-        assert isinstance(loc, str) and loc, loc
-        assert isinstance(trace, Trace), trace
-
+    def add(self, loc: str, trace: Trace) -> bool:
         if loc not in self:
             self[loc] = Traces()
 
@@ -264,6 +261,7 @@ class DTraces(dict):
 
         return dtraces
 
+
     @beartype
     def vwrite(self, inv_decls, tracefile: Path) -> None:
         """
@@ -281,7 +279,7 @@ class DTraces(dict):
         assert isinstance(tracefile, Path) and tracefile.suffix == ".csv", tracefile
             
 
-        ss = []
+        ss: list[str] = []
         for loc in self:
             traces = [inv_decls[loc]]
             traces.extend(["; ".join(map(str, t.vs)) for t in self[loc]])
@@ -290,8 +288,9 @@ class DTraces(dict):
 
         tracefile.write_text("\n".join(ss))
 
+    @beartype
     @classmethod
-    def vread(cls, tracefile):
+    def vread(cls, tracefile: Path):
         """
         Csv format
 

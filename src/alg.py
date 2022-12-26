@@ -93,7 +93,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         super().__init__(filename)
 
     @beartype
-    def start(self, seed:float, maxdeg:int | None) -> DInvs:
+    def start(self, seed:float, maxdeg:int | None) -> None | DInvs:
 
         if not(maxdeg is None or maxdeg >= 1):
             raise ValueError(f"maxdeg has invalid value {maxdeg}")
@@ -134,7 +134,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
             dinvs = digtraces.start(self.seed, maxdeg)
 
-        else:  #use symbolic states
+        else:  # use symbolic states
             st = time.time()
             self.symstates = self.get_symbolic_states()
             et = time.time() - st

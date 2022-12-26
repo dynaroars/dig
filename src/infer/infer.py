@@ -38,15 +38,16 @@ class _Infer(metaclass=abc.ABCMeta):
     @beartype
     @classmethod
     @abc.abstractmethod
-    def gen_from_traces(cls, traces, symbols: tuple[sympy.core.symbol.Symbol, ...]):
+    def gen_from_traces(cls, traces: data.traces.DTraces, 
+                        symbols: tuple[sympy.core.symbol.Symbol,...]) -> infer.inv.DInvs:
         """
         Generating invariants directly from traces
         """
         pass
 
     @beartype
-    def get_traces(self, inps:data.traces.Inps,
-                   dtraces:data.traces.DTraces) -> data.traces.DTraces:
+    def get_traces(self, inps: data.traces.Inps,
+                   dtraces: data.traces.DTraces) -> data.traces.DTraces:
         """
         run inps to get new traces (and update them)
         """
@@ -56,7 +57,8 @@ class _Infer(metaclass=abc.ABCMeta):
         return new_dtraces
 
     @beartype
-    def check(self, dinvs:infer.inv.DInvs, inps:None|data.traces.Inps) -> tuple[dict,infer.inv.DInvs]:
+    def check(self, dinvs:infer.inv.DInvs, 
+              inps: None|data.traces.Inps) -> tuple[dict,infer.inv.DInvs]:
         if self.symstates:
             cexs, dinvs = self.symstates.check(dinvs, inps)
         else:
@@ -145,7 +147,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @beartype
     def get_terms(self,
-                  symbols:tuple[sympy.core.symbol.Symbol,...]) -> list:
+                  symbols:tuple[sympy.core.symbol.Symbol, ...]) -> list:
 
         terms = self.my_get_terms(symbols)
         mlog.debug(f"{len(terms)} terms for {self.__class__.__name__}")
@@ -172,19 +174,19 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def my_get_terms(cls, terms, inps):
+    def my_get_terms(cls, terms, inps) -> list:
         pass
 
     @staticmethod
     @abc.abstractmethod
-    def get_excludes(term):
+    def get_excludes(term) -> set:
         pass
 
     @beartype
     @classmethod
     def gen_from_traces(cls, 
-                        traces:data.traces.Traces,
-                        symbols:data.prog.Symbs) -> list[infer.inv.Inv]:
+                        traces: data.traces.Traces,
+                        symbols: data.prog.Symbs) -> list[infer.inv.Inv]:
         """
         Compute convex hulls from traces
         """

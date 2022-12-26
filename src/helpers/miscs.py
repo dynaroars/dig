@@ -30,8 +30,9 @@ class Miscs:
     def is_expr(x: Any) -> bool:
         return isinstance(x, sympy.Expr)
 
+    @beartype
     @classmethod
-    def get_vars(cls, props: Any) -> list[sympy.Symbol]:
+    def get_vars(cls, props) -> list[sympy.Symbol]:
         """
         Returns a list of uniq variables from a list of properties
 
@@ -50,7 +51,7 @@ class Miscs:
 
     str2rat_cache: dict[str, sympy.Rational] = {}
 
-    @beartype    
+    @beartype 
     @staticmethod
     def str2list(s: str) -> tuple:
         rs = tuple(eval(s))
@@ -90,7 +91,8 @@ class Miscs:
 
     @beartype
     @classmethod
-    def init_terms(cls, vs: tuple[str,...], deg: int, rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
+    def init_terms(cls, vs: tuple[str,...], deg: int, 
+                   rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
         assert vs, vs
         assert deg >= 1, deg
         assert rate >= 0.1, rate
@@ -104,7 +106,7 @@ class Miscs:
 
     @beartype    
     @staticmethod
-    def get_terms(symbols: list[sympy.Symbol], deg: int) -> list[Any]:
+    def get_terms(symbols: list[sympy.Symbol], deg: int) -> list:
         """
         get a list of terms from the given list of vars and deg
         the number of terms is len(rs) == binomial(len(symbols)+d, d)
@@ -192,7 +194,8 @@ class Miscs:
 
     @beartype
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz:int, icoef:int, do_create_terms:bool=True) -> set[Any]:
+    def get_terms_fixed_coefs(ss, subset_siz: int, icoef: int, 
+                              do_create_terms:bool=True) -> set[sympy.Expr]:
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
@@ -260,7 +263,7 @@ class Miscs:
         mlog.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
         return ps_ if len(ps_) < len(ps) else ps
 
-    @beartype    
+    @beartype
     @staticmethod
     def elim_denom(p: sympy.Expr | sympy.Rel) -> sympy.Expr | sympy.Rel:
         """

@@ -115,8 +115,9 @@ class Inv(metaclass=abc.ABCMeta):
             mlog.debug(f"{self}: failed test")
             return False
 
+    @beartype
     @property
-    def expr(self):
+    def expr(self) -> z3.ExprRef:
         """
         cannot cache because z3 expr is ctype,
         not compat with multiprocessing Queue
@@ -139,8 +140,9 @@ class FalseInv(Inv):
             s = f"{s} {self.stat}"
         return s
 
+    @beartype
     @property
-    def expr(self):
+    def expr(self) -> z3.ExprRef:
         return Z3.zFalse
 
     @property
