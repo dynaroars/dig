@@ -9,8 +9,7 @@ RUN apt-get install -y build-essential git software-properties-common emacs ocam
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash ./Miniconda3-latest-Linux-x86_64.sh -b
 RUN /root/miniconda3/bin/conda install sympy pip -y  
-RUN /root/miniconda3/bin/pip3 install z3-solver
-RUN /root/miniconda3/bin/pip3 install beartype
+RUN /root/miniconda3/bin/pip3 install z3-solver beartype
 
 # # # download AdoptOpenJDK build of jdk 8
 # # RUN apt-get wget apt-transport-https gnupg -y
