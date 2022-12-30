@@ -110,7 +110,7 @@ class C:
     CIVL_JAR = CIVL_HOME / "lib"
     if CIVL_JAR.is_dir():
         CIVL_JAR = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"][0]
-    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file}"
+    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth} {file}"
     CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
 
 

@@ -258,6 +258,12 @@ class PCs(set):  #{PathConds}
         self._expr = Z3.from_smt2_str(expr)    
     
 
+class SymStatesDepth(dict):  # depth -> PCs
+    @property
+    def siz(self):
+        return sum(map(len, self.values()))
+
+          
 class SymStates(dict):
     # loc -> SymStatesDepth
 
@@ -284,7 +290,7 @@ class SymStates(dict):
             self[loc] = SymStatesDepth(ss[loc])
 
     @beartype
-    def vwrite(self, sstatesfile:Path) -> None:
+    def vwrite(self, sstatesfile: Path) -> None:
         """
         write symbolic states to a file
         """
@@ -320,7 +326,8 @@ class SymStates(dict):
                 self[loc][depth].vread(ss[loc][depth])
 
     @beartype
-    def check(self, dinvs:infer.inv.DInvs, inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
+    def check(self, dinvs:infer.inv.DInvs, 
+              inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
         """
         Check invs, return cexs
         Also update inps
@@ -358,7 +365,8 @@ class SymStates(dict):
 
         return merge(mCexs), mdinvs
 
-    def mcheck_d(self, loc, inv, inps, ncexs):
+    @beartype
+    def mcheck_d(self, loc, inv, inps, ncexs) -> tuple[list, bool]:
         assert isinstance(loc, str), loc
         assert inv is None or isinstance(
             inv, infer.inv.Inv) or z3.is_expr(inv), inv
@@ -385,10 +393,14 @@ class SymStates(dict):
             )
 
         return cexs, is_succ
-
-    def mcheck_depth(self, ssd, inv, inv_expr, inps, ncexs):
+    
+    @beartype
+    def mcheck_depth(self, ssd: SymStatesDepth, inv, 
+                     inv_expr: None | z3.z3.BoolRef, 
+                     inps, 
+                     ncexs) -> tuple[list, bool]:
         assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
-        assert isinstance(ssd, SymStatesDepth), ssd  # self.ss[loc]
+        # assert isinstance(ssd, SymStatesDepth), ssd  # self.ss[loc]
 
         def f(depth):
             ss = ssd[depth]
@@ -476,8 +488,11 @@ class SymStates(dict):
             )
         return v
 
-    def mmaximize_depth(self, ssd, term_expr, iupper):
-        assert isinstance(ssd, SymStatesDepth), ssd
+    @beartype
+    def mmaximize_depth(self, ssd:SymStatesDepth , 
+                        term_expr: z3.ExprRef, 
+                        iupper: int):
+        # assert isinstance(ssd, SymStatesDepth), ssd
         assert z3.is_expr(term_expr), term_expr
 
         def f(depth):
@@ -543,12 +558,13 @@ class SymStates(dict):
 
         return maxv, stat
 
+    @beartype
     @classmethod
-    def mmaximize(cls, ss:z3.ExprRef, term_expr:z3.ExprRef, iupper:int):
+    def mmaximize(cls, ss: z3.ExprRef, 
+                  term_expr: z3.ExprRef, 
+                  iupper: int):
 
-        assert z3.is_expr(ss), ss
-        assert z3.is_expr(term_expr), term_expr
-        assert isinstance(iupper, int) and iupper >= 1, iupper
+        assert iupper >= 1, iupper
         opt = Z3.create_solver(maximize=True)
         opt.add(ss)
         h = opt.maximize(term_expr)
@@ -571,10 +587,11 @@ class SymStates(dict):
         return None, stat
 
     # helpers
+    @beartype
     @classmethod
-    def get_ss_at_depth(cls, ssd, depth=None):
-        assert isinstance(ssd, SymStatesDepth), ssd
-
+    def get_ss_at_depth(cls, ssd: SymStatesDepth, 
+                        depth: None | int=None) -> z3.ExprRef:
+        
         assert depth is None or depth >= 0, depth
 
         if depth is None:  # use all
@@ -588,7 +605,7 @@ class SymStates(dict):
 
             return z3.Or(ss)
 
-    def get_inp_constrs(self, inps):
+    def get_inp_constrs(self, inps: data.traces.Inps) -> None | z3.ExprRef:
         cstrs = []
         if isinstance(inps, data.traces.Inps) and inps:
             inpCstrs = [inp.mk_expr(self.inp_exprs) for inp in inps]
@@ -618,11 +635,17 @@ class SymStates(dict):
                     mlog.exception(f"get_solver_stats() error")
                     break
 
+      
 
 class SymStatesMaker(metaclass=abc.ABCMeta):
 
     @beartype
-    def __init__(self, filename:Path, mainQName:str, funname:str, ninps:int, tmpdir:Path) -> None:
+    def __init__(self, 
+                 filename: Path, 
+                 mainQName: str, 
+                 funname: str, 
+                 ninps: int, 
+                 tmpdir: Path) -> None:
         assert tmpdir.is_dir(), tmpdir
 
         self.filename = filename
@@ -631,8 +654,9 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         self.tmpdir = tmpdir
         self.ninps = ninps
 
+    @beartype
     @abc.abstractmethod
-    def mk(self, depth):
+    def mk(self, depth: int) -> str:
         pass
 
     @beartype
@@ -640,7 +664,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in 
+        tasks = [depth for depth in
                     range(self.mindepth, settings.SE_MAXDEPTH + 1)]
 
         def f(tasks):
@@ -679,10 +703,11 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
                 f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
         return symstates
 
-    def get_ss(self, depth):
+    @beartype
+    def get_ss(self, depth: int) -> None | list:
         assert depth >= 1, depth
 
-        cmd = self.mk(depth)
+        cmd: str = self.mk(depth)
         timeout = depth
         mlog.debug(cmd)
 
@@ -704,7 +729,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
             s = ex.stdout
             s = s if isinstance(s, str) else str(s)
         except subprocess.CalledProcessError as ex:
-            mlog.warning(f"{ex}\n{cmd}")
+            mlog.error(f"{ex}\n{cmd}")
             return None
 
         pcs = self.pc_cls.parse(s)
@@ -714,11 +739,11 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
 
     @beartype
     @classmethod
-    def merge(cls, depthss, pc_cls) -> defaultdict:
+    def merge(cls, depthss: list, pc_cls) -> defaultdict:
         """
         Merge PC's info into symstates sd[loc][depth]
         """
-        assert isinstance(depthss, list) and depthss, depthss
+        assert depthss, depthss
         assert all(
             depth >= 1 and isinstance(ss, list) for depth, ss in depthss
         ), depthss
@@ -797,10 +822,12 @@ class SymStatesMakerC(SymStatesMaker):
     pc_cls = PathCondCIVL
     mindepth = settings.C.SE_MIN_DEPTH
 
-    def mk(self, depth):
+    @beartype
+    def mk(self, depth: int) -> str:
         """
         civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
         """
+        assert depth >= 1, depth
         return settings.C.CIVL_RUN(maxdepth=depth, file=self.filename)
 
 
@@ -808,7 +835,9 @@ class SymStatesMakerJava(SymStatesMaker):
     pc_cls = PathCondJPF
     mindepth = settings.Java.SE_MIN_DEPTH
 
-    def mk(self, depth):
+    def mk(self, depth:int) -> str:
+        assert depth >= 1, depth
+        
         max_val = settings.INP_MAX_V
         return settings.Java.JPF_RUN(jpffile=self.mk_JPF_runfile(max_val, depth))
 
@@ -845,10 +874,3 @@ class SymStatesMakerJava(SymStatesMaker):
         assert not filename.is_file(), filename
         filename.write_text(contents)
         return filename
-
-
-class SymStatesDepth(dict):  # depth -> PCs
-    @property
-    def siz(self):
-        return sum(map(len, self.values()))
-                

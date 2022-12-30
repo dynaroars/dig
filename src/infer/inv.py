@@ -29,7 +29,7 @@ class Inv(metaclass=abc.ABCMeta):
     UNKNOWN = "u"
 
     @beartype
-    def __init__(self, inv:Union[int, tuple, str, sympy.Equality, sympy.Le], stat=None) -> None:
+    def __init__(self, inv: Union[int, tuple, str, sympy.Equality, sympy.Le], stat = None) -> None:
         """
         stat = None means never been checked
         """
