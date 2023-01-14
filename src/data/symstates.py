@@ -224,10 +224,11 @@ class PCs(set):  #{PathConds}
     @beartype
     def __init__(self, loc:str, depth:int) -> None:
         assert depth >= 1, depth
-
+        
         super().__init__(set())
         self.loc = loc
         self.depth = depth
+
 
     @beartype
     def add(self, pc:PathCond):
@@ -322,11 +323,12 @@ class SymStates(dict):
         for loc in ss:
             self[loc] = SymStatesDepth()
             for depth in ss[loc]:
-                self[loc][depth] = PCs(loc, depth)
-                self[loc][depth].vread(ss[loc][depth])
+                depth_ = int(depth)
+                self[loc][depth_] = PCs(loc, depth_)
+                self[loc][depth_].vread(ss[loc][depth])
 
     @beartype
-    def check(self, dinvs:infer.inv.DInvs, 
+    def check(self, dinvs: infer.inv.DInvs, 
               inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
         """
         Check invs, return cexs
@@ -366,11 +368,13 @@ class SymStates(dict):
         return merge(mCexs), mdinvs
 
     @beartype
-    def mcheck_d(self, loc, inv, inps, ncexs) -> tuple[list, bool]:
-        assert isinstance(loc, str), loc
-        assert inv is None or isinstance(
-            inv, infer.inv.Inv) or z3.is_expr(inv), inv
-        assert inps is None or isinstance(inps, data.traces.Inps), inps
+    def mcheck_d(self, loc: str,
+                 inv: None | infer.inv.Inv | z3.ExprRef,
+                 inps: None | data.traces.Inps,
+                 ncexs: int) -> tuple[list, bool]:
+        # assert inv is None or isinstance(
+        #     inv, infer.inv.Inv) or z3.is_expr(inv), inv
+        # assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 1, ncexs
 
         try:
@@ -399,12 +403,12 @@ class SymStates(dict):
                      inv_expr: None | z3.z3.BoolRef, 
                      inps, 
                      ncexs) -> tuple[list, bool]:
-        assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
-        # assert isinstance(ssd, SymStatesDepth), ssd  # self.ss[loc]
+        # assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
 
         def f(depth):
             ss = ssd[depth]
-            ss = ss.mypc if inv_expr is None else ss.myexpr
+            ##ss = ss.mypc if inv_expr is None else ss.myexpr
+            ss = ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
             self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
@@ -449,15 +453,18 @@ class SymStates(dict):
 
         return cexs, is_succ
 
-    def mcheck(self, symstates_expr, expr, inps, ncexs):
+    @beartype
+    def mcheck(self, symstates_expr: z3.ExprRef,
+               expr: None | z3.ExprRef,
+               inps: None | data.traces.Inps,
+               ncexs: int) -> tuple:
         """
         check if pathcond => expr
         if not, return cex
         return cexs, is_succ (if the solver does not timeout)
         """
-        assert z3.is_expr(symstates_expr), symstates_expr
-        assert expr is None or z3.is_expr(expr), expr
-        assert inps is None or isinstance(inps, data.traces.Inps), inps
+
+        #assert inps is None or isinstance(inps, data.traces.Inps), inps
         assert ncexs >= 0, ncexs
 
         f = symstates_expr
@@ -472,7 +479,8 @@ class SymStates(dict):
         cexs, is_succ = Z3.extract(models, int)
         return cexs, is_succ, stat
 
-    def maximize(self, loc, term_expr, iupper):
+    @beartype
+    def maximize(self, loc:str, term_expr:z3.ExprRef, iupper: int) -> int | None:
         """
         maximize value of term using symstates
         Essentially computing convex hull
@@ -491,11 +499,12 @@ class SymStates(dict):
     @beartype
     def mmaximize_depth(self, ssd:SymStatesDepth , 
                         term_expr: z3.ExprRef, 
-                        iupper: int):
-        # assert isinstance(ssd, SymStatesDepth), ssd
+                        iupper: int) -> tuple[int | None, z3.z3.CheckSatResult]:
+
         assert z3.is_expr(term_expr), term_expr
 
-        def f(depth):
+        @beartype
+        def f(depth: int):
             ss = self.get_ss_at_depth(ssd, depth=depth)
             maxv, stat = self.mmaximize(ss, term_expr, iupper)
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
@@ -565,6 +574,7 @@ class SymStates(dict):
                   iupper: int):
 
         assert iupper >= 1, iupper
+        
         opt = Z3.create_solver(maximize=True)
         opt.add(ss)
         h = opt.maximize(term_expr)
@@ -734,7 +744,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
 
         pcs = self.pc_cls.parse(s)
         if pcs:
-            mlog.debug(f"Got {len(pcs)} symstates at depth {depth}")
+            mlog.debug(f"got {len(pcs)} symstates at depth {depth}")
         return pcs
 
     @beartype

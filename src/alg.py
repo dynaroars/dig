@@ -35,7 +35,7 @@ class Dig(metaclass=abc.ABCMeta):
     PREPOSTS = "preposts"
 
     @beartype
-    def __init__(self, filename:Path) -> None:
+    def __init__(self, filename: Path) -> None:
         
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
@@ -43,7 +43,7 @@ class Dig(metaclass=abc.ABCMeta):
 
     @beartype        
     @abc.abstractmethod
-    def start(self, seed:float, maxdeg: int | None) -> None:
+    def start(self, seed: float, maxdeg: int | None) -> None:
         self.seed = seed
         random.seed(seed)
         mlog.debug(f"{seed=} (test {random.randint(0, 100)})")
@@ -55,7 +55,7 @@ class Dig(metaclass=abc.ABCMeta):
         return deg
 
     @beartype
-    def sanitize(self, dinvs:DInvs, dtraces:DTraces) -> DInvs:
+    def sanitize(self, dinvs: DInvs, dtraces: DTraces) -> DInvs:
         if not dinvs.siz:
             return dinvs
 
@@ -214,7 +214,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         Analysis(self.tmpdir).start()  # output stats
 
     @beartype
-    def _infer(self, typ:str, _get_invs:Callable) -> tuple:
+    def _infer(self, typ: str, _get_invs: Callable) -> tuple:
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE, self.PREPOSTS}, typ
         
@@ -305,10 +305,9 @@ class DigSymStatesC(DigSymStates):
 
 
 class DigTraces(Dig):
-
     @beartype
-    def __init__(self, filename:Path, inv_decls:data.prog.DSymbs,
-                 dtraces:DTraces, test_dtraces:DTraces | None) -> None:
+    def __init__(self, filename: Path, inv_decls: data.prog.DSymbs,
+                 dtraces: DTraces, test_dtraces: DTraces | None) -> None:
         super().__init__(filename)
 
         self.inv_decls = inv_decls
@@ -317,7 +316,7 @@ class DigTraces(Dig):
             self.test_dtraces = test_dtraces
 
     @beartype
-    def start(self, seed:float, maxdeg:int | None) -> DInvs:
+    def start(self, seed: float, maxdeg: int | None) -> DInvs:
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
