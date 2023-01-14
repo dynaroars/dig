@@ -222,13 +222,13 @@ class PathCondJPF(PathCond):
 class PCs(set):  #{PathConds}
 
     @beartype
-    def __init__(self, loc:str, depth:int) -> None:
+    def __init__(self, loc:str, depth:int, read_from_file:bool = False) -> None:
         assert depth >= 1, depth
         
         super().__init__(set())
         self.loc = loc
         self.depth = depth
-
+        self._read_from_file = read_from_file  # if read from file then will not contain PathConds, just _expr
 
     @beartype
     def add(self, pc:PathCond):
@@ -260,15 +260,18 @@ class PCs(set):  #{PathConds}
     
 
 class SymStatesDepth(dict):  # depth -> PCs
+
+    @beartype
     @property
-    def siz(self):
-        return sum(map(len, self.values()))
+    def siz(self) -> int:
+        return sum(1 if x._read_from_file else len(x) for x in self.values())
 
           
 class SymStates(dict):
     # loc -> SymStatesDepth
 
-    def __init__(self, inp_decls, inv_decls):
+    @beartype
+    def __init__(self, inp_decls: data.prog.Symbs , inv_decls: data.prog.DSymbs) -> None:
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.inp_exprs = inp_decls.exprs
@@ -278,11 +281,14 @@ class SymStates(dict):
 
         super().__init__(dict())
 
+    @beartype
     @property
-    def siz(self):
+    def siz(self) -> int:
         return sum(symstatesdepth.siz for symstatesdepth in self.values())
 
-    def compute(self, symstatesmaker_cls, filename, mainQName, funname, tmpdir):
+    @beartype
+    def compute(self, symstatesmaker_cls,
+                filename: Path, mainQName: str, funname: str, tmpdir:Path) -> None:
         symstatesmaker = symstatesmaker_cls(
             filename, mainQName, funname, len(self.inp_decls), tmpdir
         )
@@ -320,11 +326,12 @@ class SymStates(dict):
         import json
         data = json.loads(sstatesfile.read_text())
         ss = data["ss"]
+
         for loc in ss:
             self[loc] = SymStatesDepth()
             for depth in ss[loc]:
                 depth_ = int(depth)
-                self[loc][depth_] = PCs(loc, depth_)
+                self[loc][depth_] = PCs(loc, depth_, read_from_file=True)
                 self[loc][depth_].vread(ss[loc][depth])
 
     @beartype
@@ -399,7 +406,7 @@ class SymStates(dict):
         return cexs, is_succ
     
     @beartype
-    def mcheck_depth(self, ssd: SymStatesDepth, inv, 
+    def mcheck_depth(self, ssd: SymStatesDepth, inv:infer.inv.Inv | None, 
                      inv_expr: None | z3.z3.BoolRef, 
                      inps, 
                      ncexs) -> tuple[list, bool]:

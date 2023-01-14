@@ -249,7 +249,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         if settings.READ_SSTATES:
             sstatesfile = Path(settings.READ_SSTATES)
             symstates.vread(sstatesfile)
-            mlog.info(f"symstates read from '{sstatesfile}'")
+            mlog.info(f"{symstates.siz} symstates read from '{sstatesfile}'")
+
         else:
             symstates.compute(
                 self.symstatesmaker_cls,
@@ -266,7 +267,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             if settings.WRITE_SSTATES:
                 sstatesfile = Path(settings.WRITE_SSTATES)
                 symstates.vwrite(sstatesfile)
-                mlog.info(f"symstates written to '{sstatesfile}'")
+                mlog.info(f"{symstates.siz} symstates written to '{sstatesfile}'")
                 sys.exit(0)
 
         return symstates
