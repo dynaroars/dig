@@ -336,7 +336,8 @@ class SymStates(dict):
 
     @beartype
     def check(self, dinvs: infer.inv.DInvs, 
-              inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
+              inps: None | data.traces.Inps
+              ) -> tuple[dict, infer.inv.DInvs]:
         """
         Check invs, return cexs
         Also update inps
@@ -379,9 +380,7 @@ class SymStates(dict):
                  inv: None | infer.inv.Inv | z3.ExprRef,
                  inps: None | data.traces.Inps,
                  ncexs: int) -> tuple[list, bool]:
-        # assert inv is None or isinstance(
-        #     inv, infer.inv.Inv) or z3.is_expr(inv), inv
-        # assert inps is None or isinstance(inps, data.traces.Inps), inps
+
         assert ncexs >= 1, ncexs
 
         try:
@@ -406,10 +405,11 @@ class SymStates(dict):
         return cexs, is_succ
     
     @beartype
-    def mcheck_depth(self, ssd: SymStatesDepth, inv:infer.inv.Inv | None, 
+    def mcheck_depth(self, ssd: SymStatesDepth,
+                     inv:infer.inv.Inv | None, 
                      inv_expr: None | z3.z3.BoolRef, 
-                     inps, 
-                     ncexs) -> tuple[list, bool]:
+                     inps: None | data.traces.Inps, 
+                     ncexs:int ) -> tuple[list, bool]:
         # assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
 
         def f(depth):
@@ -508,7 +508,6 @@ class SymStates(dict):
                         term_expr: z3.ExprRef, 
                         iupper: int) -> tuple[int | None, z3.z3.CheckSatResult]:
 
-        assert z3.is_expr(term_expr), term_expr
 
         @beartype
         def f(depth: int):
@@ -578,7 +577,7 @@ class SymStates(dict):
     @classmethod
     def mmaximize(cls, ss: z3.ExprRef, 
                   term_expr: z3.ExprRef, 
-                  iupper: int):
+                  iupper: int) -> tuple:
 
         assert iupper >= 1, iupper
         
@@ -622,7 +621,8 @@ class SymStates(dict):
 
             return z3.Or(ss)
 
-    def get_inp_constrs(self, inps: data.traces.Inps) -> None | z3.ExprRef:
+    @beartype
+    def get_inp_constrs(self, inps: None | data.traces.Inps) -> None | z3.ExprRef:
         cstrs = []
         if isinstance(inps, data.traces.Inps) and inps:
             inpCstrs = [inp.mk_expr(self.inp_exprs) for inp in inps]
@@ -651,8 +651,6 @@ class SymStates(dict):
                 except:
                     mlog.exception(f"get_solver_stats() error")
                     break
-
-      
 
 class SymStatesMaker(metaclass=abc.ABCMeta):
 
