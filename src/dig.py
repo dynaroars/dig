@@ -19,6 +19,7 @@ Example runs:
 Run on traces
 - sage -python -O dig.py ../tests/traces/CohenDiv1.csv -log 3
 """
+
 if __name__ == "__main__":
 
     aparser = argparse.ArgumentParser("DIG")
@@ -258,7 +259,7 @@ if __name__ == "__main__":
         if __debug__:
             mlog.warning("DEBUG MODE ON. Can be slow !")
         import alg
-        
+
         if inp.suffix in (".java", ".class"):
             dig = alg.DigSymStatesJava(inp)
         elif inp.suffix == ".c":
