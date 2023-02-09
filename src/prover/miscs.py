@@ -6,7 +6,6 @@ import settings
 import helpers.vcommon as CM
 from helpers.z3utils import Z3
 
-
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
@@ -17,7 +16,7 @@ class Miscs:
     cur_d = {}  # pre_v -> v
 
     @classmethod
-    def is_trans(cls, f):
+    def is_trans(cls, f) -> bool:
         return cls.pre_kw in str(f)
 
     @classmethod

@@ -9,10 +9,9 @@ RUN apt-get install -y build-essential git software-properties-common emacs ocam
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash ./Miniconda3-latest-Linux-x86_64.sh -b
 RUN /root/miniconda3/bin/conda install sympy pip -y  
-RUN /root/miniconda3/bin/pip3 install z3-solver
+RUN /root/miniconda3/bin/pip3 install z3-solver beartype
 
-
-# # # download Eclipse Foundation's AdoptOpenJDK build of jdk 8
+# # # download AdoptOpenJDK build of jdk 8
 # # RUN apt-get wget apt-transport-https gnupg -y
 # # RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
 # # RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
@@ -35,8 +34,8 @@ RUN make clean; make
 
 ## CIVL
 WORKDIR /dig/EXTERNAL_FILES
-RUN tar xf CIVL-1.20_5259.tgz ; ln -sf CIVL-1.20_5259 civl ; ln -sf civl/lib/ lib
-RUN cp dot_sarl ~/.sarl
+RUN tar xf CIVL-1.21_5476.tgz ; ln -sf CIVL-1.21_5476/ civl 
+RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
 
 
 ## now can run DIG on trace files

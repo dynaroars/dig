@@ -1,19 +1,21 @@
 import abc
+from collections.abc import Callable
 import pdb
 import random
 import time
 from pathlib import Path
-import settings
 import sys
+from beartype import beartype
 
+import settings
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.prog
-import data.symstates
-import data.traces
+from data.symstates import SymStates, SymStatesMakerJava, SymStatesMakerC
+from data.traces import DTraces
 
-import infer.inv
+from infer.inv import DInvs
 import infer.nested_array
 import infer.eqt
 import infer.oct
@@ -32,26 +34,28 @@ class Dig(metaclass=abc.ABCMeta):
     CONGRUENCE = "congruence"
     PREPOSTS = "preposts"
 
-    def __init__(self, filename):
+    @beartype
+    def __init__(self, filename: Path) -> None:
+        
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
+    @beartype        
     @abc.abstractmethod
-    def start(self, seed, maxdeg: int):
+    def start(self, seed: float, maxdeg: int | None) -> None:
         self.seed = seed
         random.seed(seed)
-        mlog.debug(
-            f"set seed to {seed} "
-            f"(test {random.randint(0, 100)})"
-        )
+        mlog.debug(f"{seed=} (test {random.randint(0, 100)})")
 
-    def get_auto_deg(self, maxdeg):
+    @beartype
+    def get_auto_deg(self, maxdeg: int | None) -> int:
         maxvars = max(self.inv_decls.values(), key=len)
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
-    def sanitize(self, dinvs, dtraces):
+    @beartype
+    def sanitize(self, dinvs: DInvs, dtraces: DTraces) -> DInvs:
         if not dinvs.siz:
             return dinvs
 
@@ -83,11 +87,13 @@ class Dig(metaclass=abc.ABCMeta):
 
 
 class DigSymStates(Dig, metaclass=abc.ABCMeta):
-
-    def __init__(self, filename):
+    
+    @beartype
+    def __init__(self, filename:Path) -> None:
         super().__init__(filename)
 
-    def start(self, seed, maxdeg):
+    @beartype
+    def start(self, seed:float, maxdeg:int | None) -> None | DInvs:
 
         if not(maxdeg is None or maxdeg >= 1):
             raise ValueError(f"maxdeg has invalid value {maxdeg}")
@@ -128,7 +134,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
             dinvs = digtraces.start(self.seed, maxdeg)
 
-        else:  #use symbolic states
+        else:  # use symbolic states
             st = time.time()
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
@@ -165,8 +171,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
             wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
 
-            dinvs = infer.inv.DInvs()
-            dtraces = data.traces.DTraces.mk(self.locs)
+            dinvs = DInvs()
+            dtraces = DTraces.mk(self.locs)
 
             for typ, (dinvs_, dtraces_), et in wrs:
                 self.time_d[typ] = et
@@ -187,15 +193,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         print(f"tmpdir: {self.tmpdir}")
         return dinvs
 
-    def cleanup(self, dinvs, dtraces):
+    @beartype
+    def cleanup(self, dinvs:DInvs, dtraces:DTraces) -> None:
         """
         Save and analyze result
         Clean up tmpdir
         """
-        # clean up
-        # import shutil
-        # shutil.rmtree(self.tmpdir_del)
-
         # analyze and save results
         from analysis import Result, Analysis
 
@@ -210,14 +213,16 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()  # output stats
 
-    def _infer(self, typ, f):
+    @beartype
+    def _infer(self, typ: str, _get_invs: Callable) -> tuple:
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE, self.PREPOSTS}, typ
+        
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
         st = time.time()
 
-        dinvs, dtraces = f()  # get invs
+        dinvs, dtraces = _get_invs()
         et = time.time() - st
         if dinvs.siz:
             mlog.info(f"got {dinvs.siz} {typ} in {et:.2f}s")
@@ -225,7 +230,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         return typ, (dinvs, dtraces),  et
 
-    def _infer_eqts(self, maxdeg):
+    @beartype
+    def _infer_eqts(self, maxdeg:int | None) -> tuple[DInvs, DTraces]:
         dinvs, dtraces = infer.eqt.Infer(
             self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
         return dinvs, dtraces
@@ -233,16 +239,18 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
     def _infer_ieqs(self):
         return infer.oct.Infer(self.symstates, self.prog).gen(), None
 
-    def _infer_minmax(self):
+    def _infer_minmax(self):       
         return infer.mp.Infer(self.symstates, self.prog).gen(), None
 
-    def get_symbolic_states(self):
-        symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
+    @beartype
+    def get_symbolic_states(self) -> SymStates:
+        symstates = SymStates(self.inp_decls, self.inv_decls)
 
         if settings.READ_SSTATES:
             sstatesfile = Path(settings.READ_SSTATES)
             symstates.vread(sstatesfile)
-            mlog.info(f"symstates read from '{sstatesfile}'")
+            mlog.info(f"{symstates.siz} symstates read from '{sstatesfile}'")
+
         else:
             symstates.compute(
                 self.symstatesmaker_cls,
@@ -252,13 +260,14 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 self.mysrc.symexedir,
             )
             mlog.info(
-                f"got {symstates.siz} symstates for {len(symstates)} locs"
+                f"got {symstates.siz} symstates for "
+                f"{len(symstates)} locs: {list(map(str, symstates))}"
             )
 
             if settings.WRITE_SSTATES:
                 sstatesfile = Path(settings.WRITE_SSTATES)
                 symstates.vwrite(sstatesfile)
-                mlog.info(f"symstates written to '{sstatesfile}'")
+                mlog.info(f"{symstates.siz} symstates written to '{sstatesfile}'")
                 sys.exit(0)
 
         return symstates
@@ -266,14 +275,16 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
 class DigSymStatesJava(DigSymStates):
     mysrc_cls = data.prog.Java
-    symstatesmaker_cls = data.symstates.SymStatesMakerJava
+    symstatesmaker_cls = SymStatesMakerJava
 
+    @beartype
     @property
-    def symexefile(self):
+    def symexefile(self) -> Path:
         return self.filename
 
+    @beartype
     @property
-    def exe_cmd(self):
+    def exe_cmd(self) -> str:
         return settings.Java.JAVA_RUN(
             tracedir=self.mysrc.tracedir, funname=self.mysrc.funname
         )
@@ -281,19 +292,23 @@ class DigSymStatesJava(DigSymStates):
 
 class DigSymStatesC(DigSymStates):
     mysrc_cls = data.prog.C
-    symstatesmaker_cls = data.symstates.SymStatesMakerC
+    symstatesmaker_cls = SymStatesMakerC
 
+    @beartype
     @property
-    def symexefile(self):
+    def symexefile(self) -> Path:
         return self.mysrc.symexefile
 
+    @beartype
     @property
-    def exe_cmd(self):
+    def exe_cmd(self) -> str:
         return settings.C.C_RUN(exe=self.mysrc.traceexe)
 
 
 class DigTraces(Dig):
-    def __init__(self, filename, inv_decls, dtraces, test_dtraces):
+    @beartype
+    def __init__(self, filename: Path, inv_decls: data.prog.DSymbs,
+                 dtraces: DTraces, test_dtraces: DTraces | None) -> None:
         super().__init__(filename)
 
         self.inv_decls = inv_decls
@@ -301,7 +316,8 @@ class DigTraces(Dig):
         if test_dtraces:
             self.test_dtraces = test_dtraces
 
-    def start(self, seed, maxdeg):
+    @beartype
+    def start(self, seed: float, maxdeg: int | None) -> DInvs:
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
@@ -318,7 +334,7 @@ class DigTraces(Dig):
 
         wrs = MP.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
 
-        dinvs = infer.inv.DInvs()
+        dinvs = DInvs()
         for loc, invs in wrs:
             for inv in invs:
                 dinvs.add(loc, inv)
@@ -384,10 +400,10 @@ class DigTraces(Dig):
         assert tracefile.is_file(), tracefile
         assert test_tracefile is None or test_tracefile.is_file()
 
-        inv_decls, dtraces = data.traces.DTraces.vread(tracefile)
+        inv_decls, dtraces = DTraces.vread(tracefile)
 
         test_dtraces = None
         if test_tracefile:
-            _, test_dtraces = data.traces.DTraces.vread(test_tracefile)
+            _, test_dtraces = DTraces.vread(test_tracefile)
 
         return cls(tracefile, inv_decls, dtraces, test_dtraces)

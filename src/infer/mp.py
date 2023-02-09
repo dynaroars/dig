@@ -354,7 +354,7 @@ class Infer(infer.infer._Opt):
         return MMP(term_ub)
 
     @classmethod
-    def my_get_terms(cls, symbols):
+    def my_get_terms(cls, symbols:tuple[sympy.core.symbol.Symbol,...]):
         terms = Term.get_terms(symbols)
         terms = [(a, b) for a, b in terms if len(b) >= 2]  # ignore oct invs
 

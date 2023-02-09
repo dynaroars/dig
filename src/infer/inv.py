@@ -8,6 +8,8 @@ from typing import NamedTuple
 
 import sympy
 import z3
+from beartype import beartype
+from beartype.typing import Union
 
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
@@ -26,7 +28,8 @@ class Inv(metaclass=abc.ABCMeta):
     DISPROVED = "d"
     UNKNOWN = "u"
 
-    def __init__(self, inv, stat=None):
+    @beartype
+    def __init__(self, inv: Union[int, tuple, str, sympy.Equality, sympy.Le], stat = None) -> None:
         """
         stat = None means never been checked
         """
@@ -112,8 +115,9 @@ class Inv(metaclass=abc.ABCMeta):
             mlog.debug(f"{self}: failed test")
             return False
 
+    @beartype
     @property
-    def expr(self):
+    def expr(self) -> z3.ExprRef:
         """
         cannot cache because z3 expr is ctype,
         not compat with multiprocessing Queue
@@ -122,8 +126,6 @@ class Inv(metaclass=abc.ABCMeta):
         """
 
         expr = Z3.parse(str(self))
-
-        #print("HIII", str(self), expr)
         return expr
 
 
@@ -138,8 +140,9 @@ class FalseInv(Inv):
             s = f"{s} {self.stat}"
         return s
 
+    @beartype
     @property
-    def expr(self):
+    def expr(self) -> z3.ExprRef:
         return Z3.zFalse
 
     @property
@@ -196,8 +199,8 @@ class Invs(set):
         assert all(isinstance(inv, Inv) for inv in invs), invs
         super().__init__(invs)
 
-    def __contains__(self, inv):
-        assert isinstance(inv, Inv), inv
+    @beartype
+    def __contains__(self, inv:Inv) -> bool:
         return super().__contains__(inv)
 
     @property
@@ -208,8 +211,8 @@ class Invs(set):
     def cinvs(self):
         return CInvs(self)
 
-    def add(self, inv):
-        assert isinstance(inv, Inv), inv
+    @beartype
+    def add(self, inv:Inv) -> bool:
 
         not_in = inv not in self
         if not_in:
@@ -456,6 +459,7 @@ class DInvs(dict):
     {loc -> Invs}, Invs is a set
     """
 
+    @beartype
     def __setitem__(self, loc, invs):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(invs, Invs), invs
@@ -484,7 +488,7 @@ class DInvs(dict):
         ss = []
         for loc in sorted(self):
             s = "; " if writeresults else f"({len(self[loc])} invs):\n"
-            ss.append(f"{loc}{s}"
+            ss.append(f"{loc} {s}"
                       f"{self[loc].cinvs.__str__(print_stat, print_first_n, writeresults)}")
 
         ss = "\n".join(ss)
@@ -562,16 +566,17 @@ class DInvs(dict):
         Miscs.show_removed("simplify", self.siz, dinvs.siz, time() - st)
         return dinvs
 
+    @beartype
     @classmethod
-    def mk_false_invs(cls, locs):
+    def mk_false_invs(cls, locs) -> dict:
         dinvs = cls()
         for loc in locs:
             dinvs.add(loc, FalseInv.mk())
         return dinvs
 
+    @beartype
     @classmethod
-    def mk(cls, loc, invs):
-        assert isinstance(invs, Invs), invs
+    def mk(cls, loc:str, invs:Invs) -> dict:
         new_invs = cls()
         new_invs[loc] = invs
         return new_invs

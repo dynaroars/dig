@@ -1,6 +1,9 @@
 import abc
 import pdb
+import sympy
+
 from time import time
+from beartype import beartype
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
@@ -19,41 +22,43 @@ class _Infer(metaclass=abc.ABCMeta):
     """
     Base class for inference
     """
-
-    def __init__(self, symstates, prog):
-        assert symstates is None or \
-            isinstance(symstates, data.symstates.SymStates), symstates
-        assert isinstance(prog, data.prog.Prog), prog
-
+    @beartype
+    def __init__(self, symstates: None | data.symstates.SymStates, 
+                 prog: data.prog.Prog) -> None:
         self.symstates = symstates
         self.inv_decls = prog.inv_decls
         self.inp_decls = prog.inp_decls
         self.prog = prog
 
+    @beartype
     @abc.abstractmethod
-    def gen(self):
+    def gen(self) -> infer.inv.DInvs:
         pass
 
+    @beartype
     @classmethod
     @abc.abstractmethod
-    def gen_from_traces(cls, traces, symbols):
+    def gen_from_traces(cls, traces: data.traces.DTraces, 
+                        symbols: tuple[sympy.core.symbol.Symbol,...]) -> infer.inv.DInvs:
         """
         Generating invariants directly from traces
         """
         pass
 
-    def get_traces(self, inps, dtraces):
+    @beartype
+    def get_traces(self, inps: data.traces.Inps,
+                   dtraces: data.traces.DTraces) -> data.traces.DTraces:
         """
         run inps to get new traces (and update them)
         """
-        assert isinstance(inps, data.traces.Inps) and inps, inps
-        assert isinstance(dtraces, data.traces.DTraces), dtraces
 
         new_dtraces = self.prog.get_traces(inps)
         new_dtraces = dtraces.merge(new_dtraces)
         return new_dtraces
 
-    def check(self, dinvs, inps):
+    @beartype
+    def check(self, dinvs:infer.inv.DInvs, 
+              inps: None|data.traces.Inps) -> tuple[dict,infer.inv.DInvs]:
         if self.symstates:
             cexs, dinvs = self.symstates.check(dinvs, inps)
         else:
@@ -75,14 +80,19 @@ class _CEGIR(_Infer, metaclass=abc.ABCMeta):
 
 class _Opt(_Infer, metaclass=abc.ABCMeta):
     """
-    Find upperbound of polynomial and min/max terms using an SMT solver optimizer
+    Find upperbounds of polynomials and min/max terms 
+    using an SMT solver optimizer
     """
 
-    def __init__(self, symstates, prog):
+    @beartype
+    def __init__(self, symstates: None | data.symstates.SymStates,
+                 prog:data.prog.Prog) -> None:
         # need prog because symstates could be None
         super().__init__(symstates, prog)
 
-    def gen(self):
+    @beartype
+    def gen(self) -> infer.inv.DInvs:
+        
         locs = self.inv_decls.keys()
 
         def _terms(loc):
@@ -135,7 +145,9 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
         return dinvs
 
-    def get_terms(self, symbols):
+    @beartype
+    def get_terms(self,
+                  symbols:tuple[sympy.core.symbol.Symbol, ...]) -> list:
 
         terms = self.my_get_terms(symbols)
         mlog.debug(f"{len(terms)} terms for {self.__class__.__name__}")
@@ -162,22 +174,22 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def my_get_terms(cls, terms, inps):
+    def my_get_terms(cls, terms, inps) -> list:
         pass
 
     @staticmethod
     @abc.abstractmethod
-    def get_excludes(term):
+    def get_excludes(term) -> set:
         pass
 
+    @beartype
     @classmethod
-    def gen_from_traces(cls, traces, symbols):
+    def gen_from_traces(cls, 
+                        traces: data.traces.Traces,
+                        symbols: data.prog.Symbs) -> list[infer.inv.Inv]:
         """
         Compute convex hulls from traces
         """
-        assert isinstance(traces, data.traces.Traces), traces
-        assert isinstance(symbols, data.prog.Symbs), symbols
-
         maxV = cls.IUPPER
         minV = -1 * maxV
 
@@ -190,7 +202,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
         wrs = MP.run_mp("getting upperbounds", tasks, f, settings.DO_MP)
 
-        ps = []
+        ps: list[infer.inv.Inv] = []
         for term, upperbound in wrs:
             if minV <= upperbound <= maxV:
                 p = cls.inv_cls(term.mk_le(upperbound))

@@ -58,15 +58,8 @@ TRACE_INDICATOR = "vtrace"
 MAINQ_FUN = "mainQ"
 
 # Must be Java 8 because JPF/SPF requires Java 8
-# JAVA_HOME = Path(os.path.expandvars("$JAVA8_HOME"))
-# JAVAC_CMD = JAVA_HOME / "bin/javac"
-# JAVA_CMD = JAVA_HOME / "bin/java"
 JAVAC_CMD = Path("/usr/bin/javac")
 JAVA_CMD = Path("/usr/bin/java")
-
-# assert JAVAC_CMD.is_file(), JAVAC_CMD
-# assert JAVA_CMD.is_file(), JAVA_CMD
-
 
 class Java:
     SE_MIN_DEPTH = 7
@@ -79,7 +72,6 @@ class Java:
 
     JPF_HOME = Path(os.path.expandvars("$JPF_HOME")) / "jpf-core"
     JPF_JAR = JPF_HOME / "build/RunJPF.jar"
-    # assert JPF_JAR.is_file(), JPF_JAR
     JVM_FLAGS = "-Xmx1024m -ea"
 
     JPF_RUN = f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} " "{jpffile}"
@@ -115,8 +107,10 @@ class C:
     C_RUN = partial(C_RUN.format)
 
     CIVL_HOME = Path("../EXTERNAL_FILES/civl")
-    CIVL_JAR = CIVL_HOME / "lib" / "civl-1.20_5259.jar"
-    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth}  {file}"
+    CIVL_JAR = CIVL_HOME / "lib"
+    if CIVL_JAR.is_dir():
+        CIVL_JAR = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"][0]
+    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth} {file}"
     CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
 
 

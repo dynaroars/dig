@@ -21,7 +21,6 @@ Run on traces
 """
 
 if __name__ == "__main__":
-
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
     ag(
@@ -189,7 +188,7 @@ if __name__ == "__main__":
         "-readsstates",
         type=str,
         default=None,
-        help="read symbolic states to a file"
+        help="read symbolic states from a file and do inference using them"
     )
 
     ag(

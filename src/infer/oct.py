@@ -1,6 +1,10 @@
 import operator
 import pdb
 import sympy
+import z3
+from beartype import beartype
+
+
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
@@ -17,8 +21,8 @@ class Oct(infer.inv.Inv):
     """
     Octagonal invariants c1x + c2y <= c3
     """
-
-    def __init__(self, myoct, stat=None):
+    @beartype
+    def __init__(self, myoct:sympy.Le, stat=None) -> None:
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)
         """
@@ -26,10 +30,12 @@ class Oct(infer.inv.Inv):
 
         super().__init__(myoct, stat)
 
+    @beartype
     @property
     def is_simple(self) -> bool:
         return self.inv.rhs.is_constant() and self.inv.rhs.is_zero
 
+    @beartype
     @property
     def mystr(self) -> str:
         return f"{self.inv.lhs} <= {self.inv.rhs}"
@@ -42,12 +48,13 @@ class Infer(infer.infer._Opt):
     def __init__(self, symstates, prog):
         super().__init__(symstates, prog)
 
+    @beartype
     @staticmethod
-    def to_expr(term):
+    def to_expr(term) -> z3.ExprRef:
         return Z3.parse(str(term.term))
 
     @staticmethod
-    def inv_cls(term_ub):
+    def inv_cls(term_ub:int) -> Oct:
         return Oct(term_ub)
 
     @classmethod

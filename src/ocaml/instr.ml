@@ -1,4 +1,4 @@
-open Cil
+open GoblintCil
 module E = Errormsg
 module H = Hashtbl
 module P = Printf	     
@@ -24,7 +24,7 @@ class add_printf_visitor vtrace = object(self)
                 
     let s = fd.svar.vname ^ "; " ^ (S.concat "; " s)  ^ "\n" in
     let myprintf:instr = CM.mkCall "printf"
-                         (Const (CStr(s))::(L.map CM.exp_of_vi fd.sformals)) in
+                         (Const (CStr(s, No_encoding))::(L.map CM.exp_of_vi fd.sformals)) in
     mkStmt (Instr([myprintf]))
 
   method vfunc f =
@@ -70,7 +70,7 @@ class add_symstates_visitor vtrace = object(self)
                 
     let s = fd.svar.vname ^ ": " ^ S.concat "; " s  ^ "\n" in
     let myprintf:instr = CM.mkCall "printf"
-                         (Const (CStr(s))::(L.map CM.exp_of_vi fd.sformals)) in
+                         (Const (CStr(s, No_encoding))::(L.map CM.exp_of_vi fd.sformals)) in
     mkStmtOneInstr myprintf
 
   method private create_print_pathcondition : stmt =
@@ -112,7 +112,7 @@ class change_vassume_visitor vassume changeto = object
 
   method vinst i =
     match i with
-    | Call(lvopt, (Lval(Var(vi),NoOffset)), args,loc)
+    | Call(lvopt, (Lval(Var(vi),NoOffset)), args,loc, loc2)
          when vi.vname = vassume ->
        let i' = CM.mkCall changeto args in
        ChangeTo([i'])

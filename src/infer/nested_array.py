@@ -7,11 +7,15 @@ from collections.abc import Iterable
 
 import sympy
 import z3
+from beartype import beartype
+from beartype.typing import List, Dict, Union
 
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
+
+import data.traces
 
 import infer.inv
 import infer.infer
@@ -25,13 +29,13 @@ special_str = "_special"
 
 class NestedArray(infer.inv.Inv):
 
-    def __init__(self, rel, stat=None):
-        assert isinstance(rel, str) and rel, rel
-
+    @beartype
+    def __init__(self, rel:str, stat=None) -> None:
         super().__init__(rel, stat)
 
+    @beartype
     @property
-    def mystr(self):
+    def mystr(self) -> str:
         return str(self.inv)
 
     @staticmethod
@@ -196,15 +200,18 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
         return super().__new__(cls, root, tuple(children), commute)
 
+    @beartype
     @property
-    def nchildren(self) -> bool:
+    def nchildren(self) -> int:
         return len(self.children)
 
+    @beartype
     @property
     def is_leaf(self) -> bool:
         return not self.children
 
-    def __str__(self, leaf_content=None):
+    @beartype
+    def __str__(self, leaf_content=None) -> str:
         """
         Examples:
         >>> t = Tree()
@@ -355,15 +362,17 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         # print('rs',  ';'.join(map(str, rs)))
         return rs
 
+    @beartype
     @property
-    def is_node(self):
+    def is_node(self) -> bool:
         """
         >>> assert Tree('a',[None,None]).is_node is True
         >>> assert not Tree('a',[Tree('b',[None]), None]).is_node
         """
         return all(c.is_leaf for c in self.children)
 
-    def get_non_leaf_nodes(self, nodes=[]):
+    @beartype
+    def get_non_leaf_nodes(self, nodes:List=[]) -> List[str]:
         """
         Returns the *names* of the non-leaves nodes
 
@@ -383,7 +392,8 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             nodes = [self.root] + list(itertools.chain(*nodes_))
             return nodes
 
-    def gen_formula(self, v, data):
+    @beartype
+    def gen_formula(self, v:int, data:Dict[str, List]) -> Union[z3.ExprRef, None]:
         """
         Generate a formula recursively to represent the data structure of tree based on
         input value v and data.
@@ -458,8 +468,9 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
     ##### Static methods for Tree #####
 
+    @beartype
     @staticmethod
-    def uniq(trees, tree):
+    def uniq(trees:List, tree) -> List:
         assert isinstance(trees, list) and all(isinstance(t, Tree)
                                                for t in trees) and trees, trees
         assert isinstance(tree, Tree), tree
@@ -1455,43 +1466,3 @@ def get_constraints(m, result_as_dict=False):
 
     return rs
 
-    # @classmethod
-    # def mk_template_NOTUSED(cls, terms, rv, prefix=None, ret_coef_vs=False):
-    #     """
-    #     get a template from terms.
-    #     Examples:
-    #     # >>> var('a,b,x,y')
-    #     (a, b, x, y)
-    #     # >>> Miscs.mk_template([1, a, b, x, y],0,prefix=None)
-    #     (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
-    #      a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
-    #     # >>> Miscs.mk_template([1, x, y],0, op=operator.gt,prefix=None,ret_coef_vs=True)
-    #     (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
-    #     # >>> Miscs.mk_template([1, a, b, x, y],None,prefix=None)
-    #     (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
-    #      a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
-    #     # >>> Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
-    #     (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
-    #      a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
-    #     # >>> var('x1')
-    #     x1
-    #     # >>> Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
-    #     Traceback (most recent call last):
-    #     ...
-    #     AssertionError: name conflict
-    #     """
-
-    #     assert rv is not None and isinstance(rv, int), rv
-
-    #     if not prefix:
-    #         prefix = "uk_"
-    #     uks = [sympy.Symbol(prefix + str(i)) for i in range(len(terms))]
-
-    #     assert not set(terms).intersection(set(uks)), "name conflict"
-
-    #     template = sum(map(sympy.prod, zip(uks, terms)))
-
-    #     if rv != 0:  #
-    #         template = template - rv
-
-    #     return template, uks if ret_coef_vs else template

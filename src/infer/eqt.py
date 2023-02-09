@@ -3,6 +3,7 @@ CEGIR alg for inferring equalities
 """
 import pdb
 import sympy
+from beartype import beartype
 
 import settings
 import helpers.vcommon as CM
@@ -17,11 +18,14 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 class Eqt(infer.inv.Inv):
-    def __init__(self, eqt, stat=None):
-        assert isinstance(eqt, sympy.Equality) and eqt.rhs == 0, eqt
+
+    @beartype
+    def __init__(self, eqt:sympy.Equality, stat=None)->None:
+        assert eqt.rhs == 0, eqt
 
         super().__init__(eqt, stat)
 
+    @beartype
     @property
     def mystr(self) -> str:
         return f"{self.inv.lhs} == {self.inv.rhs}"
@@ -29,9 +33,10 @@ class Eqt(infer.inv.Inv):
 
 class Infer(infer.infer._CEGIR):
 
+    @beartype
     @classmethod
-    def gen_from_traces(cls, deg, traces, symbols):
-        assert isinstance(traces, data.traces.Traces), traces
+    def gen_from_traces(cls, deg:int,
+                        traces:data.traces.Traces, symbols) -> list[Eqt]:
 
         mydeg = deg
         eqts = []
@@ -96,9 +101,10 @@ class Infer(infer.infer._CEGIR):
         return dinvs, dtraces
 
     # PRIVATE
+    @beartype
     @classmethod
-    def _add_exprs(cls, template, n_eqts_needed, traces, exprs):
-        assert isinstance(traces, data.traces.Traces), traces
+    def _add_exprs(cls, template, n_eqts_needed: int, traces: data.traces.Traces, exprs):
+        # assert isinstance(traces, data.traces.Traces), traces
 
         mlog.debug(f"got {len(traces)} new traces")
         new_exprs = traces.instantiate(template, n_eqts_needed - len(exprs))
@@ -136,7 +142,7 @@ class Infer(infer.infer._CEGIR):
                 # cannot find new inputs
                 if loc not in cexs:
                     mlog.debug(
-                        f"{loc}: cannot find new inps ({len(inps)} curr inps)")
+                        f"{loc}: cannot find new inps (currently has {len(inps)} inps)")
                     return
 
                 new_inps = inps.merge(cexs, self.inp_decls.names)
@@ -145,7 +151,7 @@ class Infer(infer.infer._CEGIR):
                 # cannot find new traces (new inps do not produce new traces)
                 if loc not in new_traces:
                     mlog.debug(
-                        f"{loc}: cannot find new traces "
+                        f"{loc}: cannot find new traces (need {n_eqts_needed}) "
                         f"(new inps {len(new_inps)}, "
                         f"curr traces {len(traces[loc]) if loc in traces else 0})"
                     )
@@ -155,18 +161,19 @@ class Infer(infer.infer._CEGIR):
 
         return exprs
 
-    def _get_init_traces(self, loc, deg, dtraces, inps, rate):
+    @beartype
+    def _get_init_traces(self, loc: str, deg: int,
+                         dtraces: data.traces.DTraces,
+                         inps: data.traces.Inps, rate: float) -> tuple[list,list[sympy.core.symbol.Symbol], set] | None:
         """
         Initial loop to obtain (random) traces to bootstrap eqt solving
         """
 
         assert deg >= 1, deg
-        assert isinstance(dtraces, data.traces.DTraces), dtraces
-        assert isinstance(inps, data.traces.Inps), inps
-        assert isinstance(rate, float) and rate >= 0.1, rate
+        assert rate >= 0.1, rate
 
         mlog.debug(
-            f"{loc}: generating random initial inps "
+            f"{loc}: generate random initial inps "
             f"(curr inps {len(inps)}, traces {dtraces[loc]})"
         )
 
@@ -178,6 +185,7 @@ class Infer(infer.infer._CEGIR):
         # if cannot generate sufficient traces, adjust degree
         while not exprs:
             if deg <= 1:
+                mlog.warn(f"deg {deg}, unable to generate sufficient traces")
                 return  # cannot generate enough traces
 
             deg = deg - 1
@@ -187,17 +195,16 @@ class Infer(infer.infer._CEGIR):
             ts, uks, n_eqts_needed = Miscs.init_terms(
                 self.inv_decls[loc].names, deg, rate
             )
-            exprs = self._while(
-                loc, ts, uks, n_eqts_needed, inps, dtraces)
+            exprs = self._while(loc, ts, uks, n_eqts_needed, inps, dtraces)
+                
 
         return ts, uks, exprs
 
-    def _infer(self, loc: str, ts: list, uks: list, exprs: list) -> set:
-        assert isinstance(loc, str) and loc, loc
-        assert isinstance(ts, list), ts
-        assert isinstance(uks, list), uks
+    @beartype
+    def _infer(self, loc: str, ts: list, uks: list, exprs: set) -> set:
+        assert loc, loc
         assert len(ts) == len(uks), (ts, uks)
-        assert isinstance(exprs, set) and exprs, exprs
+        assert exprs, exprs
 
         template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
