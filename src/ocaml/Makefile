@@ -1,6 +1,4 @@
-OCAML_OPTIONS = \
-  -I /usr/lib/ocaml/goblint-cil/ \
-  -I /usr/lib/ocaml/zarith/ \
+OCAML_OPTIONS = -I /usr/lib/ocaml/goblint-cil/ -I /usr/lib/ocaml/zarith/ 
 OCAMLC =        ocamlc                          $(OCAML_OPTIONS)
 OCAMLOPT =      ocamlopt                        $(OCAML_OPTIONS)
 OCAMLDEP =      ocamldep                        $(OCAML_OPTIONS)
