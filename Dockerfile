@@ -1,41 +1,36 @@
-FROM debian:buster
+FROM debian:bullseye
 
 #install general setup tools
 RUN apt-get update -y
-RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget openjdk-11-jdk unzip
-
+RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget openjdk-11-jdk unzip dune libppx-deriving-yojson-ocaml-dev libdune-ocaml-dev libzarith-ocaml-dev libyojson-ocaml-dev cppo
 
 # Install miniconda & sympy & z3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash ./Miniconda3-latest-Linux-x86_64.sh -b
 RUN /root/miniconda3/bin/conda install sympy pip -y  
 RUN /root/miniconda3/bin/pip3 install z3-solver beartype
-
-# # # download AdoptOpenJDK build of jdk 8
-# # RUN apt-get wget apt-transport-https gnupg -y
-# # RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
-# # RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
-# # RUN apt-get update -y
-# # RUN apt-get install adoptopenjdk-8-hotspot -y
-# # RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
+RUN rm -rf ./Miniconda3-latest-Linux-x86_64.sh
 
 
 WORKDIR /
 COPY . /dig
 
-## Ocaml and CIL for C code instrumentation
+## CIVL and Goblint-Cil
 WORKDIR /dig/EXTERNAL_FILES
-RUN unzip develop.zip && mv cil-develop cil
-WORKDIR cil
-RUN ./configure && make
+RUN tar xf CIVL-1.21_5476.tgz ; ln -sf CIVL-1.21_5476/ civl 
+RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
+RUN tar xf goblint-cil-2.0.1.tbz
+
+## Ocaml and CIL for C code instrumentation
+WORKDIR /dig/EXTERNAL_FILES/goblint-cil-2.0.1
+RUN dune build
+RUN dune build @install
+RUN dune install
 
 WORKDIR /dig/src/ocaml
 RUN make clean; make
 
-## CIVL
-WORKDIR /dig/EXTERNAL_FILES
-RUN tar xf CIVL-1.21_5476.tgz ; ln -sf CIVL-1.21_5476/ civl 
-RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
+WORKDIR /dig/src
 
 
 ## now can run DIG on trace files
@@ -43,6 +38,12 @@ RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
 ## DIG results ...
 
 # running DIG on C files
+
+
+
+
+
+
 
 
 
@@ -100,4 +101,12 @@ RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
 
 
 
-WORKDIR /dig/src
+
+# # # download AdoptOpenJDK build of jdk 8
+# # RUN apt-get wget apt-transport-https gnupg -y
+# # RUN wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add -
+# # RUN echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb bullseye main" | tee /etc/apt/sources.list.d/adoptopenjdk.list
+# # RUN apt-get update -y
+# # RUN apt-get install adoptopenjdk-8-hotspot -y
+# # RUN update-alternatives --set java /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64/bin/java
+
