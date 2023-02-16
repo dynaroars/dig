@@ -256,7 +256,7 @@ vtrace3(7 invs):
 
 > Using Random Inputs 
 
-The `-noss` option disable symbolic states and thus makes DIG behaves as a pure *dynamic* invariant generation tools.  Here, DIG runs the program on random inputs, collects traces, and infers invariants.  It does not use symbolic states and thus does not require symbolic execution tools, but it can have spurious results.
+The `-noss` option disables symbolic states and thus makes DIG behaves as a pure *dynamic* invariant generation tools.  Here, DIG runs the program on random inputs, collects traces, and infers invariants.  It does not use symbolic states and thus does not require symbolic execution tools, but it can have spurious results.
 
 ```sh
 $ time ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3 -noss -nrandinps 10
