@@ -63,6 +63,11 @@ root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/tr
 ...
 
 # or on a C program
+
+# FASTER: restrict nonlinear eqts to degree 2 and but don't generate inequalities or minmax invariants and 
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -maxdeg 2 -noieqs -nominmax -log 4
+
+# SLOWER: but gives everything
 root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -log 4
 ...
 
