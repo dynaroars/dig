@@ -44,7 +44,7 @@ $ git clone --depth 1 https://github.com/dynaroars/dig.git
 # Then go to DIG's directory 
 $ cd dig # in DIG's directory
 
-# build the docker image, will take sometime to build everything
+# build the docker image, will take some time to install and build everything
 $ docker build . -t='dig'
 ...
 ...
@@ -52,9 +52,8 @@ $ docker build . -t='dig'
 # then run dig
 $ docker run -it dig
 
-# docker will drop you into a Linux prompt like below.
+# docker will drop you into a Linux prompt like below
 $ root@b53e0bd86c11:/dig/src#
-
 
 # now we can run DIG on a trace file
 root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 4
