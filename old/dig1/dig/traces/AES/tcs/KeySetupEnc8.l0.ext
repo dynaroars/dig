@@ -1,0 +1,1 @@
+Expect: cipherKey[4i+j] - rk[i][j]  = 0 for i=0..7, j=0..3

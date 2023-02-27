@@ -1,0 +1,11 @@
+Experimental stuff
+
+Features
+- sat function: implement equation solving to solve linear arith
+
+Optimizations
+- for reachability analysis: if not sat then stop reachability further
+
+Others
+- Look at AES invs, see what else I cannot do
+- Look for invs of Matrix data structures

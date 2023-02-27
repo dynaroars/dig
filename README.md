@@ -32,10 +32,10 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 
 **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
 
+
 ---
 
 ## Setup using Docker
-
 
 ```bash
 # clone DIG

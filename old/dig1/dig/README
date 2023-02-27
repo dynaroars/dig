@@ -1,0 +1,30 @@
+- Coding convention
+private method/functions  name_()  , so that it's easy to search for '_('
+private var  _name
+
+
+
+if a function returns an iterable object, e.g., list, then must return that object, never return None,  e.g,. return [1,2], [], {1:'on'}, {}, etc
+
+For a compute function, i.e., does not return any real typed object, then use "return" instead of "return None"
+
+
+- Requirements
+run the check_requirements.py script to check
+  
+
+
+
+
+
+
+useful script
+
+sage: sdir = "../invgen/Traces/NLA_ctr/"
+# exec trace generation scripts (i.e. .sh)
+sage: cmds = ["sh {} > {}.tcs".format(f,f[:f.find('.sh')]) for f in os.listdir(sdir) if f.endswith('.sh')]
+sage: for cmd in cms: print(cmd); vcmd(cmd)
+
+# run splitfile (preprocess traces)
+sage:  _ = [ReadFile.split_files(os.path.join(sdir,f)) for f in os.listdir(sdir) if f.endswith('.tcs')]
+ 
