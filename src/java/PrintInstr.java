@@ -55,7 +55,7 @@ class PrintClassVisitor extends ClassVisitor implements Opcodes{
 	       	    INVOKESPECIAL,
 	       	    MyConst.jlStringBuilder, "<init>", "()V", false);
 		    
-	       mv.visitLdcInsn(name + ": ");
+	       mv.visitLdcInsn(name + "; ");
 	       mv.visitMethodInsn(
 	       	    INVOKEVIRTUAL, MyConst.jlStringBuilder, "append",
 	       	    "(Ljava/lang/String;)L"+MyConst.jlStringBuilder+";", false);
@@ -91,7 +91,7 @@ class PrintClassVisitor extends ClassVisitor implements Opcodes{
 		    else{
 			 System.out.println("Didn't consider " + t);
 		    }
-		    mv.visitLdcInsn(" ");
+		    mv.visitLdcInsn("; ");
 		    mv.visitMethodInsn(
 			 INVOKEVIRTUAL, MyConst.jlStringBuilder, "append",
 			 "(Ljava/lang/String;)L"+MyConst.jlStringBuilder+";", false);

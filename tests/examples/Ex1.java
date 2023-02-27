@@ -3,6 +3,7 @@ public class Ex1 {
     public static void vtrace0(int m, int n){}
     public static void main (String[] args) {}
     public static int mainQ(int m, int n){
+	assert (n >= 1);
 	// if (m > 1 && n <= 20 && 2*n*n + 3*m == 62){
 	//     vtrace0(m,n);
 	// }

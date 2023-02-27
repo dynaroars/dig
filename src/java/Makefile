@@ -1,11 +1,7 @@
 JFLAGS = -cp asm-all-5.2.jar
-
+JAVAC = /home/SHARED/Devel/JAVA/java8/bin/javac
 default:
-	javac $(JFLAGS) MyConst.java PrintInstr.java JPFInstr.java Instrument.java CollectInfo.java 	
-
-
-default1:
-	$(JAVA_HOME)/bin/javac $(JFLAGS) MyConst.java PrintInstr.java JPFInstr.java Instrument.java CollectInfo.java 	
+	$(JAVAC) $(JFLAGS) MyConst.java PrintInstr.java JPFInstr.java Instrument.java CollectInfo.java 	
 
 classes: $(CLASSES:.java=.class)
 

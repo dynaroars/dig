@@ -1,7 +1,0 @@
-divbin.c           egcd.c             egcd2.c            egcd3.c
-fermat1.c          fermat2.c          freire1.c          freire2.c
-geo1.c             geo2.c             geo3.c             hard.c
-knuth.c            lcm1.c             lcm2.c             mannadiv.c
-prod4br.c          prodbin.c          ps1.c              ps2.c
-ps3.c              ps4.c              ps5.c              ps6.c
-sqrt1.c

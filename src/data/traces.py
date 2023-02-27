@@ -1,9 +1,10 @@
 import pdb
-from collections import namedtuple
 from pathlib import Path
-
+from collections.abc import Iterable
+import typing
+import sympy
+from beartype import beartype
 import z3
-import sage.all
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
@@ -13,59 +14,67 @@ import settings
 
 
 DBG = pdb.set_trace
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-
-class SymbsVals(namedtuple('SymbsVals', ('ss', 'vs'))):
-    """"
+class SymbsVals(typing.NamedTuple):
+    ss: tuple
+    vs: tuple
+    """ "
     ((x, y), (3, 4))
     """
-    def __new__(cls, ss, vs):
+    @beartype
+    @classmethod
+    def mk(cls, ss: tuple, vs: tuple):
         assert isinstance(ss, tuple), ss
         assert isinstance(vs, tuple), vs
-        return super().__new__(cls, ss, vs)
+        return cls(ss, vs)
 
-    def __str__(self):
-        return ','.join('{}={}'.format(s, v) for s, v in zip(self.ss, self.vs))
+    @beartype
+    def __str__(self) -> str:
+        return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
 
-    def mkExpr(self, ss):
+    @beartype
+    def mk_expr(self, ss) -> z3.ExprRef:
         # create z3 expression
-
         assert len(ss) == len(self.vs), (ss, self.vs)
         try:
             exprs = [s == v for s, v in zip(ss, self.vs)]
         except Exception:
-            myvals = map(int, self.vs)
-            exprs = [s == v for s, v in zip(ss, myvals)]
+            exprs = [s == int(v) for s, v in zip(ss, self.vs)]
         return z3.And(exprs)
 
 
 class SymbsValsSet(set):
-    def __init__(self, myset=set()):
-        assert all(isinstance(t, SymbsVals) for t in myset), myset
+    
+    @beartype
+    def __init__(self, myset=set()) -> None:
         super().__init__(myset)
 
-    def __contains__(self, t):
-        assert isinstance(t, SymbsVals), t
+    @beartype
+    def __contains__(self, t: SymbsVals) -> bool:
         return super().__contains__(t)
 
-    def add(self, t):
-        assert isinstance(t, SymbsVals), t
+    @beartype
+    def add(self, t: SymbsVals) -> None:
         return super().add(t)
 
 
 class Trace(SymbsVals):
-    max_val = 100000000
-
     @property
     def mydict(self):
         # use for expression substitution
         try:
             return self._mydict
         except AttributeError:
-            self._mydict = {sage.all.var(s): v for s, v
-                            in zip(self.ss, self.vs) if "!" not in s}
+            d = {}
+            for s, v in zip(self.ss, self.vs):
+                if "!" in s:
+                    continue
+                k = str(s) if isinstance(v, Iterable) else sympy.Symbol(s)
+                assert k not in d
+                d[k] = v
 
+            self._mydict = d
             return self._mydict
 
     @property
@@ -74,8 +83,8 @@ class Trace(SymbsVals):
         try:
             return self._mydict_str
         except AttributeError:
-            self._mydict_str = {s: v for s, v in zip(self.ss, self.vs)
-                                if "!" not in s}
+            self._mydict_str = {s: v for s, v in zip(
+                self.ss, self.vs) if "!" not in s}
             return self._mydict_str
 
     @classmethod
@@ -83,7 +92,9 @@ class Trace(SymbsVals):
         assert isinstance(ss, (tuple, list)), ss
         assert isinstance(vs, (tuple, list)), vs
 
-        vs = tuple(Miscs.rat2str(t) for t in vs)
+        vs = tuple(Miscs.str2list(t) if '[' in t else Miscs.str2rat(t)
+                   for t in vs)
+
         return Trace(ss, vs)
 
     @classmethod
@@ -95,13 +106,14 @@ class Trace(SymbsVals):
 
     def myeval(self, expr):
         assert Miscs.is_expr(expr), expr
-        rs = expr.subs(self.mydict)
+        rs = expr.xreplace(self.mydict)
         return rs
 
 
 class Traces(SymbsValsSet):
 
-    def __str__(self, printDetails=False):
+    @beartype
+    def __str__(self, printDetails: bool=False) -> str:
         if printDetails:
             return ", ".join(map(str, sorted(self)))
         else:
@@ -130,23 +142,25 @@ class Traces(SymbsValsSet):
         cexs = [Trace.fromDict(cex) for cex in cexs]
         cexs = Traces(cexs)
         return cexs
-
+    
+    @beartype
     @property
-    def mydicts(self):
+    def mydicts(self) -> Iterable[dict]:
         return (trace.mydict for trace in self)
 
-    def instantiate(self, term, ntraces):
-        assert Miscs.is_expr(term), term
+    @beartype
+    def instantiate(self, template, ntraces: int | None) -> set[z3.ExprRef]:
+        assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
 
-        if ntraces is None:
-            for t in self.mydicts:
-                exprs = set(term.subs(t) for t in self.mydicts)
+        exprs = set()
+        if ntraces is None:  # use everything
+            exprs = set(template.xreplace(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
-            exprs = set()
             for t in self.mydicts:
-                expr = term.subs(t)
+
+                expr = template.xreplace(t)
                 if expr not in exprs:
                     exprs.add(expr)
                     if len(exprs) >= ntracesExtra:
@@ -156,9 +170,10 @@ class Traces(SymbsValsSet):
             # the more 0's , the better
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
             exprs = set(exprs[:ntraces])
+
         return exprs
 
-    def padzeros(self, ss):
+    def padzeros(self, ss) :
         new_traces = Traces()
         for t in self:
             tss = set(t.ss)
@@ -176,18 +191,19 @@ class DTraces(dict):
     """
     {loc: Traces}
     """
-
+    @beartype
     @property
-    def siz(self): return sum(map(len, self.values()))
+    def siz(self) -> int:
+        return sum(map(len, self.values()))
 
-    def __str__(self, printDetails=False):
-        return "\n".join("{}: {}".format(loc, traces.__str__(printDetails))
-                         for loc, traces in self.items())
-
-    def add(self, loc, trace):
-        assert isinstance(loc, str) and loc, loc
-        assert isinstance(trace, Trace), trace
-
+    @beartype
+    def __str__(self, printDetails:bool=False) -> str:
+        return "\n".join(
+            f"{loc}: {traces.__str__(printDetails)}" for loc, traces in self.items()
+        )
+    
+    @beartype
+    def add(self, loc: str, trace: Trace) -> bool:
         if loc not in self:
             self[loc] = Traces()
 
@@ -207,7 +223,7 @@ class DTraces(dict):
                 if not_in:
                     new_traces_.add(loc, trace)
                 else:
-                    mlog.warning("trace {} exist".format(trace))
+                    mlog.warning(f"trace {trace} exist")
         return new_traces_
 
     @classmethod
@@ -215,80 +231,100 @@ class DTraces(dict):
         assert locs
         return cls({loc: Traces() for loc in locs})
 
+    @beartype
     @staticmethod
-    def parse(trace_str, inv_decls):
+    def parse(traces, inv_decls):
         """
         parse trace for new traces
-
-        trace_str = ['vtrace1: 0 285 1 9 285 9 ',
-        'vtrace1: 0 285 2 18 285 9 ',
-        'vtrace1: 0 285 4 36 285 9 ']
+        # >>> traces = ['vtrace1; 0; 285; 1; 9; 285; 9 ', 'vtrace1; 0; 285; 2; 18; 285; 9; ', 'vtrace1; 0; 285; 4; 36; 285; 9; ']
+        # >>> DTraces.parse(traces)
         """
-        assert isinstance(inv_decls, data.prog.DSymbs)\
-            and inv_decls, inv_decls
-        lines = [l.strip() for l in trace_str]
+        assert inv_decls, inv_decls
+        lines = [l.strip() for l in traces]
         lines = [l for l in lines if l]
 
         dtraces = DTraces()
         for l in lines:
-            # 22: 8460 16 0 1 16 8460
-            parts = l.split(':')
-            assert len(parts) == 2, parts
-            loc, tracevals = parts[0], parts[1]
-            loc = loc.strip()  # 22
+            # 22; 8460; 16; 0; 1; 16; 8460;
+            contents = [x.strip() for x in l.split(';')]
+            contents = [x for x in contents if x]
+            loc, vs = contents[0].strip(), contents[1:]
             if loc not in inv_decls:
                 """
-                No symbolic states for this loc, so will not 
+                No symbolic states for this loc, so will not
                 collect concrete states here
                 """
                 continue
             ss = inv_decls[loc].names
-            vs = tracevals.strip().split()
             mytrace = Trace.parse(ss, vs)
             dtraces.add(loc, mytrace)
+
         return dtraces
 
-    def vwrite(self, inv_decls, tracefile):
-        """
-        write traces to file
-        each loc will have its own file
 
-        file 'traces_loc.csv'
-        var1, var2, var3
-        v1, v2, v2
+    @beartype
+    def vwrite(self, inv_decls, tracefile: Path) -> None:
+        """
+        write traces to tracefile
+        vtrace1; I q; I r; I a; I b; I x; I y
+        vtrace1; 4; 8; 1; 4; 24; 4
+        vtrace1; 16; 89; 1; 13; 297; 13
+        ...
+        vtrace2; I x; I y
+        vtrace2; 4; 2
+        vtrace2; 8; 4
         ...
         """
-        assert inv_decls and isinstance(
-            inv_decls, data.prog.DSymbs), inv_decls
-        assert isinstance(tracefile, Path), tracefile
+        assert inv_decls and isinstance(inv_decls, data.prog.DSymbs), inv_decls
+        assert isinstance(tracefile, Path) and tracefile.suffix == ".csv", tracefile
+            
 
-        ss = []
+        ss: list[str] = []
         for loc in self:
             traces = [inv_decls[loc]]
-            traces.extend([', '.join(map(str, t.vs)) for t in self[loc]])
-            traces = ['{}: {}'.format(loc, t) for t in traces]
+            traces.extend(["; ".join(map(str, t.vs)) for t in self[loc]])
+            traces = [f"{loc}; {trace}" for trace in traces]
             ss.extend(traces)
 
-        tracefile.write_text('\n'.join(ss))
+        tracefile.write_text("\n".join(ss))
 
+    @beartype
     @classmethod
-    def vread(cls, tracefile):
-        assert tracefile.is_file(), tracefile
+    def vread(cls, tracefile: Path):
+        """
+        Csv format
 
-        trace_str = []
-        # determine variable declarations for different locations
-        inv_decls = data.prog.DSymbs()
-        for line in tracefile.read_text().splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            loc, contents = line.split(':')
-            if loc not in inv_decls:
-                inv_decls[loc] = data.prog.Symbs.mk(contents)  # I x, I y
-            else:
-                trace_str.append(line.replace(',', ''))
+        vtrace1; I q; I r; I a; I b; I x; I y
+        vtrace1; 4; 8; 1; 4; 24; 4
+        vtrace1; 16; 89; 1; 13; 297; 13
+        ...
+        vtrace2; I x; I y
+        vtrace2; 4; 2
+        vtrace2; 8; 4
+        ...
+        """
+        assert tracefile.is_file() and tracefile.suffix == ".csv", tracefile
 
-        dtraces = DTraces.parse(trace_str, inv_decls)
+        import csv
+        with open(tracefile) as csvfile:
+            traces = []
+            # determine variable declarations for different locations
+            inv_decls = data.prog.DSymbs()
+
+            myreader = csv.reader(csvfile, delimiter=';')
+            for row in myreader:
+                row = [field.strip() for field in row]
+                if not row or row[0].startswith("#"):
+                    continue
+                loc, contents = row[0], row[1:]
+                if loc not in inv_decls:
+                    inv_decls[loc] = data.prog.Symbs.mk(contents)
+                else:
+                    s = f"{loc}; {';'.join(contents)}"
+                    traces.append(s)
+
+        dtraces = DTraces.parse(traces, inv_decls)
+        mlog.debug(f"{dtraces} traces")
         return inv_decls, dtraces
 
 
@@ -297,7 +333,7 @@ class Inp(SymbsVals):
 
 
 class Inps(SymbsValsSet):
-    def merge(self, ds, ss):
+    def merge(self, ds, ss) -> None:
         """
         ds can be
         1. cexs = {loc:{inv: {'x': val, 'y': val}}}
@@ -324,15 +360,15 @@ class Inps(SymbsValsSet):
                             pass
             return inps
 
-        if (isinstance(ds, list) and all(isinstance(d, dict) for d in ds)):
+        if isinstance(ds, list) and all(isinstance(d, dict) for d in ds):
             new_inps = [inp for d in ds for inp in f(d)]
 
         elif isinstance(ds, dict):
             new_inps = f(ds)
 
         else:
-            assert isinstance(ds, set) and\
-                all(isinstance(d, tuple) for d in ds), ds
+            assert isinstance(ds, set) and all(
+                isinstance(d, tuple) for d in ds), ds
             new_inps = [inp for inp in ds]
 
         new_inps = [Inp(ss, inp) for inp in new_inps]

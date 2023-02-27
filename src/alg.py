@@ -1,93 +1,112 @@
-from abc import ABCMeta, abstractmethod
+import abc
+from collections.abc import Callable
 import pdb
 import random
 import time
 from pathlib import Path
-
-import sage.all
+import sys
+from beartype import beartype
 
 import settings
-from helpers.miscs import Miscs
+from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.prog
-from data.traces import Inps, DTraces
-from data.inv.invs import DInvs, Invs
-import data.symstates
+from data.symstates import SymStates, SymStatesMakerJava, SymStatesMakerC
+from data.traces import DTraces
+
+from infer.inv import DInvs
+import infer.nested_array
+import infer.eqt
+import infer.oct
+import infer.mp
+import infer.congruence
+
 DBG = pdb.set_trace
 
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class Dig(metaclass=ABCMeta):
-    def __init__(self, filename):
-        mlog.info("analyze '{}'".format(filename))
+class Dig(metaclass=abc.ABCMeta):
+    EQTS = "eqts"
+    IEQS = "ieqs"
+    MINMAX = "minmax"
+    CONGRUENCE = "congruence"
+    PREPOSTS = "preposts"
+
+    @beartype
+    def __init__(self, filename: Path) -> None:
+        
+        mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
-    @abstractmethod
-    def start(self, seed, maxdeg):
+    @beartype        
+    @abc.abstractmethod
+    def start(self, seed: float, maxdeg: int | None) -> None:
         self.seed = seed
         random.seed(seed)
-        sage.all.set_random_seed(seed)
-        mlog.debug("set seed to: {} (test {} {})".format(
-            seed, random.randint(0, 100), sage.all.randint(0, 100)))
+        mlog.debug(f"{seed=} (test {random.randint(0, 100)})")
 
-    def get_auto_deg(self, maxdeg):
-        maxvars = max(self.inv_decls.values(), key=lambda d: len(d))
+    @beartype
+    def get_auto_deg(self, maxdeg: int | None) -> int:
+        maxvars = max(self.inv_decls.values(), key=len)
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
-    def sanitize(self, dinvs, dtraces):
+    @beartype
+    def sanitize(self, dinvs: DInvs, dtraces: DTraces) -> DInvs:
         if not dinvs.siz:
             return dinvs
 
-        msg = "test {} invs using {} traces".format(
-            dinvs.siz, dtraces.siz)
+        msg = f"check {dinvs.siz} invs using {dtraces.siz} traces"
         mlog.debug(msg)
         st = time.time()
         dinvs = dinvs.test(dtraces)
-        mlog.info("{} ({:.2f}s)".format(msg, time.time() - st))
-
+        mlog.info(f"{msg} ({time.time() - st:.2f}s)")
         if not dinvs.siz:
             return dinvs
 
         if settings.DO_SIMPLIFY:
-            self.symstates.get_solver_stats()
+            try:
+                self.symstates.get_solver_stats()
+            except AttributeError:
+                # DigTraces does not have symbolic states
+                pass
 
-            msg = "simplify {} invs".format(dinvs.siz)
+            msg = f"simplify {dinvs.siz} invs"
             mlog.debug(msg)
-            mlog.debug("{}".format(dinvs.__str__(
-                print_stat=True, print_first_n=20)))
+            mlog.debug(dinvs.__str__(print_stat=False, print_first_n=20))
             st1 = time.time()
-            dinvs = dinvs.simplify(self.inv_decls.use_reals)
-            mlog.info("{} ({:.2f}s)".format(msg, time.time() - st1))
+            dinvs = dinvs.simplify()
+            mlog.info(f"{msg} ({time.time() - st1:.2f}s)")
 
-        self.time_d['simplify'] = time.time() - st
+        self.time_d["simplify"] = time.time() - st
 
         return dinvs
 
 
-class DigSymStates(Dig):
-    EQTS = "eqts"
-    IEQS = "ieqs"
-    MINMAX = "minmax"
-    PREPOSTS = "preposts"
-
-    def __init__(self, filename):
+class DigSymStates(Dig, metaclass=abc.ABCMeta):
+    
+    @beartype
+    def __init__(self, filename:Path) -> None:
         super().__init__(filename)
 
-    def start(self, seed, maxdeg):
-        assert maxdeg is None or maxdeg >= 1, maxdeg
-        st = time.time()
+    @beartype
+    def start(self, seed:float, maxdeg:int | None) -> None | DInvs:
+
+        if not(maxdeg is None or maxdeg >= 1):
+            raise ValueError(f"maxdeg has invalid value {maxdeg}")
 
         super().start(seed, maxdeg)
 
-        assert settings.tmpdir.is_dir()
+        assert settings.TMPDIR.is_dir()
         import tempfile
+
         prefix = hash(self.seed)
-        self.tmpdir = Path(tempfile.mkdtemp(
-            dir=settings.tmpdir, prefix="dig_{}_".format(prefix)))
+        self.tmpdir = Path(
+            tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"dig_{prefix}_")
+        )
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
 
@@ -97,202 +116,223 @@ class DigSymStates(Dig):
 
         self.prog = data.prog.Prog(
             self.exe_cmd, self.inp_decls, self.inv_decls)
-        self.use_rand_init = True
 
-        self.symstates = None
-        if settings.DO_SS:
+        if not settings.DO_SS:  # use traces from running the program on random inputs
+            rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
+            inps = data.traces.Inps().merge(rinps, self.inp_decls.names)
+            mlog.debug(f"gen {len(inps)} random inps")
+            if not inps:
+                return
+
+            assert isinstance(inps, data.traces.Inps), inps
+            dtraces = self.prog.get_traces(inps)
+            if not dtraces:
+                return
+
+            digtraces = DigTraces(
+                self.filename, self.inv_decls, dtraces, test_dtraces=None)
+
+            dinvs = digtraces.start(self.seed, maxdeg)
+
+        else:  # use symbolic states
             st = time.time()
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
-            mlog.info("compute symbolic states ({:.2f}s)".format(et))
-            self.time_d['symbolic_states'] = et
+            self.time_d["symbolic_states"] = et
 
+            self.locs = self.prog.locs
             # remove locations with no symbolic states
-            for loc in list(self.inv_decls.keys()):
+            for loc in list(self.prog.locs):
                 if loc not in self.symstates:
-                    mlog.warning('{}: no symbolic states. Skip'.format(loc))
+                    mlog.warning(f"{loc}: no symbolic states. Skip")
                     self.inv_decls.pop(loc)
+            
+            mlog.info(f"got symbolic states in {et:.2f}s")
 
-        self.locs = self.inv_decls.keys()
+            tasks = []
+            if settings.DO_EQTS:
+                def f():
+                    return self._infer(self.EQTS, lambda: self._infer_eqts(maxdeg))
+                tasks.append(f)
 
-        mlog.info('infer invs at {} locs: {}'.format(
-            len(self.locs), ', '.join(self.locs)))
+            if settings.DO_IEQS:
+                def f():
+                    return self._infer(self.IEQS, self._infer_ieqs)
+                tasks.append(f)
 
-        dinvs = DInvs()
-        dtraces = DTraces.mk(self.locs)
-        inps = Inps()
+            if settings.DO_MINMAXPLUS:
+                def f():
+                    return self._infer(self.MINMAX, self._infer_minmax)
+                tasks.append(f)
 
-        if settings.DO_EQTS:
-            self.infer(self.EQTS, dinvs,
-                       lambda: self.infer_eqts(maxdeg, dtraces, inps))
+            def f(tasks):
+                rs = [_f() for _f in tasks]
+                return rs
 
-        if settings.DO_IEQS:
-            self.infer(self.IEQS, dinvs,
-                       lambda: self.infer_ieqs(dtraces, inps))
+            wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
 
-        if settings.DO_MINMAXPLUS:
-            self.infer(self.MINMAX, dinvs,
-                       lambda: self.infer_minmax(dtraces, inps))
+            dinvs = DInvs()
+            dtraces = DTraces.mk(self.locs)
 
-        dinvs = self.sanitize(dinvs, dtraces)
+            for typ, (dinvs_, dtraces_), et in wrs:
+                self.time_d[typ] = et
+                dinvs.merge(dinvs_)
+                if dtraces_:
+                    dtraces.merge(dtraces_)
 
-        if dinvs.n_eqs and settings.DO_PREPOSTS:
-            self.infer('preposts', dinvs,
-                       lambda: self.infer_preposts(dinvs, dtraces))
+            dinvs = self.sanitize(dinvs, dtraces)
 
-        et = time.time() - st
-        self.time_d['total'] = et
+            self.time_d["total"] = time.time() - st
+            self.cleanup(dinvs, dtraces)
 
-        print("{}\nrun time {:.2f}s, result dir: {}".format(
-            dinvs, et, self.tmpdir))
+        if settings.WRITE_VTRACES:
+            tracefile = Path(settings.WRITE_VTRACES)
+            dtraces.vwrite(self.inv_decls, tracefile)
+            mlog.info(f"{dtraces.siz} traces written to {tracefile}")
 
-        self.postprocess(dinvs, dtraces, inps)
+        print(f"tmpdir: {self.tmpdir}")
+        return dinvs
 
-    def postprocess(self, dinvs, dtraces, inps):
+    @beartype
+    def cleanup(self, dinvs:DInvs, dtraces:DTraces) -> None:
         """
         Save and analyze result
         Clean up tmpdir
         """
-        # clean up
-        import shutil
-        shutil.rmtree(self.tmpdir_del)
-
         # analyze and save results
         from analysis import Result, Analysis
 
-        self.symstates.get_solver_stats()
-        result = Result(self.filename, self.seed,
-                        dinvs, dtraces, inps,
-                        self.symstates.solver_stats_,
-                        self.time_d)
+        result = Result(
+            self.filename,
+            self.seed,
+            dinvs,
+            dtraces,
+            self.symstates.solver_stats_,
+            self.time_d,
+        )
         result.save(self.tmpdir)
-        Analysis(self.tmpdir).start()
-        mlog.info("tmpdir: {}".format(self.tmpdir))
+        Analysis(self.tmpdir).start()  # output stats
 
-    def infer(self, typ, dinvs, f):
-        assert typ in {self.EQTS, self.IEQS, self.MINMAX, self.PREPOSTS}, typ
-        mlog.debug("infer '{}' at {} locs".format(typ, len(self.locs)))
+    @beartype
+    def _infer(self, typ: str, _get_invs: Callable) -> tuple:
+        assert typ in {self.EQTS, self.IEQS, self.MINMAX,
+                       self.CONGRUENCE, self.PREPOSTS}, typ
+        
+        mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
         st = time.time()
-        new_invs = f()  # get invs
 
-        if new_invs.siz:
-            et = time.time() - st
-            self.time_d[typ] = et
-            mlog.info("found {} {} ({:.2f}s)".format(
-                new_invs.siz, typ, et))
+        dinvs, dtraces = _get_invs()
+        et = time.time() - st
+        if dinvs.siz:
+            mlog.info(f"got {dinvs.siz} {typ} in {et:.2f}s")
+            mlog.debug(dinvs.__str__(print_stat=True, print_first_n=20))
 
-            dinvs.merge(new_invs)
-            mlog.debug('{}'.format(dinvs.__str__(
-                print_stat=True, print_first_n=20)))
+        return typ, (dinvs, dtraces),  et
 
-    def infer_eqts(self, maxdeg, dtraces, inps):
-        import infer.eqt
-        solver = infer.eqt.Infer(self.symstates, self.prog)
-        solver.use_rand_init = self.use_rand_init
+    @beartype
+    def _infer_eqts(self, maxdeg:int | None) -> tuple[DInvs, DTraces]:
+        dinvs, dtraces = infer.eqt.Infer(
+            self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
+        return dinvs, dtraces
 
-        # determine degree
-        auto_deg = self.get_auto_deg(maxdeg)
-        return solver.gen(auto_deg, dtraces, inps)
+    def _infer_ieqs(self):
+        return infer.oct.Infer(self.symstates, self.prog).gen(), None
 
-    def infer_ieqs(self, dtraces, inps):
-        import infer.opt
-        solver = infer.opt.Ieq(self.symstates, self.prog)
-        return solver.gen(dtraces)
+    def _infer_minmax(self):       
+        return infer.mp.Infer(self.symstates, self.prog).gen(), None
 
-    def infer_minmax(self, dtraces, inps):
-        import infer.opt
-        solver = infer.opt.MP(self.symstates, self.prog)
-        return solver.gen(dtraces)
+    @beartype
+    def get_symbolic_states(self) -> SymStates:
+        symstates = SymStates(self.inp_decls, self.inv_decls)
 
-    def infer_preposts(self, dinvs, dtraces):
-        import infer.prepost
-        solver = infer.prepost.Infer(self.symstates, self.prog)
-        return solver.gen(dinvs, dtraces)
+        if settings.READ_SSTATES:
+            sstatesfile = Path(settings.READ_SSTATES)
+            symstates.vread(sstatesfile)
+            mlog.info(f"{symstates.siz} symstates read from '{sstatesfile}'")
 
-    def get_symbolic_states(self):
-        symstates = data.symstates.SymStates(self.inp_decls, self.inv_decls)
-        symstates.compute(self.symstatesmaker_cls,
-                          self.symexefile, self.mysrc.mainQ_name,
-                          self.mysrc.funname, self.mysrc.symexedir)
+        else:
+            symstates.compute(
+                self.symstatesmaker_cls,
+                self.symexefile,
+                self.mysrc.mainQ_name,
+                self.mysrc.funname,
+                self.mysrc.symexedir,
+            )
+            mlog.info(
+                f"got {symstates.siz} symstates for "
+                f"{len(symstates)} locs: {list(map(str, symstates))}"
+            )
+
+            if settings.WRITE_SSTATES:
+                sstatesfile = Path(settings.WRITE_SSTATES)
+                symstates.vwrite(sstatesfile)
+                mlog.info(f"{symstates.siz} symstates written to '{sstatesfile}'")
+                sys.exit(0)
+
         return symstates
 
 
 class DigSymStatesJava(DigSymStates):
+    mysrc_cls = data.prog.Java
+    symstatesmaker_cls = SymStatesMakerJava
 
+    @beartype
     @property
-    def mysrc_cls(self):
-        return data.prog.Java
-
-    @property
-    def symstatesmaker_cls(self):
-        return data.symstates.SymStatesMakerJava
-
-    @property
-    def symexefile(self):
+    def symexefile(self) -> Path:
         return self.filename
 
+    @beartype
     @property
-    def exe_cmd(self):
+    def exe_cmd(self) -> str:
         return settings.Java.JAVA_RUN(
-            tracedir=self.mysrc.tracedir, funname=self.mysrc.funname)
+            tracedir=self.mysrc.tracedir, funname=self.mysrc.funname
+        )
 
 
 class DigSymStatesC(DigSymStates):
+    mysrc_cls = data.prog.C
+    symstatesmaker_cls = SymStatesMakerC
 
+    @beartype
     @property
-    def mysrc_cls(self):
-        return data.prog.C
-
-    @property
-    def symstatesmaker_cls(self):
-        return data.symstates.SymStatesMakerC
-
-    @property
-    def symexefile(self):
+    def symexefile(self) -> Path:
         return self.mysrc.symexefile
 
+    @beartype
     @property
-    def exe_cmd(self):
+    def exe_cmd(self) -> str:
         return settings.C.C_RUN(exe=self.mysrc.traceexe)
 
 
 class DigTraces(Dig):
-    def __init__(self, tracefile, test_tracefile):
-        assert tracefile.is_file(), tracefile
-        assert test_tracefile is None or test_tracefile.is_file()
+    @beartype
+    def __init__(self, filename: Path, inv_decls: data.prog.DSymbs,
+                 dtraces: DTraces, test_dtraces: DTraces | None) -> None:
+        super().__init__(filename)
 
-        super().__init__(tracefile)
-        self.inv_decls, self.dtraces = DTraces.vread(tracefile)
+        self.inv_decls = inv_decls
+        self.dtraces = dtraces
+        if test_dtraces:
+            self.test_dtraces = test_dtraces
 
-        if test_tracefile:
-            _, self.test_dtraces = DTraces.vread(test_tracefile)
-
-    def start(self, seed, maxdeg):
+    @beartype
+    def start(self, seed: float, maxdeg: int | None) -> DInvs:
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
         super().start(seed, maxdeg)
+        mlog.info(
+            f"got {self.dtraces.siz} traces over {len(self.dtraces)} locs")
+        mlog.debug(f"{self.dtraces}")
 
-        st = time.time()
-
-        tasks = []
-        for loc in self.dtraces:
-            symbols = self.inv_decls[loc]
-            traces = self.dtraces[loc]
-            if settings.DO_EQTS:
-                def _f():
-                    return self.infer_eqts(maxdeg, symbols, traces)
-                tasks.append((loc, _f))
-
-            if settings.DO_IEQS:
-                def _f():
-                    return self.infer_ieqs(symbols, traces)
-                tasks.append((loc, _f))
+        tasks = (self._nested_arrays_tasks() + self._eqts_tasks(maxdeg) + self._ieqs_tasks() +
+                 self._minmax_tasks() + self._congruences_tasks())
 
         def f(tasks):
-            rs = [(loc, _f()) for loc, _f in tasks]
+            rs = [(loc, _f(loc)) for loc, _f in tasks]
             return rs
-        wrs = Miscs.run_mp("(pure) dynamic inference", tasks, f)
+
+        wrs = MP.run_mp("(pure) dynamic inference", tasks, f, settings.DO_MP)
 
         dinvs = DInvs()
         for loc, invs in wrs:
@@ -301,37 +341,69 @@ class DigTraces(Dig):
 
         try:
             new_traces = self.dtraces.merge(self.test_dtraces)
-            mlog.debug('added {} test traces'.format(new_traces.siz))
+            mlog.debug(f"added {new_traces.siz} test traces")
         except AttributeError:
-            # no test traces
-            pass
+            pass  # no test traces
 
         dinvs = self.sanitize(dinvs, self.dtraces)
-        print(dinvs)
+        return dinvs
 
-    def infer_eqts(self, maxdeg, symbols, traces):
-        auto_deg = self.get_auto_deg(maxdeg)
-        terms, template, uks, n_eqts_needed = Miscs.init_terms(
-            symbols.names, auto_deg, settings.EQT_RATE)
-        exprs = list(traces.instantiate(template, n_eqts_needed))
-        eqts = Miscs.solve_eqts(exprs, uks, template)
-        import data.inv.eqt
-        return [data.inv.eqt.Eqt(eqt) for eqt in eqts]
+    def _nested_arrays_tasks(self):
+        def _f(l):
+            return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
 
-    def infer_ieqs(self, symbols, traces):
-        maxV = settings.IUPPER
-        minV = -1*maxV
+        def _g(l):
+            return self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_ARRAYS, _g,  _f)
 
-        terms = Miscs.get_terms_fixed_coefs(
-            symbols.sageExprs, settings.ITERMS, settings.ICOEFS,
-        )
-        ieqs = []
-        for t in terms:
-            upperbound = max(traces.myeval(t))
-            if upperbound > maxV or upperbound < minV:
-                continue
-            ieqs.append(t <= upperbound)
+    def _eqts_tasks(self, maxdeg):
+        autodeg = self.get_auto_deg(maxdeg)
 
-        import data.inv.oct
-        ieqs = [data.inv.oct.Oct(ieq) for ieq in ieqs]
-        return ieqs
+        def _f(l):
+            return infer.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_EQTS, _g, _f)
+
+    def _ieqs_tasks(self):
+        def _f(l):
+            return infer.oct.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_IEQS, _g,  _f)
+
+    def _minmax_tasks(self):
+        def _f(l):
+            return infer.mp.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_MINMAXPLUS, _g, _f)
+
+    def _congruences_tasks(self):
+        def _f(l):
+            return infer.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_CONGRUENCES, _g,  _f)
+
+    def _mk_tasks(self, cond1, cond2, _f):
+        if not cond1:
+            return []
+        return [(loc, _f) for loc in self.dtraces if cond2(loc)]
+
+    @classmethod
+    def mk(cls, tracefile, test_tracefile):
+        assert tracefile.is_file(), tracefile
+        assert test_tracefile is None or test_tracefile.is_file()
+
+        inv_decls, dtraces = DTraces.vread(tracefile)
+
+        test_dtraces = None
+        if test_tracefile:
+            _, test_dtraces = DTraces.vread(test_tracefile)
+
+        return cls(tracefile, inv_decls, dtraces, test_dtraces)

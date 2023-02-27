@@ -2,78 +2,133 @@
 CEGIR alg for inferring equalities
 """
 import pdb
+import sympy
+from beartype import beartype
 
 import settings
 import helpers.vcommon as CM
-from helpers.miscs import Miscs
+from helpers.miscs import Miscs, MP
 
-from data.traces import Inps, Traces, DTraces
-from data.inv.invs import Invs, DInvs
-import data.inv.eqt
-import infer.base
+import data.traces
+import infer.inv
+import infer.infer
 
 DBG = pdb.set_trace
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class Infer(infer.base.Infer):
-    def __init__(self, symstates, prog):
-        super().__init__(symstates, prog)
-        self.use_rand_init = False  # use symstates or random to get init inps
+class Eqt(infer.inv.Inv):
 
-    def gen(self, deg, traces, inps):
+    @beartype
+    def __init__(self, eqt:sympy.Equality, stat=None)->None:
+        assert eqt.rhs == 0, eqt
+
+        super().__init__(eqt, stat)
+
+    @beartype
+    @property
+    def mystr(self) -> str:
+        return f"{self.inv.lhs} == {self.inv.rhs}"
+
+
+class Infer(infer.infer._CEGIR):
+
+    @beartype
+    @classmethod
+    def gen_from_traces(cls, deg:int,
+                        traces:data.traces.Traces, symbols) -> list[Eqt]:
+
+        mydeg = deg
+        eqts = []
+        while not eqts and mydeg:
+            ts, uks, n_eqts_needed = Miscs.init_terms(
+                symbols.names, mydeg, settings.EQT_RATE
+            )
+
+            if len(traces) < len(uks):
+                mydeg = mydeg - 1
+                mlog.warning(
+                    f"{len(traces)} traces < {len(uks)} uks, reducing to deg {mydeg}")
+                continue
+
+            template = sum(t*u for t, u in zip(ts, uks))
+            exprs = list(traces.instantiate(template, n_eqts_needed))
+            if len(exprs) < len(uks):
+                mydeg = mydeg - 1
+                mlog.warning(
+                    f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
+                continue
+
+            eqts = Miscs.solve_eqts(exprs, ts, uks)
+            if not eqts:
+                mydeg = mydeg - 1
+                mlog.warning(f"NO EQTS RESULTS, reducing deg to {mydeg}")
+
+        return [Eqt(eqt)for eqt in eqts]
+
+    def gen(self, deg) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
         assert deg >= 1, deg
-        assert isinstance(traces, DTraces) and traces, traces
-        assert isinstance(inps, Inps), inps
 
-        locs = traces.keys()
+        locs = self.prog.locs
+        inps = data.traces.Inps()
+        dtraces = data.traces.DTraces.mk(locs)
+
         # first obtain enough traces
-        tasks = [(loc, self._get_init_traces(loc, deg, traces, inps,
-                                             settings.EQT_RATE))
-                 for loc in locs]
+        tasks = [
+            (loc, self._get_init_traces(loc, deg, dtraces, inps, settings.EQT_RATE))
+            for loc in locs
+        ]
         tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
 
         # then solve/prove in parallel
         def f(tasks):
-            return [(loc, self._infer(loc, template, uks, exprs, traces, inps))
-                    for loc, (template, uks, exprs) in tasks]
-        wrs = Miscs.run_mp('find eqts', tasks, f)
+            return [
+                (loc, self._infer(loc, template, uks, exprs))
+                for loc, (template, uks, exprs) in tasks
+            ]
+
+        wrs = MP.run_mp("find eqts", tasks, f, settings.DO_MP)
 
         # put results together
-        dinvs = DInvs()
-        for loc, (eqts, cexs) in wrs:
-            new_inps = inps.merge(cexs, self.inp_decls.names)
-            mlog.debug("{}: got {} eqts, {} new inps"
-                       .format(loc, len(eqts), len(new_inps)))
+        dinvs = infer.inv.DInvs()
+        for loc, eqts in wrs:
+            mlog.debug(f"{loc}: got {len(eqts)} eqts")
             if eqts:
-                mlog.debug('\n'.join(map(str, eqts)))
-            dinvs[loc] = Invs(eqts)
+                mlog.debug("\n".join(map(str, eqts)))
 
-        return dinvs
+            dinvs[loc] = infer.inv.Invs(eqts)
+
+        return dinvs, dtraces
 
     # PRIVATE
-    def add_exprs(cls, template, n_eqts_needed, traces, exprs):
-        assert traces
-        mlog.debug("got {} new traces".format(len(traces)))
+    @beartype
+    @classmethod
+    def _add_exprs(cls, template, n_eqts_needed: int, traces: data.traces.Traces, exprs):
+        # assert isinstance(traces, data.traces.Traces), traces
+
+        mlog.debug(f"got {len(traces)} new traces")
         new_exprs = traces.instantiate(template, n_eqts_needed - len(exprs))
         for expr in new_exprs:
             assert expr not in exprs
             exprs.add(expr)
 
-    def _while_rand(self, loc, template, n_eqts_needed, inps, traces):
+    def _while(self, loc, ts, uks, n_eqts_needed, inps, traces):
         """
         repeatedly get more inps using random method
         """
+        template = sum(t*u for t, u in zip(ts, uks))
         exprs = traces[loc].instantiate(template, n_eqts_needed)
 
         doRand = True
         while n_eqts_needed > len(exprs):
             new_traces = {}
-            mlog.debug("{}: need more traces ({} eqts, need >= {}, inps {})"
-                       .format(loc, len(exprs), n_eqts_needed, len(inps)))
+            mlog.debug(
+                f"{loc}: need more traces ({len(exprs)} eqts, "
+                f"need >= {n_eqts_needed}, inps {len(inps)})"
+            )
             if doRand:
                 rInps = self.prog.gen_rand_inps(n_eqts_needed - len(exprs))
-                mlog.debug("gen {} random inps".format(len(rInps)))
+                mlog.debug(f"gen {len(rInps)} random inps")
                 rInps = inps.merge(rInps, self.inp_decls.names)
                 if rInps:
                     new_traces = self.get_traces(rInps, traces)
@@ -81,13 +136,13 @@ class Infer(infer.base.Infer):
             if loc not in new_traces:
                 doRand = False
 
-                dinvsFalse = DInvs.mk_false_invs([loc])
+                dinvsFalse = infer.inv.DInvs.mk_false_invs([loc])
                 cexs, _ = self.symstates.check(dinvsFalse, inps)
 
                 # cannot find new inputs
                 if loc not in cexs:
-                    mlog.debug("{}: cannot find new inps ({} curr inps)"
-                               .format(loc, len(inps)))
+                    mlog.debug(
+                        f"{loc}: cannot find new inps (currently has {len(inps)} inps)")
                     return
 
                 new_inps = inps.merge(cexs, self.inp_decls.names)
@@ -95,121 +150,102 @@ class Infer(infer.base.Infer):
 
                 # cannot find new traces (new inps do not produce new traces)
                 if loc not in new_traces:
-                    mlog.debug("{}: cannot find new traces ".format(loc) +
-                               "(new inps {}, ".format(len(new_inps)) +
-                               "curr traces {})".format(
-                                   len(traces[loc]) if loc in traces else 0))
+                    mlog.debug(
+                        f"{loc}: cannot find new traces (need {n_eqts_needed}) "
+                        f"(new inps {len(new_inps)}, "
+                        f"curr traces {len(traces[loc]) if loc in traces else 0})"
+                    )
                     return
 
-            self.add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
+            self._add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
 
         return exprs
 
-    def _while_symstates(self, loc, template, n_eqts_needed, inps, traces):
+    @beartype
+    def _get_init_traces(self, loc: str, deg: int,
+                         dtraces: data.traces.DTraces,
+                         inps: data.traces.Inps, rate: float) -> tuple[list,list[sympy.core.symbol.Symbol], set] | None:
         """
-        repeated get more traces using the symstates (e.g., Klee)
+        Initial loop to obtain (random) traces to bootstrap eqt solving
         """
-        assert isinstance(loc, str), loc
-        assert n_eqts_needed >= 1, n_eqts_needed
-
-        exprs = traces[loc].instantiate(template, n_eqts_needed)
-        while n_eqts_needed > len(exprs):
-            mlog.debug("{}: need more traces ({} eqts, need >= {})"
-                       .format(loc, len(exprs), n_eqts_needed))
-            dinvsFalse = DInvs.mk_false_invs([loc])
-            cexs, _, _ = self.symstates.check(dinvsFalse, inps)
-
-            if loc not in cexs:
-                mlog.error("{}: cannot generate enough traces".format(loc))
-                return
-
-            new_inps = inps.merge(cexs, self.inp_decls.names)
-            new_traces = self.get_traces(new_inps, traces)
-
-            self.add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
-
-        return exprs
-
-    def _get_init_traces(self, loc, deg, traces, inps, rate):
-        "Initial loop to obtain (random) traces to bootstrap eqt solving"
 
         assert deg >= 1, deg
-        assert isinstance(rate, float) and rate >= 0.1, rate
+        assert rate >= 0.1, rate
 
-        if self.use_rand_init:
-            whileF, whileFName = self._while_rand, "random"
-        else:
-            whileF, whileFName = self._while_symstates, "symstates"
-        mlog.debug("{}: gen init inps using {} (curr inps {}, traces {})"
-                   .format(loc, whileFName, len(inps), len(traces)))
+        mlog.debug(
+            f"{loc}: generate random initial inps "
+            f"(curr inps {len(inps)}, traces {dtraces[loc]})"
+        )
 
-        terms, template, uks, n_eqts_needed = Miscs.init_terms(
+        ts, uks, n_eqts_needed = Miscs.init_terms(
             self.inv_decls[loc].names, deg, rate)
-        exprs = whileF(loc, template, n_eqts_needed, inps, traces)
+
+        exprs = self._while(loc, ts, uks, n_eqts_needed, inps, dtraces)
 
         # if cannot generate sufficient traces, adjust degree
-        while (not exprs):
-            if deg < 2:
+        while not exprs:
+            if deg <= 1:
+                mlog.warn(f"deg {deg}, unable to generate sufficient traces")
                 return  # cannot generate enough traces
 
             deg = deg - 1
-            mlog.info("Reduce polynomial degree to {}, terms {}, uks {}"
-                      .format(deg, len(terms), len(uks)))
-            terms, template, uks, n_eqts_needed = Miscs.init_terms(
-                self.inv_decls[loc].names, deg, rate)
-            exprs = whileF(loc, template, n_eqts_needed, inps, traces)
+            mlog.info(
+                f"Reduce polynomial degree to {deg}, terms {len(ts)}, uks {len(uks)}"
+            )
+            ts, uks, n_eqts_needed = Miscs.init_terms(
+                self.inv_decls[loc].names, deg, rate
+            )
+            exprs = self._while(loc, ts, uks, n_eqts_needed, inps, dtraces)
+                
 
-        return template, uks, exprs
+        return ts, uks, exprs
 
-    def _infer(self, loc, template, uks, exprs, dtraces, inps):
-        assert isinstance(loc, str) and loc, loc
-        assert Miscs.is_expr(template), template
-        assert isinstance(uks, list), uks
-        assert isinstance(exprs, set) and exprs, exprs
-        assert isinstance(dtraces, DTraces) and dtraces, dtraces
-        assert isinstance(inps, Inps) and inps, inps
+    @beartype
+    def _infer(self, loc: str, ts: list, uks: list, exprs: set) -> set:
+        assert loc, loc
+        assert len(ts) == len(uks), (ts, uks)
+        assert exprs, exprs
 
+        template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
         eqts = set()  # results
         exprs = list(exprs)
 
-        new_cexs = []
         curIter = 0
 
         while True:
             curIter += 1
-            mlog.debug("{}, iter {} infer using {} exprs"
-                       .format(loc, curIter, len(exprs)))
-
-            new_eqts = Miscs.solve_eqts(exprs, uks, template)
+            mlog.debug(f"{loc}, iter {curIter} infer using {len(exprs)} exprs")
+            new_eqts = Miscs.solve_eqts(exprs, ts, uks)
             unchecks = [eqt for eqt in new_eqts if eqt not in cache]
 
             if not unchecks:
-                mlog.debug("{}: no new results -- break".format(loc))
+                mlog.debug(f"{loc}: no new results -- break")
                 break
 
-            mlog.debug('{}: {} candidates:\n{}'.format(
-                loc, len(new_eqts), '\n'.join(map(str, new_eqts))))
+            new_eqts = infer.inv.Invs(list(map(Eqt, unchecks)))
 
-            mlog.debug("{}: check {} unchecked ({} candidates)"
-                       .format(loc, len(unchecks), len(new_eqts)))
+            mlog.debug(
+                f"{loc}: {len(new_eqts)} candidates: {'; '.join(map(str, new_eqts))}")
 
-            dinvs = DInvs.mk(loc, Invs(list(map(data.inv.eqt.Eqt, unchecks))))
+            mlog.debug(
+                f"{loc}: check {len(unchecks)} unchecked ({len(new_eqts)} candidates)"
+            )
+
+            dinvs = infer.inv.DInvs.mk(loc, new_eqts)
             cexs, dinvs = self.check(dinvs, None)
-            if cexs:
-                new_cexs.append(cexs)
 
             [eqts.add(inv) for inv in dinvs[loc] if not inv.is_disproved]
             [cache.add(inv.inv) for inv in dinvs[loc] if inv.stat is not None]
 
             if loc not in cexs:
-                mlog.debug("{}: no disproved candidates -- break".format(loc))
+                mlog.debug(f"{loc}: no disproved candidates -- break")
                 break
 
-            cexs = Traces.extract(cexs[loc])
+            cexs = data.traces.Traces.extract(cexs[loc])
             cexs = cexs.padzeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
-            mlog.debug("{}: {} new cex exprs".format(loc, len(exprs_)))
+            mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
             exprs.extend(exprs_)
 
-        return eqts, new_cexs
+        return eqts

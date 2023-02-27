@@ -1,4 +1,4 @@
-open Cil
+open GoblintCil
 module E = Errormsg
 module H = Hashtbl
 module P = Printf	     
@@ -15,14 +15,16 @@ class add_printf_visitor vtrace = object(self)
   inherit nopCilVisitor
 
   method private create_printf_stmt fd : stmt =
-    (*Create printf statement, e.g., printf("%d %d %g", x, y, z)*)
+    (*
+      Create printf statement, e.g., printf("vtrace1; %d; %d; %g", x, y, z)
+     *)
     let s = L.map (
                 fun vi -> if vi.vtype = intType then "%d" else "%g"
               ) fd.sformals in
                 
-    let s = fd.svar.vname ^ ": " ^ S.concat " " s  ^ "\n" in
+    let s = fd.svar.vname ^ "; " ^ (S.concat "; " s)  ^ "\n" in
     let myprintf:instr = CM.mkCall "printf"
-                         (Const (CStr(s))::(L.map CM.exp_of_vi fd.sformals)) in
+                         (Const (CStr(s, No_encoding))::(L.map CM.exp_of_vi fd.sformals)) in
     mkStmt (Instr([myprintf]))
 
   method vfunc f =
@@ -35,13 +37,11 @@ class add_printf_visitor vtrace = object(self)
 end
 
 
-
-
 class print_type_visitor vtrace mainQ = object(self)
   (*
-    vtrace1: I x, I y, I r, I q
-    vtrace2: I x, I y, I r, I q, I a, I b
-    vtrace3: I x, I y, I r, I q
+    vtrace1; I x; I y; I r; I q
+    vtrace2; I x; I y; I r; I q;, I a; I b
+    vtrace3; I x; I y; I r; I q
    *)
                                       
   inherit nopCilVisitor
@@ -52,7 +52,7 @@ class print_type_visitor vtrace mainQ = object(self)
                   (if vi.vtype = intType then "I" else "D") ^ " " ^ vi.vname
                 ) f.sformals
       in
-      P.printf "%s: %s\n" f.svar.vname (S.concat ", " s)
+      P.printf "%s; %s\n" f.svar.vname (S.concat "; " s)
     );    
     SkipChildren
 end
@@ -70,7 +70,7 @@ class add_symstates_visitor vtrace = object(self)
                 
     let s = fd.svar.vname ^ ": " ^ S.concat "; " s  ^ "\n" in
     let myprintf:instr = CM.mkCall "printf"
-                         (Const (CStr(s))::(L.map CM.exp_of_vi fd.sformals)) in
+                         (Const (CStr(s, No_encoding))::(L.map CM.exp_of_vi fd.sformals)) in
     mkStmtOneInstr myprintf
 
   method private create_print_pathcondition : stmt =
@@ -112,7 +112,7 @@ class change_vassume_visitor vassume changeto = object
 
   method vinst i =
     match i with
-    | Call(lvopt, (Lval(Var(vi),NoOffset)), args,loc)
+    | Call(lvopt, (Lval(Var(vi),NoOffset)), args,loc, loc2)
          when vi.vname = vassume ->
        let i' = CM.mkCall changeto args in
        ChangeTo([i'])
@@ -188,25 +188,6 @@ let () = begin
     CM.writeSrc trace_src ast_trace
 
 end
-
-
-
-    (* visitCilFileSameGlobals (new CM.everyVisitor) ast;
-     * visitCilFileSameGlobals (new CM.breakCondVisitor :> cilVisitor) ast;
-     * 
-     * let correctQ_fd:fundec = CM.findFun ast correctQ_name in    
-     * 
-     * let ignoreFuns:CM.SS.t =
-     *   L.fold_right CM.SS.add ["main" ; mainQ_name; correctQ_name] CM.SS.empty in
-     * 
-     * (\*add stmt id*\)
-     * let stmtHt = H.create 1024 in
-     * visitCilFileSameGlobals (new CM.numVisitor stmtHt ignoreFuns :> cilVisitor) ast;
-     * 
-     * CM.write_file_bin ast_file (ast, main_fd, mainQ_fd, correctQ_fd, stmtHt) *)
-
-           
-
 
 
 (* let stderrVi = CM.mkVi ~ftype:(TPtr(TVoid [], [])) "_coverage_fout"*)

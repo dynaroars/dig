@@ -1,201 +1,171 @@
-from functools import reduce
-from collections import defaultdict
+"""
+To run doctest
+$ ~/miniconda3/bin/python3 -m doctest -v helpers/miscs.py 
+"""
+
+
+from __future__ import annotations
+from collections.abc import Iterable, Callable
+from collections import defaultdict, OrderedDict
 import pdb
 import itertools
-import operator
-import ast
+import functools
 import multiprocessing
-from collections import Iterable
-
-import sage.all
-from sage.all import cached_function, fork
-
-import z3
+import sympy
+from sympy.solvers.solveset import linsolve
 import helpers.vcommon as CM
 import settings
 
+from beartype import beartype
+from beartype.typing import (Type, TypeVar, Any, Sequence)
+                             
 DBG = pdb.set_trace
 
-mlog = CM.getLogger(__name__, settings.logger_level)
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
+class Miscs:
 
-class Miscs(object):
-
+    @beartype
     @staticmethod
-    def msage_eval(s, d):
-        assert all(isinstance(k, str) and
-                   Miscs.is_expr(v) for k, v in d.items()), d
-        while True:
-            try:
-                return sage.all.sage_eval(s, d)
-            except NameError as e:  # name 'yy' is not defined
-                symb = str(e).split("'")[1]
-                mlog.debug("create new symbol {}".format(symb))
-                d[symb] = sage.all.var(symb)
+    def is_expr(x: Any) -> bool:
+        return isinstance(x, sympy.Expr)
 
-    @staticmethod
-    def is_real(x): return isinstance(x, sage.rings.real_mpfr.RealLiteral)
-
-    @staticmethod
-    def is_int(x): return isinstance(x, sage.rings.integer.Integer)
-
+    @beartype
     @classmethod
-    def is_num(cls, x): return cls.is_real(x) or cls.is_int(x)
-
-    @staticmethod
-    def is_rel(f, rel=None):
-        """
-        sage: from helpers.miscs import Miscs
-        sage: assert not Miscs.is_rel(7.2)
-        sage: assert not Miscs.is_rel(x)
-        sage: assert not Miscs.is_rel(x+7)
-        sage: assert Miscs.is_rel(x==3,operator.eq)
-
-        sage: assert Miscs.is_rel(x<=3,operator.le)
-        sage: assert not Miscs.is_rel(x<=3,operator.lt)
-        sage: assert not Miscs.is_rel(x+3,operator.lt)
-
-        sage: y = var('y')
-        sage: assert Miscs.is_rel(x+y<=3)
-        """
-
-        try:
-            if not f.is_relational():
-                return False
-
-            if rel is None:
-                return True
-            else:
-                return f.operator() == rel
-
-        except AttributeError:
-            return False
-
-    @classmethod
-    def is_eq(cls, f):
-        return cls.is_rel(f, operator.eq)
-
-    @staticmethod
-    def is_expr(x):
-        return isinstance(x, sage.symbolic.expression.Expression)
-
-    @classmethod
-    def get_vars(cls, ps):
+    def get_vars(cls, props) -> list[sympy.Symbol]:
         """
         Returns a list of uniq variables from a list of properties
 
-        Examples:
-
-        sage: var('a b c x')
-        (a, b, c, x)
-
-        sage: from helpers.miscs import Miscs
-        sage: assert [a, b, c, x] == Miscs.get_vars([x^(a*b) + a**2+b+2==0, c**2-b==100, b**2 + c**2 + a**3>= 1])
-        sage: assert Miscs.get_vars(a**2+b+5*c+2==0) == [a, b, c]
-        sage: assert Miscs.get_vars(x+x^2) == [x]
-        sage: assert Miscs.get_vars([3]) == []
-        sage: assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
+        >>> a,b,c,x = sympy.symbols('a b c x')
+        >>> assert [a, b, c, x] == Miscs.get_vars([x**(a*b) + a**2+b+2, sympy.Eq(c**2-b,100), sympy.Gt(b**2 + c**2 + a**3,1)])
+        >>> assert Miscs.get_vars(a**2+b+5*c+2) == [a, b, c]
+        >>> assert Miscs.get_vars(x+x**2) == [x]
+        >>> assert Miscs.get_vars([3]) == []
+        >>> assert Miscs.get_vars((3,'x + c',x+b)) == [b, x]
         """
 
-        ps = ps if isinstance(ps, Iterable) else [ps]
-        ps = [p for p in ps if cls.is_expr(p)]
-        vs = [v for p in ps for v in p.variables()]
+        props = props if isinstance(props, Iterable) else [props]
+        props = (p for p in props if isinstance(p, (sympy.Expr, sympy.Rel)))
+        vs = (v for p in props for v in p.free_symbols)
         return sorted(set(vs), key=str)
 
+    str2rat_cache: dict[str, sympy.Rational] = {}
+
+    @beartype 
     @staticmethod
-    @cached_function
-    def rat2str(s):
+    def str2list(s: str) -> tuple:
+        rs = tuple(eval(s))
+        return rs
+
+
+    @staticmethod
+    @functools.cache
+    def str2rat(s: str) -> sympy.Rational:
         """
         Convert the input 's' to a rational number if possible.
 
         Examples:
-
-        sage: from helpers.miscs import Miscs
-        sage: assert Miscs.rat2str('.3333333') == 3333333/10000000
-        sage: assert Miscs.rat2str('3/7') == 3/7
-        sage: assert Miscs.rat2str('1.') == 1
-        sage: assert Miscs.rat2str('1.2') == 6/5
-        sage: assert Miscs.rat2str('.333') == 333/1000
-        sage: assert Miscs.rat2str('-.333') == -333/1000
-        sage: assert Miscs.rat2str('-12.13') == -1213/100
-
-        # Returns None because cannot convert this str
-        sage: Miscs.rat2str('333333333333333s')
-        Traceback (most recent call last):
-        ...
-        TypeError: unable to convert '333333333333333s' to a real number
-
-
-        Note: this version seems to be the *fastest*
-        among several ones I've tried
-        %timeit rat2str('322')
+        >>> print(Miscs.str2rat('.3333333'))
+        3333333/10000000
+        >>> print(Miscs.str2rat('3/7'))
+        3/7
+        >>> print(Miscs.str2rat('1.'))
+        1
+        >>> print(Miscs.str2rat('1.2'))
+        6/5
+        >>> print(Miscs.str2rat('.333'))
+        333/1000
+        >>> print(Miscs.str2rat('-.333'))
+        -333/1000
+        >>> print(Miscs.str2rat('-12.13'))
+        -1213/100
         """
-        try:
-            return sage.all.QQ(s)
-        except TypeError:
-            pass
+        return sympy.Rational(s)
 
-        return sage.all.QQ(sage.all.RR(s))
+    @beartype    
+    @staticmethod
+    def create_uks(ts: list[Any], prefix: str = "uk") -> list[sympy.Symbol]:
+        uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
+        assert not set(ts).intersection(set(uks)), "name conflict"
+        return uks
 
+    @beartype
     @classmethod
-    def init_terms(cls, vs, deg, rate):
+    def init_terms(cls, vs: tuple[str,...], deg: int, 
+                   rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
         assert vs, vs
         assert deg >= 1, deg
         assert rate >= 0.1, rate
 
-        terms = cls.get_terms([sage.all.var(v) for v in vs], deg)
-
-        template, uks = cls.mk_template(terms, 0, retCoefVars=True)
+        symbols = [sympy.Symbol(v) for v in vs]
+        terms = cls.get_terms(symbols, deg)
+        uks = cls.create_uks(terms)
+        assert not set(terms).intersection(set(uks)), "name conflict"
         n_eqts_needed = int(rate * len(uks))
-        return terms, template, uks, n_eqts_needed
+        return terms, uks, n_eqts_needed
 
+    @beartype    
     @staticmethod
-    def get_terms(ss, deg):
+    def get_terms(symbols: list[sympy.Symbol], deg: int) -> list:
         """
         get a list of terms from the given list of vars and deg
-        the number of terms is len(rs) == binomial(len(ss)+d, d)
+        the number of terms is len(rs) == binomial(len(symbols)+d, d)
 
-        Note: itertools is faster than Sage's MultichooseNK(len(ss)+1,deg)
-
-        sage: from helpers.miscs import Miscs
-
-        sage: ts = Miscs.get_terms(list(var('a b')), 3)
-        sage: assert ts == [1, a, b, a^2, a*b, b^2, a^3, a^2*b, a*b^2, b^3]
-
-        sage: ts = Miscs.get_terms(list(var('a b c d e f')), 3)
-        sage: ts
-        [1, a, b, c, d, e, f,
-        a^2, a*b, a*c, a*d, a*e, a*f,
-        b^2, b*c, b*d, b*e, b*f, c^2, c*d, c*e, c*f,
-        d^2, d*e, d*f, e^2, e*f, f^2, a^3, a^2*b, a^2*c, a^2*d, a^2*e,
-        a^2*f, a*b^2, a*b*c, a*b*d, a*b*e, a*b*f, a*c^2, a*c*d, a*c*e,
-        a*c*f, a*d^2, a*d*e, a*d*f, a*e^2, a*e*f, a*f^2,
-        b^3, b^2*c, b^2*d, b^2*e, b^2*f, b*c^2, b*c*d, b*c*e, b*c*f, b*d^2,
-        b*d*e, b*d*f, b*e^2, b*e*f, b*f^2, c^3, c^2*d, c^2*e, c^2*f, c*d^2,
-        c*d*e, c*d*f, c*e^2, c*e*f, c*f^2, d^3, d^2*e, d^2*f, d*e^2, d*e*f,
-        d*f^2, e^3, e^2*f, e*f^2, f^3]
-
+        >>> a,b,c,d,e,f = sympy.symbols('a b c d e f')
+        >>> ts = Miscs.get_terms([a, b], 3)
+        >>> assert ts == [1, a, b, a**2, a*b, b**2, a**3, a**2*b, a*b**2, b**3]
+        >>> Miscs.get_terms([a,b,c,d,e,f], 3)
+        [1, a, b, c, d, e, f, a**2, a*b, a*c, a*d, a*e, a*f, b**2, b*c, b*d, b*e, b*f, c**2, c*d, c*e, c*f, d**2, d*e, d*f, e**2, e*f, f**2, a**3, a**2*b, a**2*c, a**2*d, a**2*e, a**2*f, a*b**2, a*b*c, a*b*d, a*b*e, a*b*f, a*c**2, a*c*d, a*c*e, a*c*f, a*d**2, a*d*e, a*d*f, a*e**2, a*e*f, a*f**2, b**3, b**2*c, b**2*d, b**2*e, b**2*f, b*c**2, b*c*d, b*c*e, b*c*f, b*d**2, b*d*e, b*d*f, b*e**2, b*e*f, b*f**2, c**3, c**2*d, c**2*e, c**2*f, c*d**2, c*d*e, c*d*f, c*e**2, c*e*f, c*f**2, d**3, d**2*e, d**2*f, d*e**2, d*e*f, d*f**2, e**3, e**2*f, e*f**2, f**3]
         """
+
         assert deg >= 0, deg
-        assert ss and all(s.is_symbol() for s in ss), ss
-        ss_ = ([sage.all.SR(1)] if ss else (sage.all.SR(1),)) + ss
-        combs = itertools.combinations_with_replacement(ss_, deg)
-        terms = [sage.all.prod(c) for c in combs]
+        assert symbols, symbols
+
+        # ss_ = ([1] if ss else (1,)) + ss
+        symbols_ = [1] + symbols
+        combs = itertools.combinations_with_replacement(symbols_, deg)
+        terms = [sympy.prod(c) for c in combs]
         return terms
 
+    @beartype
     @classmethod
-    def get_deg(cls, nvs, nts, max_deg=7):
+    def get_max_deg(cls, p: int | sympy.Expr) -> int:
         """
-        Generates a degree wrt to a (maximum) number of terms (nss)
+        get the max degree of a polynomial
 
-        sage: from helpers.miscs import Miscs
+        >>> x, y, z = sympy.symbols('x y z')
+        >>> p = 3*x**2*y + x*y**4 + z*x
+        >>> assert(Miscs.get_max_deg(p) == 5)
+        >>> assert(Miscs.get_max_deg(x) == 1)
+        >>> assert(Miscs.get_max_deg(x**3) == 3)
+        >>> assert(Miscs.get_max_deg(-100) == 0)
+        >>> assert(Miscs.get_max_deg(x*y-100) == 2)
+        >>> assert(Miscs.get_max_deg(x*y**2 + 3*y) == 3)
+        """
 
-        sage: assert Miscs.get_deg(3, 4, 5) == 1
-        sage: Miscs.get_deg(3, 1, 5)
+        if isinstance(p, (int, sympy.core.numbers.Integer)):
+            return 0
+        elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
+            return int(sum(sympy.degree_list(p)))
+        elif isinstance(p, sympy.Add):
+            return max(cls.get_max_deg(a) for a in p.args)
+        else:
+            mlog.warning(f"cannot handle {p} of type {type(p)}")
+            return 0
+
+    @beartype    
+    @classmethod
+    def get_deg(cls, nvs: int, nts: int, max_deg: int = 7) -> int:
+        """
+        Guess a max degree wrt to a (maximum) number of terms (nss)
+
+        >>> assert(Miscs.get_deg(3, 4, 5) == 1)
+        >>> Miscs.get_deg(3, 1, 5)
         Traceback (most recent call last):
         ...
         AssertionError: (1, 3)
         """
+
         assert nvs >= 1, nvs
         assert nts >= nvs, (nts, nvs)
         assert max_deg >= 1, max_deg
@@ -205,40 +175,38 @@ class Miscs(object):
                 return d
 
             # look ahead
-            nterms = sage.all.binomial(nvs + d+1, d+1)
+            nterms: int = sympy.binomial(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
+        return max_deg
 
+    @beartype
     @classmethod
-    def get_auto_deg(cls, maxdeg, nvars, maxterm):
+    def get_auto_deg(cls, maxdeg: None | int, nvars: int, maxterm: int) -> int:
         if maxdeg:
             deg = maxdeg
-            mlog.debug("using deg {}".format(deg))
+            mlog.debug(f"using deg {deg}")
         else:
             deg = cls.get_deg(nvars, maxterm)
-            mlog.debug("autodeg {}".format(deg))
+            mlog.debug(f"autodeg {deg}")
 
         return deg
 
+    @beartype
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz, icoef, do_create_terms=True):
+    def get_terms_fixed_coefs(ss, subset_siz: int, icoef: int, 
+                              do_create_terms:bool=True) -> set[sympy.Expr]:
         """
-        sage: from helpers.miscs import Miscs
-
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
-        sage: var('x y z t s u')
-        (x, y, z, t, s, u)
-
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
+        >>> x, y, z, t, s, u = sympy.symbols('x y z t s u')
+        >>> sorted(Miscs.get_terms_fixed_coefs([x,y], 2, 1), key=lambda x: str(x))
         [-x, -x + y, -x - y, -y, x, x + y, x - y, y]
-
-        sage: sorted(Miscs.get_terms_fixed_coefs([x,y^2], 2, 1), key=lambda x: str(x))
-        [-x, -y^2, -y^2 + x, -y^2 - x, x, y^2, y^2 + x, y^2 - x]
-
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
-        sage: assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
+        >>> sorted(Miscs.get_terms_fixed_coefs([x,y**2], 2, 1), key=lambda x: str(x))
+        [-x, -x + y**2, -x - y**2, -y**2, x, x + y**2, x - y**2, y**2]
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 1)) == 18
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 3, 1)) == 26
+        >>> assert len(Miscs.get_terms_fixed_coefs([x,y,z], 2, 3)) == 126
         """
         assert icoef >= 1, icoef
         if len(ss) < subset_siz:
@@ -248,342 +216,206 @@ class Miscs(object):
         rs = []
         for ssSubset in itertools.combinations(ss, subset_siz):
             css = itertools.product(*([coefs] * len(ssSubset)))
-            rs_ = [tuple((t, c) for t, c in zip(ssSubset, cs) if c != 0)
-                   for cs in css if not all(c_ == 0 for c_ in cs)]
+            rs_ = [
+                tuple((t, c) for t, c in zip(ssSubset, cs) if c != 0)
+                for cs in css
+                if not all(c_ == 0 for c_ in cs)
+            ]
             if do_create_terms:
-                rs_ = [sum(t*c for t, c in tc) for tc in rs_]
+                rs_ = [sum(t * c for t, c in tc) for tc in rs_]
             rs.extend(rs_)
 
         return set(rs)
 
-    @staticmethod
-    def reduce_eqts(ps):
+
+    @beartype
+    @classmethod
+    def reduce_eqts(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
         """
         Return the basis (e.g., a min subset of ps that implies ps)
-        of the set of eqts input ps using Groebner basis
+        of the set of polynomial eqts using Groebner basis.
+        Warning 1: Grobner basis sometimes results in a larger set of eqts,
+        in which case we return the original set of eqts.
+        Warning 2: seems to get stuck often.  So had to give it "nice" polynomials
 
-        sage: from helpers.miscs import Miscs
+        >>> a, y, b, q, k = sympy.symbols('a y b q k')
 
-        sage: var('a y b q k')
-        (a, y, b, q, k)
 
-        sage: rs =  Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
-        sage: assert set(rs) == set([a*y - b == 0, q*y + k - x == 0])
+        # >>> rs = Miscs.reduce_eqts([a*y-b==0,q*y+k-x==0,a*x-a*k-b*q==0])
+        __main__:DEBUG:Grobner basis: got 2 ps from 3 ps
+        # >>> assert set(rs) == set([a*y - b == 0, q*y + k - x == 0])
 
-        sage: rs =  Miscs.reduce_eqts([x*y==6,y==2,x==3])
-        sage: assert set(rs) == set([x - 3 == 0, y - 2 == 0])
+        # >>> rs =  Miscs.reduce_eqts([x*y==6,y==2,x==3])
+        __main__:DEBUG:Grobner basis: got 2 ps from 3 ps
+        # >>> assert set(rs) == set([x - 3 == 0, y - 2 == 0])
 
         # Attribute error occurs when only 1 var, thus return as is
-        sage: rs =  Miscs.reduce_eqts([x*x==4,x==2])
-        sage: assert set(rs) == set([x == 2, x^2 == 4])
+        # >>> rs =  Miscs.reduce_eqts([x*x==4,x==2])
+        __main__:ERROR:'Ideal_1poly_field' object has no attribute 'radical'
+        # >>> assert set(rs) == set([x == 2, x**2 == 4])
         """
+
         if len(ps) <= 1:
             return ps
 
-        assert (p.operator() == sage.all.operator.eq for p in ps), ps
-        try:
-            Q = sage.all.PolynomialRing(sage.all.QQ, Miscs.get_vars(ps))
-            myIdeal = Q*ps
-            ps = myIdeal.radical().interreduced_basis()
-            ps = [(sage.all.SR(p) == 0) for p in ps]
-        except AttributeError as ex:
-            mlog.error(ex)
-            pass
-        except ValueError as ex:
-            mlog.error(ex)
-            pass
+        ps_ = sympy.groebner(ps, *cls.get_vars(ps))
+        ps_ = [x for x in ps_]
+        mlog.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
+        return ps_ if len(ps_) < len(ps) else ps
 
-        return ps
-
+    @beartype
     @staticmethod
-    def elim_denom(p):
+    def elim_denom(p: sympy.Expr | sympy.Rel) -> sympy.Expr | sympy.Rel:
         """
         Eliminate (Integer) denominators in expression operands.
         Will not eliminate if denominators is a var (e.g.,  (3*x)/(y+2)).
 
-        Examples:
-        sage: from helpers.miscs import Miscs
-        sage: var('x y z')
-        (x, y, z)
+        >>> x,y,z = sympy.symbols('x y z')
 
-        sage: Miscs.elim_denom(3/4*x^2 + 7/5*y^3)
-        28*y^3 + 15*x^2
+        >>> Miscs.elim_denom(sympy.Rational(3, 4)*x**2 + sympy.Rational(7, 5)*y**3)
+        15*x**2 + 28*y**3
 
-        sage: Miscs.elim_denom(-3/2*x^2 - 1/24*z^2 >= (y + 1/7))
-        -252*x^2 - 7*z^2 >= 168*y + 24
+        >>> Miscs.elim_denom(x + y)
+        x + y
 
-        sage: Miscs.elim_denom(-3/(y+2)*x^2 - 1/24*z^2 >= (y + 1/7))
-        -1/24*z^2 - 3*x^2/(y + 2) >= y + 1/7
+        >>> Miscs.elim_denom(-sympy.Rational(3,2)*x**2 - sympy.Rational(1,24)*z**2)
+        -36*x**2 - z**2
 
-        sage: Miscs.elim_denom(x + y == 0)
-        x + y == 0
+        >>> Miscs.elim_denom(15*x**2 - 12*z**2)
+        15*x**2 - 12*z**2
 
         """
-        try:
-            def f(g): return [sage.all.Integer(o.denominator())
-                              for o in g.operands()]
-            denoms = f(p.lhs()) + f(p.rhs()) if p.is_relational() else f(p)
-            return p * sage.all.lcm(denoms)
-        except TypeError:
+        denoms = [sympy.fraction(a)[1] for a in p.args]
+        if all(denom == 1 for denom in denoms):  # no denominator like 1/2
             return p
+        return p * sympy.lcm(denoms)
 
+    @beartype
     @classmethod
-    def get_coefs(cls, p):
+    def get_coefs(cls, p: sympy.Expr | sympy.Rel) -> list[sympy.core.numbers.Integer]:
         """
         Return coefficients of an expression
 
-        sage: from helpers.miscs import Miscs
-        sage: var('y')
-        y
-        sage: Miscs.get_coefs(3*x+5*y^2 == 9)
-        [5, 3]
+        >>> x,y,z = sympy.symbols('x y z')
+        >>> Miscs.get_coefs(3*x+5*x*y**2)
+        [3, 5]
         """
-        Q = sage.all.PolynomialRing(sage.all.QQ, cls.get_vars(p))
-        rs = Q(p.lhs()).coefficients()
-        return rs
 
-    @staticmethod
-    def is_repeating_rational(x):
-        "check if x is a repating rational"
-        assert isinstance(x, sage.rings.rational.Rational) \
-            and not x.is_integer(), x
+        p = p.lhs if p.is_Equality else p
+        return list(p.as_coefficients_dict().values())
 
-        x1 = x.n(digits=50).str(skip_zeroes=True)
-        x2 = x.n(digits=100).str(skip_zeroes=True)
-        return x1 != x2
-
+    @beartype
     @classmethod
-    def refine(cls, sols, ignoreLargeCoefs=True):
-        if not sols:
-            return sols
-        sols = cls.reduce_eqts(sols)
-        sols = [cls.elim_denom(s) for s in sols]
+    def remove_ugly(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr |  sympy.Rel]:
 
-        def okCoefs(s): return all(
-            abs(c) <= settings.MAX_LARGE_COEF or
-            sage.all.mod(c, 10) == 0 or
-            sage.all.mod(c, 5) == 0
-            for c in cls.get_coefs(s))
+        @functools.cache
+        def is_nice_coef(c: Union[int, float]) -> bool:
+            return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
 
-        if ignoreLargeCoefs:  # don't allow large coefs
-            sols_ = []
-            for s in sols:
-                if okCoefs(s):
-                    sols_.append(s)
-                else:
-                    mlog.debug("ignore large coefs {} ..".format(
-                        str(s)[:settings.MAX_LARGE_COEF]))
-            sols = sols_
-        return sols
+        @functools.cache
+        def is_nice_eqt(eqt: Union[sympy.Expr, sympy.Rel]) -> bool:
+            return (len(eqt.args) <= settings.UGLY_FACTOR
+                    and all(is_nice_coef(c) for c in cls.get_coefs(eqt)))
 
+        ps_ = []
+        for p in ps:
+            if is_nice_eqt(p):
+                ps_.append(p)
+            else:
+                mlog.debug(f"ignoring large coefs {str(p)[:50]} ..")
+
+        return ps_
+
+    @beartype
     @classmethod
-    def solve_eqts(cls, eqts, uks, template):
-        assert isinstance(eqts, list) and eqts, eqts
-        assert isinstance(uks, list) and uks, uks
+    def refine(cls, eqts: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
+
+        if not eqts:
+            return eqts
+
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
+        eqts = cls.reduce_eqts(eqts)
+        eqts = [cls.elim_denom(s) for s in eqts]
+        eqts = cls.remove_ugly(eqts)
+
+        return eqts
+
+    @beartype
+    @classmethod
+    def solve_eqts(cls, eqts: list[sympy.Expr | sympy.Rel],
+                   terms: list[Any], uks: list[sympy.Symbol]) -> list[sympy.Eq]:
+
+        assert eqts, eqts
+        assert terms, terms
+        assert uks, uks
+        assert len(terms) == len(uks), (terms, uks)
         assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
-        mlog.debug("solve {} uks using {} eqts".format(len(uks), len(eqts)))
-        # print(eqts)
+        mlog.debug(f"solving {len(uks)} uks using {len(eqts)} eqts")
+        sol = linsolve(eqts, uks)
+        vals = list(list(sol)[0])
 
-        # I don't think this helps
-        # @fork(timeout=settings.EQT_SOLVER_TIMEOUT, verbose=False)
-        def mysolve(eqts, uks, solution_dict):
-            return sage.all.solve(eqts, *uks, solution_dict=True)
+        if all(v == 0 for v in vals):
+            return []
 
-        rs = mysolve(eqts, uks, solution_dict=True)
-        assert isinstance(rs, list), rs
-        assert all(isinstance(s, dict) for s in rs), rs
+        eqts_ = cls.instantiate_template(terms, uks, vals)
+        mlog.debug(f"got {len(eqts_)} eqts after instantiating")
+        eqts_ = cls.refine(eqts_)
+        mlog.debug(f"got {len(eqts_)} eqts after refinement")
+        return [sympy.Eq(eqt, 0) for eqt in eqts_]
 
-        # filter sols with all uks = 0, e.g., {uk_0: 0, uk_1: 0, uk_2: 0}
-        rs = [d for d in rs if not all(x == 0 for x in d.values())]
-
-        reqts = cls.instantiate_template(template, rs)
-        reqts = cls.refine(reqts)
-        # print '\n'.join(map(str, eqts))
-        # print uks
-        # print reqts
-        # CM.pause()
-
-        return reqts
-
+    @beartype
     @classmethod
-    def mk_template(cls, terms, rhsVal,
-                    op=sage.all.operator.eq,
-                    prefix=None, retCoefVars=False):
-        """
-        get a template from terms.
-
-        Examples:
-
-        sage: from helpers.miscs import Miscs
-        sage: var('a,b,x,y')
-        (a, b, x, y)
-
-        sage: Miscs.mk_template([1, a, b, x, y],0,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0,
-        a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0 == 0)
-
-        sage: Miscs.mk_template([1, x, y],0,\
-        op=operator.gt,prefix=None,retCoefVars=True)
-        (uk_1*x + uk_2*y + uk_0 > 0, [uk_0, uk_1, uk_2])
-
-        sage: Miscs.mk_template([1, a, b, x, y],None,prefix=None)
-        (a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0,
-        a*uk_1 + b*uk_2 + uk_3*x + uk_4*y + uk_0)
-
-        sage: Miscs.mk_template([1, a, b, x, y],0,prefix='hi')
-        (a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0,
-        a*hi1 + b*hi2 + hi3*x + hi4*y + hi0 == 0)
-
-        sage: var('x1')
-        x1
-        sage: Miscs.mk_template([1, a, b, x1, y],0,prefix='x')
-        Traceback (most recent call last):
-        ...
-        AssertionError: name conflict
-        """
-
-        if not prefix:
-            prefix = "uk_"
-        uks = [sage.all.var(prefix + str(i)) for i in range(len(terms))]
-
-        assert not set(terms).intersection(set(uks)), 'name conflict'
-
-        template = sum(map(sage.all.prod, zip(uks, terms)))
-
-        if rhsVal is not None:  # note, not None because rhsVal can be 0
-            template = op(template, rhsVal)
-
-        return template, uks if retCoefVars else template
-
-    @classmethod
-    def instantiate_template(cls, template, sols):
+    def instantiate_template(cls, terms:list, uks:list, vs:list) -> list:
         """
         Instantiate a template with solved coefficient values
 
-        sage: from helpers.miscs import Miscs
-        sage: var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
+        # sage:var('uk_0,uk_1,uk_2,uk_3,uk_4,r14,r15,a,b,y')
         (uk_0, uk_1, uk_2, uk_3, uk_4, r14, r15, a, b, y)
 
-        sage: sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: -1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
-        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
+        # sage:sols = [{uk_0: -2*r14 + 7/3*r15, uk_1: - \
+            1/3*r15, uk_4: r14, uk_2: r15, uk_3: -2*r14}]
+        # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, sols)
         [-2*x + y - 2 == 0, -1/3*a + b + 7/3 == 0]
 
-
-        sage: Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
+        # sage:Miscs.instantiate_template(uk_1*a + uk_2*b + uk_3*x + uk_4*y + uk_0 == 0, [])
         []
         """
-        assert cls.is_expr(template), template
+        assert terms, terms
+        assert uks, uks
+        assert len(terms) == len(uks) == len(vs), (terms, uks, vs)
 
-        if not sols:
-            return []
-        if len(sols) > 1:
-            mlog.warning('instantiate_template with sols: len(sols) = {}'
-                         .format(len(sols)))
-            mlog.warning(str(sols))
+        cs = [(t, u, v) for t, u, v in zip(terms, uks, vs) if v != 0]
+        terms_, uks_, vs_ = zip(*cs)
 
-        def fEq(d):
-            f_ = template(d)
-            uk_vars = cls.get_vars(d.values())  # e.g., r15,r16 ...
+        eqt = sum(t*v for t, v in zip(terms_, vs_))
 
-            if not uk_vars:
-                return f_
+        uk_vs = cls.get_vars(vs_)
 
-            iM = sage.all.identity_matrix(len(uk_vars))  # standard basis
-            rs = [dict(zip(uk_vars, l)) for l in iM.rows()]
-            rs = [f_(r) for r in rs]
-            return rs
+        if not uk_vs:
+            return eqt
 
-        sols = [y for x in sols for y in fEq(x)]
-
-        # remove trivial (tautology) str(x) <=> str(x)
-        sols = [s for s in sols
-                if not (s.is_relational() and str(s.lhs()) == str(s.rhs()))]
-
+        sols = [eqt.xreplace({uk: (1 if j == i else 0) for j, uk in enumerate(uk_vs)})
+                for i, uk in enumerate(uk_vs)]
         return sols
 
+    @beartype
     @staticmethod
-    def show_removed(s, orig_siz, new_siz, elapsed_time):
+    def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float) -> None:
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
-        if not n_removed:
-            return
-        mlog.debug("{}: removed {} invs in {:.2f}s (orig {}, new {})"
-                   .format(s, n_removed, elapsed_time, orig_siz, new_siz))
+        mlog.debug(
+            f"{s}: removed {n_removed} invs "
+            f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})"
+        )
 
-    @classmethod
-    def get_workload(cls, tasks, n_cpus):
-        """
-        sage: from helpers.miscs import Miscs
-
-        >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
-        [1, 1, 2, 2, 2, 2, 2]
-
-        >>> wls = Miscs.get_workload(range(12),5); [len(wl) for wl in wls]
-        [2, 2, 2, 3, 3]
-
-        >>> wls = Miscs.get_workload(range(20),7); [len(wl) for wl in wls]
-        [2, 3, 3, 3, 3, 3, 3]
-
-        >>> wls = Miscs.get_workload(range(20),20); [len(wl) for wl in wls]
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-        >>> wls = Miscs.get_workload(range(12),7); [len(wl) for wl in wls]
-        [1, 1, 2, 2, 2, 2, 2]
-
-        >>> wls = Miscs.get_workload(range(146), 20); [len(wl) for wl in wls]
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
-        """
-        assert len(tasks) >= 1, tasks
-        assert n_cpus >= 1, n_cpus
-
-        wloads = defaultdict(list)
-        for i, task in enumerate(tasks):
-            cpu_id = i % n_cpus
-            wloads[cpu_id].append(task)
-
-        wloads = [wl for wl in
-                  sorted(wloads.values(), key=lambda wl: len(wl))]
-
-        return wloads
-
-    @classmethod
-    def run_mp(cls, taskname, tasks, f):
-        """
-        Run wprocess on tasks in parallel
-        """
-        def wprocess(mytasks, myQ):
-            rs = f(mytasks)
-            if myQ is None:
-                return rs
-            else:
-                myQ.put(rs)
-
-        n_cpus = multiprocessing.cpu_count()
-        if settings.DO_MP and len(tasks) >= 2 and n_cpus >= 2:
-            Q = multiprocessing.Queue()
-            wloads = cls.get_workload(tasks, n_cpus=n_cpus)
-            mlog.debug("{}:running {} jobs using {} threads: {}".format(
-                taskname, len(tasks), len(wloads), list(map(len, wloads))))
-
-            workers = [multiprocessing.Process(
-                target=wprocess, args=(wl, Q)) for wl in wloads]
-
-            for w in workers:
-                w.start()
-
-            wrs = [x for _ in workers for x in Q.get()]
-
-        else:
-            wrs = wprocess(tasks, myQ=None)
-
-        return wrs
-
+    @beartype
     @staticmethod
-    def simplify_idxs(ordered_idxs, imply_f):
+    def simplify_idxs(ordered_idxs: list[int], imply_f: Callable[[set[int], int], bool]) -> list[int]:
         """
         attempt to remove i in idxs if imply_f returns true
-        Note: the order of idxs determine what to get checked (and removed) 
+        Note: the order of idxs determine what to get checked (and removed)
         """
         assert isinstance(ordered_idxs, list), ordered_idxs
         assert ordered_idxs == list(range(len(ordered_idxs))), ordered_idxs
@@ -599,304 +431,112 @@ class Miscs(object):
 
         return sorted(results)
 
-
-class Z3(object):
-    @classmethod
-    def is_var(cls, v):
-        return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
-
-    @classmethod
-    def _get_vars(cls, f, rs):
+    @staticmethod
+    def create_dict(l: list[tuple[Any, Any]]) -> dict[Any, Any]:
         """
-        Helper method to obtain variables from a formula f recursively.
-        Results are stored in the list rs.
+        given a list of set of type [(k1,v1),..,(kn,vn)]
+        generates a dict where keys are k's and values are [v's]
+        e.g.,
+
+        >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]) 
+        {'a': [1, 3], 'b': [2, 10], 'c': [4]}
         """
-        assert z3.is_expr(f) or z3.is_const(f), f
-        if z3.is_const(f):
-            if cls.is_var(f):
-                rs.add(f)
-        else:
-            for c in f.children():
-                cls._get_vars(c, rs)
+        return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
 
-    @classmethod
-    @cached_function
-    def get_vars(cls, f):
+    @staticmethod
+    @beartype    
+    def merge_dict(l: list[dict[Any, Any]]) -> dict[Any, Any]:
+        return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
+
+
+class MP:
+    @beartype    
+    @staticmethod
+    def get_workload(tasks: Iterable[Any], n_cpus: int) -> list[list[Any]]:
         """
-        sage: from helpers.miscs import Z3
-        sage: import z3
-        sage: x,y,z = z3.Ints("x y z")
-        sage: assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
+        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
+        [1, 1, 2, 2, 2, 2, 2]
+
+        >>> wls = MP.get_workload(range(12),5); [len(wl) for wl in wls]
+        [2, 2, 2, 3, 3]
+
+        >>> wls = MP.get_workload(range(20),7); [len(wl) for wl in wls]
+        [2, 3, 3, 3, 3, 3, 3]
+
+        >>> wls = MP.get_workload(range(20),20); [len(wl) for wl in wls]
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
+        [1, 1, 2, 2, 2, 2, 2]
+
+        >>> wls = MP.get_workload(range(146), 20); [len(wl) for wl in wls]
+        [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
         """
-        assert z3.is_expr(f), f
+        assert len(tasks) >= 1, tasks
+        assert n_cpus >= 1, n_cpus
 
-        rs = set()
-        cls._get_vars(f, rs)
-        return frozenset(rs)
+        wloads = defaultdict(list)
+        for i, task in enumerate(tasks):
+            cpu_id = i % n_cpus
+            wloads[cpu_id].append(task)
 
-    @classmethod
-    def create_solver(cls, maximize=None):
-        if maximize is None:
-            solver = z3.Solver()
-        else:
-            solver = z3.Optimize()
-        solver.set(timeout=settings.SOLVER_TIMEOUT)
-        return solver
-
-    @classmethod
-    def extract(self, models):
-        assert models is None or models is False \
-            or (isinstance(models, list) and
-                all(isinstance(m, z3.ModelRef) for m in models)
-                and models), models
-
-        cexs = set()
-        isSucc = models is not None
-        if isSucc and models:  # disproved
-            cexs = [{str(s): sage.all.sage_eval(str(model[s])) for s in model}
-                    for model in models]
-        return cexs, isSucc
+        _wloads = [wl for wl in sorted(wloads.values(), key=len)]
+        return _wloads
 
     @classmethod
-    def get_models(cls, f, k):
-        """
-        Returns the first k models satisfiying f.
-        If f is not satisfiable, returns False.
-        If f cannot be solved, returns None
-        If f is satisfiable, returns the first k models
-        Note that if f is a tautology, i.e., True, then the result is []
-        """
-        assert z3.is_expr(f), f
-        assert k >= 1, k
-        solver = cls.create_solver(maximize=None)
-        solver.add(f)
-        models = []
-        i = 0
-        while solver.check() == z3.sat and i < k:
-            i = i + 1
-            m = solver.model()
-            if not m:  # if m == []
-                mlog.warning("sat but no model")
-                break
-            models.append(m)
-            # create new constraint to block the current model
-            block = z3.Not(z3.And([v() == m[v] for v in m]))
-            solver.add(block)
-
-        stat = solver.check()
-
-        if stat == z3.unknown:
-            rs = None
-        elif stat == z3.unsat and i == 0:
-            rs = False
-        else:
-            if models:
-                rs = models
-            else:
-                # tmp fix,  ProdBin has a case when
-                # stat is sat but model is []
-                # so tmp fix is to treat that as unknown
-                rs = None
-                stat = z3.unknown
-
-        if (isinstance(rs, list) and not rs):
-            print(f)
-            print(k)
-            print(stat)
-            print(models)
-
-            DBG()
-
-        assert not (isinstance(rs, list) and not rs), rs
-        return rs, stat
-
-    @classmethod
-    def imply(cls, fs, g, use_reals):
-        """
-        sage: from helpers.miscs import Z3
-
-        sage: var('x y')
-        (x, y)
-        sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
-        sage: assert Z3.imply([x-6==0,x+6==0],x*x-36==0,use_reals=False)
-        sage: assert not Z3.imply([x*x-36==0],x-6==0,use_reals=False)
-        sage: assert not Z3.imply([x-6==0],x-36==0,use_reals=False)
-        sage: assert Z3.imply([x-7>=0], x>=6,use_reals=False)
-        sage: assert not Z3.imply([x-7>=0], x>=8,use_reals=False)
-        sage: assert not Z3.imply([x-6>=0], x-7>=0,use_reals=False)
-        sage: assert not Z3.imply([x-7>=0,y+5>=0],x+y-3>=0,use_reals=False)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,use_reals=False)
-        sage: assert Z3.imply([x-2*y>=0,y-1>=0],x-2>=0,use_reals=False)
-        sage: assert not Z3.imply([],x-2>=0,use_reals=False)
-        sage: assert Z3.imply([x-7>=0,y+5>=0],x+y-2>=0,use_reals=False)
-        sage: assert Z3.imply([x^2-9>=0,x>=0],x-3>=0,use_reals=False)
-        sage: assert not Z3.imply([1/2*x**2 - 3/28*x + 1 >= 0],1/20*x**2 - 9/20*x + 1 >= 0,use_reals=True)
-        sage: assert Z3.imply([1/20*x**2 - 9/20*x + 1 >= 0],1/2*x**2 - 3/28*x + 1 >= 0,use_reals=True)
-        sage: assert Z3.imply([x-6==0],x*x-36==0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+36>=0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y+35>=0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0,y+5>=0],x*y-35>=0,use_reals=False)
-        sage: assert not Z3.imply([x+7>=0],x-8>=0,use_reals=False)
-        sage: assert Z3.imply([x+7>=0],x+8>=0,use_reals=False)
-        sage: assert Z3.imply([x+7>=0],x+8.9>=0,use_reals=True)
-        sage: assert Z3.imply([x>=7,y>=5],x*y>=35,use_reals=False)
-        sage: assert not Z3.imply([x>=-7,y>=-5],x*y>=35,use_reals=False)
-        """
-
-        assert all(Miscs.is_expr(f) for f in fs), fs
-        assert Miscs.is_expr(g), g
-        assert isinstance(use_reals, bool), use_reals
-
-        if not fs:
-            return False  # conservative approach
-        # fs = [cls.toZ3(f, use_reals, use_mod=False) for f in fs]
-        # g = cls.toZ3(g, use_reals, use_mod=False)
-
-        fs = [Z3.parse(str(f), use_reals) for f in fs]
-        g = Z3.parse(str(g), use_reals)
-
-        return cls._imply(fs, g)
-
-    @classmethod
-    def _imply(cls, fs, g, is_conj=True):
-        assert z3.is_expr(g), g
-        if is_conj:  # And(fs) => g
-            if z3.is_expr(fs):
-                claim = z3.Implies(fs, g)
-            else:
-                claim = z3.Implies(z3.And(fs), g)
-        else:  # g => Or(fs)
-            if z3.is_expr(fs):
-                claim = z3.Implies(g, fs)
-            else:
-                claim = z3.Implies(g, z3.Or(fs))
-
-        models, _ = cls.get_models(z3.Not(claim), k=1)
-        return models is False
-
-    @classmethod
-    def _mycmp_(cls, f, g):
-        """
-        sage: from helpers.miscs import Z3
-        sage: import z3
-
-        sage: x,y = z3.Ints('x y')
-        sage: sorted([x>=z3.IntVal('0'), x>= z3.IntVal('3') ,  x>= z3.IntVal('3'), x>= z3.IntVal('1'), x>= z3.IntVal('10'), y - x >= z3.IntVal('20')], cmp=Z3._mycmp_)
-        [y - x >= 20, x >= 0, x >= 1, x >= 3, x >= 3, x >= 10]
-
-        """
-        claim = f == g
-        models, _ = cls.get_models(z3.Not(claim), k=1)
-        if models is False:
-            return 0  # ==
-        claim = z3.Implies(f, g)
-        models, _ = cls.get_models(z3.Not(claim), k=1)
-        if models is False:
-            return 1  # f > g
-        else:
-            return -1
-
-    @classmethod
-    def parse(cls, node, use_reals):
-        """
-        Parse sage expr to z3
-        e.g., parse(str(sage_expr), use_reals=False)
-
-        Note cannot parse something like tCtr == y - 1/2*sqrt(4*y**2 - 8*x + 4*y + 1) + 1/2
-        """
-        # print(ast.dump(node))
-
-        if isinstance(node, str):
-            node = node.replace('^', '**')
-
-            tnode = ast.parse(node)
-            tnode = tnode.body[0].value
-            try:
-                expr = cls.parse(tnode, use_reals)
-                expr = z3.simplify(expr)
-                return expr
-            except NotImplementedError:
-                mlog.error("cannot parse: '{}'\n{}".format(
-                    node, ast.dump(tnode)))
-                raise
-
-        elif isinstance(node, ast.BoolOp):
-            vals = [cls.parse(v, use_reals) for v in node.values]
-            op = cls.parse(node.op, use_reals)
-            return op(vals)
-
-        elif isinstance(node, ast.And):
-            return z3.And
-
-        elif isinstance(node, ast.Or):
-            return z3.Or
-
-        elif isinstance(node, ast.BinOp):
-            left = cls.parse(node.left, use_reals)
-            right = cls.parse(node.right, use_reals)
-            op = cls.parse(node.op, use_reals)
-            return op(left, right)
-
-        elif isinstance(node, ast.UnaryOp):
-            operand = cls.parse(node.operand, use_reals)
-            op = cls.parse(node.op, use_reals)
-            return op(operand)
-
-        elif isinstance(node, ast.Compare):
-            assert len(node.ops) == 1 and len(
-                node.comparators) == 1, ast.dump(node)
-            left = cls.parse(node.left, use_reals)
-            right = cls.parse(node.comparators[0], use_reals)
-            op = cls.parse(node.ops[0], use_reals)
-            return op(left, right)
-
-        elif isinstance(node, ast.Name):
-            f = z3.Real if use_reals else z3.Int
-            return f(str(node.id))
-
-        elif isinstance(node, ast.Num):
-            f = z3.RealVal if use_reals else z3.IntVal
-            return f(str(node.n))
-
-        elif isinstance(node, ast.Add):
-            return operator.add
-        elif isinstance(node, ast.Mult):
-            return operator.mul
-        elif isinstance(node, ast.Div):
-            return operator.truediv  # tvn:  WARNING: might not be accurate
-        elif isinstance(node, ast.FloorDiv):
-            return operator.truediv  # tvn:  WARNING: might not be accurate
-        elif isinstance(node, ast.Mod):
-            return operator.mod
-        elif isinstance(node, ast.Pow):
-            return operator.pow
-        elif isinstance(node, ast.Sub):
-            return operator.sub
-        elif isinstance(node, ast.USub):
-            return operator.neg
-        elif isinstance(node, ast.Eq):
-            return operator.eq
-        elif isinstance(node, ast.NotEq):
-            return operator.ne
-        elif isinstance(node, ast.Lt):
-            return operator.lt
-        elif isinstance(node, ast.LtE):
-            return operator.le
-        elif isinstance(node, ast.Gt):
-            return operator.gt
-        elif isinstance(node, ast.GtE):
-            return operator.ge
-
-        else:
-            raise NotImplementedError(ast.dump(node))
-
-    @classmethod
-    def simplify(cls, f):
-        assert z3.is_expr(f), f
-        simpl = z3.Tactic('ctx-solver-simplify')
-        simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
+    def wprocess(cls, f, mytasks: list[Any], myQ: None | multiprocessing.Queue):
         try:
-            f = simpl(f).as_expr()
-        except z3.Z3Exception:
-            pass
-        return f
+            rs = f(mytasks)
+        except BaseException as ex:
+            mlog.debug(f"Got exception in worker: {ex}")
+            if myQ is None:
+                raise
+            else:
+                rs = ex
+
+        if myQ is None:
+            return rs
+        else:
+            myQ.put(rs)
+
+    @beartype            
+    @classmethod
+    def run_mp(cls, taskname: str, tasks: list[Any], f: Callable[[list[Any]], Any], DO_MP: bool) -> list[Any]:
+        """
+        Run wprocess on tasks in parallel
+        """
+
+        n_cpus = multiprocessing.cpu_count()
+        if DO_MP and len(tasks) >= 2 and n_cpus >= 2:
+            Q: multiprocessing.Queue = multiprocessing.Queue()
+            wloads = MP.get_workload(tasks, n_cpus=n_cpus)
+            mlog.debug(
+                f"{taskname}:running {len(tasks)} jobs "
+                f"using {len(wloads)} threads: {list(map(len, wloads))}"
+            )
+
+            workers = [
+                multiprocessing.Process(target=cls.wprocess, args=(f, wl, Q)) for wl in wloads
+            ]
+
+            for w in workers:
+                w.start()
+
+            wrs = []
+            for _ in workers:
+                rs = Q.get()
+                if isinstance(rs, list):
+                    wrs.extend(rs)
+                else:
+                    mlog.debug(f"Got exception from worker: {rs}")
+                    raise rs
+
+        else:
+            wrs = cls.wprocess(f, tasks, myQ=None)
+
+        return wrs
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
