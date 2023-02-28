@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 void vassume(int b){}
 void vtrace1(int q, int r, int a, int b, int x, int y){}
