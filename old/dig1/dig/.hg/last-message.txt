@@ -1,1 +1,0 @@
-mv smt_z3py to common

@@ -1,3 +1,0 @@
-Expect:	r[i] = xor(a[i],b[i])
-ExtFun: xor
-
