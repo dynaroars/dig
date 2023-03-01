@@ -1,1 +1,1 @@
-NLA: loop invariants
+NLA: programs with nonlinear invariants

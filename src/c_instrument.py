@@ -134,7 +134,6 @@ if __name__ == '__main__':
     symexefile = Path(sys.argv[2])    
     tracefile = Path(sys.argv[3])
 
-
     includes = []
     src = []
     text = filename.read_text()
