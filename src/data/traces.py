@@ -25,8 +25,6 @@ class SymbsVals(typing.NamedTuple):
     @beartype
     @classmethod
     def mk(cls, ss: tuple, vs: tuple):
-        assert isinstance(ss, tuple), ss
-        assert isinstance(vs, tuple), vs
         return cls(ss, vs)
 
     @beartype

@@ -270,6 +270,7 @@ class Src(metaclass=abc.ABCMeta):
         cmd = self.instrument_cmd(
             filename=filename, tracefile=tracefile, symexefile=symexefile
         )
+        
         try:
             cp = subprocess.run(
                 shlex.split(cmd), capture_output=True, check=True, text=True
