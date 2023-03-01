@@ -2,7 +2,9 @@ FROM debian:bullseye
 
 #install general setup tools
 RUN apt-get update -y
-RUN apt-get install -y build-essential git software-properties-common emacs ocaml ocamlbuild ocaml-findlib wget openjdk-11-jdk unzip dune libppx-deriving-yojson-ocaml-dev libdune-ocaml-dev libzarith-ocaml-dev libyojson-ocaml-dev cppo
+RUN apt-get install -y build-essential git software-properties-common emacs  wget openjdk-11-jdk unzip 
+
+# ocaml ocamlbuild ocaml-findlib dune libppx-deriving-yojson-ocaml-dev libdune-ocaml-dev libzarith-ocaml-dev libyojson-ocaml-dev cppo
 
 # Install miniconda & sympy & z3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
