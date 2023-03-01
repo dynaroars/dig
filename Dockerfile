@@ -8,7 +8,7 @@ RUN apt-get install -y build-essential git software-properties-common emacs ocam
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash ./Miniconda3-latest-Linux-x86_64.sh -b
 RUN /root/miniconda3/bin/conda install sympy pip -y  
-RUN /root/miniconda3/bin/pip3 install z3-solver beartype
+RUN /root/miniconda3/bin/pip3 install z3-solver beartype pycparser
 RUN rm -rf ./Miniconda3-latest-Linux-x86_64.sh
 
 
@@ -19,16 +19,17 @@ COPY . /dig
 WORKDIR /dig/EXTERNAL_FILES
 RUN tar xf CIVL-1.21_5476.tgz ; ln -sf CIVL-1.21_5476/ civl 
 RUN cp dot_sarl ~/.sarl   # NEED TO MANUALLY PUT IN Z3 VERSION
-RUN tar xf goblint-cil-2.0.1.tbz
+
 
 ## Ocaml and CIL for C code instrumentation
-WORKDIR /dig/EXTERNAL_FILES/goblint-cil-2.0.1
-RUN dune build
-RUN dune build @install
-RUN dune install
+# RUN tar xf goblint-cil-2.0.1.tbz
+# WORKDIR /dig/EXTERNAL_FILES/goblint-cil-2.0.1
+# RUN dune build
+# RUN dune build @install
+# RUN dune install
 
-WORKDIR /dig/src/ocaml
-RUN make clean; make
+# WORKDIR /dig/src/ocaml
+# RUN make clean; make
 
 WORKDIR /dig/src
 
