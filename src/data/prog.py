@@ -306,7 +306,6 @@ class Src(metaclass=abc.ABCMeta):
         d.mkdir()
         return d
 
-
 class Java(Src):
     @beartype
     def __init__(self, filename:Path, tmpdir:Path) -> None:
@@ -354,10 +353,10 @@ class C(Src):
     def __init__(self, filename:Path, tmpdir:Path) -> None:
         super().__init__(filename, tmpdir)
 
-        from c_instrument import _main
-        typ_output = _main(self.filename, self.tracefile, self.symexefile)
+        from c_instrument import instrument
+        typ = instrument(self.filename, self.tracefile, self.symexefile)
         self.inp_decls, self.inv_decls, self.mainQ_name = \
-            self.parse_type_info('\n'.join(typ_output))
+            self.parse_type_info('\n'.join(typ))
 
         self.traceexe = self.tracefile.with_suffix(".exe")
         self._compile_test(self.tracefile, self.traceexe)
