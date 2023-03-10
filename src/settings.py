@@ -97,11 +97,6 @@ class C:
     COMPILE = "{gcc} {filename} -o {tmpfile}"
     COMPILE = partial(COMPILE.format, gcc=GCC_CMD)
 
-    INSTRUMENT_PY = SRC_DIR / "c_instrument.py"
-    assert INSTRUMENT_PY.is_file(), INSTRUMENT_PY
-    INSTRUMENT = "python3 {instrument_py} {filename} {symexefile} {tracefile}"
-    INSTRUMENT = partial(INSTRUMENT.format, instrument_py=INSTRUMENT_PY)
-
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
 

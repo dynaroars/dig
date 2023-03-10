@@ -92,19 +92,18 @@ class PrintTypeVisitor(c_ast.NodeVisitor):
         self.vtrace = vtrace
         self.mainQ = mainQ
         self.mainQ_params = []
-
+        self.typ_output = []
         
     def visit_FuncDef(self, node:c_ast.Node) -> None:
         
         if node.decl.name.startswith(self.vtrace) or node.decl.name == self.mainQ:
             nts = [(p.name , p.type.type.names[0]) for p in node.decl.type.args.params]
             nts = '; '.join(("I " if t == "int" else "D ") + n for n,t in nts)
-            print(f"{node.decl.name}; {nts}")
+            self.typ_output.append(f"{node.decl.name}; {nts}")
 
         if node.decl.name == self.mainQ:
             self.mainQ_params = [(p.name , p.type.type.names[0]) for p in node.decl.type.args.params]
 
-             
 
 class ChangeMainQCall(c_ast.NodeVisitor):
     """
@@ -121,19 +120,15 @@ class ChangeMainQCall(c_ast.NodeVisitor):
             node.body.block_items = [funcCall]
     
 
-def _gen(filename, myast, includes):
+@beartype
+def _gen(filename:Path, myast:c_ast.FileAST, includes:list[str]) -> None:
     generator = c_generator.CGenerator()
     instr = generator.visit(myast)
     instr = '\n'.join(includes + [instr])
     vwrite(filename, instr)
 
-
-if __name__ == '__main__':
-
-    filename = Path(sys.argv[1])
-    symexefile = Path(sys.argv[2])    
-    tracefile = Path(sys.argv[3])
-
+@beartype    
+def _main(filename:Path, tracefile:Path,  symexefile:Path) -> list[str]:
     includes = []
     src = []
     text = filename.read_text()
@@ -171,13 +166,18 @@ if __name__ == '__main__':
     AddPrintfCivl("vtrace").visit(ast_civl)
     vis = PrintTypeVisitor("vtrace", "mainQ")    
     vis.visit(ast_civl)
+    
     #change mainQ(atoi(arg), ..) -> mainQ(x, ..)
     ChangeMainQCall(vis.mainQ_params).visit(ast_civl)
     includes = [i.replace('<','"').replace('>','"') for i in includes]
     inps = [f"$input {typ} {name};" for name, typ in vis.mainQ_params]
     _gen(symexefile, ast_civl, ['#include "civlc.cvh"'] + includes + inps)
-    
+    return vis.typ_output
 
 
-
-    
+if __name__ == '__main__':
+    filename = Path(sys.argv[1])
+    symexefile = Path(sys.argv[2])    
+    tracefile = Path(sys.argv[3])
+    typ_output = _main(filename, tracefile, symexefile)
+    print('\n'.join(typ_output))

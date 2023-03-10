@@ -254,8 +254,6 @@ class Prog:
 
 
 class Src(metaclass=abc.ABCMeta):
-
-    @beartype
     def __init__(self, filename:Path, tmpdir:Path) -> None:
         assert filename.is_file(), filename
         assert tmpdir.is_dir(), tmpdir
@@ -267,29 +265,10 @@ class Src(metaclass=abc.ABCMeta):
         symexedir = self.mkdir(tmpdir / settings.SYMEXE_DIR)
         symexefile = symexedir / basename
 
-        cmd = self.instrument_cmd(
-            filename=filename, tracefile=tracefile, symexefile=symexefile
-        )
-        
-        try:
-            cp = subprocess.run(
-                shlex.split(cmd), capture_output=True, check=True, text=True
-            )
-        except subprocess.CalledProcessError as ex:
-            ex_cmd = " ".join(ex.cmd)
-            mlog.error(f"cmd '{ex_cmd}' gives error\n{ex.stderr}")
-            raise
-
-        inp_decls, inv_decls, mainQ_name = self.parse_type_info(cp.stdout)
-
         self.filename, self.basename, self.funname = filename, basename, funname
         self.tracedir, self.tracefile = tracedir, tracefile
         self.symexedir, self.symexefile = symexedir, symexefile
-        self.inp_decls, self.inv_decls, self.mainQ_name = (
-            inp_decls,
-            inv_decls,
-            mainQ_name,
-        )
+         
 
     @abc.abstractmethod
     def check(self, filename, tmpdir):
@@ -329,7 +308,24 @@ class Src(metaclass=abc.ABCMeta):
 
 
 class Java(Src):
-    instrument_cmd = settings.Java.INSTRUMENT
+    @beartype
+    def __init__(self, filename:Path, tmpdir:Path) -> None:
+        super().__init__(filenae, tmpdir)
+
+        cmd = settings.Java.INSTRUMENT(
+            filename=self.filename, tracefile=self.tracefile, symexefile=self.symexefile
+        )
+        try:
+            cp = subprocess.run(
+                shlex.split(cmd), capture_output=True, check=True, text=True
+            )
+        except subprocess.CalledProcessError as ex:
+            ex_cmd = " ".join(ex.cmd)
+            mlog.error(f"cmd '{ex_cmd}' gives error\n{ex.stderr}")
+            raise
+
+        self.inp_decls, self.inv_decls, self.mainQ_name = \
+             self.parse_type_info(cp.stdout)
 
     def check(self, filename, tmpdir):
         basename = Path(filename.name)  # c.class
@@ -354,11 +350,14 @@ class Java(Src):
 
 
 class C(Src):
-    instrument_cmd = settings.C.INSTRUMENT
-
     @beartype
     def __init__(self, filename:Path, tmpdir:Path) -> None:
         super().__init__(filename, tmpdir)
+
+        from c_instrument import _main
+        typ_output = _main(self.filename, self.tracefile, self.symexefile)
+        self.inp_decls, self.inv_decls, self.mainQ_name = \
+            self.parse_type_info('\n'.join(typ_output))
 
         self.traceexe = self.tracefile.with_suffix(".exe")
         self._compile_test(self.tracefile, self.traceexe)
