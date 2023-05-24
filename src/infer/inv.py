@@ -84,8 +84,8 @@ class Inv(metaclass=abc.ABCMeta):
     def reset_stat(self):
         self._stat = None
 
-    def test(self, traces):
-        assert isinstance(traces, data.traces.Traces), traces
+    @beartype
+    def test(self, traces: data.traces.Traces):
         return all(self.test_single_trace(trace) for trace in traces)
 
     @property
@@ -105,7 +105,7 @@ class Inv(metaclass=abc.ABCMeta):
 
         # temp fix: disable traces that wih extreme large values
         # (see geo1 e.g., 435848050)
-        if any(x > settings.TRACE_MAX_VAL for x in trace.vs):
+        if any(abs(x) > settings.TRACE_MAX_VAL for x in trace.vs):
             mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
             return True
 

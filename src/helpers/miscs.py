@@ -17,11 +17,12 @@ import helpers.vcommon as CM
 import settings
 
 from beartype import beartype
-from beartype.typing import (Type, TypeVar, Any, Sequence)
+from beartype.typing import Any
                              
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
+
 
 class Miscs:
 
@@ -443,8 +444,8 @@ class Miscs:
         """
         return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
 
+    @beartype        
     @staticmethod
-    @beartype    
     def merge_dict(l: list[dict[Any, Any]]) -> dict[Any, Any]:
         return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
 
