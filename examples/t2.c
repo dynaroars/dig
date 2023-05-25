@@ -10,8 +10,8 @@ void vtrace2(int x1, int x2, int x, int y) {}
 int F(int x) { return x * x; }
 
 void mainQ(int x1, int x2) {
-  /* vassume(-20 < x1); vassume(x1 < 20);  */
-  /* vassume(-20 < x2); vassume(x2 < 20);  */
+  // vassume(-20 < x1); vassume(x1 < 20);
+  // vassume(-20 < x2); vassume(x2 < 20);
   
   int x = x1 + x2;
   int y = x1 - x2;
