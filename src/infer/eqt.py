@@ -67,7 +67,7 @@ class Infer(infer.infer._CEGIR):
         return [Eqt(eqt)for eqt in eqts]
 
     @beartype
-    def gen(self, deg:int) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
+    def gen(self, deg:int) -> tuple[infer.inv.DInvs, data.traces.DTraces] :
         assert deg >= 1, deg
 
         locs = self.prog.locs
@@ -170,7 +170,7 @@ class Infer(infer.infer._CEGIR):
     @beartype
     def _get_init_traces(self, loc: str, deg: int,
                          dtraces: data.traces.DTraces,
-                         inps: data.traces.Inps, rate: float) -> tuple[list,list[sympy.core.symbol.Symbol], set] | None:
+                         inps: data.traces.Inps, rate: float) -> tuple[list, list[sympy.core.symbol.Symbol], set] | None:
         """
         Initial loop to obtain (random) traces to bootstrap eqt solving
         """
@@ -207,9 +207,10 @@ class Infer(infer.infer._CEGIR):
 
     @beartype
     def _infer(self, loc: str, 
-               ts: list[sympy.core.symbol.Symbol | sympy.core.power.Pow | sympy.core.mul.Mul], 
+               ts: list[int | sympy.core.symbol.Symbol | sympy.core.power.Pow | sympy.core.mul.Mul], 
                uks: list[sympy.core.symbol.Symbol], 
-               exprs: set[sympy.core.symbol.Symbol]) -> set:
+               exprs: set) -> set:
+        
         assert loc, loc
         assert len(ts) == len(uks), (ts, uks)
         assert exprs, exprs
