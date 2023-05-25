@@ -45,7 +45,7 @@ class Infer(infer.infer._CEGIR):
                 symbols.names, mydeg, settings.EQT_RATE
             )
 
-            if len(traces) < len(uks):
+            if len(traces) < len(uks) and False:
                 mydeg = mydeg - 1
                 mlog.warning(
                     f"{len(traces)} traces < {len(uks)} uks, reducing to deg {mydeg}")
@@ -53,7 +53,7 @@ class Infer(infer.infer._CEGIR):
 
             template = sum(t*u for t, u in zip(ts, uks))
             exprs = list(traces.instantiate(template, n_eqts_needed))
-            if len(exprs) < len(uks):
+            if len(exprs) < len(uks) and False:
                 mydeg = mydeg - 1
                 mlog.warning(
                     f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")

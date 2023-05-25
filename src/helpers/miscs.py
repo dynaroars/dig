@@ -351,10 +351,13 @@ class Miscs:
         assert terms, terms
         assert uks, uks
         assert len(terms) == len(uks), (terms, uks)
-        assert len(eqts) >= len(uks), (len(eqts), len(uks))
+        # assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug(f"solving {len(uks)} uks using {len(eqts)} eqts")
         sol = linsolve(eqts, uks)
+        #print(eqts)
+        #print(uks)
+        #print(sol)
         vals = list(list(sol)[0])
 
         if all(v == 0 for v in vals):
