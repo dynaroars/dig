@@ -1,0 +1,10 @@
+# y=x^3 + x^2 + 2*x + 7 
+# >>> import random; n = 20; ls = [random.randrange(-10,10) for _ in range(n)] ; print('\n'.join(["{};{}".format(x, x*x*x + x*x + 2*x + 7) for x in ls]))
+vtrace1; I x; I y
+vtrace1;3;49
+vtrace1;9;835
+vtrace1;-4;-49
+vtrace1;2;23
+vtrace1;-8;-457
+vtrace1;4;95
+vtrace1;5;167

@@ -1,0 +1,23 @@
+# y=2*x + 3
+# n = 20; ls = [random.randrange(-10,10) for _ in range(n)] ; print()'\n'.join(["{};{}".format(x,2*x+3) for x in ls]))
+vtrace1; I x; I y
+vtrace1; 3;9
+vtrace1; -2;-1
+vtrace1; -9;-15
+vtrace1; -3;-3
+vtrace1; 7;17
+vtrace1; 8;19
+vtrace1; -1;1
+vtrace1; 7;17
+vtrace1; -8;-13
+vtrace1; -3;-3
+vtrace1; -3;-3
+vtrace1; 1;5
+vtrace1; 1;5
+vtrace1; 8;19
+vtrace1; -4;-5
+vtrace1; 9;21
+vtrace1; 0;3
+vtrace1; -7;-11
+vtrace1; -7;-11
+vtrace1; 0;3
