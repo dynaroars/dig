@@ -20,7 +20,6 @@ Run on traces
 """
     
 if __name__ == "__main__":
-   
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
     ag(
@@ -270,12 +269,12 @@ if __name__ == "__main__":
             dig = alg.DigTraces.mk(inp, test_tracefile)
 
         dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
+        if dinvs:
+            print(dinvs)
 
-        print(dinvs)
-
-        # write results to file
-        if args.writeresults:
-            resultfile = Path(args.writeresults)
-            invs = dinvs.__str__(writeresults=True)
-            resultfile.write_text(invs)
-            print(f"{dinvs.siz} invs over {len(dinvs)} locs written to {resultfile}")
+            # write results to file
+            if args.writeresults:
+                resultfile = Path(args.writeresults)
+                invs = dinvs.__str__(writeresults=True)
+                resultfile.write_text(invs)
+                print(f"{dinvs.siz} invs over {len(dinvs)} locs written to {resultfile}")

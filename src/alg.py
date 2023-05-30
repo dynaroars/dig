@@ -89,13 +89,13 @@ class Dig(metaclass=abc.ABCMeta):
 class DigSymStates(Dig, metaclass=abc.ABCMeta):
     
     @beartype
-    def __init__(self, filename:Path) -> None:
+    def __init__(self, filename: Path) -> None:
         super().__init__(filename)
 
     @beartype
-    def start(self, seed:float, maxdeg:int | None) -> None | DInvs:
+    def start(self, seed: float, maxdeg: int | None) -> None | DInvs:
 
-        if not(maxdeg is None or maxdeg >= 1):
+        if not (maxdeg is None or maxdeg >= 1):
             raise ValueError(f"maxdeg has invalid value {maxdeg}")
 
         super().start(seed, maxdeg)
