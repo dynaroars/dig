@@ -744,7 +744,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
             s = ex.stdout
             s = s if isinstance(s, str) else str(s)
         except subprocess.CalledProcessError as ex:
-            mlog.error(f"{ex}\n{cmd}")
+            mlog.error(f"{cmd}\n{ex.stderr}")
             return None
 
         pcs = self.pc_cls.parse(s)
