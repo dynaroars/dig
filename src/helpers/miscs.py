@@ -3,7 +3,6 @@ To run doctest
 $ ~/miniconda3/bin/python3 -m doctest -v helpers/miscs.py 
 """
 
-
 from __future__ import annotations
 from collections.abc import Iterable, Callable
 from collections import defaultdict, OrderedDict
@@ -406,7 +405,8 @@ class Miscs:
 
     @beartype
     @staticmethod
-    def show_removed(s: str, orig_siz: int, new_siz: int, elapsed_time: float) -> None:
+    def show_removed(s: str, orig_siz: int, new_siz: int, 
+                     elapsed_time: float) -> None:
         assert orig_siz >= new_siz, (orig_siz, new_siz)
         n_removed = orig_siz - new_siz
         mlog.debug(
@@ -416,7 +416,8 @@ class Miscs:
 
     @beartype
     @staticmethod
-    def simplify_idxs(ordered_idxs: list[int], imply_f: Callable[[set[int], int], bool]) -> list[int]:
+    def simplify_idxs(ordered_idxs: list[int], 
+                      imply_f: Callable[[set[int], int], bool]) -> list[int]:
         """
         attempt to remove i in idxs if imply_f returns true
         Note: the order of idxs determine what to get checked (and removed)

@@ -11,7 +11,6 @@ from multiprocessing import Queue
 from pathlib import Path
 from queue import Empty
 import subprocess
-import typing
 
 import z3
 from beartype import beartype

@@ -105,8 +105,9 @@ class Infer(infer.infer._CEGIR):
     
     @beartype
     @classmethod
-    def _add_exprs(cls, template, n_eqts_needed: int, traces: data.traces.Traces, exprs):
-        
+    def _add_exprs(cls, template, 
+                   n_eqts_needed: int, traces: data.traces.Traces, exprs) -> None:
+    
         mlog.debug(f"got {len(traces)} new traces")
         new_exprs = traces.instantiate(template, n_eqts_needed - len(exprs))
         for expr in new_exprs:
@@ -116,9 +117,9 @@ class Infer(infer.infer._CEGIR):
     @beartype
     def _while(self, loc: str, 
                ts: list[int | sympy.core.symbol.Symbol|sympy.core.power.Pow | sympy.core.mul.Mul], 
-               uks:list[sympy.core.symbol.Symbol], 
-               n_eqts_needed:int, inps:data.traces.Inps, 
-               traces:data.traces.DTraces):
+               uks: list[sympy.core.symbol.Symbol], 
+               n_eqts_needed: int, inps:data.traces.Inps, 
+               traces: data.traces.DTraces):
         """
         repeatedly get more inps using random method
         """
@@ -209,7 +210,7 @@ class Infer(infer.infer._CEGIR):
     def _infer(self, loc: str, 
                ts: list[int | sympy.core.symbol.Symbol | sympy.core.power.Pow | sympy.core.mul.Mul], 
                uks: list[sympy.core.symbol.Symbol], 
-               exprs: set) -> set:
+               exprs: set[sympy.Expr]) -> set:
         
         assert loc, loc
         assert len(ts) == len(uks), (ts, uks)
