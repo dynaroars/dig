@@ -1,6 +1,6 @@
 # DIG
 
-**DIG** is a tool for generating program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
+**DIG** is an _invariant generation_ tool. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
 - *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
 - *min/max equalities/inequalities* that represent a certain type of *disjunctive* invariants, e.g., `max(x,y) <= z + 2`
@@ -27,7 +27,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 </details>
 
 
-> A good starting point to understand more about DIG is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
+> A good starting point to understand DIG and its usage at high level is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
 
 
 **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
@@ -399,5 +399,5 @@ Technical information about DIG can be found from these papers.  The `tool` pape
 
 ## ACKNOWLEDGEMENTS
 
-* This project is supported in part by NSF grant CCF-1948536 and ARO grant W911NF-19-1-0054.
+* This project is supported in part by NSF grants CCF 1948536, CCF 2200621 and ARO grant W911NF-19-1-0054.
 
