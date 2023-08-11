@@ -1,6 +1,6 @@
 # DIG
 
-**DIG** is an _invariant generation_ tool. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
+**DIG** is an _invariant generation_ tool for C programs. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
 - *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
 - *min/max equalities/inequalities* that represent a certain type of *disjunctive* invariants, e.g., `max(x,y) <= z + 2`
@@ -12,7 +12,7 @@
 
 <summary><kbd>details</kbd></summary>
 	
-DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis, i.e., analyzing program execution traces.  If source code (C, Java, Java Bytecode) is available, DIG can check and refine invariants.
+DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis, i.e., analyzing program execution traces.  If a C source code is available, DIG can check and refine invariants.
 DIG uses symbolic execution to collect symbolic states to check candidate invariants.
 DIG aims to be fully automated and can find good invariants with its default configuration (i.e., the user doesn't need to try different configurations for good performance).  
 
@@ -79,7 +79,7 @@ root@931ac8632c7f:/dig/src# git pull
 
 ## Usage
 
-DIG can generate invariants from a [trace file](#generating-invariants-from-traces) (a plain text semi-colon separated `csv` file consisting of concrete values of variables) or a [program](#generating-invariants-from-a-program) (either a Java file `.java`, a bytecode file `.class`, or a C file `.c`).
+DIG can generate invariants from a [trace file](#generating-invariants-from-traces) (a plain text semi-colon separated `csv` file consisting of concrete values of variables) or a [program](#generating-invariants-from-a-program) (a C file `.c`).
 
 ### Generating Invariants From Traces
 
