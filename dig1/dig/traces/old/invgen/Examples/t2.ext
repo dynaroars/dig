@@ -1,0 +1,2 @@
+Expect: x - y^2 == 0
+Input: z

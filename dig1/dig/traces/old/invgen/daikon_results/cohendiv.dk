@@ -1,0 +1,909 @@
+[No samples for ..byz_sqrt():::ENTER]
+[No samples for ..byz_sqrt():::EXIT]
+===========================================================================
+..clean_tracker():::ENTER  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap has only one value		(1004 samples)
+::TKR.smap != null		(1004 samples)
+::TKR.smap > 0		(1004 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[] elements has only one value		(1004 samples)
+::TKR.smap[] elements != null		(1004 samples)
+::TKR.smap[].count == [1000]		(1004 samples)
+::TKR.smap[].count elements == 1000		(1004 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets elements has only one value		(1004 samples)
+::TKR.smap[].buckets elements != null		(1004 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1004 samples)
+::TKR.smap[].buckets[0] elements != null		(1004 samples)
+::TKR.smap[].buckets->count == [0]		(1004 samples)
+::TKR.smap[].buckets->count elements == 0		(1004 samples)
+::TKR.smap[].buckets->pairs == [null]		(1004 samples)
+::TKR.smap[].buckets->pairs elements == null		(1004 samples)
+size(::TKR.smap[]) == 1		(1004 samples)
+===========================================================================
+..clean_tracker():::EXIT  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0])
+      Modified variables: ::TKR.tracker_p[] ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[]) size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.size
+::TKR == orig(::TKR)		(1004 samples)
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.loop_ctr)		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.size)		(1004 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap == null		(1004 samples)
+orig(::TKR.smap) > 0		(1004 samples)
+::buf == orig(::buf)		(1004 samples)
+[No samples for ..cohencu():::ENTER]
+[No samples for ..cohencu():::EXIT]
+[No samples for ..cohencu_dummy():::ENTER]
+[No samples for ..cohencu_dummy():::EXIT]
+===========================================================================
+..cohendiv():::ENTER  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] x y size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap has only one value		(1004 samples)
+::TKR.smap != null		(1004 samples)
+::TKR.smap > 0		(1004 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[] elements has only one value		(1004 samples)
+::TKR.smap[] elements != null		(1004 samples)
+::TKR.smap[].count == [1000]		(1004 samples)
+::TKR.smap[].count elements == 1000		(1004 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets elements has only one value		(1004 samples)
+::TKR.smap[].buckets elements != null		(1004 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1004 samples)
+::TKR.smap[].buckets[0] elements != null		(1004 samples)
+::TKR.smap[].buckets->count == [0]		(1004 samples)
+::TKR.smap[].buckets->count elements == 0		(1004 samples)
+::TKR.smap[].buckets->pairs == [null]		(1004 samples)
+::TKR.smap[].buckets->pairs elements == null		(1004 samples)
+x > 0		(1004 samples)
+y > 0		(1004 samples)
+size(::TKR.smap[]) == 1		(1004 samples)
+::TKR.loop_ctr < x		(1004 samples)
+::TKR.loop_ctr < y		(1004 samples)
+x != y		(1004 samples)
+x > size(::TKR.smap[])		(1004 samples)
+y > size(::TKR.smap[])		(1004 samples)
+===========================================================================
+..cohendiv():::EXIT  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] x y return orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) orig(x) orig(y) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[return] ::TKR.tracker_p[return-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.tracker_p[orig(x)] ::TKR.tracker_p[orig(x)-1] ::TKR.tracker_p[orig(y)] ::TKR.tracker_p[orig(y)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[return] ::TKR.smap[return-1] ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(x)] ::TKR.smap[orig(x)-1] ::TKR.smap[orig(y)] ::TKR.smap[orig(y)-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[return].count ::TKR.smap[return-1].count ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(x)].count ::TKR.smap[orig(x)-1].count ::TKR.smap[orig(y)].count ::TKR.smap[orig(y)-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[return].buckets ::TKR.smap[return-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(x)].buckets ::TKR.smap[orig(x)-1].buckets ::TKR.smap[orig(y)].buckets ::TKR.smap[orig(y)-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[return].buckets[0] ::TKR.smap[return-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(x)].buckets[0] ::TKR.smap[orig(x)-1].buckets[0] ::TKR.smap[orig(y)].buckets[0] ::TKR.smap[orig(y)-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[return].buckets->count ::TKR.smap[return-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(x)].buckets->count ::TKR.smap[orig(x)-1].buckets->count ::TKR.smap[orig(y)].buckets->count ::TKR.smap[orig(y)-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[return].buckets->pairs ::TKR.smap[return-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(x)].buckets->pairs ::TKR.smap[orig(x)-1].buckets->pairs ::TKR.smap[orig(y)].buckets->pairs ::TKR.smap[orig(y)-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[return].buckets->pairs[0] ::TKR.smap[return-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] ::TKR.smap[orig(x)].buckets->pairs[0] ::TKR.smap[orig(x)-1].buckets->pairs[0] ::TKR.smap[orig(y)].buckets->pairs[0] ::TKR.smap[orig(y)-1].buckets->pairs[0] orig(::TKR.tracker_p[post(x)]) orig(::TKR.tracker_p[post(x)-1]) orig(::TKR.smap[post(x)]) orig(::TKR.smap[post(x)-1]) orig(::TKR.smap[post(x)].count) orig(::TKR.smap[post(x)-1].count) orig(::TKR.smap[post(x)].buckets) orig(::TKR.smap[post(x)-1].buckets) orig(::TKR.smap[post(x)].buckets[0]) orig(::TKR.smap[post(x)-1].buckets[0]) orig(::TKR.smap[post(x)].buckets->count) orig(::TKR.smap[post(x)-1].buckets->count) orig(::TKR.smap[post(x)].buckets->pairs) orig(::TKR.smap[post(x)-1].buckets->pairs) orig(::TKR.smap[post(x)].buckets->pairs[0]) orig(::TKR.smap[post(x)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(y)]) orig(::TKR.tracker_p[post(y)-1]) orig(::TKR.smap[post(y)]) orig(::TKR.smap[post(y)-1]) orig(::TKR.smap[post(y)].count) orig(::TKR.smap[post(y)-1].count) orig(::TKR.smap[post(y)].buckets) orig(::TKR.smap[post(y)-1].buckets) orig(::TKR.smap[post(y)].buckets[0]) orig(::TKR.smap[post(y)-1].buckets[0]) orig(::TKR.smap[post(y)].buckets->count) orig(::TKR.smap[post(y)-1].buckets->count) orig(::TKR.smap[post(y)].buckets->pairs) orig(::TKR.smap[post(y)-1].buckets->pairs) orig(::TKR.smap[post(y)].buckets->pairs[0]) orig(::TKR.smap[post(y)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(return)]) orig(::TKR.tracker_p[post(return)-1]) orig(::TKR.smap[post(return)]) orig(::TKR.smap[post(return)-1]) orig(::TKR.smap[post(return)].count) orig(::TKR.smap[post(return)-1].count) orig(::TKR.smap[post(return)].buckets) orig(::TKR.smap[post(return)-1].buckets) orig(::TKR.smap[post(return)].buckets[0]) orig(::TKR.smap[post(return)-1].buckets[0]) orig(::TKR.smap[post(return)].buckets->count) orig(::TKR.smap[post(return)-1].buckets->count) orig(::TKR.smap[post(return)].buckets->pairs) orig(::TKR.smap[post(return)-1].buckets->pairs) orig(::TKR.smap[post(return)].buckets->pairs[0]) orig(::TKR.smap[post(return)-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.tracker_p[x]) orig(::TKR.tracker_p[x-1]) orig(::TKR.tracker_p[y]) orig(::TKR.tracker_p[y-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0]) orig(::TKR.smap[x]) orig(::TKR.smap[x-1]) orig(::TKR.smap[y]) orig(::TKR.smap[y-1]) orig(::TKR.smap[x].count) orig(::TKR.smap[x-1].count) orig(::TKR.smap[y].count) orig(::TKR.smap[y-1].count) orig(::TKR.smap[x].buckets) orig(::TKR.smap[x-1].buckets) orig(::TKR.smap[y].buckets) orig(::TKR.smap[y-1].buckets) orig(::TKR.smap[x].buckets[0]) orig(::TKR.smap[x-1].buckets[0]) orig(::TKR.smap[y].buckets[0]) orig(::TKR.smap[y-1].buckets[0]) orig(::TKR.smap[x].buckets->count) orig(::TKR.smap[x-1].buckets->count) orig(::TKR.smap[y].buckets->count) orig(::TKR.smap[y-1].buckets->count) orig(::TKR.smap[x].buckets->pairs) orig(::TKR.smap[x-1].buckets->pairs) orig(::TKR.smap[y].buckets->pairs) orig(::TKR.smap[y-1].buckets->pairs) orig(::TKR.smap[x].buckets->pairs[0]) orig(::TKR.smap[x-1].buckets->pairs[0]) orig(::TKR.smap[y].buckets->pairs[0]) orig(::TKR.smap[y-1].buckets->pairs[0])
+      Modified variables: ::TKR.tracker_p[] ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Modified primitive arguments: ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs x y size(::TKR.smap[]) size(::TKR.smap[].buckets[0])
+::TKR == orig(::TKR)		(1004 samples)
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.loop_ctr)		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.size)		(1004 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1004 samples)
+::TKR.smap == orig(::TKR.smap)		(1004 samples)
+::TKR.smap[] == orig(::TKR.smap[])		(1004 samples)
+::TKR.smap[].count == orig(::TKR.smap[].count)		(1004 samples)
+::TKR.smap[].buckets == orig(::TKR.smap[].buckets)		(1004 samples)
+::TKR.smap[].buckets[0] == orig(::TKR.smap[].buckets[0])		(1004 samples)
+::TKR.smap[].buckets->count == orig(::TKR.smap[].buckets->count)		(1004 samples)
+::TKR.smap[].buckets->pairs == orig(::TKR.smap[].buckets->pairs)		(1004 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1004 samples)
+size(::TKR.smap[]) == orig(size(::TKR.smap[].buckets[0]))		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap has only one value		(1004 samples)
+::TKR.smap != null		(1004 samples)
+::TKR.smap > 0		(1004 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[] elements has only one value		(1004 samples)
+::TKR.smap[] elements != null		(1004 samples)
+::TKR.smap[].count == [1000]		(1004 samples)
+::TKR.smap[].count elements == 1000		(1004 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets elements has only one value		(1004 samples)
+::TKR.smap[].buckets elements != null		(1004 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1004 samples)
+::TKR.smap[].buckets[0] elements != null		(1004 samples)
+::TKR.smap[].buckets->count == [0]		(1004 samples)
+::TKR.smap[].buckets->count elements == 0		(1004 samples)
+::TKR.smap[].buckets->pairs == [null]		(1004 samples)
+::TKR.smap[].buckets->pairs elements == null		(1004 samples)
+return >= 0		(1004 samples)
+orig(x) > 0		(1004 samples)
+orig(y) > 0		(1004 samples)
+size(::TKR.smap[]) == 1		(1004 samples)
+::buf == orig(::buf)		(1004 samples)
+::TKR.loop_ctr < return		(1004 samples)
+::TKR.loop_ctr < orig(x)		(1004 samples)
+::TKR.loop_ctr < orig(y)		(1004 samples)
+return < orig(x)		(1004 samples)
+return != orig(y)		(1004 samples)
+return >= size(::TKR.smap[])-1		(1004 samples)
+orig(x) > size(::TKR.smap[])		(1004 samples)
+orig(y) > size(::TKR.smap[])		(1004 samples)
+===========================================================================
+..cohendiv_dummy_l0():::ENTER  1314 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] x y q a b r size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[q] ::TKR.tracker_p[q-1] ::TKR.tracker_p[a] ::TKR.tracker_p[a-1] ::TKR.tracker_p[b] ::TKR.tracker_p[b-1] ::TKR.tracker_p[r] ::TKR.tracker_p[r-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[q] ::TKR.smap[q-1] ::TKR.smap[a] ::TKR.smap[a-1] ::TKR.smap[b] ::TKR.smap[b-1] ::TKR.smap[r] ::TKR.smap[r-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[q].count ::TKR.smap[q-1].count ::TKR.smap[a].count ::TKR.smap[a-1].count ::TKR.smap[b].count ::TKR.smap[b-1].count ::TKR.smap[r].count ::TKR.smap[r-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[q].buckets ::TKR.smap[q-1].buckets ::TKR.smap[a].buckets ::TKR.smap[a-1].buckets ::TKR.smap[b].buckets ::TKR.smap[b-1].buckets ::TKR.smap[r].buckets ::TKR.smap[r-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[q].buckets[0] ::TKR.smap[q-1].buckets[0] ::TKR.smap[a].buckets[0] ::TKR.smap[a-1].buckets[0] ::TKR.smap[b].buckets[0] ::TKR.smap[b-1].buckets[0] ::TKR.smap[r].buckets[0] ::TKR.smap[r-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[q].buckets->count ::TKR.smap[q-1].buckets->count ::TKR.smap[a].buckets->count ::TKR.smap[a-1].buckets->count ::TKR.smap[b].buckets->count ::TKR.smap[b-1].buckets->count ::TKR.smap[r].buckets->count ::TKR.smap[r-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[q].buckets->pairs ::TKR.smap[q-1].buckets->pairs ::TKR.smap[a].buckets->pairs ::TKR.smap[a-1].buckets->pairs ::TKR.smap[b].buckets->pairs ::TKR.smap[b-1].buckets->pairs ::TKR.smap[r].buckets->pairs ::TKR.smap[r-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[q].buckets->pairs[0] ::TKR.smap[q-1].buckets->pairs[0] ::TKR.smap[a].buckets->pairs[0] ::TKR.smap[a-1].buckets->pairs[0] ::TKR.smap[b].buckets->pairs[0] ::TKR.smap[b-1].buckets->pairs[0] ::TKR.smap[r].buckets->pairs[0] ::TKR.smap[r-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1314 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1314 samples)
+::buf == ""		(1314 samples)
+::TKR has only one value		(1314 samples)
+::TKR != null		(1314 samples)
+::TKR > 0		(1314 samples)
+::TKR.loop_ctr == -1		(1314 samples)
+::TKR.tracker_p == null		(1314 samples)
+::TKR.smap has only one value		(1314 samples)
+::TKR.smap != null		(1314 samples)
+::TKR.smap > 0		(1314 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1314 samples)
+::TKR.smap[] elements has only one value		(1314 samples)
+::TKR.smap[] elements != null		(1314 samples)
+::TKR.smap[].count == [1000]		(1314 samples)
+::TKR.smap[].count elements == 1000		(1314 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1314 samples)
+::TKR.smap[].buckets elements has only one value		(1314 samples)
+::TKR.smap[].buckets elements != null		(1314 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1314 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1314 samples)
+::TKR.smap[].buckets[0] elements != null		(1314 samples)
+::TKR.smap[].buckets->count == [0]		(1314 samples)
+::TKR.smap[].buckets->count elements == 0		(1314 samples)
+::TKR.smap[].buckets->pairs == [null]		(1314 samples)
+::TKR.smap[].buckets->pairs elements == null		(1314 samples)
+x > 0		(1314 samples)
+y > 0		(1314 samples)
+q >= 0		(1314 samples)
+a > 0		(1314 samples)
+a >= 1		(1314 samples)
+a is a power of 2		(1314 samples)
+b > 0		(1314 samples)
+r > 0		(1314 samples)
+size(::TKR.smap[]) == 1		(1314 samples)
+::TKR.loop_ctr < x		(1314 samples)
+::TKR.loop_ctr < y		(1314 samples)
+::TKR.loop_ctr < q		(1314 samples)
+::TKR.loop_ctr < a		(1314 samples)
+::TKR.loop_ctr < b		(1314 samples)
+::TKR.loop_ctr < r		(1314 samples)
+x > y		(1314 samples)
+x > q		(1314 samples)
+x > a		(1314 samples)
+x > b		(1314 samples)
+x >= r		(1314 samples)
+x > size(::TKR.smap[])		(1314 samples)
+y != q		(1314 samples)
+y != a		(1314 samples)
+b % y == 0		(1314 samples)
+y <= b		(1314 samples)
+y < r		(1314 samples)
+y > size(::TKR.smap[])		(1314 samples)
+q != a		(1314 samples)
+q % a == 0		(1314 samples)
+q != b		(1314 samples)
+q != r		(1314 samples)
+q != size(::TKR.smap[])		(1314 samples)
+q >= size(::TKR.smap[])-1		(1314 samples)
+a < b		(1314 samples)
+b % a == 0		(1314 samples)
+a < r		(1314 samples)
+a >= size(::TKR.smap[])		(1314 samples)
+b < r		(1314 samples)
+b > size(::TKR.smap[])		(1314 samples)
+r > size(::TKR.smap[])		(1314 samples)
+===========================================================================
+..cohendiv_dummy_l0():::EXIT  1314 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] x y q a b r orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) orig(x) orig(y) orig(q) orig(a) orig(b) orig(r) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[q] ::TKR.tracker_p[q-1] ::TKR.tracker_p[a] ::TKR.tracker_p[a-1] ::TKR.tracker_p[b] ::TKR.tracker_p[b-1] ::TKR.tracker_p[r] ::TKR.tracker_p[r-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.tracker_p[orig(x)] ::TKR.tracker_p[orig(x)-1] ::TKR.tracker_p[orig(y)] ::TKR.tracker_p[orig(y)-1] ::TKR.tracker_p[orig(q)] ::TKR.tracker_p[orig(q)-1] ::TKR.tracker_p[orig(a)] ::TKR.tracker_p[orig(a)-1] ::TKR.tracker_p[orig(b)] ::TKR.tracker_p[orig(b)-1] ::TKR.tracker_p[orig(r)] ::TKR.tracker_p[orig(r)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[q] ::TKR.smap[q-1] ::TKR.smap[a] ::TKR.smap[a-1] ::TKR.smap[b] ::TKR.smap[b-1] ::TKR.smap[r] ::TKR.smap[r-1] ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(x)] ::TKR.smap[orig(x)-1] ::TKR.smap[orig(y)] ::TKR.smap[orig(y)-1] ::TKR.smap[orig(q)] ::TKR.smap[orig(q)-1] ::TKR.smap[orig(a)] ::TKR.smap[orig(a)-1] ::TKR.smap[orig(b)] ::TKR.smap[orig(b)-1] ::TKR.smap[orig(r)] ::TKR.smap[orig(r)-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[q].count ::TKR.smap[q-1].count ::TKR.smap[a].count ::TKR.smap[a-1].count ::TKR.smap[b].count ::TKR.smap[b-1].count ::TKR.smap[r].count ::TKR.smap[r-1].count ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(x)].count ::TKR.smap[orig(x)-1].count ::TKR.smap[orig(y)].count ::TKR.smap[orig(y)-1].count ::TKR.smap[orig(q)].count ::TKR.smap[orig(q)-1].count ::TKR.smap[orig(a)].count ::TKR.smap[orig(a)-1].count ::TKR.smap[orig(b)].count ::TKR.smap[orig(b)-1].count ::TKR.smap[orig(r)].count ::TKR.smap[orig(r)-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[q].buckets ::TKR.smap[q-1].buckets ::TKR.smap[a].buckets ::TKR.smap[a-1].buckets ::TKR.smap[b].buckets ::TKR.smap[b-1].buckets ::TKR.smap[r].buckets ::TKR.smap[r-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(x)].buckets ::TKR.smap[orig(x)-1].buckets ::TKR.smap[orig(y)].buckets ::TKR.smap[orig(y)-1].buckets ::TKR.smap[orig(q)].buckets ::TKR.smap[orig(q)-1].buckets ::TKR.smap[orig(a)].buckets ::TKR.smap[orig(a)-1].buckets ::TKR.smap[orig(b)].buckets ::TKR.smap[orig(b)-1].buckets ::TKR.smap[orig(r)].buckets ::TKR.smap[orig(r)-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[q].buckets[0] ::TKR.smap[q-1].buckets[0] ::TKR.smap[a].buckets[0] ::TKR.smap[a-1].buckets[0] ::TKR.smap[b].buckets[0] ::TKR.smap[b-1].buckets[0] ::TKR.smap[r].buckets[0] ::TKR.smap[r-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(x)].buckets[0] ::TKR.smap[orig(x)-1].buckets[0] ::TKR.smap[orig(y)].buckets[0] ::TKR.smap[orig(y)-1].buckets[0] ::TKR.smap[orig(q)].buckets[0] ::TKR.smap[orig(q)-1].buckets[0] ::TKR.smap[orig(a)].buckets[0] ::TKR.smap[orig(a)-1].buckets[0] ::TKR.smap[orig(b)].buckets[0] ::TKR.smap[orig(b)-1].buckets[0] ::TKR.smap[orig(r)].buckets[0] ::TKR.smap[orig(r)-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[q].buckets->count ::TKR.smap[q-1].buckets->count ::TKR.smap[a].buckets->count ::TKR.smap[a-1].buckets->count ::TKR.smap[b].buckets->count ::TKR.smap[b-1].buckets->count ::TKR.smap[r].buckets->count ::TKR.smap[r-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(x)].buckets->count ::TKR.smap[orig(x)-1].buckets->count ::TKR.smap[orig(y)].buckets->count ::TKR.smap[orig(y)-1].buckets->count ::TKR.smap[orig(q)].buckets->count ::TKR.smap[orig(q)-1].buckets->count ::TKR.smap[orig(a)].buckets->count ::TKR.smap[orig(a)-1].buckets->count ::TKR.smap[orig(b)].buckets->count ::TKR.smap[orig(b)-1].buckets->count ::TKR.smap[orig(r)].buckets->count ::TKR.smap[orig(r)-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[q].buckets->pairs ::TKR.smap[q-1].buckets->pairs ::TKR.smap[a].buckets->pairs ::TKR.smap[a-1].buckets->pairs ::TKR.smap[b].buckets->pairs ::TKR.smap[b-1].buckets->pairs ::TKR.smap[r].buckets->pairs ::TKR.smap[r-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(x)].buckets->pairs ::TKR.smap[orig(x)-1].buckets->pairs ::TKR.smap[orig(y)].buckets->pairs ::TKR.smap[orig(y)-1].buckets->pairs ::TKR.smap[orig(q)].buckets->pairs ::TKR.smap[orig(q)-1].buckets->pairs ::TKR.smap[orig(a)].buckets->pairs ::TKR.smap[orig(a)-1].buckets->pairs ::TKR.smap[orig(b)].buckets->pairs ::TKR.smap[orig(b)-1].buckets->pairs ::TKR.smap[orig(r)].buckets->pairs ::TKR.smap[orig(r)-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[q].buckets->pairs[0] ::TKR.smap[q-1].buckets->pairs[0] ::TKR.smap[a].buckets->pairs[0] ::TKR.smap[a-1].buckets->pairs[0] ::TKR.smap[b].buckets->pairs[0] ::TKR.smap[b-1].buckets->pairs[0] ::TKR.smap[r].buckets->pairs[0] ::TKR.smap[r-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] ::TKR.smap[orig(x)].buckets->pairs[0] ::TKR.smap[orig(x)-1].buckets->pairs[0] ::TKR.smap[orig(y)].buckets->pairs[0] ::TKR.smap[orig(y)-1].buckets->pairs[0] ::TKR.smap[orig(q)].buckets->pairs[0] ::TKR.smap[orig(q)-1].buckets->pairs[0] ::TKR.smap[orig(a)].buckets->pairs[0] ::TKR.smap[orig(a)-1].buckets->pairs[0] ::TKR.smap[orig(b)].buckets->pairs[0] ::TKR.smap[orig(b)-1].buckets->pairs[0] ::TKR.smap[orig(r)].buckets->pairs[0] ::TKR.smap[orig(r)-1].buckets->pairs[0] orig(::TKR.tracker_p[post(x)]) orig(::TKR.tracker_p[post(x)-1]) orig(::TKR.smap[post(x)]) orig(::TKR.smap[post(x)-1]) orig(::TKR.smap[post(x)].count) orig(::TKR.smap[post(x)-1].count) orig(::TKR.smap[post(x)].buckets) orig(::TKR.smap[post(x)-1].buckets) orig(::TKR.smap[post(x)].buckets[0]) orig(::TKR.smap[post(x)-1].buckets[0]) orig(::TKR.smap[post(x)].buckets->count) orig(::TKR.smap[post(x)-1].buckets->count) orig(::TKR.smap[post(x)].buckets->pairs) orig(::TKR.smap[post(x)-1].buckets->pairs) orig(::TKR.smap[post(x)].buckets->pairs[0]) orig(::TKR.smap[post(x)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(y)]) orig(::TKR.tracker_p[post(y)-1]) orig(::TKR.smap[post(y)]) orig(::TKR.smap[post(y)-1]) orig(::TKR.smap[post(y)].count) orig(::TKR.smap[post(y)-1].count) orig(::TKR.smap[post(y)].buckets) orig(::TKR.smap[post(y)-1].buckets) orig(::TKR.smap[post(y)].buckets[0]) orig(::TKR.smap[post(y)-1].buckets[0]) orig(::TKR.smap[post(y)].buckets->count) orig(::TKR.smap[post(y)-1].buckets->count) orig(::TKR.smap[post(y)].buckets->pairs) orig(::TKR.smap[post(y)-1].buckets->pairs) orig(::TKR.smap[post(y)].buckets->pairs[0]) orig(::TKR.smap[post(y)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(q)]) orig(::TKR.tracker_p[post(q)-1]) orig(::TKR.smap[post(q)]) orig(::TKR.smap[post(q)-1]) orig(::TKR.smap[post(q)].count) orig(::TKR.smap[post(q)-1].count) orig(::TKR.smap[post(q)].buckets) orig(::TKR.smap[post(q)-1].buckets) orig(::TKR.smap[post(q)].buckets[0]) orig(::TKR.smap[post(q)-1].buckets[0]) orig(::TKR.smap[post(q)].buckets->count) orig(::TKR.smap[post(q)-1].buckets->count) orig(::TKR.smap[post(q)].buckets->pairs) orig(::TKR.smap[post(q)-1].buckets->pairs) orig(::TKR.smap[post(q)].buckets->pairs[0]) orig(::TKR.smap[post(q)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(a)]) orig(::TKR.tracker_p[post(a)-1]) orig(::TKR.smap[post(a)]) orig(::TKR.smap[post(a)-1]) orig(::TKR.smap[post(a)].count) orig(::TKR.smap[post(a)-1].count) orig(::TKR.smap[post(a)].buckets) orig(::TKR.smap[post(a)-1].buckets) orig(::TKR.smap[post(a)].buckets[0]) orig(::TKR.smap[post(a)-1].buckets[0]) orig(::TKR.smap[post(a)].buckets->count) orig(::TKR.smap[post(a)-1].buckets->count) orig(::TKR.smap[post(a)].buckets->pairs) orig(::TKR.smap[post(a)-1].buckets->pairs) orig(::TKR.smap[post(a)].buckets->pairs[0]) orig(::TKR.smap[post(a)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(b)]) orig(::TKR.tracker_p[post(b)-1]) orig(::TKR.smap[post(b)]) orig(::TKR.smap[post(b)-1]) orig(::TKR.smap[post(b)].count) orig(::TKR.smap[post(b)-1].count) orig(::TKR.smap[post(b)].buckets) orig(::TKR.smap[post(b)-1].buckets) orig(::TKR.smap[post(b)].buckets[0]) orig(::TKR.smap[post(b)-1].buckets[0]) orig(::TKR.smap[post(b)].buckets->count) orig(::TKR.smap[post(b)-1].buckets->count) orig(::TKR.smap[post(b)].buckets->pairs) orig(::TKR.smap[post(b)-1].buckets->pairs) orig(::TKR.smap[post(b)].buckets->pairs[0]) orig(::TKR.smap[post(b)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(r)]) orig(::TKR.tracker_p[post(r)-1]) orig(::TKR.smap[post(r)]) orig(::TKR.smap[post(r)-1]) orig(::TKR.smap[post(r)].count) orig(::TKR.smap[post(r)-1].count) orig(::TKR.smap[post(r)].buckets) orig(::TKR.smap[post(r)-1].buckets) orig(::TKR.smap[post(r)].buckets[0]) orig(::TKR.smap[post(r)-1].buckets[0]) orig(::TKR.smap[post(r)].buckets->count) orig(::TKR.smap[post(r)-1].buckets->count) orig(::TKR.smap[post(r)].buckets->pairs) orig(::TKR.smap[post(r)-1].buckets->pairs) orig(::TKR.smap[post(r)].buckets->pairs[0]) orig(::TKR.smap[post(r)-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.tracker_p[x]) orig(::TKR.tracker_p[x-1]) orig(::TKR.tracker_p[y]) orig(::TKR.tracker_p[y-1]) orig(::TKR.tracker_p[q]) orig(::TKR.tracker_p[q-1]) orig(::TKR.tracker_p[a]) orig(::TKR.tracker_p[a-1]) orig(::TKR.tracker_p[b]) orig(::TKR.tracker_p[b-1]) orig(::TKR.tracker_p[r]) orig(::TKR.tracker_p[r-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0]) orig(::TKR.smap[x]) orig(::TKR.smap[x-1]) orig(::TKR.smap[y]) orig(::TKR.smap[y-1]) orig(::TKR.smap[q]) orig(::TKR.smap[q-1]) orig(::TKR.smap[a]) orig(::TKR.smap[a-1]) orig(::TKR.smap[b]) orig(::TKR.smap[b-1]) orig(::TKR.smap[r]) orig(::TKR.smap[r-1]) orig(::TKR.smap[x].count) orig(::TKR.smap[x-1].count) orig(::TKR.smap[y].count) orig(::TKR.smap[y-1].count) orig(::TKR.smap[q].count) orig(::TKR.smap[q-1].count) orig(::TKR.smap[a].count) orig(::TKR.smap[a-1].count) orig(::TKR.smap[b].count) orig(::TKR.smap[b-1].count) orig(::TKR.smap[r].count) orig(::TKR.smap[r-1].count) orig(::TKR.smap[x].buckets) orig(::TKR.smap[x-1].buckets) orig(::TKR.smap[y].buckets) orig(::TKR.smap[y-1].buckets) orig(::TKR.smap[q].buckets) orig(::TKR.smap[q-1].buckets) orig(::TKR.smap[a].buckets) orig(::TKR.smap[a-1].buckets) orig(::TKR.smap[b].buckets) orig(::TKR.smap[b-1].buckets) orig(::TKR.smap[r].buckets) orig(::TKR.smap[r-1].buckets) orig(::TKR.smap[x].buckets[0]) orig(::TKR.smap[x-1].buckets[0]) orig(::TKR.smap[y].buckets[0]) orig(::TKR.smap[y-1].buckets[0]) orig(::TKR.smap[q].buckets[0]) orig(::TKR.smap[q-1].buckets[0]) orig(::TKR.smap[a].buckets[0]) orig(::TKR.smap[a-1].buckets[0]) orig(::TKR.smap[b].buckets[0]) orig(::TKR.smap[b-1].buckets[0]) orig(::TKR.smap[r].buckets[0]) orig(::TKR.smap[r-1].buckets[0]) orig(::TKR.smap[x].buckets->count) orig(::TKR.smap[x-1].buckets->count) orig(::TKR.smap[y].buckets->count) orig(::TKR.smap[y-1].buckets->count) orig(::TKR.smap[q].buckets->count) orig(::TKR.smap[q-1].buckets->count) orig(::TKR.smap[a].buckets->count) orig(::TKR.smap[a-1].buckets->count) orig(::TKR.smap[b].buckets->count) orig(::TKR.smap[b-1].buckets->count) orig(::TKR.smap[r].buckets->count) orig(::TKR.smap[r-1].buckets->count) orig(::TKR.smap[x].buckets->pairs) orig(::TKR.smap[x-1].buckets->pairs) orig(::TKR.smap[y].buckets->pairs) orig(::TKR.smap[y-1].buckets->pairs) orig(::TKR.smap[q].buckets->pairs) orig(::TKR.smap[q-1].buckets->pairs) orig(::TKR.smap[a].buckets->pairs) orig(::TKR.smap[a-1].buckets->pairs) orig(::TKR.smap[b].buckets->pairs) orig(::TKR.smap[b-1].buckets->pairs) orig(::TKR.smap[r].buckets->pairs) orig(::TKR.smap[r-1].buckets->pairs) orig(::TKR.smap[x].buckets->pairs[0]) orig(::TKR.smap[x-1].buckets->pairs[0]) orig(::TKR.smap[y].buckets->pairs[0]) orig(::TKR.smap[y-1].buckets->pairs[0]) orig(::TKR.smap[q].buckets->pairs[0]) orig(::TKR.smap[q-1].buckets->pairs[0]) orig(::TKR.smap[a].buckets->pairs[0]) orig(::TKR.smap[a-1].buckets->pairs[0]) orig(::TKR.smap[b].buckets->pairs[0]) orig(::TKR.smap[b-1].buckets->pairs[0]) orig(::TKR.smap[r].buckets->pairs[0]) orig(::TKR.smap[r-1].buckets->pairs[0])
+      Modified variables: ::TKR.tracker_p[] ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Modified primitive arguments: ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[q] ::TKR.tracker_p[q-1] ::TKR.tracker_p[a] ::TKR.tracker_p[a-1] ::TKR.tracker_p[b] ::TKR.tracker_p[b-1] ::TKR.tracker_p[r] ::TKR.tracker_p[r-1] ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[q] ::TKR.smap[q-1] ::TKR.smap[a] ::TKR.smap[a-1] ::TKR.smap[b] ::TKR.smap[b-1] ::TKR.smap[r] ::TKR.smap[r-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[q].count ::TKR.smap[q-1].count ::TKR.smap[a].count ::TKR.smap[a-1].count ::TKR.smap[b].count ::TKR.smap[b-1].count ::TKR.smap[r].count ::TKR.smap[r-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[q].buckets ::TKR.smap[q-1].buckets ::TKR.smap[a].buckets ::TKR.smap[a-1].buckets ::TKR.smap[b].buckets ::TKR.smap[b-1].buckets ::TKR.smap[r].buckets ::TKR.smap[r-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[q].buckets[0] ::TKR.smap[q-1].buckets[0] ::TKR.smap[a].buckets[0] ::TKR.smap[a-1].buckets[0] ::TKR.smap[b].buckets[0] ::TKR.smap[b-1].buckets[0] ::TKR.smap[r].buckets[0] ::TKR.smap[r-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[q].buckets->count ::TKR.smap[q-1].buckets->count ::TKR.smap[a].buckets->count ::TKR.smap[a-1].buckets->count ::TKR.smap[b].buckets->count ::TKR.smap[b-1].buckets->count ::TKR.smap[r].buckets->count ::TKR.smap[r-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[q].buckets->pairs ::TKR.smap[q-1].buckets->pairs ::TKR.smap[a].buckets->pairs ::TKR.smap[a-1].buckets->pairs ::TKR.smap[b].buckets->pairs ::TKR.smap[b-1].buckets->pairs ::TKR.smap[r].buckets->pairs ::TKR.smap[r-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[q].buckets->pairs[0] ::TKR.smap[q-1].buckets->pairs[0] ::TKR.smap[a].buckets->pairs[0] ::TKR.smap[a-1].buckets->pairs[0] ::TKR.smap[b].buckets->pairs[0] ::TKR.smap[b-1].buckets->pairs[0] ::TKR.smap[r].buckets->pairs[0] ::TKR.smap[r-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs x y q a b r size(::TKR.smap[]) size(::TKR.smap[].buckets[0])
+::TKR == orig(::TKR)		(1314 samples)
+::TKR.loop_ctr == ::TKR.size		(1314 samples)
+::TKR.loop_ctr == orig(::TKR.loop_ctr)		(1314 samples)
+::TKR.loop_ctr == orig(::TKR.size)		(1314 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1314 samples)
+::TKR.smap == orig(::TKR.smap)		(1314 samples)
+::TKR.smap[] == orig(::TKR.smap[])		(1314 samples)
+::TKR.smap[].count == orig(::TKR.smap[].count)		(1314 samples)
+::TKR.smap[].buckets == orig(::TKR.smap[].buckets)		(1314 samples)
+::TKR.smap[].buckets[0] == orig(::TKR.smap[].buckets[0])		(1314 samples)
+::TKR.smap[].buckets->count == orig(::TKR.smap[].buckets->count)		(1314 samples)
+::TKR.smap[].buckets->pairs == orig(::TKR.smap[].buckets->pairs)		(1314 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1314 samples)
+size(::TKR.smap[]) == orig(size(::TKR.smap[].buckets[0]))		(1314 samples)
+::buf == ""		(1314 samples)
+::TKR has only one value		(1314 samples)
+::TKR != null		(1314 samples)
+::TKR > 0		(1314 samples)
+::TKR.loop_ctr == -1		(1314 samples)
+::TKR.tracker_p == null		(1314 samples)
+::TKR.smap has only one value		(1314 samples)
+::TKR.smap != null		(1314 samples)
+::TKR.smap > 0		(1314 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1314 samples)
+::TKR.smap[] elements has only one value		(1314 samples)
+::TKR.smap[] elements != null		(1314 samples)
+::TKR.smap[].count == [1000]		(1314 samples)
+::TKR.smap[].count elements == 1000		(1314 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1314 samples)
+::TKR.smap[].buckets elements has only one value		(1314 samples)
+::TKR.smap[].buckets elements != null		(1314 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1314 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1314 samples)
+::TKR.smap[].buckets[0] elements != null		(1314 samples)
+::TKR.smap[].buckets->count == [0]		(1314 samples)
+::TKR.smap[].buckets->count elements == 0		(1314 samples)
+::TKR.smap[].buckets->pairs == [null]		(1314 samples)
+::TKR.smap[].buckets->pairs elements == null		(1314 samples)
+orig(x) > 0		(1314 samples)
+orig(y) > 0		(1314 samples)
+orig(a) > 0		(1314 samples)
+orig(b) > 0		(1314 samples)
+orig(r) > 0		(1314 samples)
+size(::TKR.smap[]) == 1		(1314 samples)
+::buf == orig(::buf)		(1314 samples)
+::TKR.loop_ctr < orig(x)		(1314 samples)
+::TKR.loop_ctr < orig(y)		(1314 samples)
+::TKR.loop_ctr < orig(q)		(1314 samples)
+::TKR.loop_ctr < orig(a)		(1314 samples)
+::TKR.loop_ctr < orig(b)		(1314 samples)
+::TKR.loop_ctr < orig(r)		(1314 samples)
+orig(x) > size(::TKR.smap[])		(1314 samples)
+orig(y) > size(::TKR.smap[])		(1314 samples)
+orig(q) != size(::TKR.smap[])		(1314 samples)
+orig(q) >= size(::TKR.smap[])-1		(1314 samples)
+orig(a) >= size(::TKR.smap[])		(1314 samples)
+orig(b) > size(::TKR.smap[])		(1314 samples)
+orig(r) > size(::TKR.smap[])		(1314 samples)
+===========================================================================
+..cohendiv_dummy_l1():::ENTER  1368 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] x y q a b r size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[q] ::TKR.tracker_p[q-1] ::TKR.tracker_p[a] ::TKR.tracker_p[a-1] ::TKR.tracker_p[b] ::TKR.tracker_p[b-1] ::TKR.tracker_p[r] ::TKR.tracker_p[r-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[q] ::TKR.smap[q-1] ::TKR.smap[a] ::TKR.smap[a-1] ::TKR.smap[b] ::TKR.smap[b-1] ::TKR.smap[r] ::TKR.smap[r-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[q].count ::TKR.smap[q-1].count ::TKR.smap[a].count ::TKR.smap[a-1].count ::TKR.smap[b].count ::TKR.smap[b-1].count ::TKR.smap[r].count ::TKR.smap[r-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[q].buckets ::TKR.smap[q-1].buckets ::TKR.smap[a].buckets ::TKR.smap[a-1].buckets ::TKR.smap[b].buckets ::TKR.smap[b-1].buckets ::TKR.smap[r].buckets ::TKR.smap[r-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[q].buckets[0] ::TKR.smap[q-1].buckets[0] ::TKR.smap[a].buckets[0] ::TKR.smap[a-1].buckets[0] ::TKR.smap[b].buckets[0] ::TKR.smap[b-1].buckets[0] ::TKR.smap[r].buckets[0] ::TKR.smap[r-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[q].buckets->count ::TKR.smap[q-1].buckets->count ::TKR.smap[a].buckets->count ::TKR.smap[a-1].buckets->count ::TKR.smap[b].buckets->count ::TKR.smap[b-1].buckets->count ::TKR.smap[r].buckets->count ::TKR.smap[r-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[q].buckets->pairs ::TKR.smap[q-1].buckets->pairs ::TKR.smap[a].buckets->pairs ::TKR.smap[a-1].buckets->pairs ::TKR.smap[b].buckets->pairs ::TKR.smap[b-1].buckets->pairs ::TKR.smap[r].buckets->pairs ::TKR.smap[r-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[q].buckets->pairs[0] ::TKR.smap[q-1].buckets->pairs[0] ::TKR.smap[a].buckets->pairs[0] ::TKR.smap[a-1].buckets->pairs[0] ::TKR.smap[b].buckets->pairs[0] ::TKR.smap[b-1].buckets->pairs[0] ::TKR.smap[r].buckets->pairs[0] ::TKR.smap[r-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1368 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1368 samples)
+::buf == ""		(1368 samples)
+::TKR has only one value		(1368 samples)
+::TKR != null		(1368 samples)
+::TKR > 0		(1368 samples)
+::TKR.loop_ctr == -1		(1368 samples)
+::TKR.tracker_p == null		(1368 samples)
+::TKR.smap has only one value		(1368 samples)
+::TKR.smap != null		(1368 samples)
+::TKR.smap > 0		(1368 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1368 samples)
+::TKR.smap[] elements has only one value		(1368 samples)
+::TKR.smap[] elements != null		(1368 samples)
+::TKR.smap[].count == [1000]		(1368 samples)
+::TKR.smap[].count elements == 1000		(1368 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1368 samples)
+::TKR.smap[].buckets elements has only one value		(1368 samples)
+::TKR.smap[].buckets elements != null		(1368 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1368 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1368 samples)
+::TKR.smap[].buckets[0] elements != null		(1368 samples)
+::TKR.smap[].buckets->count == [0]		(1368 samples)
+::TKR.smap[].buckets->count elements == 0		(1368 samples)
+::TKR.smap[].buckets->pairs == [null]		(1368 samples)
+::TKR.smap[].buckets->pairs elements == null		(1368 samples)
+x > 0		(1368 samples)
+y > 0		(1368 samples)
+q > 0		(1368 samples)
+q >= 1		(1368 samples)
+a > 0		(1368 samples)
+a >= 1		(1368 samples)
+a is a power of 2		(1368 samples)
+b > 0		(1368 samples)
+r > 0		(1368 samples)
+size(::TKR.smap[]) == 1		(1368 samples)
+::TKR.loop_ctr < x		(1368 samples)
+::TKR.loop_ctr < y		(1368 samples)
+::TKR.loop_ctr < q		(1368 samples)
+::TKR.loop_ctr < a		(1368 samples)
+::TKR.loop_ctr < b		(1368 samples)
+::TKR.loop_ctr < r		(1368 samples)
+x > y		(1368 samples)
+x > q		(1368 samples)
+x > a		(1368 samples)
+x > b		(1368 samples)
+x > r		(1368 samples)
+x > size(::TKR.smap[])		(1368 samples)
+y != q		(1368 samples)
+y != a		(1368 samples)
+b % y == 0		(1368 samples)
+y <= b		(1368 samples)
+y != r		(1368 samples)
+y > size(::TKR.smap[])		(1368 samples)
+q % a == 0		(1368 samples)
+q >= a		(1368 samples)
+q != b		(1368 samples)
+q != r		(1368 samples)
+q >= size(::TKR.smap[])		(1368 samples)
+a < b		(1368 samples)
+b % a == 0		(1368 samples)
+a != r		(1368 samples)
+a >= size(::TKR.smap[])		(1368 samples)
+b > r		(1368 samples)
+b > size(::TKR.smap[])		(1368 samples)
+r > size(::TKR.smap[])		(1368 samples)
+===========================================================================
+..cohendiv_dummy_l1():::EXIT  1368 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] x y q a b r orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) orig(x) orig(y) orig(q) orig(a) orig(b) orig(r) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[q] ::TKR.tracker_p[q-1] ::TKR.tracker_p[a] ::TKR.tracker_p[a-1] ::TKR.tracker_p[b] ::TKR.tracker_p[b-1] ::TKR.tracker_p[r] ::TKR.tracker_p[r-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.tracker_p[orig(x)] ::TKR.tracker_p[orig(x)-1] ::TKR.tracker_p[orig(y)] ::TKR.tracker_p[orig(y)-1] ::TKR.tracker_p[orig(q)] ::TKR.tracker_p[orig(q)-1] ::TKR.tracker_p[orig(a)] ::TKR.tracker_p[orig(a)-1] ::TKR.tracker_p[orig(b)] ::TKR.tracker_p[orig(b)-1] ::TKR.tracker_p[orig(r)] ::TKR.tracker_p[orig(r)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[q] ::TKR.smap[q-1] ::TKR.smap[a] ::TKR.smap[a-1] ::TKR.smap[b] ::TKR.smap[b-1] ::TKR.smap[r] ::TKR.smap[r-1] ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(x)] ::TKR.smap[orig(x)-1] ::TKR.smap[orig(y)] ::TKR.smap[orig(y)-1] ::TKR.smap[orig(q)] ::TKR.smap[orig(q)-1] ::TKR.smap[orig(a)] ::TKR.smap[orig(a)-1] ::TKR.smap[orig(b)] ::TKR.smap[orig(b)-1] ::TKR.smap[orig(r)] ::TKR.smap[orig(r)-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[q].count ::TKR.smap[q-1].count ::TKR.smap[a].count ::TKR.smap[a-1].count ::TKR.smap[b].count ::TKR.smap[b-1].count ::TKR.smap[r].count ::TKR.smap[r-1].count ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(x)].count ::TKR.smap[orig(x)-1].count ::TKR.smap[orig(y)].count ::TKR.smap[orig(y)-1].count ::TKR.smap[orig(q)].count ::TKR.smap[orig(q)-1].count ::TKR.smap[orig(a)].count ::TKR.smap[orig(a)-1].count ::TKR.smap[orig(b)].count ::TKR.smap[orig(b)-1].count ::TKR.smap[orig(r)].count ::TKR.smap[orig(r)-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[q].buckets ::TKR.smap[q-1].buckets ::TKR.smap[a].buckets ::TKR.smap[a-1].buckets ::TKR.smap[b].buckets ::TKR.smap[b-1].buckets ::TKR.smap[r].buckets ::TKR.smap[r-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(x)].buckets ::TKR.smap[orig(x)-1].buckets ::TKR.smap[orig(y)].buckets ::TKR.smap[orig(y)-1].buckets ::TKR.smap[orig(q)].buckets ::TKR.smap[orig(q)-1].buckets ::TKR.smap[orig(a)].buckets ::TKR.smap[orig(a)-1].buckets ::TKR.smap[orig(b)].buckets ::TKR.smap[orig(b)-1].buckets ::TKR.smap[orig(r)].buckets ::TKR.smap[orig(r)-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[q].buckets[0] ::TKR.smap[q-1].buckets[0] ::TKR.smap[a].buckets[0] ::TKR.smap[a-1].buckets[0] ::TKR.smap[b].buckets[0] ::TKR.smap[b-1].buckets[0] ::TKR.smap[r].buckets[0] ::TKR.smap[r-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(x)].buckets[0] ::TKR.smap[orig(x)-1].buckets[0] ::TKR.smap[orig(y)].buckets[0] ::TKR.smap[orig(y)-1].buckets[0] ::TKR.smap[orig(q)].buckets[0] ::TKR.smap[orig(q)-1].buckets[0] ::TKR.smap[orig(a)].buckets[0] ::TKR.smap[orig(a)-1].buckets[0] ::TKR.smap[orig(b)].buckets[0] ::TKR.smap[orig(b)-1].buckets[0] ::TKR.smap[orig(r)].buckets[0] ::TKR.smap[orig(r)-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[q].buckets->count ::TKR.smap[q-1].buckets->count ::TKR.smap[a].buckets->count ::TKR.smap[a-1].buckets->count ::TKR.smap[b].buckets->count ::TKR.smap[b-1].buckets->count ::TKR.smap[r].buckets->count ::TKR.smap[r-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(x)].buckets->count ::TKR.smap[orig(x)-1].buckets->count ::TKR.smap[orig(y)].buckets->count ::TKR.smap[orig(y)-1].buckets->count ::TKR.smap[orig(q)].buckets->count ::TKR.smap[orig(q)-1].buckets->count ::TKR.smap[orig(a)].buckets->count ::TKR.smap[orig(a)-1].buckets->count ::TKR.smap[orig(b)].buckets->count ::TKR.smap[orig(b)-1].buckets->count ::TKR.smap[orig(r)].buckets->count ::TKR.smap[orig(r)-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[q].buckets->pairs ::TKR.smap[q-1].buckets->pairs ::TKR.smap[a].buckets->pairs ::TKR.smap[a-1].buckets->pairs ::TKR.smap[b].buckets->pairs ::TKR.smap[b-1].buckets->pairs ::TKR.smap[r].buckets->pairs ::TKR.smap[r-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(x)].buckets->pairs ::TKR.smap[orig(x)-1].buckets->pairs ::TKR.smap[orig(y)].buckets->pairs ::TKR.smap[orig(y)-1].buckets->pairs ::TKR.smap[orig(q)].buckets->pairs ::TKR.smap[orig(q)-1].buckets->pairs ::TKR.smap[orig(a)].buckets->pairs ::TKR.smap[orig(a)-1].buckets->pairs ::TKR.smap[orig(b)].buckets->pairs ::TKR.smap[orig(b)-1].buckets->pairs ::TKR.smap[orig(r)].buckets->pairs ::TKR.smap[orig(r)-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[q].buckets->pairs[0] ::TKR.smap[q-1].buckets->pairs[0] ::TKR.smap[a].buckets->pairs[0] ::TKR.smap[a-1].buckets->pairs[0] ::TKR.smap[b].buckets->pairs[0] ::TKR.smap[b-1].buckets->pairs[0] ::TKR.smap[r].buckets->pairs[0] ::TKR.smap[r-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] ::TKR.smap[orig(x)].buckets->pairs[0] ::TKR.smap[orig(x)-1].buckets->pairs[0] ::TKR.smap[orig(y)].buckets->pairs[0] ::TKR.smap[orig(y)-1].buckets->pairs[0] ::TKR.smap[orig(q)].buckets->pairs[0] ::TKR.smap[orig(q)-1].buckets->pairs[0] ::TKR.smap[orig(a)].buckets->pairs[0] ::TKR.smap[orig(a)-1].buckets->pairs[0] ::TKR.smap[orig(b)].buckets->pairs[0] ::TKR.smap[orig(b)-1].buckets->pairs[0] ::TKR.smap[orig(r)].buckets->pairs[0] ::TKR.smap[orig(r)-1].buckets->pairs[0] orig(::TKR.tracker_p[post(x)]) orig(::TKR.tracker_p[post(x)-1]) orig(::TKR.smap[post(x)]) orig(::TKR.smap[post(x)-1]) orig(::TKR.smap[post(x)].count) orig(::TKR.smap[post(x)-1].count) orig(::TKR.smap[post(x)].buckets) orig(::TKR.smap[post(x)-1].buckets) orig(::TKR.smap[post(x)].buckets[0]) orig(::TKR.smap[post(x)-1].buckets[0]) orig(::TKR.smap[post(x)].buckets->count) orig(::TKR.smap[post(x)-1].buckets->count) orig(::TKR.smap[post(x)].buckets->pairs) orig(::TKR.smap[post(x)-1].buckets->pairs) orig(::TKR.smap[post(x)].buckets->pairs[0]) orig(::TKR.smap[post(x)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(y)]) orig(::TKR.tracker_p[post(y)-1]) orig(::TKR.smap[post(y)]) orig(::TKR.smap[post(y)-1]) orig(::TKR.smap[post(y)].count) orig(::TKR.smap[post(y)-1].count) orig(::TKR.smap[post(y)].buckets) orig(::TKR.smap[post(y)-1].buckets) orig(::TKR.smap[post(y)].buckets[0]) orig(::TKR.smap[post(y)-1].buckets[0]) orig(::TKR.smap[post(y)].buckets->count) orig(::TKR.smap[post(y)-1].buckets->count) orig(::TKR.smap[post(y)].buckets->pairs) orig(::TKR.smap[post(y)-1].buckets->pairs) orig(::TKR.smap[post(y)].buckets->pairs[0]) orig(::TKR.smap[post(y)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(q)]) orig(::TKR.tracker_p[post(q)-1]) orig(::TKR.smap[post(q)]) orig(::TKR.smap[post(q)-1]) orig(::TKR.smap[post(q)].count) orig(::TKR.smap[post(q)-1].count) orig(::TKR.smap[post(q)].buckets) orig(::TKR.smap[post(q)-1].buckets) orig(::TKR.smap[post(q)].buckets[0]) orig(::TKR.smap[post(q)-1].buckets[0]) orig(::TKR.smap[post(q)].buckets->count) orig(::TKR.smap[post(q)-1].buckets->count) orig(::TKR.smap[post(q)].buckets->pairs) orig(::TKR.smap[post(q)-1].buckets->pairs) orig(::TKR.smap[post(q)].buckets->pairs[0]) orig(::TKR.smap[post(q)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(a)]) orig(::TKR.tracker_p[post(a)-1]) orig(::TKR.smap[post(a)]) orig(::TKR.smap[post(a)-1]) orig(::TKR.smap[post(a)].count) orig(::TKR.smap[post(a)-1].count) orig(::TKR.smap[post(a)].buckets) orig(::TKR.smap[post(a)-1].buckets) orig(::TKR.smap[post(a)].buckets[0]) orig(::TKR.smap[post(a)-1].buckets[0]) orig(::TKR.smap[post(a)].buckets->count) orig(::TKR.smap[post(a)-1].buckets->count) orig(::TKR.smap[post(a)].buckets->pairs) orig(::TKR.smap[post(a)-1].buckets->pairs) orig(::TKR.smap[post(a)].buckets->pairs[0]) orig(::TKR.smap[post(a)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(b)]) orig(::TKR.tracker_p[post(b)-1]) orig(::TKR.smap[post(b)]) orig(::TKR.smap[post(b)-1]) orig(::TKR.smap[post(b)].count) orig(::TKR.smap[post(b)-1].count) orig(::TKR.smap[post(b)].buckets) orig(::TKR.smap[post(b)-1].buckets) orig(::TKR.smap[post(b)].buckets[0]) orig(::TKR.smap[post(b)-1].buckets[0]) orig(::TKR.smap[post(b)].buckets->count) orig(::TKR.smap[post(b)-1].buckets->count) orig(::TKR.smap[post(b)].buckets->pairs) orig(::TKR.smap[post(b)-1].buckets->pairs) orig(::TKR.smap[post(b)].buckets->pairs[0]) orig(::TKR.smap[post(b)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(r)]) orig(::TKR.tracker_p[post(r)-1]) orig(::TKR.smap[post(r)]) orig(::TKR.smap[post(r)-1]) orig(::TKR.smap[post(r)].count) orig(::TKR.smap[post(r)-1].count) orig(::TKR.smap[post(r)].buckets) orig(::TKR.smap[post(r)-1].buckets) orig(::TKR.smap[post(r)].buckets[0]) orig(::TKR.smap[post(r)-1].buckets[0]) orig(::TKR.smap[post(r)].buckets->count) orig(::TKR.smap[post(r)-1].buckets->count) orig(::TKR.smap[post(r)].buckets->pairs) orig(::TKR.smap[post(r)-1].buckets->pairs) orig(::TKR.smap[post(r)].buckets->pairs[0]) orig(::TKR.smap[post(r)-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.tracker_p[x]) orig(::TKR.tracker_p[x-1]) orig(::TKR.tracker_p[y]) orig(::TKR.tracker_p[y-1]) orig(::TKR.tracker_p[q]) orig(::TKR.tracker_p[q-1]) orig(::TKR.tracker_p[a]) orig(::TKR.tracker_p[a-1]) orig(::TKR.tracker_p[b]) orig(::TKR.tracker_p[b-1]) orig(::TKR.tracker_p[r]) orig(::TKR.tracker_p[r-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0]) orig(::TKR.smap[x]) orig(::TKR.smap[x-1]) orig(::TKR.smap[y]) orig(::TKR.smap[y-1]) orig(::TKR.smap[q]) orig(::TKR.smap[q-1]) orig(::TKR.smap[a]) orig(::TKR.smap[a-1]) orig(::TKR.smap[b]) orig(::TKR.smap[b-1]) orig(::TKR.smap[r]) orig(::TKR.smap[r-1]) orig(::TKR.smap[x].count) orig(::TKR.smap[x-1].count) orig(::TKR.smap[y].count) orig(::TKR.smap[y-1].count) orig(::TKR.smap[q].count) orig(::TKR.smap[q-1].count) orig(::TKR.smap[a].count) orig(::TKR.smap[a-1].count) orig(::TKR.smap[b].count) orig(::TKR.smap[b-1].count) orig(::TKR.smap[r].count) orig(::TKR.smap[r-1].count) orig(::TKR.smap[x].buckets) orig(::TKR.smap[x-1].buckets) orig(::TKR.smap[y].buckets) orig(::TKR.smap[y-1].buckets) orig(::TKR.smap[q].buckets) orig(::TKR.smap[q-1].buckets) orig(::TKR.smap[a].buckets) orig(::TKR.smap[a-1].buckets) orig(::TKR.smap[b].buckets) orig(::TKR.smap[b-1].buckets) orig(::TKR.smap[r].buckets) orig(::TKR.smap[r-1].buckets) orig(::TKR.smap[x].buckets[0]) orig(::TKR.smap[x-1].buckets[0]) orig(::TKR.smap[y].buckets[0]) orig(::TKR.smap[y-1].buckets[0]) orig(::TKR.smap[q].buckets[0]) orig(::TKR.smap[q-1].buckets[0]) orig(::TKR.smap[a].buckets[0]) orig(::TKR.smap[a-1].buckets[0]) orig(::TKR.smap[b].buckets[0]) orig(::TKR.smap[b-1].buckets[0]) orig(::TKR.smap[r].buckets[0]) orig(::TKR.smap[r-1].buckets[0]) orig(::TKR.smap[x].buckets->count) orig(::TKR.smap[x-1].buckets->count) orig(::TKR.smap[y].buckets->count) orig(::TKR.smap[y-1].buckets->count) orig(::TKR.smap[q].buckets->count) orig(::TKR.smap[q-1].buckets->count) orig(::TKR.smap[a].buckets->count) orig(::TKR.smap[a-1].buckets->count) orig(::TKR.smap[b].buckets->count) orig(::TKR.smap[b-1].buckets->count) orig(::TKR.smap[r].buckets->count) orig(::TKR.smap[r-1].buckets->count) orig(::TKR.smap[x].buckets->pairs) orig(::TKR.smap[x-1].buckets->pairs) orig(::TKR.smap[y].buckets->pairs) orig(::TKR.smap[y-1].buckets->pairs) orig(::TKR.smap[q].buckets->pairs) orig(::TKR.smap[q-1].buckets->pairs) orig(::TKR.smap[a].buckets->pairs) orig(::TKR.smap[a-1].buckets->pairs) orig(::TKR.smap[b].buckets->pairs) orig(::TKR.smap[b-1].buckets->pairs) orig(::TKR.smap[r].buckets->pairs) orig(::TKR.smap[r-1].buckets->pairs) orig(::TKR.smap[x].buckets->pairs[0]) orig(::TKR.smap[x-1].buckets->pairs[0]) orig(::TKR.smap[y].buckets->pairs[0]) orig(::TKR.smap[y-1].buckets->pairs[0]) orig(::TKR.smap[q].buckets->pairs[0]) orig(::TKR.smap[q-1].buckets->pairs[0]) orig(::TKR.smap[a].buckets->pairs[0]) orig(::TKR.smap[a-1].buckets->pairs[0]) orig(::TKR.smap[b].buckets->pairs[0]) orig(::TKR.smap[b-1].buckets->pairs[0]) orig(::TKR.smap[r].buckets->pairs[0]) orig(::TKR.smap[r-1].buckets->pairs[0])
+      Modified variables: ::TKR.tracker_p[] ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Modified primitive arguments: ::TKR.tracker_p[x] ::TKR.tracker_p[x-1] ::TKR.tracker_p[y] ::TKR.tracker_p[y-1] ::TKR.tracker_p[q] ::TKR.tracker_p[q-1] ::TKR.tracker_p[a] ::TKR.tracker_p[a-1] ::TKR.tracker_p[b] ::TKR.tracker_p[b-1] ::TKR.tracker_p[r] ::TKR.tracker_p[r-1] ::TKR.smap[x] ::TKR.smap[x-1] ::TKR.smap[y] ::TKR.smap[y-1] ::TKR.smap[q] ::TKR.smap[q-1] ::TKR.smap[a] ::TKR.smap[a-1] ::TKR.smap[b] ::TKR.smap[b-1] ::TKR.smap[r] ::TKR.smap[r-1] ::TKR.smap[x].count ::TKR.smap[x-1].count ::TKR.smap[y].count ::TKR.smap[y-1].count ::TKR.smap[q].count ::TKR.smap[q-1].count ::TKR.smap[a].count ::TKR.smap[a-1].count ::TKR.smap[b].count ::TKR.smap[b-1].count ::TKR.smap[r].count ::TKR.smap[r-1].count ::TKR.smap[x].buckets ::TKR.smap[x-1].buckets ::TKR.smap[y].buckets ::TKR.smap[y-1].buckets ::TKR.smap[q].buckets ::TKR.smap[q-1].buckets ::TKR.smap[a].buckets ::TKR.smap[a-1].buckets ::TKR.smap[b].buckets ::TKR.smap[b-1].buckets ::TKR.smap[r].buckets ::TKR.smap[r-1].buckets ::TKR.smap[x].buckets[0] ::TKR.smap[x-1].buckets[0] ::TKR.smap[y].buckets[0] ::TKR.smap[y-1].buckets[0] ::TKR.smap[q].buckets[0] ::TKR.smap[q-1].buckets[0] ::TKR.smap[a].buckets[0] ::TKR.smap[a-1].buckets[0] ::TKR.smap[b].buckets[0] ::TKR.smap[b-1].buckets[0] ::TKR.smap[r].buckets[0] ::TKR.smap[r-1].buckets[0] ::TKR.smap[x].buckets->count ::TKR.smap[x-1].buckets->count ::TKR.smap[y].buckets->count ::TKR.smap[y-1].buckets->count ::TKR.smap[q].buckets->count ::TKR.smap[q-1].buckets->count ::TKR.smap[a].buckets->count ::TKR.smap[a-1].buckets->count ::TKR.smap[b].buckets->count ::TKR.smap[b-1].buckets->count ::TKR.smap[r].buckets->count ::TKR.smap[r-1].buckets->count ::TKR.smap[x].buckets->pairs ::TKR.smap[x-1].buckets->pairs ::TKR.smap[y].buckets->pairs ::TKR.smap[y-1].buckets->pairs ::TKR.smap[q].buckets->pairs ::TKR.smap[q-1].buckets->pairs ::TKR.smap[a].buckets->pairs ::TKR.smap[a-1].buckets->pairs ::TKR.smap[b].buckets->pairs ::TKR.smap[b-1].buckets->pairs ::TKR.smap[r].buckets->pairs ::TKR.smap[r-1].buckets->pairs ::TKR.smap[x].buckets->pairs[0] ::TKR.smap[x-1].buckets->pairs[0] ::TKR.smap[y].buckets->pairs[0] ::TKR.smap[y-1].buckets->pairs[0] ::TKR.smap[q].buckets->pairs[0] ::TKR.smap[q-1].buckets->pairs[0] ::TKR.smap[a].buckets->pairs[0] ::TKR.smap[a-1].buckets->pairs[0] ::TKR.smap[b].buckets->pairs[0] ::TKR.smap[b-1].buckets->pairs[0] ::TKR.smap[r].buckets->pairs[0] ::TKR.smap[r-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs x y q a b r size(::TKR.smap[]) size(::TKR.smap[].buckets[0])
+::TKR == orig(::TKR)		(1368 samples)
+::TKR.loop_ctr == ::TKR.size		(1368 samples)
+::TKR.loop_ctr == orig(::TKR.loop_ctr)		(1368 samples)
+::TKR.loop_ctr == orig(::TKR.size)		(1368 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1368 samples)
+::TKR.smap == orig(::TKR.smap)		(1368 samples)
+::TKR.smap[] == orig(::TKR.smap[])		(1368 samples)
+::TKR.smap[].count == orig(::TKR.smap[].count)		(1368 samples)
+::TKR.smap[].buckets == orig(::TKR.smap[].buckets)		(1368 samples)
+::TKR.smap[].buckets[0] == orig(::TKR.smap[].buckets[0])		(1368 samples)
+::TKR.smap[].buckets->count == orig(::TKR.smap[].buckets->count)		(1368 samples)
+::TKR.smap[].buckets->pairs == orig(::TKR.smap[].buckets->pairs)		(1368 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1368 samples)
+size(::TKR.smap[]) == orig(size(::TKR.smap[].buckets[0]))		(1368 samples)
+::buf == ""		(1368 samples)
+::TKR has only one value		(1368 samples)
+::TKR != null		(1368 samples)
+::TKR > 0		(1368 samples)
+::TKR.loop_ctr == -1		(1368 samples)
+::TKR.tracker_p == null		(1368 samples)
+::TKR.smap has only one value		(1368 samples)
+::TKR.smap != null		(1368 samples)
+::TKR.smap > 0		(1368 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1368 samples)
+::TKR.smap[] elements has only one value		(1368 samples)
+::TKR.smap[] elements != null		(1368 samples)
+::TKR.smap[].count == [1000]		(1368 samples)
+::TKR.smap[].count elements == 1000		(1368 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1368 samples)
+::TKR.smap[].buckets elements has only one value		(1368 samples)
+::TKR.smap[].buckets elements != null		(1368 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1368 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1368 samples)
+::TKR.smap[].buckets[0] elements != null		(1368 samples)
+::TKR.smap[].buckets->count == [0]		(1368 samples)
+::TKR.smap[].buckets->count elements == 0		(1368 samples)
+::TKR.smap[].buckets->pairs == [null]		(1368 samples)
+::TKR.smap[].buckets->pairs elements == null		(1368 samples)
+orig(x) > 0		(1368 samples)
+orig(y) > 0		(1368 samples)
+orig(q) > 0		(1368 samples)
+orig(a) > 0		(1368 samples)
+orig(b) > 0		(1368 samples)
+orig(r) > 0		(1368 samples)
+size(::TKR.smap[]) == 1		(1368 samples)
+::buf == orig(::buf)		(1368 samples)
+::TKR.loop_ctr < orig(x)		(1368 samples)
+::TKR.loop_ctr < orig(y)		(1368 samples)
+::TKR.loop_ctr < orig(q)		(1368 samples)
+::TKR.loop_ctr < orig(a)		(1368 samples)
+::TKR.loop_ctr < orig(b)		(1368 samples)
+::TKR.loop_ctr < orig(r)		(1368 samples)
+orig(x) > size(::TKR.smap[])		(1368 samples)
+orig(y) > size(::TKR.smap[])		(1368 samples)
+orig(q) >= size(::TKR.smap[])		(1368 samples)
+orig(a) >= size(::TKR.smap[])		(1368 samples)
+orig(b) > size(::TKR.smap[])		(1368 samples)
+orig(r) > size(::TKR.smap[])		(1368 samples)
+[No samples for ..copy():::ENTER]
+[No samples for ..copy():::EXIT]
+[No samples for ..copy_prop():::ENTER]
+[No samples for ..copy_prop():::EXIT]
+[No samples for ..create_array_int():::ENTER]
+[No samples for ..create_array_int():::EXIT]
+[No samples for ..daikon_test():::ENTER]
+[No samples for ..daikon_test():::EXIT]
+[No samples for ..daikon_test_dummy():::ENTER]
+[No samples for ..daikon_test_dummy():::EXIT]
+[No samples for ..dijkstra():::ENTER]
+[No samples for ..dijkstra():::EXIT]
+[No samples for ..dijkstra_dummy():::ENTER]
+[No samples for ..dijkstra_dummy():::EXIT]
+[No samples for ..divbin():::ENTER]
+[No samples for ..divbin():::EXIT]
+[No samples for ..divbin_dummy_l0():::ENTER]
+[No samples for ..divbin_dummy_l0():::EXIT]
+[No samples for ..divbin_dummy_l1():::ENTER]
+[No samples for ..divbin_dummy_l1():::EXIT]
+[No samples for ..divbin_dummy_l2():::ENTER]
+[No samples for ..divbin_dummy_l2():::EXIT]
+[No samples for ..egcd():::ENTER]
+[No samples for ..egcd():::EXIT]
+[No samples for ..euclidex1():::ENTER]
+[No samples for ..euclidex1():::EXIT]
+[No samples for ..euclidex1_dummy():::ENTER]
+[No samples for ..euclidex1_dummy():::EXIT]
+[No samples for ..euclidex2():::ENTER]
+[No samples for ..euclidex2():::EXIT]
+[No samples for ..euclidex2_bug():::ENTER]
+[No samples for ..euclidex2_bug():::EXIT]
+[No samples for ..euclidex2_dummy_l0():::ENTER]
+[No samples for ..euclidex2_dummy_l0():::EXIT]
+[No samples for ..euclidex2_dummy_l1():::ENTER]
+[No samples for ..euclidex2_dummy_l1():::EXIT]
+[No samples for ..euclidex3():::ENTER]
+[No samples for ..euclidex3():::EXIT]
+[No samples for ..euclidex3_dummy():::ENTER]
+[No samples for ..euclidex3_dummy():::EXIT]
+[No samples for ..f1():::ENTER]
+[No samples for ..f1():::EXIT]
+[No samples for ..f_rand():::ENTER]
+[No samples for ..f_rand():::EXIT]
+[No samples for ..fermat1():::ENTER]
+[No samples for ..fermat1():::EXIT]
+[No samples for ..fermat1_dummy():::ENTER]
+[No samples for ..fermat1_dummy():::EXIT]
+[No samples for ..fermat2():::ENTER]
+[No samples for ..fermat2():::EXIT]
+[No samples for ..fermat2_dummy():::ENTER]
+[No samples for ..fermat2_dummy():::EXIT]
+[No samples for ..freire1():::ENTER]
+[No samples for ..freire1():::EXIT]
+[No samples for ..freire1_dummy():::ENTER]
+[No samples for ..freire1_dummy():::EXIT]
+[No samples for ..freire2():::ENTER]
+[No samples for ..freire2():::EXIT]
+[No samples for ..freire2_dummy():::ENTER]
+[No samples for ..freire2_dummy():::EXIT]
+[No samples for ..geo1():::ENTER]
+[No samples for ..geo1():::EXIT]
+[No samples for ..geo1_dummy():::ENTER]
+[No samples for ..geo1_dummy():::EXIT]
+[No samples for ..geo2():::ENTER]
+[No samples for ..geo2():::EXIT]
+[No samples for ..geo2_dummy():::ENTER]
+[No samples for ..geo2_dummy():::EXIT]
+[No samples for ..geo3():::ENTER]
+[No samples for ..geo3():::EXIT]
+[No samples for ..geo3_dummy():::ENTER]
+[No samples for ..geo3_dummy():::EXIT]
+[No samples for ..get_n_incr_loop_ctr_tracker():::ENTER]
+[No samples for ..get_n_incr_loop_ctr_tracker():::EXIT]
+[No samples for ..hard():::ENTER]
+[No samples for ..hard():::EXIT]
+[No samples for ..hard_dummy():::ENTER]
+[No samples for ..hard_dummy():::EXIT]
+[No samples for ..hash_print():::ENTER]
+[No samples for ..hash_print():::EXIT]
+[No samples for ..high_filter1():::ENTER]
+[No samples for ..high_filter1():::EXIT]
+[No samples for ..high_filter2():::ENTER]
+[No samples for ..high_filter2():::EXIT]
+[No samples for ..incr_tracker_pos():::ENTER]
+[No samples for ..incr_tracker_pos():::EXIT]
+[No samples for ..init():::ENTER]
+[No samples for ..init():::EXIT]
+===========================================================================
+..init_tracker():::ENTER  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == 0		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap == null		(1004 samples)
+===========================================================================
+..init_tracker():::EXIT  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0])
+      Modified variables: ::TKR.loop_ctr ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[]) size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.tracker_p
+::TKR == orig(::TKR)		(1004 samples)
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1004 samples)
+orig(::TKR.loop_ctr) == size(::TKR.smap[])-1		(1004 samples)
+orig(::TKR.loop_ctr) == size(::TKR.smap[].buckets[0])-1		(1004 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap has only one value		(1004 samples)
+::TKR.smap != null		(1004 samples)
+::TKR.smap > 0		(1004 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[] elements has only one value		(1004 samples)
+::TKR.smap[] elements != null		(1004 samples)
+::TKR.smap[].count == [1000]		(1004 samples)
+::TKR.smap[].count elements == 1000		(1004 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets elements has only one value		(1004 samples)
+::TKR.smap[].buckets elements != null		(1004 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1004 samples)
+::TKR.smap[].buckets[0] elements != null		(1004 samples)
+::TKR.smap[].buckets->count == [0]		(1004 samples)
+::TKR.smap[].buckets->count elements == 0		(1004 samples)
+::TKR.smap[].buckets->pairs == [null]		(1004 samples)
+::TKR.smap[].buckets->pairs elements == null		(1004 samples)
+size(::TKR.smap[]) == 1		(1004 samples)
+::TKR.smap[orig(::TKR.loop_ctr)] > 0		(1004 samples)
+::TKR.smap[orig(::TKR.loop_ctr)].buckets > 0		(1004 samples)
+::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] > 0		(1004 samples)
+::buf == orig(::buf)		(1004 samples)
+::TKR.smap[] elements == ::TKR.smap[orig(::TKR.loop_ctr)]		(1004 samples)
+::TKR.smap[].count elements == ::TKR.smap[orig(::TKR.loop_ctr)].count		(1004 samples)
+::TKR.smap[].buckets elements == ::TKR.smap[orig(::TKR.loop_ctr)].buckets		(1004 samples)
+::TKR.smap[].buckets[0] elements == ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0]		(1004 samples)
+::TKR.smap[].buckets->count elements == ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count		(1004 samples)
+::TKR.smap[].buckets->pairs elements == ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs		(1004 samples)
+[No samples for ..knuth():::ENTER]
+[No samples for ..knuth():::EXIT]
+[No samples for ..knuth_dummy():::ENTER]
+[No samples for ..knuth_dummy():::EXIT]
+[No samples for ..knuth_factor_fermat():::ENTER]
+[No samples for ..knuth_factor_fermat():::EXIT]
+[No samples for ..knuth_factor_rho():::ENTER]
+[No samples for ..knuth_factor_rho():::EXIT]
+[No samples for ..knuth_gcd_bin():::ENTER]
+[No samples for ..knuth_gcd_bin():::EXIT]
+[No samples for ..knuth_gcd_euclid():::ENTER]
+[No samples for ..knuth_gcd_euclid():::EXIT]
+[No samples for ..knuth_gcd_n():::ENTER]
+[No samples for ..knuth_gcd_n():::EXIT]
+[No samples for ..lcm1():::ENTER]
+[No samples for ..lcm1():::EXIT]
+[No samples for ..lcm1_dummy():::ENTER]
+[No samples for ..lcm1_dummy():::EXIT]
+[No samples for ..lcm2():::ENTER]
+[No samples for ..lcm2():::EXIT]
+[No samples for ..lcm2_dummy():::ENTER]
+[No samples for ..lcm2_dummy():::EXIT]
+===========================================================================
+..main():::ENTER  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] argc argv argv[] size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 size(argv[]) size(argv[])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[argc] ::TKR.tracker_p[argc-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] ::TKR.smap[argc] ::TKR.smap[argc-1] ::TKR.smap[argc].count ::TKR.smap[argc-1].count ::TKR.smap[argc].buckets ::TKR.smap[argc-1].buckets ::TKR.smap[argc].buckets[0] ::TKR.smap[argc-1].buckets[0] ::TKR.smap[argc].buckets->count ::TKR.smap[argc-1].buckets->count ::TKR.smap[argc].buckets->pairs ::TKR.smap[argc-1].buckets->pairs ::TKR.smap[argc].buckets->pairs[0] ::TKR.smap[argc-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.loop_ctr == size(argv[])-1		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap == null		(1004 samples)
+argc == 4		(1004 samples)
+argv != null		(1004 samples)
+argv > 0		(1004 samples)
+argv[] == [./inv]		(1004 samples)
+argv[] elements == "./inv"		(1004 samples)
+size(argv[]) == 1		(1004 samples)
+===========================================================================
+..main():::EXIT  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] argc argv argv[] return orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) orig(argc) orig(argv) orig(argv[]) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 size(argv[]) size(argv[])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 orig(size(argv[])) orig(size(argv[]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[argc] ::TKR.tracker_p[argc-1] ::TKR.tracker_p[return] ::TKR.tracker_p[return-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.tracker_p[orig(argc)] ::TKR.tracker_p[orig(argc)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[argc] ::TKR.smap[argc-1] ::TKR.smap[return] ::TKR.smap[return-1] ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(argc)] ::TKR.smap[orig(argc)-1] ::TKR.smap[argc].count ::TKR.smap[argc-1].count ::TKR.smap[return].count ::TKR.smap[return-1].count ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(argc)].count ::TKR.smap[orig(argc)-1].count ::TKR.smap[argc].buckets ::TKR.smap[argc-1].buckets ::TKR.smap[return].buckets ::TKR.smap[return-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(argc)].buckets ::TKR.smap[orig(argc)-1].buckets ::TKR.smap[argc].buckets[0] ::TKR.smap[argc-1].buckets[0] ::TKR.smap[return].buckets[0] ::TKR.smap[return-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(argc)].buckets[0] ::TKR.smap[orig(argc)-1].buckets[0] ::TKR.smap[argc].buckets->count ::TKR.smap[argc-1].buckets->count ::TKR.smap[return].buckets->count ::TKR.smap[return-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(argc)].buckets->count ::TKR.smap[orig(argc)-1].buckets->count ::TKR.smap[argc].buckets->pairs ::TKR.smap[argc-1].buckets->pairs ::TKR.smap[return].buckets->pairs ::TKR.smap[return-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(argc)].buckets->pairs ::TKR.smap[orig(argc)-1].buckets->pairs ::TKR.smap[argc].buckets->pairs[0] ::TKR.smap[argc-1].buckets->pairs[0] ::TKR.smap[return].buckets->pairs[0] ::TKR.smap[return-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] ::TKR.smap[orig(argc)].buckets->pairs[0] ::TKR.smap[orig(argc)-1].buckets->pairs[0] orig(::TKR.tracker_p[post(argc)]) orig(::TKR.tracker_p[post(argc)-1]) orig(::TKR.smap[post(argc)]) orig(::TKR.smap[post(argc)-1]) orig(::TKR.smap[post(argc)].count) orig(::TKR.smap[post(argc)-1].count) orig(::TKR.smap[post(argc)].buckets) orig(::TKR.smap[post(argc)-1].buckets) orig(::TKR.smap[post(argc)].buckets[0]) orig(::TKR.smap[post(argc)-1].buckets[0]) orig(::TKR.smap[post(argc)].buckets->count) orig(::TKR.smap[post(argc)-1].buckets->count) orig(::TKR.smap[post(argc)].buckets->pairs) orig(::TKR.smap[post(argc)-1].buckets->pairs) orig(::TKR.smap[post(argc)].buckets->pairs[0]) orig(::TKR.smap[post(argc)-1].buckets->pairs[0]) orig(::TKR.tracker_p[post(return)]) orig(::TKR.tracker_p[post(return)-1]) orig(::TKR.smap[post(return)]) orig(::TKR.smap[post(return)-1]) orig(::TKR.smap[post(return)].count) orig(::TKR.smap[post(return)-1].count) orig(::TKR.smap[post(return)].buckets) orig(::TKR.smap[post(return)-1].buckets) orig(::TKR.smap[post(return)].buckets[0]) orig(::TKR.smap[post(return)-1].buckets[0]) orig(::TKR.smap[post(return)].buckets->count) orig(::TKR.smap[post(return)-1].buckets->count) orig(::TKR.smap[post(return)].buckets->pairs) orig(::TKR.smap[post(return)-1].buckets->pairs) orig(::TKR.smap[post(return)].buckets->pairs[0]) orig(::TKR.smap[post(return)-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.tracker_p[argc]) orig(::TKR.tracker_p[argc-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0]) orig(::TKR.smap[argc]) orig(::TKR.smap[argc-1]) orig(::TKR.smap[argc].count) orig(::TKR.smap[argc-1].count) orig(::TKR.smap[argc].buckets) orig(::TKR.smap[argc-1].buckets) orig(::TKR.smap[argc].buckets[0]) orig(::TKR.smap[argc-1].buckets[0]) orig(::TKR.smap[argc].buckets->count) orig(::TKR.smap[argc-1].buckets->count) orig(::TKR.smap[argc].buckets->pairs) orig(::TKR.smap[argc-1].buckets->pairs) orig(::TKR.smap[argc].buckets->pairs[0]) orig(::TKR.smap[argc-1].buckets->pairs[0])
+      Modified variables: ::TKR.loop_ctr ::TKR.tracker_p[] ::TKR.size ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[]) size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Modified primitive arguments: ::TKR.tracker_p[argc] ::TKR.tracker_p[argc-1] ::TKR.smap[argc] ::TKR.smap[argc-1] ::TKR.smap[argc].count ::TKR.smap[argc-1].count ::TKR.smap[argc].buckets ::TKR.smap[argc-1].buckets ::TKR.smap[argc].buckets[0] ::TKR.smap[argc-1].buckets[0] ::TKR.smap[argc].buckets->count ::TKR.smap[argc-1].buckets->count ::TKR.smap[argc].buckets->pairs ::TKR.smap[argc-1].buckets->pairs ::TKR.smap[argc].buckets->pairs[0] ::TKR.smap[argc-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.tracker_p ::TKR.smap argc argv argv[] size(argv[])
+::TKR == orig(::TKR)		(1004 samples)
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1004 samples)
+::TKR.smap == orig(::TKR.smap)		(1004 samples)
+return == orig(::TKR.loop_ctr)		(1004 samples)
+return == orig(::TKR.size)		(1004 samples)
+return == size(argv[])-1		(1004 samples)
+return == orig(size(argv[]))-1		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap == null		(1004 samples)
+argv[] == [./inv]		(1004 samples)
+argv[] elements == "./inv"		(1004 samples)
+orig(argv) > 0		(1004 samples)
+::buf == orig(::buf)		(1004 samples)
+[No samples for ..mannadiv():::ENTER]
+[No samples for ..mannadiv():::EXIT]
+[No samples for ..mannadiv_dummy():::ENTER]
+[No samples for ..mannadiv_dummy():::EXIT]
+[No samples for ..max():::ENTER]
+[No samples for ..max():::EXIT]
+[No samples for ..mccune_ex14():::ENTER]
+[No samples for ..mccune_ex14():::EXIT]
+[No samples for ..mccune_ex19():::ENTER]
+[No samples for ..mccune_ex19():::EXIT]
+[No samples for ..mccune_ex4():::ENTER]
+[No samples for ..mccune_ex4():::EXIT]
+[No samples for ..mccune_ex5():::ENTER]
+[No samples for ..mccune_ex5():::EXIT]
+[No samples for ..mccune_ex6():::ENTER]
+[No samples for ..mccune_ex6():::EXIT]
+[No samples for ..mccune_ex7():::ENTER]
+[No samples for ..mccune_ex7():::EXIT]
+[No samples for ..mccune_ex8():::ENTER]
+[No samples for ..mccune_ex8():::EXIT]
+[No samples for ..mccune_ex9_20():::ENTER]
+[No samples for ..mccune_ex9_20():::EXIT]
+[No samples for ..min():::ENTER]
+[No samples for ..min():::EXIT]
+[No samples for ..myeven():::ENTER]
+[No samples for ..myeven():::EXIT]
+[No samples for ..mygcd():::ENTER]
+[No samples for ..mygcd():::EXIT]
+[No samples for ..mygcd_n():::ENTER]
+[No samples for ..mygcd_n():::EXIT]
+[No samples for ..myisprime():::ENTER]
+[No samples for ..myisprime():::EXIT]
+[No samples for ..myissorted():::ENTER]
+[No samples for ..myissorted():::EXIT]
+[No samples for ..myodd():::ENTER]
+[No samples for ..myodd():::EXIT]
+[No samples for ..myxor():::ENTER]
+[No samples for ..myxor():::EXIT]
+[No samples for ..nr_diophantian():::ENTER]
+[No samples for ..nr_diophantian():::EXIT]
+[No samples for ..nr_factors():::ENTER]
+[No samples for ..nr_factors():::EXIT]
+[No samples for ..nr_prime():::ENTER]
+[No samples for ..nr_prime():::EXIT]
+[No samples for ..part_init1():::ENTER]
+[No samples for ..part_init1():::EXIT]
+[No samples for ..part_init2():::ENTER]
+[No samples for ..part_init2():::EXIT]
+[No samples for ..partition():::ENTER]
+[No samples for ..partition():::EXIT]
+[No samples for ..permutation():::ENTER]
+[No samples for ..permutation():::EXIT]
+[No samples for ..petter():::ENTER]
+[No samples for ..petter():::EXIT]
+[No samples for ..print_array():::ENTER]
+[No samples for ..print_array():::EXIT]
+[No samples for ..print_tracker():::ENTER]
+[No samples for ..print_tracker():::EXIT]
+[No samples for ..prod4br():::ENTER]
+[No samples for ..prod4br():::EXIT]
+[No samples for ..prod4br_dummy_l0():::ENTER]
+[No samples for ..prod4br_dummy_l0():::EXIT]
+[No samples for ..prod4br_dummy_l1():::ENTER]
+[No samples for ..prod4br_dummy_l1():::EXIT]
+[No samples for ..prodbin():::ENTER]
+[No samples for ..prodbin():::EXIT]
+[No samples for ..prodbin_dummy():::ENTER]
+[No samples for ..prodbin_dummy():::EXIT]
+[No samples for ..ps1():::ENTER]
+[No samples for ..ps1():::EXIT]
+[No samples for ..ps10():::ENTER]
+[No samples for ..ps10():::EXIT]
+[No samples for ..ps10_dummy():::ENTER]
+[No samples for ..ps10_dummy():::EXIT]
+[No samples for ..ps1_dummy():::ENTER]
+[No samples for ..ps1_dummy():::EXIT]
+[No samples for ..ps2():::ENTER]
+[No samples for ..ps2():::EXIT]
+[No samples for ..ps2_dummy():::ENTER]
+[No samples for ..ps2_dummy():::EXIT]
+[No samples for ..ps3():::ENTER]
+[No samples for ..ps3():::EXIT]
+[No samples for ..ps3_dummy():::ENTER]
+[No samples for ..ps3_dummy():::EXIT]
+[No samples for ..ps4():::ENTER]
+[No samples for ..ps4():::EXIT]
+[No samples for ..ps4_dummy():::ENTER]
+[No samples for ..ps4_dummy():::EXIT]
+[No samples for ..ps5():::ENTER]
+[No samples for ..ps5():::EXIT]
+[No samples for ..ps5_dummy():::ENTER]
+[No samples for ..ps5_dummy():::EXIT]
+[No samples for ..ps6():::ENTER]
+[No samples for ..ps6():::EXIT]
+[No samples for ..ps6_dummy():::ENTER]
+[No samples for ..ps6_dummy():::EXIT]
+[No samples for ..ps7():::ENTER]
+[No samples for ..ps7():::EXIT]
+[No samples for ..ps7_dummy():::ENTER]
+[No samples for ..ps7_dummy():::EXIT]
+[No samples for ..ps8():::ENTER]
+[No samples for ..ps8():::EXIT]
+[No samples for ..ps8_dummy():::ENTER]
+[No samples for ..ps8_dummy():::EXIT]
+[No samples for ..ps9():::ENTER]
+[No samples for ..ps9():::EXIT]
+[No samples for ..ps9_dummy():::ENTER]
+[No samples for ..ps9_dummy():::EXIT]
+[No samples for ..ps_test():::ENTER]
+[No samples for ..ps_test():::EXIT]
+[No samples for ..randrange_f():::ENTER]
+[No samples for ..randrange_f():::EXIT]
+[No samples for ..randrange_i():::ENTER]
+[No samples for ..randrange_i():::EXIT]
+[No samples for ..randrange_p():::ENTER]
+[No samples for ..randrange_p():::EXIT]
+[No samples for ..readers_writers():::ENTER]
+[No samples for ..readers_writers():::EXIT]
+[No samples for ..readers_writers_dummy():::ENTER]
+[No samples for ..readers_writers_dummy():::EXIT]
+[No samples for ..set_tracker():::ENTER]
+[No samples for ..set_tracker():::EXIT]
+[No samples for ..sqrt1():::ENTER]
+[No samples for ..sqrt1():::EXIT]
+[No samples for ..sqrt1_dummy():::ENTER]
+[No samples for ..sqrt1_dummy():::EXIT]
+===========================================================================
+..strmap_delete():::ENTER  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] map map[] map[].count map[].buckets map[].buckets[0] map[].buckets->count map[].buckets->pairs map[].buckets->pairs[0] map[].buckets->pairs->key map[].buckets->pairs->value size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 size(map[]) size(map[])-1 size(map[].buckets[0]) size(map[].buckets[0])-1 size(map[].buckets->pairs[0]) size(map[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] map[::TKR.loop_ctr] map[::TKR.loop_ctr-1] map[::TKR.loop_ctr].count map[::TKR.loop_ctr-1].count map[::TKR.loop_ctr].buckets map[::TKR.loop_ctr-1].buckets map[::TKR.loop_ctr].buckets[0] map[::TKR.loop_ctr-1].buckets[0] map[::TKR.loop_ctr].buckets->count map[::TKR.loop_ctr-1].buckets->count map[::TKR.loop_ctr].buckets->pairs map[::TKR.loop_ctr-1].buckets->pairs map[::TKR.loop_ctr].buckets->pairs[0] map[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] map[::TKR.size] map[::TKR.size-1] map[::TKR.size].count map[::TKR.size-1].count map[::TKR.size].buckets map[::TKR.size-1].buckets map[::TKR.size].buckets[0] map[::TKR.size-1].buckets[0] map[::TKR.size].buckets->count map[::TKR.size-1].buckets->count map[::TKR.size].buckets->pairs map[::TKR.size-1].buckets->pairs map[::TKR.size].buckets->pairs[0] map[::TKR.size-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.smap == map		(1004 samples)
+::TKR.smap[] == map[]		(1004 samples)
+::TKR.smap[].count == map[].count		(1004 samples)
+::TKR.smap[].buckets == map[].buckets		(1004 samples)
+::TKR.smap[].buckets[0] == map[].buckets[0]		(1004 samples)
+::TKR.smap[].buckets->count == map[].buckets->count		(1004 samples)
+::TKR.smap[].buckets->pairs == map[].buckets->pairs		(1004 samples)
+size(::TKR.smap[]) == size(::TKR.smap[].buckets[0])		(1004 samples)
+size(::TKR.smap[]) == size(map[].buckets[0])		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap has only one value		(1004 samples)
+::TKR.smap != null		(1004 samples)
+::TKR.smap > 0		(1004 samples)
+::TKR.smap[] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[] elements has only one value		(1004 samples)
+::TKR.smap[] elements != null		(1004 samples)
+::TKR.smap[].count == [1000]		(1004 samples)
+::TKR.smap[].count elements == 1000		(1004 samples)
+::TKR.smap[].buckets contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets elements has only one value		(1004 samples)
+::TKR.smap[].buckets elements != null		(1004 samples)
+::TKR.smap[].buckets[0] contains no nulls and has only one value, of length 1		(1004 samples)
+::TKR.smap[].buckets[0] elements has only one value		(1004 samples)
+::TKR.smap[].buckets[0] elements != null		(1004 samples)
+::TKR.smap[].buckets->count == [0]		(1004 samples)
+::TKR.smap[].buckets->count elements == 0		(1004 samples)
+::TKR.smap[].buckets->pairs == [null]		(1004 samples)
+::TKR.smap[].buckets->pairs elements == null		(1004 samples)
+size(::TKR.smap[]) == 1		(1004 samples)
+===========================================================================
+..strmap_delete():::EXIT  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] map map[] map[].count map[].buckets map[].buckets[0] map[].buckets->count map[].buckets->pairs map[].buckets->pairs[0] map[].buckets->pairs->key map[].buckets->pairs->value orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) orig(map) orig(map[]) orig(map[].count) orig(map[].buckets) orig(map[].buckets[0]) orig(map[].buckets->count) orig(map[].buckets->pairs) orig(map[].buckets->pairs[0]) orig(map[].buckets->pairs->key) orig(map[].buckets->pairs->value) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 size(map[]) size(map[])-1 size(map[].buckets[0]) size(map[].buckets[0])-1 size(map[].buckets->pairs[0]) size(map[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 orig(size(map[])) orig(size(map[]))-1 orig(size(map[].buckets[0])) orig(size(map[].buckets[0]))-1 orig(size(map[].buckets->pairs[0])) orig(size(map[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] map[::TKR.loop_ctr] map[::TKR.loop_ctr-1] map[::TKR.loop_ctr].count map[::TKR.loop_ctr-1].count map[::TKR.loop_ctr].buckets map[::TKR.loop_ctr-1].buckets map[::TKR.loop_ctr].buckets[0] map[::TKR.loop_ctr-1].buckets[0] map[::TKR.loop_ctr].buckets->count map[::TKR.loop_ctr-1].buckets->count map[::TKR.loop_ctr].buckets->pairs map[::TKR.loop_ctr-1].buckets->pairs map[::TKR.loop_ctr].buckets->pairs[0] map[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) orig(map[post(::TKR.loop_ctr)]) orig(map[post(::TKR.loop_ctr)-1]) orig(map[post(::TKR.loop_ctr)].count) orig(map[post(::TKR.loop_ctr)-1].count) orig(map[post(::TKR.loop_ctr)].buckets) orig(map[post(::TKR.loop_ctr)-1].buckets) orig(map[post(::TKR.loop_ctr)].buckets[0]) orig(map[post(::TKR.loop_ctr)-1].buckets[0]) orig(map[post(::TKR.loop_ctr)].buckets->count) orig(map[post(::TKR.loop_ctr)-1].buckets->count) orig(map[post(::TKR.loop_ctr)].buckets->pairs) orig(map[post(::TKR.loop_ctr)-1].buckets->pairs) orig(map[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(map[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] map[::TKR.size] map[::TKR.size-1] map[::TKR.size].count map[::TKR.size-1].count map[::TKR.size].buckets map[::TKR.size-1].buckets map[::TKR.size].buckets[0] map[::TKR.size-1].buckets[0] map[::TKR.size].buckets->count map[::TKR.size-1].buckets->count map[::TKR.size].buckets->pairs map[::TKR.size-1].buckets->pairs map[::TKR.size].buckets->pairs[0] map[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) orig(map[post(::TKR.size)]) orig(map[post(::TKR.size)-1]) orig(map[post(::TKR.size)].count) orig(map[post(::TKR.size)-1].count) orig(map[post(::TKR.size)].buckets) orig(map[post(::TKR.size)-1].buckets) orig(map[post(::TKR.size)].buckets[0]) orig(map[post(::TKR.size)-1].buckets[0]) orig(map[post(::TKR.size)].buckets->count) orig(map[post(::TKR.size)-1].buckets->count) orig(map[post(::TKR.size)].buckets->pairs) orig(map[post(::TKR.size)-1].buckets->pairs) orig(map[post(::TKR.size)].buckets->pairs[0]) orig(map[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] map[orig(::TKR.loop_ctr)] map[orig(::TKR.loop_ctr)-1] map[orig(::TKR.size)] map[orig(::TKR.size)-1] map[orig(::TKR.loop_ctr)].count map[orig(::TKR.loop_ctr)-1].count map[orig(::TKR.size)].count map[orig(::TKR.size)-1].count map[orig(::TKR.loop_ctr)].buckets map[orig(::TKR.loop_ctr)-1].buckets map[orig(::TKR.size)].buckets map[orig(::TKR.size)-1].buckets map[orig(::TKR.loop_ctr)].buckets[0] map[orig(::TKR.loop_ctr)-1].buckets[0] map[orig(::TKR.size)].buckets[0] map[orig(::TKR.size)-1].buckets[0] map[orig(::TKR.loop_ctr)].buckets->count map[orig(::TKR.loop_ctr)-1].buckets->count map[orig(::TKR.size)].buckets->count map[orig(::TKR.size)-1].buckets->count map[orig(::TKR.loop_ctr)].buckets->pairs map[orig(::TKR.loop_ctr)-1].buckets->pairs map[orig(::TKR.size)].buckets->pairs map[orig(::TKR.size)-1].buckets->pairs map[orig(::TKR.loop_ctr)].buckets->pairs[0] map[orig(::TKR.loop_ctr)-1].buckets->pairs[0] map[orig(::TKR.size)].buckets->pairs[0] map[orig(::TKR.size)-1].buckets->pairs[0] orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(map[::TKR.loop_ctr]) orig(map[::TKR.loop_ctr-1]) orig(map[::TKR.loop_ctr].count) orig(map[::TKR.loop_ctr-1].count) orig(map[::TKR.loop_ctr].buckets) orig(map[::TKR.loop_ctr-1].buckets) orig(map[::TKR.loop_ctr].buckets[0]) orig(map[::TKR.loop_ctr-1].buckets[0]) orig(map[::TKR.loop_ctr].buckets->count) orig(map[::TKR.loop_ctr-1].buckets->count) orig(map[::TKR.loop_ctr].buckets->pairs) orig(map[::TKR.loop_ctr-1].buckets->pairs) orig(map[::TKR.loop_ctr].buckets->pairs[0]) orig(map[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0]) orig(map[::TKR.size]) orig(map[::TKR.size-1]) orig(map[::TKR.size].count) orig(map[::TKR.size-1].count) orig(map[::TKR.size].buckets) orig(map[::TKR.size-1].buckets) orig(map[::TKR.size].buckets[0]) orig(map[::TKR.size-1].buckets[0]) orig(map[::TKR.size].buckets->count) orig(map[::TKR.size-1].buckets->count) orig(map[::TKR.size].buckets->pairs) orig(map[::TKR.size-1].buckets->pairs) orig(map[::TKR.size].buckets->pairs[0]) orig(map[::TKR.size-1].buckets->pairs[0])
+      Modified variables: ::TKR.tracker_p[] ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] map[] map[].count map[].buckets map[].buckets[0] map[].buckets->count map[].buckets->pairs map[].buckets->pairs[0] map[].buckets->pairs->key map[].buckets->pairs->value size(::TKR.tracker_p[]) size(::TKR.smap[]) size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets->pairs[0]) size(map[]) size(map[].buckets[0]) size(map[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] map[::TKR.loop_ctr] map[::TKR.loop_ctr-1] map[::TKR.loop_ctr].count map[::TKR.loop_ctr-1].count map[::TKR.loop_ctr].buckets map[::TKR.loop_ctr-1].buckets map[::TKR.loop_ctr].buckets[0] map[::TKR.loop_ctr-1].buckets[0] map[::TKR.loop_ctr].buckets->count map[::TKR.loop_ctr-1].buckets->count map[::TKR.loop_ctr].buckets->pairs map[::TKR.loop_ctr-1].buckets->pairs map[::TKR.loop_ctr].buckets->pairs[0] map[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] map[::TKR.size] map[::TKR.size-1] map[::TKR.size].count map[::TKR.size-1].count map[::TKR.size].buckets map[::TKR.size-1].buckets map[::TKR.size].buckets[0] map[::TKR.size-1].buckets[0] map[::TKR.size].buckets->count map[::TKR.size-1].buckets->count map[::TKR.size].buckets->pairs map[::TKR.size-1].buckets->pairs map[::TKR.size].buckets->pairs[0] map[::TKR.size-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.size ::TKR.smap map
+::TKR == orig(::TKR)		(1004 samples)
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.loop_ctr)		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.size)		(1004 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1004 samples)
+::TKR.smap == orig(::TKR.smap)		(1004 samples)
+::TKR.smap == orig(map)		(1004 samples)
+orig(size(::TKR.smap[].buckets[0])) == orig(size(map[]))		(1004 samples)
+orig(size(map[])) == orig(size(map[].buckets[0]))		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap has only one value		(1004 samples)
+::TKR.smap != null		(1004 samples)
+::TKR.smap > 0		(1004 samples)
+orig(map[]) contains no nulls and has only one value, of length 1		(1004 samples)
+orig(map[]) elements has only one value		(1004 samples)
+orig(map[]) elements != null		(1004 samples)
+orig(map[].count) == [1000]		(1004 samples)
+orig(map[].count) elements == 1000		(1004 samples)
+orig(map[].buckets) contains no nulls and has only one value, of length 1		(1004 samples)
+orig(map[].buckets) elements has only one value		(1004 samples)
+orig(map[].buckets) elements != null		(1004 samples)
+orig(map[].buckets[0]) contains no nulls and has only one value, of length 1		(1004 samples)
+orig(map[].buckets[0]) elements has only one value		(1004 samples)
+orig(map[].buckets[0]) elements != null		(1004 samples)
+orig(map[].buckets->count) == [0]		(1004 samples)
+orig(map[].buckets->count) elements == 0		(1004 samples)
+orig(map[].buckets->pairs) == [null]		(1004 samples)
+orig(map[].buckets->pairs) elements == null		(1004 samples)
+orig(size(map[])) == 1		(1004 samples)
+::buf == orig(::buf)		(1004 samples)
+[No samples for ..strmap_enum():::ENTER]
+[No samples for ..strmap_enum():::EXIT]
+[No samples for ..strmap_exists():::ENTER]
+[No samples for ..strmap_exists():::EXIT]
+[No samples for ..strmap_get():::ENTER]
+[No samples for ..strmap_get():::EXIT]
+[No samples for ..strmap_get_count():::ENTER]
+[No samples for ..strmap_get_count():::EXIT]
+===========================================================================
+..strmap_new():::ENTER  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] capacity size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap == null		(1004 samples)
+capacity == 1000		(1004 samples)
+===========================================================================
+..strmap_new():::EXIT  1004 samples
+    Variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.tracker_p[] ::TKR.size ::TKR.smap ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] capacity return return[] return[].count return[].buckets return[].buckets[0] return[].buckets->count return[].buckets->pairs return[].buckets->pairs[0] return[].buckets->pairs->key return[].buckets->pairs->value orig(::buf) orig(::TKR) orig(::TKR.loop_ctr) orig(::TKR.tracker_p) orig(::TKR.tracker_p[]) orig(::TKR.size) orig(::TKR.smap) orig(::TKR.smap[]) orig(::TKR.smap[].count) orig(::TKR.smap[].buckets) orig(::TKR.smap[].buckets[0]) orig(::TKR.smap[].buckets->count) orig(::TKR.smap[].buckets->pairs) orig(::TKR.smap[].buckets->pairs[0]) orig(capacity) size(::TKR.tracker_p[]) size(::TKR.tracker_p[])-1 size(::TKR.smap[]) size(::TKR.smap[])-1 size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets[0])-1 size(::TKR.smap[].buckets->pairs[0]) size(::TKR.smap[].buckets->pairs[0])-1 size(return[]) size(return[])-1 size(return[].buckets[0]) size(return[].buckets[0])-1 size(return[].buckets->pairs[0]) size(return[].buckets->pairs[0])-1 orig(size(::TKR.tracker_p[])) orig(size(::TKR.tracker_p[]))-1 orig(size(::TKR.smap[])) orig(size(::TKR.smap[]))-1 orig(size(::TKR.smap[].buckets[0])) orig(size(::TKR.smap[].buckets[0]))-1 orig(size(::TKR.smap[].buckets->pairs[0])) orig(size(::TKR.smap[].buckets->pairs[0]))-1 ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] return[::TKR.loop_ctr] return[::TKR.loop_ctr-1] return[::TKR.loop_ctr].count return[::TKR.loop_ctr-1].count return[::TKR.loop_ctr].buckets return[::TKR.loop_ctr-1].buckets return[::TKR.loop_ctr].buckets[0] return[::TKR.loop_ctr-1].buckets[0] return[::TKR.loop_ctr].buckets->count return[::TKR.loop_ctr-1].buckets->count return[::TKR.loop_ctr].buckets->pairs return[::TKR.loop_ctr-1].buckets->pairs return[::TKR.loop_ctr].buckets->pairs[0] return[::TKR.loop_ctr-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.loop_ctr)]) orig(::TKR.tracker_p[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)]) orig(::TKR.smap[post(::TKR.loop_ctr)-1]) orig(::TKR.smap[post(::TKR.loop_ctr)].count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets[0]) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->count) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.loop_ctr)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.loop_ctr)-1].buckets->pairs[0]) ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.tracker_p[orig(::TKR.loop_ctr)] ::TKR.tracker_p[orig(::TKR.loop_ctr)-1] ::TKR.tracker_p[orig(::TKR.size)] ::TKR.tracker_p[orig(::TKR.size)-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0] return[::TKR.size] return[::TKR.size-1] return[::TKR.size].count return[::TKR.size-1].count return[::TKR.size].buckets return[::TKR.size-1].buckets return[::TKR.size].buckets[0] return[::TKR.size-1].buckets[0] return[::TKR.size].buckets->count return[::TKR.size-1].buckets->count return[::TKR.size].buckets->pairs return[::TKR.size-1].buckets->pairs return[::TKR.size].buckets->pairs[0] return[::TKR.size-1].buckets->pairs[0] orig(::TKR.tracker_p[post(::TKR.size)]) orig(::TKR.tracker_p[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)]) orig(::TKR.smap[post(::TKR.size)-1]) orig(::TKR.smap[post(::TKR.size)].count) orig(::TKR.smap[post(::TKR.size)-1].count) orig(::TKR.smap[post(::TKR.size)].buckets) orig(::TKR.smap[post(::TKR.size)-1].buckets) orig(::TKR.smap[post(::TKR.size)].buckets[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets[0]) orig(::TKR.smap[post(::TKR.size)].buckets->count) orig(::TKR.smap[post(::TKR.size)-1].buckets->count) orig(::TKR.smap[post(::TKR.size)].buckets->pairs) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs) orig(::TKR.smap[post(::TKR.size)].buckets->pairs[0]) orig(::TKR.smap[post(::TKR.size)-1].buckets->pairs[0]) ::TKR.smap[orig(::TKR.loop_ctr)] ::TKR.smap[orig(::TKR.loop_ctr)-1] ::TKR.smap[orig(::TKR.size)] ::TKR.smap[orig(::TKR.size)-1] ::TKR.smap[orig(::TKR.loop_ctr)].count ::TKR.smap[orig(::TKR.loop_ctr)-1].count ::TKR.smap[orig(::TKR.size)].count ::TKR.smap[orig(::TKR.size)-1].count ::TKR.smap[orig(::TKR.loop_ctr)].buckets ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets ::TKR.smap[orig(::TKR.size)].buckets ::TKR.smap[orig(::TKR.size)-1].buckets ::TKR.smap[orig(::TKR.loop_ctr)].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets[0] ::TKR.smap[orig(::TKR.size)].buckets[0] ::TKR.smap[orig(::TKR.size)-1].buckets[0] ::TKR.smap[orig(::TKR.loop_ctr)].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->count ::TKR.smap[orig(::TKR.size)].buckets->count ::TKR.smap[orig(::TKR.size)-1].buckets->count ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs ::TKR.smap[orig(::TKR.size)].buckets->pairs ::TKR.smap[orig(::TKR.size)-1].buckets->pairs ::TKR.smap[orig(::TKR.loop_ctr)].buckets->pairs[0] ::TKR.smap[orig(::TKR.loop_ctr)-1].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)].buckets->pairs[0] ::TKR.smap[orig(::TKR.size)-1].buckets->pairs[0] return[orig(::TKR.loop_ctr)] return[orig(::TKR.loop_ctr)-1] return[orig(::TKR.size)] return[orig(::TKR.size)-1] return[orig(::TKR.loop_ctr)].count return[orig(::TKR.loop_ctr)-1].count return[orig(::TKR.size)].count return[orig(::TKR.size)-1].count return[orig(::TKR.loop_ctr)].buckets return[orig(::TKR.loop_ctr)-1].buckets return[orig(::TKR.size)].buckets return[orig(::TKR.size)-1].buckets return[orig(::TKR.loop_ctr)].buckets[0] return[orig(::TKR.loop_ctr)-1].buckets[0] return[orig(::TKR.size)].buckets[0] return[orig(::TKR.size)-1].buckets[0] return[orig(::TKR.loop_ctr)].buckets->count return[orig(::TKR.loop_ctr)-1].buckets->count return[orig(::TKR.size)].buckets->count return[orig(::TKR.size)-1].buckets->count return[orig(::TKR.loop_ctr)].buckets->pairs return[orig(::TKR.loop_ctr)-1].buckets->pairs return[orig(::TKR.size)].buckets->pairs return[orig(::TKR.size)-1].buckets->pairs return[orig(::TKR.loop_ctr)].buckets->pairs[0] return[orig(::TKR.loop_ctr)-1].buckets->pairs[0] return[orig(::TKR.size)].buckets->pairs[0] return[orig(::TKR.size)-1].buckets->pairs[0] orig(::TKR.tracker_p[::TKR.loop_ctr]) orig(::TKR.tracker_p[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr]) orig(::TKR.smap[::TKR.loop_ctr-1]) orig(::TKR.smap[::TKR.loop_ctr].count) orig(::TKR.smap[::TKR.loop_ctr-1].count) orig(::TKR.smap[::TKR.loop_ctr].buckets) orig(::TKR.smap[::TKR.loop_ctr-1].buckets) orig(::TKR.smap[::TKR.loop_ctr].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets[0]) orig(::TKR.smap[::TKR.loop_ctr].buckets->count) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->count) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs) orig(::TKR.smap[::TKR.loop_ctr].buckets->pairs[0]) orig(::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0]) orig(::TKR.tracker_p[::TKR.size]) orig(::TKR.tracker_p[::TKR.size-1]) orig(::TKR.smap[::TKR.size]) orig(::TKR.smap[::TKR.size-1]) orig(::TKR.smap[::TKR.size].count) orig(::TKR.smap[::TKR.size-1].count) orig(::TKR.smap[::TKR.size].buckets) orig(::TKR.smap[::TKR.size-1].buckets) orig(::TKR.smap[::TKR.size].buckets[0]) orig(::TKR.smap[::TKR.size-1].buckets[0]) orig(::TKR.smap[::TKR.size].buckets->count) orig(::TKR.smap[::TKR.size-1].buckets->count) orig(::TKR.smap[::TKR.size].buckets->pairs) orig(::TKR.smap[::TKR.size-1].buckets->pairs) orig(::TKR.smap[::TKR.size].buckets->pairs[0]) orig(::TKR.smap[::TKR.size-1].buckets->pairs[0])
+      Modified variables: ::TKR.tracker_p[] ::TKR.smap[] ::TKR.smap[].count ::TKR.smap[].buckets ::TKR.smap[].buckets[0] ::TKR.smap[].buckets->count ::TKR.smap[].buckets->pairs ::TKR.smap[].buckets->pairs[0] size(::TKR.tracker_p[]) size(::TKR.smap[]) size(::TKR.smap[].buckets[0]) size(::TKR.smap[].buckets->pairs[0]) ::TKR.tracker_p[::TKR.loop_ctr] ::TKR.tracker_p[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr] ::TKR.smap[::TKR.loop_ctr-1] ::TKR.smap[::TKR.loop_ctr].count ::TKR.smap[::TKR.loop_ctr-1].count ::TKR.smap[::TKR.loop_ctr].buckets ::TKR.smap[::TKR.loop_ctr-1].buckets ::TKR.smap[::TKR.loop_ctr].buckets[0] ::TKR.smap[::TKR.loop_ctr-1].buckets[0] ::TKR.smap[::TKR.loop_ctr].buckets->count ::TKR.smap[::TKR.loop_ctr-1].buckets->count ::TKR.smap[::TKR.loop_ctr].buckets->pairs ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs ::TKR.smap[::TKR.loop_ctr].buckets->pairs[0] ::TKR.smap[::TKR.loop_ctr-1].buckets->pairs[0] ::TKR.tracker_p[::TKR.size] ::TKR.tracker_p[::TKR.size-1] ::TKR.smap[::TKR.size] ::TKR.smap[::TKR.size-1] ::TKR.smap[::TKR.size].count ::TKR.smap[::TKR.size-1].count ::TKR.smap[::TKR.size].buckets ::TKR.smap[::TKR.size-1].buckets ::TKR.smap[::TKR.size].buckets[0] ::TKR.smap[::TKR.size-1].buckets[0] ::TKR.smap[::TKR.size].buckets->count ::TKR.smap[::TKR.size-1].buckets->count ::TKR.smap[::TKR.size].buckets->pairs ::TKR.smap[::TKR.size-1].buckets->pairs ::TKR.smap[::TKR.size].buckets->pairs[0] ::TKR.smap[::TKR.size-1].buckets->pairs[0]
+      Unmodified variables: ::buf ::TKR ::TKR.loop_ctr ::TKR.tracker_p ::TKR.size ::TKR.smap capacity
+::TKR == orig(::TKR)		(1004 samples)
+::TKR.loop_ctr == ::TKR.size		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.loop_ctr)		(1004 samples)
+::TKR.loop_ctr == orig(::TKR.size)		(1004 samples)
+::TKR.tracker_p == orig(::TKR.tracker_p)		(1004 samples)
+::TKR.smap == orig(::TKR.smap)		(1004 samples)
+size(return[]) == size(return[].buckets[0])		(1004 samples)
+::buf == ""		(1004 samples)
+::TKR has only one value		(1004 samples)
+::TKR != null		(1004 samples)
+::TKR > 0		(1004 samples)
+::TKR.loop_ctr == -1		(1004 samples)
+::TKR.tracker_p == null		(1004 samples)
+::TKR.smap == null		(1004 samples)
+return has only one value		(1004 samples)
+return != null		(1004 samples)
+return > 0		(1004 samples)
+return[] contains no nulls and has only one value, of length 1		(1004 samples)
+return[] elements has only one value		(1004 samples)
+return[] elements != null		(1004 samples)
+return[].count == [1000]		(1004 samples)
+return[].count elements == 1000		(1004 samples)
+return[].buckets contains no nulls and has only one value, of length 1		(1004 samples)
+return[].buckets elements has only one value		(1004 samples)
+return[].buckets elements != null		(1004 samples)
+return[].buckets[0] contains no nulls and has only one value, of length 1		(1004 samples)
+return[].buckets[0] elements has only one value		(1004 samples)
+return[].buckets[0] elements != null		(1004 samples)
+return[].buckets->count == [0]		(1004 samples)
+return[].buckets->count elements == 0		(1004 samples)
+return[].buckets->pairs == [null]		(1004 samples)
+return[].buckets->pairs elements == null		(1004 samples)
+size(return[]) == 1		(1004 samples)
+::buf == orig(::buf)		(1004 samples)
+orig(capacity) in return[].count		(1004 samples)
+return[].count elements == orig(capacity)		(1004 samples)
+[No samples for ..strmap_put():::ENTER]
+[No samples for ..strmap_put():::EXIT]
+[No samples for ..vararg():::ENTER]
+[No samples for ..vararg():::EXIT]
+[No samples for ..vu_ex1():::ENTER]
+[No samples for ..vu_ex1():::EXIT]
+[No samples for ..wensley():::ENTER]
+[No samples for ..wensley():::EXIT]
+[No samples for ..wensley_dummy():::ENTER]
+[No samples for ..wensley_dummy():::EXIT]
+[No samples for ..xor():::ENTER]
+[No samples for ..xor():::EXIT]
+[No samples for ..z3sqrt():::ENTER]
+[No samples for ..z3sqrt():::EXIT]
+[No samples for ..z3sqrt_dummy():::ENTER]
+[No samples for ..z3sqrt_dummy():::EXIT]
+[No samples for inv.c.get_pair():::ENTER]
+[No samples for inv.c.get_pair():::EXIT]
+[No samples for inv.c.hash():::ENTER]
+[No samples for inv.c.hash():::EXIT]

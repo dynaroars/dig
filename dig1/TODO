@@ -1,0 +1,5 @@
+Fix it so that it automatically detectts when to do arrs and polys
+e.g., 
+
+sage: dig = DIG('Examples/paper_nested.tc')
+dig.get_invs or dig.get_eqts  generate errors
