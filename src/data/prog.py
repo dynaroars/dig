@@ -101,10 +101,9 @@ class Symbs(tuple):
             self._exprs = [s.expr for s in self]
             return self._exprs 
 
-
     @beartype
     @classmethod
-    def mk(cls, ls:List[str]) -> Tuple:
+    def mk(cls, ls: List[str]) -> Tuple:
         """
         I x , D y .. ->  {x: int, y: double}
 
@@ -116,6 +115,7 @@ class Symbs(tuple):
             if not x:
                 continue
             vs = x.split()
+            
             assert len(vs) == 2, vs  # I, x
             t, k = vs[0], vs[1]
             symbs.append(Symb(k, t))
@@ -350,7 +350,7 @@ class Java(Src):
 
 class C(Src):
     @beartype
-    def __init__(self, filename:Path, tmpdir:Path) -> None:
+    def __init__(self, filename: Path, tmpdir: Path) -> None:
         super().__init__(filename, tmpdir)
 
         from c_instrument import instrument
@@ -362,7 +362,7 @@ class C(Src):
         self._compile_test(self.tracefile, self.traceexe)
 
     @beartype
-    def check(self, filename:Path, tmpdir:Path) -> Tuple[Path,Path,str]:
+    def check(self, filename: Path, tmpdir: Path) -> Tuple[Path, Path, str]:
         basename = Path(filename.name)
         funname = basename.stem
         self._compile_test(filename, tmpdir / f"{funname}.exe")
@@ -370,7 +370,7 @@ class C(Src):
 
     @beartype
     @classmethod
-    def _compile_test(cls, filename:Path, out:Path) -> None:
+    def _compile_test(cls, filename: Path, out: Path) -> None:
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
         subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out

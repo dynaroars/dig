@@ -1,5 +1,5 @@
 # y=2*x + 3
-# n = 20; ls = [random.randrange(-10,10) for _ in range(n)] ; print()'\n'.join(["{};{}".format(x,2*x+3) for x in ls]))
+# n = 20; ls = [random.randrange(-10,10) for _ in range(n)] ; print('\n'.join(["{};{}".format(x,2*x+3) for x in ls]))
 vtrace1; I x; I y
 vtrace1; 3;9
 vtrace1; -2;-1
