@@ -116,7 +116,11 @@ class Infer(infer.infer._Infer):
         assert(X), X
         b = None
         Y = [X[0] - v for v in X]
-        g = reduce(gcd, Y)
+        try:
+            g = reduce(gcd, Y)
+        except TypeError:
+            return None, None
+        
         if g == 1 or g == -1:
             g = None
         else:
