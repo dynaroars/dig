@@ -12,7 +12,7 @@ DIG's numerical relations (in particular, nonlinear relations) have been used fo
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
 - *complexity analysis* by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
 - *recurrence relations* for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, (`SEAD20`)
-- *termination and non-termination analyses* (use nonlinear invariants to reason about ranking function for termination and recurrent sets for non-termination, `OOPSLA20`)
+- *termination and non-termination analyses* (use nonlinear invariants to infer and reason about ranking functions for termination and recurrent sets for non-termination, `OOPSLA20`)
 - *array analysis*, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 
 
