@@ -8,7 +8,7 @@
 - *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
 - The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
 
-**Examples**: this [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
+> :boom: This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
 
 DIG's numerical relations (in particular, nonlinear relations) have been used for:
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
@@ -32,7 +32,7 @@ DIG aims to be fully automated and can find good invariants with its default con
 </details>
 
 
-> A good starting point to understand DIG and its usage at high level is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
+>:rocket: A good starting point to understand DIG and its usage at high level is reading our [ICSE'22 tool](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf) and [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) papers . 
 
 
 
@@ -336,6 +336,7 @@ Most of DIG's behaviors can be controlled by the user (the `src/settings.py` lis
 
 By default, DIG automatically to find equalities that can have high degrees (e.g., `x^7`).  This can take time and so we can specify DIG to search for equalities no more than some maximum degree `X` using the option `-maxdeg X`.  This will make DIG runs faster (with the cost of not able to find equalities with higher degrees than `X`). 
 
+#### Disabling Invariants
 By default DIG searches for all supported forms of invariants.  However, we can turn them off using `-noeqts`, `-noieqs` , `-nominmax`, `nocongruences`  
 
 ```sh
@@ -384,7 +385,11 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 ---
 </details>
 
-## FAQs
+## :question: FAQs
+
+<details>
+
+<summary><kbd>Information that might be useful for researches (e.g., what makes DIG different than others?)</kbd></summary>
 
 > What is the input to DIG? 
   - DIG takes as input a C program.  This program must be compilable (i.e., syntactically correct) and is annnotated with locations of interest (where you want to infer invariants at).  
@@ -416,6 +421,9 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
   - Use a computer with many cores.  DIG leverages multiprocessing and can run significantly faster with a modern multicore computer.  As an example, our [lab machine](https://github.com/dynaroars/dynaroars.github.io/wiki/Servers) has 64 cores.  Of course you don't need that many, but the more, the better.
     - Note that DIG does not leverage GPU processing
   - Tweak its parameters as shown [here](#additional-options). For example, reducing the number of degree to `d` (`-maxdeg d`) will tell DIG not to search for nonlinear invariants with degree more than `d` or disabling certain types of invariants if you're not intested in them (e.g., `-nominmax` to disable the computation of min/max properties)
+
+---
+</details>
 
 ## :page_with_curl: Publications
 
