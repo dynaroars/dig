@@ -1,6 +1,6 @@
 # DIG
 
-**DIG** is an _invariant generation_ tool for C programs. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on numerical invariants and currently supports the following numerical relations:
+**DIG** is an _invariant generation_ tool. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on __numerical_ invariants and currently supports the following numerical relations:
 - *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
 - *disjunction*:  certain types of disjunctions under the *min/max* forms, e.g., `max(x,y) <= z + 2`, and nonlinear forms, e.g., `x^2 −xy −xz +yz =0` is `(x −y)=0 v (x − z)=0`
@@ -23,8 +23,6 @@ DIG's numerical relations (in particular, nonlinear relations) have been used fo
 DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis, i.e., analyzing program execution traces.  If a C source code is available, DIG can check and refine invariants.
 DIG uses symbolic execution to collect symbolic states to check candidate invariants.
 DIG aims to be fully automated and can find good invariants with its default configuration (i.e., the user doesn't need to try different configurations for good performance).  
-
-
 
 </details>
 
@@ -384,6 +382,47 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 ---
 </details>
+
+## FAQs
+
+> What is the input to DIG? 
+  - DIG takes as input a C program.  This program must be compilable (i.e., syntactically correct) and is annnotated with locations of interest (where you want to infer invariants at).  
+  <summary><kbd>example</kbd></summary>
+  <detail>
+  
+  - DIG can also take as input a `csv` file consisting of program traces and it will infer invariants just over those traces (i.e., pure dynamic).
+  
+  
+>  Do I need to tune DIG to infer invariants?
+  No, DIG should work out of the box and does not require user inputs.  However, if you want to tweak the behavior of DIG, you can do so as shown [here](#tweaking)
+  
+> What kind of invariants are supported?
+  This official DIG tool supports **numerical invariants**. This includes both nonlinear and linear (affine) properties. See programs and examples [here](). 
+  
+  Note many [research projects](#links) build upon DIG to support other kinds of invariants (e.g., ranking functions and recurrent sets for termination and non-termination analysis, or recurrence relations for complexity analysis). These projects will have their own, separate research prototypes.
+  
+
+> What makes DIG different from other invariant generation tools? 
+
+- Main purpose is to discover strongest possible invariants, *not* to prove an assertion or post condition.
+  - Many techinques aim to find sufficiently strong invariants to prove a property, which is part of the input of those techniques. 
+  - DIG's goal is finding the strongest possible invariants at desired location, which is part of the input to DIG.
+    - Of course if the invariants found are stronger than the assertion or post condition, then those are proved.
+
+- Infer invariants at arbitrary location (i.e., not restricted to inductive loop invariantsd)
+
+- Input is a program, not SMT formulae
+
+- Inferrence is dynamic (mostly), i.e., DIG *is* a data-driven approach
+  - Some parts, e.g., inequalities, use static by analyzing symbolic states.
+  - Does not use ML for inference (not neural networks, classifers, etc)
+  
+- Checking is done by extracting symbolic states using symbolic execution and applying Z3 SMT solver to reason about the states and candidate invariants
+
+- 
+
+
+
 
 
 ## :page_with_curl: Publications
