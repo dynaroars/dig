@@ -453,8 +453,9 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 <details>
 
-<summary><kbd>BibTeX entry for Citing DIG</kbd></summary>
+<summary><kbd>BibTeX entry for citing DIG</kbd></summary>
 
+- Latest paper (TSE'21)
 ``` sh
 @article{nguyen2021using,
   title={Using symbolic states to infer numerical invariants},
@@ -465,6 +466,19 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
   pages={3877--3899},
   year={2021},
   publisher={IEEE}
+}
+```
+
+- Original DIG paper on inferring nonlinear numerical invariants (ICSE'12)
+
+``` sh
+@inproceedings{nguyen2012using,
+  title={Using dynamic analysis to discover polynomial and array invariants},
+  author={Nguyen, ThanhVu and Kapur, Deepak and Weimer, Westley and Forrest, Stephanie},
+  booktitle={2012 34th International Conference on Software Engineering (ICSE)},
+  pages={683--693},
+  year={2012},
+  organization={IEEE}
 }
 ```
 
