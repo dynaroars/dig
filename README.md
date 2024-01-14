@@ -404,13 +404,13 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 - A good starting place to understanding DIG's technical details is our [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) paper.
 - Main purpose of DIG is to discover strongest possible invariants at desired locations, *not* to prove an assertion or post condition, which is the goal of many invariant tools.
-  - Of course if the invariants found are stronger than the assertion or post condition, then those are proved.
+  - Of course if the invariants found are stronger than the assertion or post condition, then those are proved
 - DIG infers invariants at arbitrary location and thus is not restricted to, e.g.,  inductive loop invariants
 - The input of DIG is a _program_, not SMT formulae representing transitions as in many invariant tools
+- Checking is done by extracting _symbolic states_ using _symbolic execution_ and applying Z3 SMT solver to reason about the states and candidate invariant.s
 - DIG's inferrence is dynamic (mostly), i.e., DIG *is* a data-driven approach
-  - Some parts, e.g., inequalities, use static by analyzing symbolic states.
+  - Some parts, e.g., inequalities, use static analysis by analyzing symbolic states
   - Does not use ML for inference (not neural networks, classifers, etc)
-- Checking is done by extracting _symbolic states_ using _symbolic execution_ and applying Z3 SMT solver to reason about the states and candidate invariants.
 - DIG follows an _iterative guess-and-check approach_, which infers candidate invs from traces, checks and obtains counterexample traces to improve inference, and repeats
 
 > How to to speed up DIG?
