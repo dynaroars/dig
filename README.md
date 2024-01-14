@@ -453,9 +453,9 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 <details>
 
-<summary><kbd>BibTeX entry for citing DIG</kbd></summary>
+<summary><kbd>BibTeX entries for citing DIG</kbd></summary>
 
-- Latest paper (TSE'21)
+- Latest paper (TSE'21) on symbolic state and DIG
 ``` sh
 @article{nguyen2021using,
   title={Using symbolic states to infer numerical invariants},
