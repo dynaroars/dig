@@ -1,12 +1,14 @@
 # DIG
 
-**DIG** is an _invariant generation_ tool. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on __numerical_ invariants and currently supports the following numerical relations:
+**DIG** is an _invariant generation_ tool. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on _numerical_ invariants and currently supports the following numerical relations:
 - *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
 - *disjunction*:  certain types of disjunctions under the *min/max* forms, e.g., `max(x,y) <= z + 2`, and nonlinear forms, e.g., `x^2 −xy −xz +yz =0` is `(x −y)=0 v (x − z)=0`
 - *congruence* relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
 - *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
 - The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
+
+
 
 DIG's numerical relations (in particular, nonlinear relations) have been used for:
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
@@ -15,6 +17,9 @@ DIG's numerical relations (in particular, nonlinear relations) have been used fo
 - *termination and non-termination analyses* (use nonlinear invariants to infer and reason about ranking functions for termination and recurrent sets for non-termination, `OOPSLA20`)
 - *array analysis*, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 - **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
+
+
+This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
 
 <details>
 
@@ -28,8 +33,6 @@ DIG aims to be fully automated and can find good invariants with its default con
 
 
 > A good starting point to understand DIG and its usage at high level is reading our ICSE'22 tool paper https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf. 
-
-
 
 
 
