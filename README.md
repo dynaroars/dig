@@ -451,8 +451,29 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 ## :page_with_curl: Publications
 
-Technical information about DIG can be found from these papers.  The `tool` paper (`ICSE22`) and `Symbolic States` paper (`TSE21`) are probably a good start.
-1. ThanhVu Nguyen, KimHao Nguyen, and Hai Duong. [**SymInfer: Inferring Numerical Invariants using Symbolic States**](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf). International Conference on Software Engineering-Tool Demo, pages 197--201, 2022
+<details>
+
+<summary><kbd>BibTeX entry for Citing DIG</kbd></summary>
+
+``` sh
+@article{nguyen2021using,
+  title={Using symbolic states to infer numerical invariants},
+  author={Nguyen, Thanhvu and Nguyen, KimHao and Dwyer, Matthew B},
+  journal={IEEE Transactions on Software Engineering},
+  volume={48},
+  number={10},
+  pages={3877--3899},
+  year={2021},
+  publisher={IEEE}
+}
+```
+
+</details>
+
+
+Technical information about DIG and projects build upon DIG can be found from these papers.  The `tool` paper (`ICSE22`) and `Symbolic States` paper (`TSE21`) are probably a good starting point.
+
+1. ThanhVu Nguyen, KimHao Nguyen, and Hai Duong. [**SymInfer: Inferring Numerical Invariants using Symbolic States**](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf). International Conference on Software Engineering-Tool Demo (ICSE-Demo), pages 197--201, 2022
 1. ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. [**Using Symbolic States to Infer Numerical Invariants**](https://dynaroars.github.io/pubs/nguyen2021using.pdf). Transactions on Software Engineering (TSE), 2021
 1. Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
 1. ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
