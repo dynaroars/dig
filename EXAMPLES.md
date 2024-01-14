@@ -196,7 +196,6 @@ int popl09_fig3_4(int n, int m){
     }
     vtrace_post(n, m, tCtr);
      
-    //%%%traces: int n, int m, int t
     //DIG: m*n*t - m*(t*t) - n*(t*t) + (t*t*t) == 0, 
     //DIG: m - t <= 0, n - t <= 0, -t <= 0
     return 0;
