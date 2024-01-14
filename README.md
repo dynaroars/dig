@@ -321,9 +321,7 @@ vtrace3 (9 invs):
 
 ### Other programs
 
-* The directory `../benchmarks/c/nla` contains many programs having nonlinear invariants.
-
-
+* The directory [`benchmark/c/nla`](./benchmark/c/nla) contains many programs having nonlinear invariants.
 
 ### Additional Options 
 
