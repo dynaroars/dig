@@ -34,7 +34,7 @@ DIG's numerical relations (in particular, nonlinear relations) have been used in
 ### :exclamation: Quick Info
 > - :boom: [various examples](./EXAMPLES.md) demonstrating the power of DIG.
 > - :rocket: A good starting point to understand DIG and its usage at high level is reading our [ICSE'22 tool](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf) and [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) papers . 
-> - :question: [FAQs](#question-faqs) Information that might be useful for researches, e.g., what makes DIG different than others?
+> - :question: [FAQs](#question-faqs) might be useful for researches, e.g., what makes DIG different than others?
  
 
 
@@ -410,7 +410,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 <details>
 
-<summary><kbd>Information that might be useful for researches (e.g., what makes DIG different than others?)</kbd></summary>
+<summary><kbd>Information useful for researches (e.g., what makes DIG different than others?)</kbd></summary>
 
 > What is the input to DIG? 
   - DIG takes as input a C program.  This program must be compilable (i.e., syntactically correct) and is annnotated with locations of interest (where you want to infer invariants at).  
