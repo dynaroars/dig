@@ -8,7 +8,7 @@
 - *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
 - The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
 
-
+This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
 
 DIG's numerical relations (in particular, nonlinear relations) have been used for:
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
@@ -19,7 +19,7 @@ DIG's numerical relations (in particular, nonlinear relations) have been used fo
 - **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
 
 
-This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
+
 
 <details>
 
