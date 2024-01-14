@@ -32,7 +32,7 @@ DIG's numerical relations (in particular, nonlinear relations) have been used in
 <!-- </details> -->
 
 ### :exclamation: Quick Info
-> - :boom: This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
+> - :boom: [various examples](./EXAMPLES.md) demonstrating the power of DIG.
 > - :rocket: A good starting point to understand DIG and its usage at high level is reading our [ICSE'22 tool](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf) and [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) papers . 
 > - :question: [FAQs](#question-faqs) Information that might be useful for researches, e.g., what makes DIG different than others?
  
