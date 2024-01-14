@@ -97,7 +97,7 @@ DIG can generate invariants from a [trace file](#generating-invariants-from-trac
 
 <details>
 
-<summary><kbd>Details</kbd></summary> 
+<summary><kbd>details</kbd></summary> 
 
 DIG can infer invariants directly from an `csv` file consisting of concreting program execution traces as shown below.
 
@@ -164,7 +164,7 @@ vtrace2(8 invs):
 #### Generating Invariants From a Program
 <details>
 
-<summary><kbd>Details</kbd></summary> 
+<summary><kbd>details</kbd></summary> 
 
 
 Consider the following `cohendiv.c` program
