@@ -13,7 +13,7 @@
 DIG's numerical relations (in particular, nonlinear relations) have been used in many [research projects](#page_with_curl-publications), including
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
 - *complexity analysis* by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
-- *recurrence relations* for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, (`SEAD20`)
+- *recurrence relations* for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, (`SEAD20`, `OOPSLA21`)
 - *termination and non-termination analyses* (use nonlinear invariants to infer and reason about ranking functions for termination and recurrent sets for non-termination, `OOPSLA20`)
 - *array analysis*, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 - **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
@@ -489,6 +489,7 @@ Technical information about DIG and projects build upon DIG can be found from th
 
 1. ThanhVu Nguyen, KimHao Nguyen, and Hai Duong. [**SymInfer: Inferring Numerical Invariants using Symbolic States**](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf). International Conference on Software Engineering-Tool Demo (ICSE-Demo), pages 197--201, 2022
 1. ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. [**Using Symbolic States to Infer Numerical Invariants**](https://dynaroars.github.io/pubs/nguyen2021using.pdf). Transactions on Software Engineering (TSE), 2021
+1. Didier Ishimwe, KimHao Nguyen, and ThanhVu Nguyen. Dynaplex: Analyzing Program Complexity using Dynamically Inferred Recurrence Relations, Proc. ACM Program. Lang. (OOPSLA), pages 1--23, 2021
 1. Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
 1. ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
 1. ThanhVu Nguyen, Matthew Dwyer, and William Visser. **SymInfer: Inferring Program Invariants using Symbolic States**. In Automated Software Engineering (ASE). IEEE, 2017.
