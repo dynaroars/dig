@@ -8,9 +8,9 @@
 - *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
 - The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
 
-> :boom: This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
 
-DIG's numerical relations (in particular, nonlinear relations) have been used for:
+
+DIG's numerical relations (in particular, nonlinear relations) have been used in many [research projects](#page_with_curl-publications), including
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
 - *complexity analysis* by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
 - *recurrence relations* for complexity analysis (e.g., finding recurrence relations for recursive programs such as `T(n)=3*T(n/2) + f(n)`, (`SEAD20`)
@@ -21,24 +21,29 @@ DIG's numerical relations (in particular, nonlinear relations) have been used fo
 
 
 
+<!-- <details> -->
+
+<!-- <summary><kbd>details</kbd></summary> -->
+	
+<!-- DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis, i.e., analyzing program execution traces.  If a C source code is available, DIG can check and refine invariants. -->
+<!-- DIG uses symbolic execution to collect symbolic states to check candidate invariants. -->
+<!-- DIG aims to be fully automated and can find good invariants with its default configuration (i.e., the user doesn't need to try different configurations for good performance).   -->
+
+<!-- </details> -->
+
+### :exclamation: Quick Info
+> - :boom: This [page](./EXAMPLES.md) has various examples demonstrating the power of DIG.
+> - :rocket: A good starting point to understand DIG and its usage at high level is reading our [ICSE'22 tool](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf) and [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) papers . 
+> - :question: [FAQs](#question-faqs) Information that might be useful for researches, e.g., what makes DIG different than others?
+ 
+
+
+## :hammer: Setting up and Using DIG 
+
+### Setup using Docker
 <details>
 
-<summary><kbd>details</kbd></summary>
-	
-DIG is written in Python and uses **Sympy** and **Z3**. It infers invariants using dynamic analysis, i.e., analyzing program execution traces.  If a C source code is available, DIG can check and refine invariants.
-DIG uses symbolic execution to collect symbolic states to check candidate invariants.
-DIG aims to be fully automated and can find good invariants with its default configuration (i.e., the user doesn't need to try different configurations for good performance).  
-
-</details>
-
-
->:rocket: A good starting point to understand DIG and its usage at high level is reading our [ICSE'22 tool](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf) and [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) papers . 
-
-
-
----
-
-## Setup using Docker
+<summary><kbd>details</kbd></summary> 
 
 ```bash
 # clone DIG
@@ -79,12 +84,20 @@ root@931ac8632c7f:/dig/src# git pull
 ...
 ...
 ```
+</details> 
 
-## Usage
+### Usage
 
 DIG can generate invariants from a [trace file](#generating-invariants-from-traces) (a plain text semi-colon separated `csv` file consisting of concrete values of variables) or a [program](#generating-invariants-from-a-program) (a C file `.c`).
 
-### Generating Invariants From Traces
+
+
+
+#### Generating Invariants From Traces
+
+<details>
+
+<summary><kbd>Details</kbd></summary> 
 
 DIG can infer invariants directly from an `csv` file consisting of concreting program execution traces as shown below.
 
@@ -146,8 +159,13 @@ vtrace2(8 invs):
 
 *Note*: if we just run Dig over traces, then we likely can get spurious inequalities, i.e., they are correct with the given traces, but not real invariants.  If given the program source code as shown below, DIG can check the source code and remove spurious results.
 
+</details>
 
-### Generating Invariants From a Program
+#### Generating Invariants From a Program
+<details>
+
+<summary><kbd>Details</kbd></summary> 
+
 
 Consider the following `cohendiv.c` program
 
@@ -281,7 +299,7 @@ vtrace1 (17 invs):
 7. a - q <= 0
 8. r - x <= 0
 9. q - x <= -6
-10. b - x <= -2
+10. b - x <= -2     
 11. -a - r <= -2
 12. -x - y <= -16
 13. min(q, r, x) - b <= 0
@@ -319,11 +337,14 @@ vtrace3 (9 invs):
 9. -x - y <= -16
 ```
 
-### Other programs
+#### Other programs
 
 * The directory [`benchmark/c/nla`](./benchmark/c/nla) contains many programs having nonlinear invariants.
 
-### Additional Options 
+</details>
+
+
+### :wrench: Tweaking DIG
 
 <details>
 
@@ -394,14 +415,17 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 > What is the input to DIG? 
   - DIG takes as input a C program.  This program must be compilable (i.e., syntactically correct) and is annnotated with locations of interest (where you want to infer invariants at).  
   - DIG can also take as input a `csv` file consisting of program traces and it will infer invariants just over those traces (i.e., pure dynamic).
-  
+
+> What are the dependencies for using DIG?
+  - Python, Sympy, and the Z3 SMT solver for inferring invariants, an the symbolic execution tool CIVL for checking invariants from source code. Python, Sympy, and Z3 can be installed using the Miniconda distribution of Python. CIVL already comes with the DIG distrubition. 
+
 >  Do I need to tune DIG to infer invariants?
-  - No, DIG should work out of the box and does not require user inputs.  However, if you want to tweak the behavior of DIG, you can do so as shown [here](#additional-options). 
+  - No, DIG should work out of the box and does not require user inputs.  However, if you want to tweak the behavior of DIG, you can do so as shown [here](#wrench-tweaking-dig). 
   
 > What kind of invariants are supported?
   
   - This DIG tool supports **numerical invariants**. This includes both nonlinear and linear (affine) properties. See programs and examples [here](./EXAMPLES.md)
-  - Note many [research projects](#page_with_curl-publications) build upon DIG to support other kinds of invariants (e.g., ranking functions and recurrent sets for termination and non-termination analysis, or recurrence relations for complexity analysis). These projects will have their own, separate research prototypes.
+  - Note many [research projects](#page_with_curl-publications) build upon DIG to support other kinds of invariants (e.g., ranking functions and recurrent sets for termination and non-termination analysis, or recurrence relations for complexity analysis). These projects have their own separate research prototype tools.
   
 > What makes DIG different from other invariant generation tools? 
 
@@ -420,7 +444,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 - By default, DIG performs multiple algorithms to find different invariants and its nonlinear equality invariants can have very large degree, all of which contribute to large search space.  To speed up DIG, you have several options
   - Use a computer with many cores.  DIG leverages multiprocessing and can run significantly faster with a modern multicore computer.  As an example, our [lab machine](https://github.com/dynaroars/dynaroars.github.io/wiki/Servers) has 64 cores.  Of course you don't need that many, but the more, the better.
     - Note that DIG does not leverage GPU processing
-  - Tweak its parameters as shown [here](#additional-options). For example, reducing the number of degree to `d` (`-maxdeg d`) will tell DIG not to search for nonlinear invariants with degree more than `d` or disabling certain types of invariants if you're not intested in them (e.g., `-nominmax` to disable the computation of min/max properties)
+  - Tweak its parameters as shown [here](#wrench-tweaking-dig). For example, reducing the number of degree to `d` (`-maxdeg d`) will tell DIG not to search for nonlinear invariants with degree more than `d` or disabling certain types of invariants if you're not intested in them (e.g., `-nominmax` to disable the computation of min/max properties)
 
 ---
 </details>
@@ -440,5 +464,5 @@ Technical information about DIG can be found from these papers.  The `tool` pape
 
 ## ACKNOWLEDGEMENTS
 
-* This project is supported in part by NSF grants CCF 1948536, CCF 2200621 and ARO grant W911NF-19-1-0054.
+* This project is supported in part by NSF grants CCF 1948536, CCF 2200621 and ARO grant W911NF-19-1-0054. It is also supported by gifts from Facebook and Amazon Research Awards.
 
