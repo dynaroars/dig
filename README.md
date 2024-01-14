@@ -390,43 +390,34 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 
 > What is the input to DIG? 
   - DIG takes as input a C program.  This program must be compilable (i.e., syntactically correct) and is annnotated with locations of interest (where you want to infer invariants at).  
-  <summary><kbd>example</kbd></summary>
-  <detail>
-  
   - DIG can also take as input a `csv` file consisting of program traces and it will infer invariants just over those traces (i.e., pure dynamic).
   
-  
 >  Do I need to tune DIG to infer invariants?
-  No, DIG should work out of the box and does not require user inputs.  However, if you want to tweak the behavior of DIG, you can do so as shown [here](#tweaking)
+  - No, DIG should work out of the box and does not require user inputs.  However, if you want to tweak the behavior of DIG, you can do so as shown [here](#additional-options). 
   
 > What kind of invariants are supported?
-  This official DIG tool supports **numerical invariants**. This includes both nonlinear and linear (affine) properties. See programs and examples [here](). 
   
-  Note many [research projects](#links) build upon DIG to support other kinds of invariants (e.g., ranking functions and recurrent sets for termination and non-termination analysis, or recurrence relations for complexity analysis). These projects will have their own, separate research prototypes.
+  - This DIG tool supports **numerical invariants**. This includes both nonlinear and linear (affine) properties. See programs and examples [here](./EXAMPLES.md)
+  - Note many [research projects](#page_with_curl-publications) build upon DIG to support other kinds of invariants (e.g., ranking functions and recurrent sets for termination and non-termination analysis, or recurrence relations for complexity analysis). These projects will have their own, separate research prototypes.
   
-
 > What makes DIG different from other invariant generation tools? 
 
-- Main purpose is to discover strongest possible invariants, *not* to prove an assertion or post condition.
-  - Many techinques aim to find sufficiently strong invariants to prove a property, which is part of the input of those techniques. 
-  - DIG's goal is finding the strongest possible invariants at desired location, which is part of the input to DIG.
-    - Of course if the invariants found are stronger than the assertion or post condition, then those are proved.
-
-- Infer invariants at arbitrary location (i.e., not restricted to inductive loop invariantsd)
-
-- Input is a program, not SMT formulae
-
-- Inferrence is dynamic (mostly), i.e., DIG *is* a data-driven approach
+- A good starting place to understanding DIG's technical details is our [TSE'21](https://dynaroars.github.io/pubs/nguyen2021using.pdf) paper.
+- Main purpose of DIG is to discover strongest possible invariants at desired locations, *not* to prove an assertion or post condition, which is the goal of many invariant tools.
+  - Of course if the invariants found are stronger than the assertion or post condition, then those are proved.
+- DIG infers invariants at arbitrary location and thus is not restricted to, e.g.,  inductive loop invariants
+- The input of DIG is a _program_, not SMT formulae representing transitions as in many invariant tools
+- DIG's inferrence is dynamic (mostly), i.e., DIG *is* a data-driven approach
   - Some parts, e.g., inequalities, use static by analyzing symbolic states.
   - Does not use ML for inference (not neural networks, classifers, etc)
-  
-- Checking is done by extracting symbolic states using symbolic execution and applying Z3 SMT solver to reason about the states and candidate invariants
+- Checking is done by extracting _symbolic states_ using _symbolic execution_ and applying Z3 SMT solver to reason about the states and candidate invariants.
+- DIG follows an _iterative guess-and-check approach_, which infers candidate invs from traces, checks and obtains counterexample traces to improve inference, and repeats
 
-- 
-
-
-
-
+> How to to speed up DIG?
+- By default, DIG performs multiple algorithms to find different invariants and its nonlinear equality invariants can have very large degree, all of which contribute to large search space.  To speed up DIG, you have several options
+  - Use a computer with many cores.  DIG leverages multiprocessing and can run significantly faster with a modern multicore computer.  As an example, our [lab machine](https://github.com/dynaroars/dynaroars.github.io/wiki/Servers) has 64 cores.  Of course you don't need that many, but the more, the better.
+    - Note that DIG does not leverage GPU processing
+  - Tweak its parameters as shown [here](#additional-options). For example, reducing the number of degree to `d` (`-maxdeg d`) will tell DIG not to search for nonlinear invariants with degree more than `d` or disabling certain types of invariants if you're not intested in them (e.g., `-nominmax` to disable the computation of min/max properties)
 
 ## :page_with_curl: Publications
 
