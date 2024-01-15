@@ -8,8 +8,6 @@
 - *nested relations* among arrays, e.g., `A[i] = B[C[3*i+2]]`
 - The user can also use *terms* to represent desired information, e.g., `t1 = 2^x, t2 = log(n)`, and have DIG infer invariants over terms.
 
-
-
 DIG's numerical relations (in particular, nonlinear relations) have been used in many [research projects](#page_with_curl-publications), including
 - *program understanding and correctness/safety checking* (`TSE21`, `ICSE12`, `ICSE14`, `ASE17`, `FSE17`, `TOSEM13`)
 - *complexity analysis* by providing program run time complexity such as `O(N^2)` or `O(NM)` (`ASE17`, `FSE17`)
