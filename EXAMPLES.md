@@ -119,7 +119,7 @@ int cav09_fig1a(int m){
 - tripple nested loops
 - discovers postcond
   - `-N <= 0, -m <= 0, -n <= 0, n - t <= 0`
-  - `N*N)*m*n + N*(m*m)*n - N*m*(n*n) - (m*m)*(n*n) - N*m*n*t + m*(n*n)*t + N*m*n - N*(n*n) - 2*m*(n*n) + N*n*t + m*n*t + (n*n)*t - n*(t*t) - (n*n) + n*t == 0`
+  - `(N*N)*m*n + N*(m*m)*n - N*m*(n*n) - (m*m)*(n*n) - N*m*n*t + m*(n*n)*t + N*m*n - N*(n*n) - 2*m*(n*n) + N*n*t + m*n*t + (n*n)*t - n*(t*t) - (n*n) + n*t == 0`
   - `(N*N)*m*t + N*(m*m)*t - N*m*n*t - (m*m)*n*t - N*m*(t*t) + m*n*(t*t) + N*m*t - N*n*t - 2*m*n*t + N*(t*t) + m*(t*t) + n*(t*t) - (t*t*t) - n*t + (t*t) ==0` 
 - Solve for t from the above equations we get the following 3 cases:
    1. `N = 0 => t = 0`    # when `N = 0`, no instruction executed
@@ -203,9 +203,6 @@ int popl09_fig3_4(int n, int m){
 ```
 
 
-
-
-
 ## Disjunctive Invariants through Min/Max-Plus Relations
 
 ### strncpy
@@ -280,5 +277,3 @@ void strncpy(int siz, int n){
 
 
 
-## Using Invariants to check Assertions
-TODO 
