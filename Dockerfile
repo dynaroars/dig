@@ -2,7 +2,7 @@ FROM debian:bookworm
 
 #install general setup tools
 RUN apt-get update -y
-RUN apt-get install -y build-essential git software-properties-common emacs  wget openjdk-11-jdk unzip 
+RUN apt-get install -y build-essential git software-properties-common emacs  wget openjdk-17-jdk unzip 
 
 # Install miniconda & sympy & z3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
