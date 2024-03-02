@@ -21,6 +21,7 @@ def comment_remover(text):
     )
     return re.sub(pattern, replacer, text)
 
+
 class AddPrintfVisitor(c_ast.NodeVisitor):
     """
     add printf() calls to vtrace definitions
@@ -30,12 +31,12 @@ class AddPrintfVisitor(c_ast.NodeVisitor):
         self.vtrace = vtrace
 
     @beartype
-    def visit_FuncDef(self, node:c_ast.Node) -> None:
+    def visit_FuncDef(self, node: c_ast.Node) -> None:
         if node.decl.name.startswith(self.vtrace) and not node.body.block_items:
             self._insert_funccall(node)
 
     @beartype
-    def _insert_funccall(self,node:c_ast.FuncDef)-> None:
+    def _insert_funccall(self, node: c_ast.FuncDef)-> None:
         myvars = [p.name for p in node.decl.type.args.params]
         funcalls  = self._create_new_funs(node.decl.name, myvars)
         node.body.block_items = funcalls
@@ -122,14 +123,14 @@ class ChangeMainQCall(c_ast.NodeVisitor):
     
 
 @beartype
-def gen(filename:Path, myast:c_ast.FileAST, includes:list[str]) -> None:
+def gen(filename: Path, myast: c_ast.FileAST, includes: list[str]) -> None:
     generator = c_generator.CGenerator()
     instr = generator.visit(myast)
     instr = '\n'.join(includes + [instr])
     vwrite(filename, instr)
 
 @beartype    
-def instrument(filename:Path, tracefile:Path,  symexefile:Path) -> list[str]:
+def instrument(filename: Path, tracefile: Path,  symexefile: Path) -> list[str]:
     includes = []
     src = []
     text = filename.read_text()
@@ -181,4 +182,4 @@ if __name__ == '__main__':
     symexefile = Path(sys.argv[2])    
     tracefile = Path(sys.argv[3])
     typ_output = instrument(filename, tracefile, symexefile)
-    print('\n'.join(typ_info))
+    print('\n'.join(typ_output))

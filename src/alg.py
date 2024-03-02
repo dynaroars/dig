@@ -194,7 +194,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         return dinvs
 
     @beartype
-    def cleanup(self, dinvs:DInvs, dtraces:DTraces) -> None:
+    def cleanup(self, dinvs: DInvs, dtraces: DTraces) -> None:
         """
         Save and analyze result
         Clean up tmpdir
@@ -231,7 +231,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         return typ, (dinvs, dtraces),  et
 
     @beartype
-    def _infer_eqts(self, maxdeg:int | None) -> tuple[DInvs, DTraces]:
+    def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
         dinvs, dtraces = infer.eqt.Infer(
             self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
         return dinvs, dtraces
@@ -325,8 +325,11 @@ class DigTraces(Dig):
             f"got {self.dtraces.siz} traces over {len(self.dtraces)} locs")
         mlog.debug(f"{self.dtraces}")
 
-        tasks = (self._nested_arrays_tasks() + self._eqts_tasks(maxdeg) + self._ieqs_tasks() +
-                 self._minmax_tasks() + self._congruences_tasks())
+        tasks = (self._nested_arrays_tasks() +
+                 self._eqts_tasks(maxdeg) +
+                 self._ieqs_tasks() +
+                 self._minmax_tasks() +
+                 self._congruences_tasks())
 
         def f(tasks):
             rs = [(loc, _f(loc)) for loc, _f in tasks]
@@ -360,7 +363,8 @@ class DigTraces(Dig):
         autodeg = self.get_auto_deg(maxdeg)
 
         def _f(l):
-            return infer.eqt.Infer.gen_from_traces(autodeg, self.dtraces[l], self.inv_decls[l])
+            return infer.eqt.Infer.gen_from_traces(
+                autodeg, self.dtraces[l], self.inv_decls[l])
 
         def _g(l):
             return not self.inv_decls[l].array_only
@@ -368,7 +372,8 @@ class DigTraces(Dig):
 
     def _ieqs_tasks(self):
         def _f(l):
-            return infer.oct.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+            return infer.oct.Infer.gen_from_traces(
+                self.dtraces[l], self.inv_decls[l])
 
         def _g(l):
             return not self.inv_decls[l].array_only
@@ -376,7 +381,8 @@ class DigTraces(Dig):
 
     def _minmax_tasks(self):
         def _f(l):
-            return infer.mp.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+            return infer.mp.Infer.gen_from_traces(
+                self.dtraces[l], self.inv_decls[l])
 
         def _g(l):
             return not self.inv_decls[l].array_only
@@ -384,7 +390,8 @@ class DigTraces(Dig):
 
     def _congruences_tasks(self):
         def _f(l):
-            return infer.congruence.Infer.gen_from_traces(self.dtraces[l], self.inv_decls[l])
+            return infer.congruence.Infer.gen_from_traces(
+                self.dtraces[l], self.inv_decls[l])
 
         def _g(l):
             return not self.inv_decls[l].array_only

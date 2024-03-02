@@ -27,7 +27,7 @@ BENCHMARK_TIMEOUT = 15 * 60  # mins
 N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
-SE_MAXDEPTH = 30
+SE_MAX_DEPTH = 30
 SOLVER_TIMEOUT = 3  # secs
 EQT_RATE = 1.5
 UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
@@ -60,6 +60,7 @@ MAINQ_FUN = "mainQ"
 # Must be Java 8 because JPF/SPF requires Java 8
 JAVAC_CMD = Path("/usr/bin/javac")
 JAVA_CMD = Path("/usr/bin/java")
+
 
 class Java:
     SE_MIN_DEPTH = 7
@@ -259,10 +260,10 @@ def setup(settings, args):
 
     if args.se_maxdepth and args.se_maxdepth >= 1:
         if settings:
-            settings.SE_MAXDEPTH = args.se_maxdepth
+            settings.SE_MAX_DEPTH = args.se_maxdepth
         else:
             opts.append(f"-se_maxdepth {args.se_maxdepth}")
-
+            
     if args.tmpdir:
         if settings:
             settings.TMPDIR = Path(args.tmpdir)

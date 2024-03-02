@@ -647,9 +647,10 @@ class SymStates(dict):
                     self.solver_stats_.append(stat)
                 except Empty:
                     break
-                except:
+                except Exception:
                     mlog.exception(f"get_solver_stats() error")
                     break
+
 
 class SymStatesMaker(metaclass=abc.ABCMeta):
 
@@ -678,8 +679,15 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         """
         Run symbolic execution to obtain symbolic states
         """
-        tasks = [depth for depth in
-                    range(self.mindepth, settings.SE_MAXDEPTH + 1)]
+
+        mind = self.mindepth
+        maxd = settings.SE_MAX_DEPTH 
+        if mind >= maxd:
+            mlog.warning("mindepth {mind} >= maxdepth {maxd}, "
+                         "setting mindepth=maxdepth={maxd}")
+            mind = maxd
+            
+        tasks = [depth for depth in range(mind, maxd + 1)]
 
         def f(tasks):
             rs = [(depth, self.get_ss(depth)) for depth in tasks]
@@ -699,8 +707,12 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
 
         def f(tasks):
             rs = [symstates[loc][depth] for loc, depth in tasks]
-            rs = [
-                (loc, depth, Z3.to_smt2_str(pcs.myexpr), Z3.to_smt2_str(pcs.mypc))
+            rs = [(
+                    loc,
+                    depth,
+                    Z3.to_smt2_str(pcs.myexpr),
+                    Z3.to_smt2_str(pcs.mypc)
+                )
                 for pcs, (loc, depth) in zip(rs, tasks)
             ]
             return rs
@@ -856,7 +868,7 @@ class SymStatesMakerJava(SymStatesMaker):
         return settings.Java.JPF_RUN(jpffile=self.mk_JPF_runfile(max_val, depth))
 
     @beartype
-    def mk_JPF_runfile(self, max_int:int, depth:int) -> Path:
+    def mk_JPF_runfile(self, max_int: int, depth: int) -> Path:
         assert max_int >= 0, max_int
 
         symargs = ["sym"] * self.ninps
