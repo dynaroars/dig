@@ -1,7 +1,7 @@
 # DIG
 
 **DIG** is an _invariant generation_ tool. It can discover program invariants at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on _numerical_ invariants and currently supports the following numerical relations:
-- *nonlinear / linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
+- *nonlinear/linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
 - *disjunction*:  certain types of disjunctions under the *min/max* forms, e.g., `max(x,y) <= z + 2`, and nonlinear forms, e.g., `x^2 −xy −xz +yz =0` is `(x −y)=0 v (x − z)=0`
 - *congruence* relations, e.g.,  `x == 0 (mod 4),  x+y == 1 (mod 5)`
