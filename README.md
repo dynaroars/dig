@@ -62,7 +62,7 @@ $ root@b53e0bd86c11:/dig/src#
 # now you can run DIG -- the more CPUs/CORES your machine has, the faster DIG will run.  
 
 # run DIG on a trace file
-root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/traces/cohendiv.csv -log 4
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../examples/traces/cohendiv.csv -log 4
 ...
 ...
 
@@ -70,6 +70,7 @@ root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../tests/tr
 
 # FASTER: restrict nonlinear eqts to degree 2 and but don't generate inequalities or minmax invariants and 
 root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -maxdeg 2 -noieqs -nominmax -log 4
+# If you have some error SARL expected version X but found Y, then edit ~/.sarl and change from X to Y
 
 # SLOWER: but gives everything
 root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -log 4
