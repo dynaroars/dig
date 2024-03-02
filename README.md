@@ -347,7 +347,7 @@ vtrace3 (9 invs):
 <summary><kbd>details</kbd></summary>
 
 
-Most of DIG's behaviors can be controlled by the user (the `src/settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several ones
+DIG aims to be fully automatic.  However, it also allows the user to control its behaviors (the `src/settings.py` lists all the defaut parameters).  Use `-h` or `--help` to see options that can be passed into DIG. Below we show several useful ones.
 
 #### Specify max degree for equalities
 
