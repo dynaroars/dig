@@ -1,6 +1,8 @@
 #include <stdio.h>
+void vassume(int b){}
 
 int fib(int n) {
+		vtrace(n);
     if (n <= 1) return n;
     return fib(n - 1) + fib(n - 2);
 }
