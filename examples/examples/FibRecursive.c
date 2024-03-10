@@ -1,5 +1,6 @@
 #include <stdio.h>
 void vassume(int b){}
+void vtrace(int n){}
 
 int fib(int n) {
 		vtrace(n);
