@@ -16,10 +16,5 @@ void mainQ(int n) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc == 2) {
         mainQ(atoi(argv[1]));
-    } else {
-        printf("Usage: %s <n>\n", argv[0]); 
-    }
-    return 0;
 }
