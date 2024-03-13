@@ -7,11 +7,11 @@ void vtrace1(int q, int r, int a, int b, int x, int y){}
 void vtrace2(int q, int r, int a, int b, int x, int y){}
 
 int cohendiv (int x, int y) {
-    assert(x >= 0 && y >= 1);
-    int q = 0;
-    int r = x;
-    int a;
-    int b;
+	assert(x >= 0 && y >= 1);
+	int q = 0;
+	int r = x;
+	int a = 0;
+	int b = 0;
     while (r >= y) {
         a=1;
         b=y;
