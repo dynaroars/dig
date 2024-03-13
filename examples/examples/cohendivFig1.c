@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 void vassume(int b){}
 void vtrace1(int q, int r, int a, int b, int x, int y){}
@@ -14,7 +15,7 @@ int cohendiv (int x, int y) {
     while (r >= y) {
         a=1;
         b=y;
-        vtrace(x, y, q, r, a, b);
+        vtrace1(x, y, q, r, a, b);
         while (r >= 2*b) {
             a = 2*a;
             b = 2*b;
@@ -23,7 +24,7 @@ int cohendiv (int x, int y) {
         q = q+a;
         }
 
-        vtrace(x, y, q, r, a, b);
+        vtrace2(x, y, q, r, a, b);
         return q;
     }
 
