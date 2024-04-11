@@ -1,5 +1,0 @@
-0. any_0 = lpop(lpush(any_list_0,any_0))
-1. any_0 = lpeek(lpush(any_list_0,any_0))
-2. lsearch(any_list_0,any_0) = lsearch(lpop(lpush(any_list_0,any_1)),any_0) @wrong
-3. lpop(lpush(any_list_0,any_0)) = lpeek(lpush(any_list_1,any_0)) #wrong
-4. lempty(lpop(lpush(any_list_0,any_0))) = lempty(any_list_0)  #wrong ... actually OK
