@@ -1,0 +1,65 @@
+{
+  "name": "vscode-dig",
+  "displayName": "VSCode-DIG",
+  "description": "A VS Code extension to insert assertions using the 'dig' tool.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscode-dig.insertAssertions",
+        "title": "Insert Assertions"
+      },
+      {
+        "command": "vscode-dig.testAssertions",
+        "title": "Test Assertions"
+    },
+    {
+      "command": "vscode-dig.insertCustomAssertions",
+      "title": "Insert Custom Assertions"
+  }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorTextFocus",
+          "command": "vscode-dig.insertAssertions",
+          "group": "navigation"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "vscode-dig.testAssertions",
+          "group": "navigation"
+      },
+      {
+        "when": "editorTextFocus",
+        "command": "vscode-dig.insertCustomAssertions",
+        "group": "navigation"
+      }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.87.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9"
+  }
+}
