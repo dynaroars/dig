@@ -397,7 +397,7 @@ class SymStates(dict):
                 self[loc], inv, inv_expr, inps, ncexs)
         else:
             cexs, is_succ, stat = self.mcheck(
-                self.get_ss_at_depth(
+                self.get_symstates_at_depth(
                     self[loc], depth=None), inv_expr, inps, ncexs
             )
 
@@ -498,7 +498,7 @@ class SymStates(dict):
 
         else:
             v, stat = self.mmaximize(
-                self.get_ss_at_depth(self[loc], depth=None), term_expr, iupper
+                self.get_symstates_at_depth(self[loc], depth=None), term_expr, iupper
             )
         return v
 
@@ -510,7 +510,7 @@ class SymStates(dict):
 
         @beartype
         def f(depth: int):
-            ss = self.get_ss_at_depth(ssd, depth=depth)
+            ss = self.get_symstates_at_depth(ssd, depth=depth)
             maxv, stat = self.mmaximize(ss, term_expr, iupper)
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
@@ -604,7 +604,7 @@ class SymStates(dict):
     # helpers
     @beartype
     @classmethod
-    def get_ss_at_depth(cls, ssd: SymStatesDepth, 
+    def get_symstates_at_depth(cls, ssd: SymStatesDepth, 
                         depth: None | int=None) -> z3.ExprRef:
         
         assert depth is None or depth >= 0, depth
@@ -683,21 +683,22 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         mind = self.mindepth
         maxd = settings.SE_MAX_DEPTH 
         if mind >= maxd:
-            mlog.warning("mindepth {mind} >= maxdepth {maxd}, "
-                         "setting mindepth=maxdepth={maxd}")
+            mlog.warning(f"symbolic execution: mindepth {mind} >= maxdepth {maxd}, "
+                         f"setting mindepth=maxdepth={maxd}")
             mind = maxd
             
         tasks = [depth for depth in range(mind, maxd + 1)]
 
         def f(tasks):
-            rs = [(depth, self.get_ss(depth)) for depth in tasks]
+            rs = [(depth, self.get_symstates(depth)) for depth in tasks]
             rs = [(depth, ss) for depth, ss in rs if ss]
             return rs
 
         wrs = MP.run_mp("getting symstates", tasks, f, settings.DO_MP)
 
         if not wrs:
-            mlog.warning("cannot obtain symstates, unreachable locs?")
+            mlog.fatal("symbolic execution cannot obtain symstates, unreachable locs?"
+                       f" Or try increasing maxdepth using --se_maxdepth N (current N={maxd})")
             sys.exit(0)
 
         symstates = self.merge(wrs, self.pc_cls)
@@ -730,7 +731,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         return symstates
 
     @beartype
-    def get_ss(self, depth: int) -> None | list:
+    def get_symstates(self, depth: int) -> None | list:
         assert depth >= 1, depth
 
         cmd: str = self.mk(depth)

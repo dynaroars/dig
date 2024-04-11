@@ -1,29 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 void vassume(int b){}
-//void vtrace0(int x, int y){}
-void vtrace1(int x, int y){}
-//void vtrace2(int q, int r, int a, int b, int x, int y){}
-void vtrace2(int x, int y, int q, int r){}
+void vtrace2(int x, int y, int z, int it){}
 
 int mainQ(int x, int y){
-    vassume(x >= 1 && y >= 1);
-    //vtrace0(x,y);  //preconditions
+    vassume(x >= 1 );
 
-    while(1){
-        if (!(x <= 10000))
-            break;
-        vtrace1(x,y);
-        //1<=x <= 10000
-        //1<=y
-        // 1. -x <= -1
-        // 2. -y <= -1
-        
-        x++;
+    int z = 0;
+    int x1 = x;
+
+    int it = 1;
+    while (it < 28){
+        it++;
+
     }
-    
-    //vtrace2(x, y, q, r);  //postconditions
+
+
+    vtrace2(x, y, z, it);  //postconditions
     return x;
 }
 

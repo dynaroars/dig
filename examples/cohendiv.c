@@ -2,9 +2,7 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-//void vtrace0(int x, int y){}
 void vtrace1(int x, int y, int q, int r, int a, int b){}
-//void vtrace2(int q, int r, int a, int b, int x, int y){}
 void vtrace2(int x, int y, int q, int r){}
 
 int mainQ(int x, int y){
@@ -22,9 +20,14 @@ int mainQ(int x, int y){
         b=y;
 
         while (1){
+            
+            assert(r >= y);
+            assert(r >= 2*b);
+            assert(a == 1 || a == 2);
+            assert(q + r == x);
+            assert(x * q + r == y );
             vtrace1(x, y, q, r, a, b);  //loop invariants
-            //vtrace2(q, r, a, b, x, y);  //loop invariants
-            if(!(r >= 2*b))
+            // Invariant
             break;
 
             a = 2*a;
