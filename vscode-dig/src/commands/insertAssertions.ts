@@ -20,7 +20,19 @@ export function insertAssertions() {
     const currentLine = editor.document.lineAt(initialPosition.line);
     const currentLineIndentation = currentLine.text.substring(0, currentLine.firstNonWhitespaceCharacterIndex);
 
-     // Extract the file path and filename of the current document
+    // Check if the current line contains a vtrace() call
+    const currentLineText = currentLine.text.trim();
+    const vtraceMatch = currentLineText.match(/vtrace(\d+)/);
+
+    if (!vtraceMatch) {
+        vscode.window.showInformationMessage('No vtrace call on the current line');
+        return;
+    }
+
+    // Exctract the vtrace number
+    const vtraceNumber = vtraceMatch[1];
+
+    // Extract the file path and filename of the current document
     const filePath = editor.document.uri.fsPath;
     const filename = path.basename(filePath);
 
@@ -81,10 +93,11 @@ export function insertAssertions() {
                 //const position = editor.selection.active;
                 const textUpToPosition = editor.document.getText(new vscode.Range(new vscode.Position(0,0), initialPosition));
                 const formattedAssertions = getAssertionsForLatestVtrace(stdout, textUpToPosition, currentLineIndentation);
+                const insertPosition = new vscode.Position(initialPosition.line + 1, 0);
 
                 editor.edit(editBuilder => {
                     //editBuilder.insert(initialPosition, `\n\n${assertions}\n`);
-                    editBuilder.insert(initialPosition, `\n${currentLineIndentation}${formattedAssertions}\n`);
+                    editBuilder.insert(insertPosition, `\n${currentLineIndentation}${formattedAssertions}\n`);
                 }).then(() => resolve()); // Ensure the progress notification is closed
             });
 
