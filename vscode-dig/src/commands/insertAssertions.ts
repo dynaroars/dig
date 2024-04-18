@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
+import { getAssertionsForLatestVtrace } from '../utils/dig_utils';
 import * as path from 'path';
 
 /**
@@ -40,6 +41,7 @@ export function insertAssertions() {
             exec(dockerCommand, (error, stdout, stderr) => {
                 // Log the standard output for debugging purposes
                 console.log(`STDOUT: ${stdout}`);
+                
                 if (error) {
                     // If there's an error, display it to the user and log it
                     vscode.window.showErrorMessage(`Error running DIG: ${stderr}`);
@@ -76,9 +78,13 @@ export function insertAssertions() {
                     return resolve();
                 }
 
-                const position = editor.selection.active;
+                //const position = editor.selection.active;
+                const textUpToPosition = editor.document.getText(new vscode.Range(new vscode.Position(0,0), initialPosition));
+                const formattedAssertions = getAssertionsForLatestVtrace(stdout, textUpToPosition, currentLineIndentation);
+
                 editor.edit(editBuilder => {
-                    editBuilder.insert(initialPosition, `\n\n${assertions}\n`);
+                    //editBuilder.insert(initialPosition, `\n\n${assertions}\n`);
+                    editBuilder.insert(initialPosition, `\n${currentLineIndentation}${formattedAssertions}\n`);
                 }).then(() => resolve()); // Ensure the progress notification is closed
             });
 
@@ -90,5 +96,6 @@ export function insertAssertions() {
             });
         });
 }
+
 
 
