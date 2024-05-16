@@ -4,12 +4,14 @@ import { testAssertions } from './commands/testAssertions';
 import { insertCustomAssertions } from './commands/insertCustomAssertions';
 import { buildDockerImage, cloneDIGRepository } from './utils/docker_utils';
 import { checkIfImageExists } from './utils/docker_utils';
+import { setContext } from './utils/context';
 
 
 export async function activate(context: vscode.ExtensionContext) {
     // Check if the Docker image exists locally; build it if it does not.
     // TODO: If an updated image exists, the current image will be replaced with the updated one.
     const imageName = 'dig';
+    
 
     // The target directory for cloning. This is the global storage path provided by VS Code.
     // This directory is meant to store data that doesn't need to be accessed by other applications 
@@ -17,18 +19,26 @@ export async function activate(context: vscode.ExtensionContext) {
     // this is a god place to clone.
     const targetDirectory = context.globalStorageUri.fsPath;
 
-        try {
-            await cloneDIGRepository (targetDirectory);
+    setContext(context);
 
-            // Display message upon successful cloning    
-            vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
+        try {
+            const repoClonedKey = 'repoCloned';
+            const repoCloned = context.globalState.get<boolean>(repoClonedKey, false);
+
+            if (!repoCloned) {
+                await cloneDIGRepository(targetDirectory);
+                vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
+    
+                await context.globalState.update(repoClonedKey, true);
+            } else {
+                console.log('DIG repository already cloned. Skipping cloning.');
+            }
 
             try {
+
             const dockerImageExists = await checkIfImageExists(imageName);
 
-            if (dockerImageExists) {
-                console.log (`Docker image ${imageName} found locally.`);
-            } else {
+            if (!dockerImageExists) {
                 console.log (`Docker image ${imageName} not found.`);
                 console.log (`Building the Docker image ...`);
                 buildDockerImage();
@@ -56,3 +66,4 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+

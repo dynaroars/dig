@@ -1,68 +1,105 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.testAssertions = void 0;
-const vscode = require('vscode');
-const { exec } = require('child_process');
-const path = require('path');
+const vscode_1 = __importDefault(require("vscode"));
+const child_process_1 = require("child_process");
+const path_1 = __importDefault(require("path"));
+const context_1 = require("../utils/context");
 async function testAssertions() {
-    const editor = vscode.window.activeTextEditor;
+    const editor = vscode_1.default.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showInformationMessage('Open a file to test assertions.');
+        vscode_1.default.window.showInformationMessage('Open a file to test assertions.');
         return;
     }
-    // Get the current line of code where the cursor is located
-    const currentPosition = editor.selection.active;
-    const currentLine = editor.document.lineAt(currentPosition.line).text;
-    if (!currentLine.includes('assert')) {
-        vscode.window.showInformationMessage('No assertion on the current line.');
+    // Check if there is a multiline selection
+    const selection = editor.selection;
+    let linesToTest = [];
+    if (!selection.isEmpty) {
+        // User has selected multiple lines
+        for (let i = selection.start.line; i <= selection.end.line; i++) {
+            let lineText = editor.document.lineAt(i).text;
+            if (lineText.includes('assert')) {
+                linesToTest.push(lineText);
+            }
+        }
+    }
+    else {
+        // Single line where the cursor is located
+        const currentLineText = editor.document.lineAt(selection.active.line).text;
+        if (currentLineText.includes('assert')) {
+            linesToTest.push(currentLineText);
+        }
+    }
+    // No assertions found in the selection
+    if (linesToTest.length === 0) {
+        vscode_1.default.window.showInformationMessage('No assertions found to test.');
         return;
     }
-    // Prompt the user to input the max depth
-    const maxDepth = await vscode.window.showInputBox({
-        prompt: 'Enter the max depth for CIVL verification:',
-        placeHolder: 'e.g., 10',
-    });
-    if (!maxDepth) {
-        vscode.window.showInformationMessage('CIVL verification cancelled.');
-        return;
-    }
-    // Use the currentLine as the assertion to be tested
-    const userAssertion = currentLine;
     // Get the current file path
     const filePath = editor.document.uri.fsPath;
-    // Define the output files for the conversion
-    const symexefile = path.join(path.dirname(filePath), 'symexefile.c');
-    const tracefile = path.join(path.dirname(filePath), 'tracefile.c');
-    // Construct the command to run the conversion script
-    const conversionCommand = `python3  /Users/stefaniapiciorea/Documents/Github/dig/src/c_instrument.py ${filePath} ${symexefile} ${tracefile}`;
+    // Get the directory of the currently open file
+    const fileDirectory = path_1.default.dirname(editor.document.uri.fsPath);
+    // Define the output files for the conversio
+    const symexefile = path_1.default.join(path_1.default.dirname(filePath), 'symexefile.c');
+    const tracefile = path_1.default.join(path_1.default.dirname(filePath), 'tracefile.c');
+    // Conversion output file (DEBUGGING)
+    const outputFile = path_1.default.join(fileDirectory, 'conversionOutput.txt');
+    // Get the path to the cloned repository from the context
+    const context = (0, context_1.getContext)();
+    const globalStoragePath = context.globalStorageUri.fsPath;
+    // Construct the path to the instrument.py script inside the cloned repository
+    const instrumentScriptPath = path_1.default.join(globalStoragePath, 'src', 'c_instrument.py');
+    // Construct the command to run the conversion script that converts C code into CIVL readable code
+    const conversionCommand = `python3 "${instrumentScriptPath}" "${filePath}" "${symexefile}" "${tracefile}" > "${outputFile}"`;
     // Execute the conversion script
-    exec(conversionCommand, (error, stdout, stderr) => {
+    (0, child_process_1.exec)(conversionCommand, (error, stdout, stderr) => {
         if (error || stderr) {
             console.error(`Conversion Error: ${error ? error.message : stderr}`);
-            vscode.window.showErrorMessage('Error running the conversion script.');
+            vscode_1.default.window.showErrorMessage('Error running the conversion script.');
             return;
         }
-        // stdout will contain the types output from the instrument function
-        console.log(`Conversion Output: ${stdout}`);
-        // Construct the command to run CIVL with the user-specified max depth
-        const civlJarPath = '/opt/homebrew/Cellar/civl/1.22-5854/libexec/civl-1.22_5854.jar'; // Adjust this path as needed
-        const civlCommand = `civl verify -maxdepth=${maxDepth} ${symexefile}`;
-        // Get the directory of the currently open file
-        const fileDirectory = path.dirname(editor.document.uri.fsPath);
-        // Set up the execution options with the correct current working directory
+        // Construct the command to run CIVL
+        const maxDepth = '10';
+        const extensionPath = context.extensionPath;
+        const civlUtilsScriptPath = path_1.default.join(extensionPath, 'src', 'utils', 'civl_utils.py');
+        const civlCommand = `python3 "${civlUtilsScriptPath}" "${filePath}" "${symexefile}" --max_depth=${maxDepth}`;
+        // DEBUGGING. Logs the paths to c_instrument.py and civl_utils.py
+        console.log(`Instrument Script Path: ${instrumentScriptPath}`);
+        console.log(`CIVL Utils Script Path: ${civlUtilsScriptPath}`);
+        // Set up the execution options with the current working directory
         const execOptions = {
             cwd: fileDirectory,
         };
-        // Execute CIVL
-        exec(civlCommand, execOptions, (civlError, civlStdout, civlStderr) => {
+        // Execute teh CIVL command
+        (0, child_process_1.exec)(civlCommand, execOptions, (civlError, civlStdout, civlStderr) => {
             if (civlError || civlStderr) {
                 console.error(`CIVL Error: ${civlError ? civlError.message : civlStderr}`);
-                vscode.window.showErrorMessage('Error running CIVL.');
+                vscode_1.default.window.showErrorMessage('Error running CIVL.');
                 return;
             }
-            // Process and display the results from CIVL
-            console.log(`CIVL Output: ${civlStdout}`);
-            vscode.window.showInformationMessage(`CIVL Verification Result: ${civlStdout}`);
+            // Parses the CIVL output and displays a message to the user based on whether a violation message was found in CIVL's output or not
+            try {
+                const result = JSON.parse(civlStdout);
+                if (result.error) {
+                    vscode_1.default.window.showErrorMessage(`CIVL Error: ${result.error}`);
+                }
+                else {
+                    const civlOutput = result.output;
+                    if (civlOutput.includes("Violation")) {
+                        vscode_1.default.window.showErrorMessage('Assertion failed. The selected assertion is not valid.');
+                    }
+                    else {
+                        vscode_1.default.window.showInformationMessage('Assertion passed. The selected assertion is valid.');
+                    }
+                }
+            }
+            catch (parseError) {
+                console.error(`Parse Error: ${parseError.message}`);
+                vscode_1.default.window.showErrorMessage('Error parsing CIVL output.');
+            }
         });
     });
 }

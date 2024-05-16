@@ -30,6 +30,7 @@ const testAssertions_1 = require("./commands/testAssertions");
 const insertCustomAssertions_1 = require("./commands/insertCustomAssertions");
 const docker_utils_1 = require("./utils/docker_utils");
 const docker_utils_2 = require("./utils/docker_utils");
+const context_1 = require("./utils/context");
 async function activate(context) {
     // Check if the Docker image exists locally; build it if it does not.
     // TODO: If an updated image exists, the current image will be replaced with the updated one.
@@ -39,16 +40,21 @@ async function activate(context) {
     // or by the user directly. Since the user doesn't need to interact with dig's source code directly,
     // this is a god place to clone.
     const targetDirectory = context.globalStorageUri.fsPath;
+    (0, context_1.setContext)(context);
     try {
-        await (0, docker_utils_1.cloneDIGRepository)(targetDirectory);
-        // Display message upon successful cloning    
-        vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
+        const repoClonedKey = 'repoCloned';
+        const repoCloned = context.globalState.get(repoClonedKey, false);
+        if (!repoCloned) {
+            await (0, docker_utils_1.cloneDIGRepository)(targetDirectory);
+            vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
+            await context.globalState.update(repoClonedKey, true);
+        }
+        else {
+            console.log('DIG repository already cloned. Skipping cloning.');
+        }
         try {
             const dockerImageExists = await (0, docker_utils_2.checkIfImageExists)(imageName);
-            if (dockerImageExists) {
-                console.log(`Docker image ${imageName} found locally.`);
-            }
-            else {
+            if (!dockerImageExists) {
                 console.log(`Docker image ${imageName} not found.`);
                 console.log(`Building the Docker image ...`);
                 (0, docker_utils_1.buildDockerImage)();

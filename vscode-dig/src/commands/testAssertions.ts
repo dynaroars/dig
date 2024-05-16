@@ -1,6 +1,7 @@
-const vscode = require('vscode');
-const { exec } = require('child_process');
-const path = require('path');
+import vscode from 'vscode';
+import { ExecException, exec } from 'child_process';
+import path from 'path';
+import { getContext } from '../utils/context';
 
 export async function testAssertions() {
     const editor = vscode.window.activeTextEditor;
@@ -8,10 +9,6 @@ export async function testAssertions() {
         vscode.window.showInformationMessage('Open a file to test assertions.');
         return;
     }
-
-    // Get the current line of code where the cursor is located
-    const currentPosition = editor.selection.active;
-    const currentLine = editor.document.lineAt(currentPosition.line).text;
 
      // Check if there is a multiline selection
      const selection = editor.selection;
@@ -39,9 +36,6 @@ export async function testAssertions() {
          return;
      }
 
-    // Use the currentLine as the assertion to be tested
-    const userAssertion = currentLine;
-
     // Get the current file path
     const filePath = editor.document.uri.fsPath;
 
@@ -55,44 +49,70 @@ export async function testAssertions() {
 
     // Conversion output file (DEBUGGING)
     const outputFile = path.join(fileDirectory, 'conversionOutput.txt');
+    
+    // Get the path to the cloned repository from the context
+    const context = getContext();
+    const globalStoragePath = context.globalStorageUri.fsPath;
+    
+    // Construct the path to the instrument.py script inside the cloned repository
+    const instrumentScriptPath = path.join(globalStoragePath, 'src', 'c_instrument.py');
 
-    // Construct the command to run the conversion script
-    const conversionCommand = `python3  /Users/stefaniapiciorea/Documents/Github/dig/src/c_instrument.py ${filePath} ${symexefile} ${tracefile} > ${outputFile}`;
+    // Construct the command to run the conversion script that converts C code into CIVL readable code
+    const conversionCommand = `python3 "${instrumentScriptPath}" "${filePath}" "${symexefile}" "${tracefile}" > "${outputFile}"`;
 
     // Execute the conversion script
-    exec(conversionCommand, (error: Error, stdout: string, stderr: string) => {
+    exec(conversionCommand, (error: Error | null, stdout: string, stderr: string) => {
         if (error || stderr) {
             console.error(`Conversion Error: ${error ? error.message : stderr}`);
             vscode.window.showErrorMessage('Error running the conversion script.');
             return;
         }
 
-        
+// Construct the command to run CIVL
+const maxDepth = '10';
+const extensionPath = context.extensionPath;
+const civlUtilsScriptPath = path.join(extensionPath, 'src', 'utils', 'civl_utils.py');
+const civlCommand = `python3 "${civlUtilsScriptPath}" "${filePath}" "${symexefile}" --max_depth=${maxDepth}`;
 
-        // stdout will contain the types output from the instrument function
-        console.log(`Conversion Output: ${stdout}`);
+// DEBUGGING. Logs the paths to c_instrument.py and civl_utils.py
+console.log(`Instrument Script Path: ${instrumentScriptPath}`);
+console.log(`CIVL Utils Script Path: ${civlUtilsScriptPath}`);
 
-
-// Run CIVL with default maxDepth of 10
-const civlCommand = `civl verify -maxdepth=10 ${symexefile}`;
-
-
-// Set up the execution options with the correct current working directory
+// Set up the execution options with the current working directory
 const execOptions = {
     cwd: fileDirectory,
   };
 
-// Execute CIVL
-exec(civlCommand, execOptions, (civlError: Error, civlStdout: string, civlStderr: string) => {
+// Execute teh CIVL command
+exec(civlCommand, execOptions, (civlError: ExecException | null, civlStdout: string, civlStderr: string) => {
     if (civlError || civlStderr) {
         console.error(`CIVL Error: ${civlError ? civlError.message : civlStderr}`);
         vscode.window.showErrorMessage('Error running CIVL.');
         return;
     }
-
-    // Process and display the results from CIVL
-    console.log(`CIVL Output: ${civlStdout}`);
-    vscode.window.showInformationMessage(`CIVL Verification Result: ${civlStdout}`);
+    
+// Parses the CIVL output and displays a message to the user based on whether a violation message was found in CIVL's output or not
+try {
+    const result = JSON.parse(civlStdout);
+    if (result.error) {
+        vscode.window.showErrorMessage(`CIVL Error: ${result.error}`);
+    } else {
+        const civlOutput = result.output;
+        if (civlOutput.includes("Violation")) {
+            vscode.window.showErrorMessage('Assertion failed. The selected assertion is not valid.');
+        } else {
+            vscode.window.showInformationMessage('Assertion passed. The selected assertion is valid.');
+        }
+    }
+} catch (parseError: any){
+    console.error(`Parse Error: ${parseError.message}`);
+    vscode.window.showErrorMessage('Error parsing CIVL output.');
+}
+    
 });
     });
+
 }
+
+
+
