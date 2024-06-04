@@ -173,7 +173,7 @@ export async function buildDockerImage(targetDirectory:string): Promise<void> {
 function buildImage(targetDirectory:string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         console.log(`Attempting to build Docker image from directory: ${targetDirectory}`);
-        exec('docker build . -t dig', { cwd: targetDirectory }, (error, stdout, stderr) => {
+        exec('docker build . -t dig', { cwd: targetDirectory }, (error: Error|null, stdout: string, stderr: string) => {
             if (error) {
                 console.error('Error building Docker image:', error);
                 console.error(stderr);
