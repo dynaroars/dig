@@ -53,16 +53,13 @@ async function activate(context) {
             console.log('DIG repository already cloned. Skipping cloning.');
         }
         try {
-            const dockerImageExists = await (0, docker_utils_2.checkIfImageExists)(imageName);
-            if (!dockerImageExists) {
-                console.log(`Docker image ${imageName} not found.`);
-                console.log(`Building the Docker image ...`);
-                (0, docker_utils_1.buildDockerImage)();
+            if (!(await (0, docker_utils_2.checkIfImageExists)('dig'))) {
+                console.log('Building Docker image as it does not exist...');
+                await (0, docker_utils_1.buildDockerImage)(targetDirectory);
             }
         }
         catch (error) {
-            console.error('Error checking if Docker image exists: ', error);
-            vscode.window.showErrorMessage(`Error checking/building Docker image: ${error.message}`);
+            vscode.window.showErrorMessage(`Error initializing Docker environment: ${error.message}`);
         }
         let disposable = vscode.commands.registerCommand('vscode-dig.insertAssertions', insertAssertions_1.insertAssertions);
         context.subscriptions.push(disposable);

@@ -73,23 +73,33 @@ exports.cloneDIGRepository = cloneDIGRepository;
  * @param {string} imageName The name of the Docker image to check
  * @returns {Promise<boolean>} A promise that resolves to true if the image exists; false otherwise
 */
-function checkIfImageExists(imageName) {
+/*export function checkIfImageExists(imageName: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
         // Execute the Docker CLI command to inspect the image
-        (0, child_process_1.exec)(`docker image inspect ${imageName}`, (error, stdout, stderr) => {
+        exec(`docker image inspect ${imageName}`, (error, stdout, stderr) => {
             if (error) {
                 // If the command returns an error, it means the image doesn't exist
                 if (error.code === 1) {
                     resolve(false); // Image doesn't exist
-                }
-                else {
+                } else {
                     reject(error); // Other error occurred
                 }
-            }
-            else {
+            } else {
                 // If the command succeeds, it means the image exists
                 resolve(true);
             }
+        });
+    });
+
+    
+}*/
+//Changed the way we check if the image exists. We now use the 'docker images -q' command to get the image ID instead of 'docker image inspect' which was
+//generating an error whenever the image was not found
+async function checkIfImageExists(imageName) {
+    return new Promise((resolve) => {
+        (0, child_process_1.exec)(`docker images -q ${imageName}`, (error, stdout) => {
+            // Image exists if stdout is not empty
+            resolve(stdout.trim() !== '');
         });
     });
 }
@@ -98,57 +108,92 @@ exports.checkIfImageExists = checkIfImageExists;
  *
  * @returns {Promise<void>} A promise that resolves once the Docker image has been successfully built
  */
-async function buildDockerImage() {
+/*export async function buildDockerImage(): Promise<void> {
     try {
         // Check if the Docker image exists and get its creation date
         const { exists, creationDate } = await getDockerImageInfo('dig');
+
         if (!exists) {
-            // Builds the image if it doesn't exist 
+            // Builds the image if it doesn't exist
             console.log('Building Docker image...');
             await buildImage();
             console.log('Docker image built successfully.');
         }
+    } catch (error) {
+        console.error('Error building Docker image:', error);
+        throw error;
+    }
+}*/
+//Changed the way we build the image. The build command must be ran from inside the dig directory, so I am now passing that directory as a parameter
+// to this function to make sure the command is ran from the correct location. This was also causing some issues with the previous implementation.
+async function buildDockerImage(targetDirectory) {
+    const imageName = 'dig';
+    try {
+        const imageExists = await checkIfImageExists(imageName);
+        if (!imageExists) {
+            console.log('Docker image not found. Building now...');
+            await buildImage(targetDirectory);
+            console.log('Docker image built successfully.');
+        }
+        else {
+            console.log('Docker image already exists. No need to build.');
+        }
     }
     catch (error) {
-        console.error('Error building Docker image:', error);
+        console.error('Error during Docker operation:', error);
         throw error;
     }
 }
 exports.buildDockerImage = buildDockerImage;
+// NO LONGER NEEDED-- REMOVE LATER
 /** Retrieves information about a Docker image.
  *
  * @param {string} imageName The name of the Docker image to inspect
  * @returns {Promise<{exists: boolean, creationDate?: Date}>} A promise that resolves with the image's information
 */
-async function getDockerImageInfo(imageName) {
-    return new Promise((resolve, reject) => {
-        (0, child_process_1.exec)(`docker inspect --format='{{.Created}}' ${imageName}`, (error, stdout, stderr) => {
+/*async function getDockerImageInfo(imageName: string): Promise<{ exists: boolean; creationDate?: Date }> {
+    return new Promise<{ exists: boolean; creationDate?: Date }>((resolve, reject) => {
+        exec(`docker inspect --format='{{.Created}}' ${imageName}`, (error, stdout, stderr) => {
             if (error) {
                 // If the image does not exist, docker inspect returns a non-zero exit code
                 if (stderr.includes("No such image")) {
                     resolve({ exists: false });
-                }
-                else {
+                } else {
                     reject(error);
                 }
-            }
-            else {
+            } else {
                 const creationDateStr = stdout.trim();
                 const creationDate = new Date(creationDateStr);
                 resolve({ exists: true, creationDate });
             }
         });
     });
-}
+}*/
 /** Executes the command to build the Docker image.
  *
  * @returns {Promise<void>} A promise that resolves once the Docker image has been built
 */
-function buildImage() {
-    return new Promise((resolve, reject) => {
-        (0, child_process_1.exec)('docker build . -t dig', (error, stdout, stderr) => {
+/*function buildImage(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        exec('docker build . -t dig', (error, stdout, stderr) => {
             if (error) {
                 console.error('Error building Docker image:', error);
+                reject(error);
+            } else {
+                console.log('Docker image built successfully:', stdout);
+                resolve();
+            }
+        });
+    });
+}*/
+//Changed the way we build the image. The build command must be ran from inside the dig directory, so I am now passing it as an argument here as well.
+function buildImage(targetDirectory) {
+    return new Promise((resolve, reject) => {
+        console.log(`Attempting to build Docker image from directory: ${targetDirectory}`);
+        (0, child_process_1.exec)('docker build . -t dig', { cwd: targetDirectory }, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Error building Docker image:', error);
+                console.error(stderr);
                 reject(error);
             }
             else {
@@ -158,29 +203,4 @@ function buildImage() {
         });
     });
 }
-/*
-// Function to periodically check for image updates and initiate background image building
-export function checkForImageUpdates(): void {
-    setInterval(async () => {
-        try {
-            // Check for updates to the Docker image
-            const updateAvailable = await isImageUpdateAvailable();
-
-            if (updateAvailable) {
-                // Initiate background image building
-                console.log('Updating Docker image in the background...');
-                await buildDockerImage();
-                console.log('Docker image updated successfully.');
-            }
-        } catch (error) {
-            console.error('Error updating Docker image:', error);
-        }
-    }, 7 * 24 * 60 * 60 * 1000); // Checks at one week intervals
-}
-
-
-// Function to check if an update is available for the Docker image
-async function isImageUpdateAvailable(): Promise<boolean> {
-    // Compare the current image version with the version available in the Docker registry
-}*/ 
 //# sourceMappingURL=docker_utils.js.map

@@ -45,19 +45,17 @@ function insertAssertions() {
     const currentLineIndentation = currentLine.text.substring(0, currentLine.firstNonWhitespaceCharacterIndex);
     // Check if the current line contains a vtrace() call
     const currentLineText = currentLine.text.trim();
-    const vtraceMatch = currentLineText.match(/vtrace(\d+)/);
+    const vtraceMatch = currentLineText.match(/\bvtrace\s*\(\s*.*\s*\)\s*;/);
     if (!vtraceMatch) {
-        vscode.window.showInformationMessage('No vtrace call on the current line');
+        vscode.window.showInformationMessage('No vtrace call found on the current line');
         return;
     }
-    // Exctract the vtrace number
-    const vtraceNumber = vtraceMatch[1];
     // Extract the file path and filename of the current document
     const filePath = editor.document.uri.fsPath;
     const filename = path.basename(filePath);
     //--platform linux/amd64
     // Construct the command to run DIG within a Docker container
-    const dockerCommand = `docker run -v "${filePath}:/dig/src/${filename}" -w /dig/src dig /bin/bash -c "/root/miniconda3/bin/python3 -O dig.py ${filename} -log 4"`;
+    const dockerCommand = `docker run --platform linux/amd64 -v "${filePath}:/dig/src/${filename}" -w /dig/src dig /bin/bash -c "/root/miniconda3/bin/python3 -O dig.py ${filename} -log 2"`;
     console.log("Running command:", dockerCommand);
     // Display a progress notification while DIG is running
     vscode.window.withProgress({

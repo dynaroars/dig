@@ -1,12 +1,16 @@
+
+# Runs CIVL on a C file containing an assertion
+
 import argparse
 import subprocess
 import shlex
 import json
 
 def run_civl(file_path, symexefile, max_depth):
+    # Builds the command to run CIVL
     civl_command = f"civl verify -maxdepth={max_depth} {symexefile}"
-    # print(f"Running: {civl_command}")
 
+    # Runs CIVL and captures the output
     try:
         cp = subprocess.run(
             shlex.split(civl_command),
@@ -15,7 +19,7 @@ def run_civl(file_path, symexefile, max_depth):
             check=True,
             text=True
         )
-     # Capture only the relevant output part
+
         output_lines = cp.stdout.splitlines()
         relevant_output = "\n".join(line for line in output_lines if "CIVL" not in line)
         return {"output": relevant_output, "error": None}
@@ -30,5 +34,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Runs CIVL and prints the output in a json format
     output = run_civl(args.file_path, args.symexefile, args.max_depth)
     print(json.dumps(output))
