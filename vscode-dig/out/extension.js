@@ -67,6 +67,8 @@ async function activate(context) {
         context.subscriptions.push(disposableTestAssertions);
         let disposableCustomAssertions = vscode.commands.registerCommand('vscode-dig.insertCustomAssertions', insertCustomAssertions_1.insertCustomAssertions);
         context.subscriptions.push(disposableCustomAssertions);
+        let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', insertCustomAssertions_1.insertCustomAssertions);
+        context.subscriptions.push(disposableTestAssertionsWithUltimateAtomizer);
     }
     catch (error) {
         vscode.window.showErrorMessage(`Error setting up DIG: ${error.message}`);

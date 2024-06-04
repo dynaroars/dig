@@ -5,7 +5,7 @@ import { insertCustomAssertions } from './commands/insertCustomAssertions';
 import { buildDockerImage, cloneDIGRepository } from './utils/docker_utils';
 import { checkIfImageExists } from './utils/docker_utils';
 import { setContext } from './utils/context';
-
+import { testAssertionsUltimateAtomizer } from './commands/testAssertionsWithUltimateAtomizer';
 
 export async function activate(context: vscode.ExtensionContext) {
     // Check if the Docker image exists locally; build it if it does not.
@@ -53,6 +53,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     let disposableCustomAssertions = vscode.commands.registerCommand('vscode-dig.insertCustomAssertions', insertCustomAssertions);
     context.subscriptions.push(disposableCustomAssertions);
+
+    let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', insertCustomAssertions);
+    context.subscriptions.push(disposableTestAssertionsWithUltimateAtomizer);
 
 
 

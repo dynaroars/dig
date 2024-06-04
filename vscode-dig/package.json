@@ -21,7 +21,10 @@
     {
       "command": "vscode-dig.insertCustomAssertions",
       "title": "Insert Custom Assertions"
-  }
+    },
+    { "command": "vscode-dig.testAssertionsWithUltimateAtomizer",
+      "title": "Test Assertions with Ultimate Atomizer"
+    }
     ],
     "menus": {
       "editor/context": [
