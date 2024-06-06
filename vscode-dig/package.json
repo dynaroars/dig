@@ -22,8 +22,8 @@
       "command": "vscode-dig.insertCustomAssertions",
       "title": "Insert Custom Assertions"
     },
-    { "command": "vscode-dig.testAssertionsWithUltimateAtomizer",
-      "title": "Test Assertions with Ultimate Atomizer"
+    { "command": "vscode-dig.testAssertionsWithUltimateAutomizer",
+      "title": "Test Assertions with Ultimate Automizer"
     }
     ],
     "menus": {
@@ -45,7 +45,7 @@
       },
       {
         "when": "editorTextFocus",
-        "command": "vscode-dig.testAssertionsWithUltimateAtomizer",
+        "command": "vscode-dig.testAssertionsWithUltimateAutomizer",
         "group": "navigation"}
       ]
     }

@@ -34,8 +34,8 @@ const insertCustomAssertions_1 = require("./commands/insertCustomAssertions");
 const docker_utils_1 = require("./utils/docker_utils");
 const docker_utils_2 = require("./utils/docker_utils");
 const context_1 = require("./utils/context");
-const testAssertionsWithUltimateAtomizer_1 = require("./commands/testAssertionsWithUltimateAtomizer");
-const ultimate_atomizer_utils_1 = require("./utils/ultimate_atomizer_utils");
+const testAssertionsWithUltimateAutomizer_1 = require("./commands/testAssertionsWithUltimateAutomizer");
+const ultimate_automizer_utils_1 = require("./utils/ultimate_automizer_utils");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 async function activate(context) {
@@ -74,7 +74,7 @@ async function activate(context) {
         const ultimateRepoPath = path_1.default.join(targetDirectory, 'UltimateAtomizer');
         if (!ultimateRepoCloned || !fs_1.default.existsSync(ultimateRepoPath)) {
             console.log('Cloning Ultimate Atomizer repository...');
-            await (0, ultimate_atomizer_utils_1.cloneUltimateRepo)();
+            await (0, ultimate_automizer_utils_1.cloneUltimateRepo)();
             vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
             await context.globalState.update(ultimateRepoClonedKey, true);
         }
@@ -87,8 +87,8 @@ async function activate(context) {
         context.subscriptions.push(disposableTestAssertions);
         let disposableCustomAssertions = vscode.commands.registerCommand('vscode-dig.insertCustomAssertions', insertCustomAssertions_1.insertCustomAssertions);
         context.subscriptions.push(disposableCustomAssertions);
-        let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', testAssertionsWithUltimateAtomizer_1.testWithUltimateAtomizer);
-        context.subscriptions.push(disposableTestAssertionsWithUltimateAtomizer);
+        let disposableTestAssertionsWithUltimateAutomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAutomizer', testAssertionsWithUltimateAutomizer_1.testWithUltimateAutomizer);
+        context.subscriptions.push(disposableTestAssertionsWithUltimateAutomizer);
     }
     catch (error) {
         vscode.window.showErrorMessage(`Error setting up DIG: ${error.message}`);

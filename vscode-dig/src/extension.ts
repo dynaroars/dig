@@ -5,8 +5,8 @@ import { insertCustomAssertions } from './commands/insertCustomAssertions';
 import { buildDockerImage, cloneDIGRepository } from './utils/docker_utils';
 import { checkIfImageExists } from './utils/docker_utils';
 import { setContext } from './utils/context';
-import { testWithUltimateAtomizer } from './commands/testAssertionsWithUltimateAtomizer';
-import { cloneUltimateRepo } from './utils/ultimate_atomizer_utils';
+import { testWithUltimateAutomizer } from './commands/testAssertionsWithUltimateAutomizer';
+import { cloneUltimateRepo } from './utils/ultimate_automizer_utils';
 import path from 'path';
 import fs from 'fs';
 
@@ -72,8 +72,8 @@ export async function activate(context: vscode.ExtensionContext) {
     let disposableCustomAssertions = vscode.commands.registerCommand('vscode-dig.insertCustomAssertions', insertCustomAssertions);
     context.subscriptions.push(disposableCustomAssertions);
 
-    let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', testWithUltimateAtomizer);
-    context.subscriptions.push(disposableTestAssertionsWithUltimateAtomizer);
+    let disposableTestAssertionsWithUltimateAutomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAutomizer', testWithUltimateAutomizer);
+    context.subscriptions.push(disposableTestAssertionsWithUltimateAutomizer);
 
 
 
