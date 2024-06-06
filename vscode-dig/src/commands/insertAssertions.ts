@@ -16,13 +16,16 @@ export function insertAssertions() {
     }
 
     // Capture the indentation and the cursor position before starting the async operation
-    const initialPosition = editor.selection.active;
-    const currentLine = editor.document.lineAt(initialPosition.line);
+    const currentPosition = editor.selection.active;
+    const currentLine = editor.document.lineAt(currentPosition.line);
     const currentLineIndentation = currentLine.text.substring(0, currentLine.firstNonWhitespaceCharacterIndex);
 
     // Check if the current line contains a vtrace() call
     const currentLineText = currentLine.text.trim();
-    const vtraceMatch = currentLineText.match(/\bvtrace\s*\(\s*.*\s*\)\s*;/);
+    //const vtraceMatch = currentLineText.match(/\bvtrace\s*\(\s*.*\s*\)\s*;/);
+    //const vtraceMatch = currentLineText.match(/\bvtrace[a-zA-Z0-9_]*\s*\(\s*.*\s*\)\s*;/);
+    const vtraceMatch = currentLineText.match(/\bvtrace\w*\s*\(.*\)\s*;/);
+
 
     if (!vtraceMatch) {
         vscode.window.showInformationMessage('No vtrace call found on the current line');
@@ -69,16 +72,18 @@ export function insertAssertions() {
                     return resolve();
                 }
 
-
+                
                 // Extract the generated invariants from DIG's output
                 const lines = stdout.split('\n');
-                const invariantLines = lines.filter(line => line.match(/^\d+\./));
+                //const invariantLines = lines.filter(line => line.match(/^\d+\./));
+                const invariantLines = lines.filter(line => line.match(/^\d+\.\s+/));
 
 
                  // Format the extracted invariants as assertions with the correct indentation
                 const assertions = invariantLines.map(line => {
-                    const invariant = line.substring(line.indexOf(' ') + 1);
-                    return `${currentLineIndentation}assert(${invariant});`;
+                const invariant = line.substring(line.indexOf(' ') + 1).trim();
+                
+                return `${currentLineIndentation}assert(${invariant});`;
                 }).join('\n');
                 
                 // Insert the formatted assertions into the document
@@ -87,6 +92,7 @@ export function insertAssertions() {
                     return resolve();
                 }
 
+                const initialPosition = currentPosition;
                 //const position = editor.selection.active;
                 const textUpToPosition = editor.document.getText(new vscode.Range(new vscode.Position(0,0), initialPosition));
                 const formattedAssertions = getAssertionsForLatestVtrace(stdout, textUpToPosition, currentLineIndentation);
