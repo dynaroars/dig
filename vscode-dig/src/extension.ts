@@ -5,7 +5,10 @@ import { insertCustomAssertions } from './commands/insertCustomAssertions';
 import { buildDockerImage, cloneDIGRepository } from './utils/docker_utils';
 import { checkIfImageExists } from './utils/docker_utils';
 import { setContext } from './utils/context';
-import { testAssertionsUltimateAtomizer } from './commands/testAssertionsWithUltimateAtomizer';
+import { testWithUltimateAtomizer } from './commands/testAssertionsWithUltimateAtomizer';
+import { cloneUltimateRepo } from './utils/ultimate_atomizer_utils';
+import path from 'path';
+import fs from 'fs';
 
 export async function activate(context: vscode.ExtensionContext) {
     // Check if the Docker image exists locally; build it if it does not.
@@ -39,10 +42,25 @@ export async function activate(context: vscode.ExtensionContext) {
                 console.log('Building Docker image as it does not exist...');
                 await buildDockerImage(targetDirectory);
             }
+
         } catch (error: any) {
             vscode.window.showErrorMessage(`Error initializing Docker environment: ${error.message}`);
         }
-                
+
+     // Clone Ultimate repository if not already cloned
+     const ultimateRepoClonedKey = 'ultimateRepoCloned';
+     const ultimateRepoCloned = context.globalState.get<boolean>(ultimateRepoClonedKey, false);
+
+     const ultimateRepoPath = path.join(targetDirectory, 'UltimateAtomizer');
+     if (!ultimateRepoCloned || !fs.existsSync(ultimateRepoPath)) {
+         console.log('Cloning Ultimate Atomizer repository...');
+         await cloneUltimateRepo();
+         vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
+         await context.globalState.update(ultimateRepoClonedKey, true);
+     } else {
+         console.log(`Ultimate repository already cloned. Skipping cloning. Path: ${ultimateRepoPath}`);
+     }
+
 
 
     let disposable = vscode.commands.registerCommand('vscode-dig.insertAssertions', insertAssertions);
@@ -54,7 +72,7 @@ export async function activate(context: vscode.ExtensionContext) {
     let disposableCustomAssertions = vscode.commands.registerCommand('vscode-dig.insertCustomAssertions', insertCustomAssertions);
     context.subscriptions.push(disposableCustomAssertions);
 
-    let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', insertCustomAssertions);
+    let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', testWithUltimateAtomizer);
     context.subscriptions.push(disposableTestAssertionsWithUltimateAtomizer);
 
 

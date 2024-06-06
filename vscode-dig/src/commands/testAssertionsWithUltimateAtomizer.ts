@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
 
-export function testAssertionsUltimateAtomizer() {
+export function testWithUltimateAtomizer() {
     vscode.window.showInformationMessage('Test Assertions with Ultimate Atomizer command executed.');
 }

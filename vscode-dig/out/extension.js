@@ -22,6 +22,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deactivate = exports.activate = void 0;
 const vscode = __importStar(require("vscode"));
@@ -31,6 +34,10 @@ const insertCustomAssertions_1 = require("./commands/insertCustomAssertions");
 const docker_utils_1 = require("./utils/docker_utils");
 const docker_utils_2 = require("./utils/docker_utils");
 const context_1 = require("./utils/context");
+const testAssertionsWithUltimateAtomizer_1 = require("./commands/testAssertionsWithUltimateAtomizer");
+const ultimate_atomizer_utils_1 = require("./utils/ultimate_atomizer_utils");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 async function activate(context) {
     // Check if the Docker image exists locally; build it if it does not.
     // TODO: If an updated image exists, the current image will be replaced with the updated one.
@@ -61,13 +68,26 @@ async function activate(context) {
         catch (error) {
             vscode.window.showErrorMessage(`Error initializing Docker environment: ${error.message}`);
         }
+        // Clone Ultimate repository if not already cloned
+        const ultimateRepoClonedKey = 'ultimateRepoCloned';
+        const ultimateRepoCloned = context.globalState.get(ultimateRepoClonedKey, false);
+        const ultimateRepoPath = path_1.default.join(targetDirectory, 'UltimateAtomizer');
+        if (!ultimateRepoCloned || !fs_1.default.existsSync(ultimateRepoPath)) {
+            console.log('Cloning Ultimate Atomizer repository...');
+            await (0, ultimate_atomizer_utils_1.cloneUltimateRepo)();
+            vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
+            await context.globalState.update(ultimateRepoClonedKey, true);
+        }
+        else {
+            console.log(`Ultimate repository already cloned. Skipping cloning. Path: ${ultimateRepoPath}`);
+        }
         let disposable = vscode.commands.registerCommand('vscode-dig.insertAssertions', insertAssertions_1.insertAssertions);
         context.subscriptions.push(disposable);
         let disposableTestAssertions = vscode.commands.registerCommand('vscode-dig.testAssertions', testAssertions_1.testAssertions);
         context.subscriptions.push(disposableTestAssertions);
         let disposableCustomAssertions = vscode.commands.registerCommand('vscode-dig.insertCustomAssertions', insertCustomAssertions_1.insertCustomAssertions);
         context.subscriptions.push(disposableCustomAssertions);
-        let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', insertCustomAssertions_1.insertCustomAssertions);
+        let disposableTestAssertionsWithUltimateAtomizer = vscode.commands.registerCommand('vscode-dig.testAssertionsWithUltimateAtomizer', testAssertionsWithUltimateAtomizer_1.testWithUltimateAtomizer);
         context.subscriptions.push(disposableTestAssertionsWithUltimateAtomizer);
     }
     catch (error) {

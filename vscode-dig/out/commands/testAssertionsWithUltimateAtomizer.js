@@ -23,10 +23,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.testAssertionsUltimateAtomizer = void 0;
+exports.testWithUltimateAtomizer = void 0;
 const vscode = __importStar(require("vscode"));
-function testAssertionsUltimateAtomizer() {
+function testWithUltimateAtomizer() {
     vscode.window.showInformationMessage('Test Assertions with Ultimate Atomizer command executed.');
 }
-exports.testAssertionsUltimateAtomizer = testAssertionsUltimateAtomizer;
+exports.testWithUltimateAtomizer = testWithUltimateAtomizer;
 //# sourceMappingURL=testAssertionsWithUltimateAtomizer.js.map
