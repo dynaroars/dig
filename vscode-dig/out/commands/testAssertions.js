@@ -62,8 +62,7 @@ async function testAssertions() {
     const fileDirectory = path.dirname(editor.document.uri.fsPath); // The directory of the file being tested
     const context = (0, context_1.getContext)(); // Get the context of the extension
     const globalStoragePath = context.globalStorageUri.fsPath; // The global storage path of the extension
-    //UPDATE THIS TO USE A RELATIVE PATH
-    const civlUtilsScriptPath = "/Users/stefaniapiciorea/Documents/Github/dig/vscode-dig/src/utils/civl_utils.py";
+    const civlUtilsScriptPath = vscode.Uri.joinPath(context.extensionUri, 'src', 'utils', 'civl_utils.py').fsPath;
     const instrumentScriptPath = path.join(globalStoragePath, 'src', 'c_instrument.py'); // The path to the C instrument script
     const symexefileBase = path.join(fileDirectory, 'symexefile'); // The base path for the temporary files
     const failedAssertions = []; // A list of failed assertions
