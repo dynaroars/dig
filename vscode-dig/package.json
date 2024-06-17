@@ -43,6 +43,11 @@
         "when": "editorTextFocus",
         "command": "vscode-dig.insertCustomAssertions",
         "group": "navigation"
+      },
+      {
+        "when": "editorTextFocus",
+        "command": "vscode-dig.testAssertionsWithUltimateAutomizer",
+        "group": "navigation"
       }
       ]
     },

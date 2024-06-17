@@ -417,11 +417,11 @@ import { insertCustomAssertions } from './commands/insertCustomAssertions';
 import { buildDockerImage, cloneDIGRepository } from './utils/docker_utils';
 import { checkIfImageExists } from './utils/docker_utils';
 import { setContext } from './utils/context';
-//import { cloneUltimateRepo } from './utils/ultimate_automizer_utils';
-//import { runUltimate } from './utils/ultimateFactory';
+import { cloneUltimateRepo } from './utils/ultimate_automizer_utils';
+import { runUltimate } from './utils/ultimateFactory';
 import path from 'path';
 import fs from 'fs';
-//import { UltimateBase } from './utils/ultimate';
+import { UltimateBase } from './utils/ultimate';
 
 export async function activate(context: vscode.ExtensionContext) {
     const imageName = 'dig';
@@ -449,7 +449,7 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage(`Error initializing Docker environment: ${error.message}`);
         }
 
-        /*const ultimateRepoClonedKey = 'ultimateRepoCloned';
+        const ultimateRepoClonedKey = 'ultimateRepoCloned';
         const ultimateRepoCloned = context.globalState.get<boolean>(ultimateRepoClonedKey, false);
         const ultimateRepoPath = path.join(targetDirectory, 'UltimateAtomizer');
 
@@ -460,14 +460,14 @@ export async function activate(context: vscode.ExtensionContext) {
             await context.globalState.update(ultimateRepoClonedKey, true);
         } else {
             console.log(`Ultimate repository already cloned. Skipping cloning. Path: ${ultimateRepoPath}`);
-        }*/
+        }
 
-        /*const ultimateBase = new UltimateBase(context);
+        const ultimateBase = new UltimateBase(context);
         ultimateBase.setToolchainFile(vscode.Uri.file(path.join(ultimateRepoPath, 'trunk/examples/toolchains/AutomizerC.xml')));
         ultimateBase.setSettingsFile(vscode.Uri.file(path.join(ultimateRepoPath, 'trunk/examples/settings/svcomp2018/automizer/svcomp-Reach-64bit-Automizer_Bitvector.epf')));
 
         await vscode.workspace.getConfiguration().update('ultimate.context', targetDirectory, vscode.ConfigurationTarget.Global);
-        */
+        
        
         let disposable = vscode.commands.registerCommand('vscode-dig.insertAssertions', insertAssertions);
         context.subscriptions.push(disposable);
