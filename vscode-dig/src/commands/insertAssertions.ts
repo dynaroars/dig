@@ -21,8 +21,9 @@ export function insertAssertions() {
 
     // Check if the current line contains a vtrace() call
     const currentLineText = currentLine.text.trim();
-    const vtraceMatch = currentLineText.match(/\bvtrace\w*\s*\(.*\)\s*;/);
+    const vtraceMatch = currentLineText.match(/\bvtrace\w*\s*\(\s*.*\s*\)\s*;/);
 
+   
     if (!vtraceMatch) {
         vscode.window.showInformationMessage('No vtrace call found on the current line');
         return;
