@@ -27,7 +27,8 @@ exports.getAssertionsForLatestVtrace = void 0;
 const vscode = __importStar(require("vscode"));
 function getAssertionsForLatestVtrace(digOutput, currentLineText, currentLineIndentation) {
     // Extract the vtrace number from the current line
-    const vtraceMatch = currentLineText.match(/\bvtrace(\d*)\s*\(\s*.*\s*\)\s*;/);
+    //const vtraceMatch = currentLineText.match(/\bvtrace(\d*)\s*\(\s*.*\s*\)\s*;/);
+    const vtraceMatch = currentLineText.match(/\bvtrace(\d+)\s*\(\s*.*\s*\)\s*;/);
     if (!vtraceMatch) {
         // No vtrace call found on the current line
         vscode.window.showInformationMessage('No vtrace calls on the current line');
@@ -37,7 +38,11 @@ function getAssertionsForLatestVtrace(digOutput, currentLineText, currentLineInd
     let vtraceNum = vtraceMatch[1] || '';
     // Construct a regex to find the output block related to the specific vtrace call
     let regexPattern = vtraceNum ? `vtrace${vtraceNum} \\((\\d+) invs\\):([\\s\\S]*?)(?=\\nvtrace\\d+ \\(|$)` : `vtrace \\((\\d+) invs\\):([\\s\\S]*?)(?=\\nvtrace\\d+ \\(|$)`;
+    //let regexPattern = vtraceNum ? 
+    //`\\bvtrace${vtraceNum}\\s*\\((\\d+)\\s*invs\\):([\\s\\S]*?)(?=\\n\\bvtrace\\d+\\s*\\(|$)` : 
+    //`\\bvtrace\\s*\\((\\d+)\\s*invs\\):([\\s\\S]*?)(?=\\n\\bvtrace\\d+\\s*\\(|$)`;
     let vtracePattern = new RegExp(regexPattern, 'g');
+    vtracePattern.lastIndex = 0;
     let vtraceOutputMatch = vtracePattern.exec(digOutput);
     if (vtraceOutputMatch && vtraceOutputMatch[2]) {
         // Split and filter invariants
