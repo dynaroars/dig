@@ -1,7 +1,7 @@
 
 
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { exec, ChildProcess } from 'child_process';
 import { getAssertionsForLatestVtrace} from '../utils/dig_utils';
 import * as path from 'path';
 
@@ -40,7 +40,7 @@ export function insertAssertions() {
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Running DIG",
-        cancellable: false
+        cancellable: true
     }, (progress, token) => {
         return new Promise<void>((resolve, reject) => {
             exec(dockerStartCommand, (error, stdout, stderr) => {
@@ -51,18 +51,25 @@ export function insertAssertions() {
                 }
 
                 const containerId = stdout.trim();
+                
                 //console.log(`Docker container started with ID: ${containerId}`);
 
                 const runScriptCommand = `docker exec ${containerId} /root/miniconda3/bin/python3 -O dig.py ${filename} -log 2`;
+                
                 //console.log("Running script inside Docker container:", runScriptCommand);
 
-                exec(runScriptCommand, (error, stdout, stderr) => {
+                let currentProcess: ChildProcess | null = exec(runScriptCommand, (error, stdout, stderr) => {
+                    if (token.isCancellationRequested) {
+
+                        return resolve(); 
+                    }
+        
                     console.log(`STDOUT: ${stdout}`);
                     if (error) {
-                        vscode.window.showErrorMessage(`Error running DIG: ${stderr}`);
-                        console.error(`Execution Error: ${error}`);
-                        return reject();
-                    }
+                            vscode.window.showErrorMessage(`Error running DIG: ${stderr}`);
+                            console.error(`Execution Error: ${error}`);
+                            return reject();
+                            }
 
                     if (stderr.trim()) {
                         console.error(`STDERR: ${stderr}`);
@@ -92,14 +99,16 @@ export function insertAssertions() {
                     const formattedAssertions = getAssertionsForLatestVtrace(stdout, textUpToPosition, currentLineIndentation);
                     const insertPosition = new vscode.Position(initialPosition.line + 1, 0);
 
-                     // Insert the assertions into the document
+                    // Insert the assertions into the document
                     editor.edit(editBuilder => {
                         editBuilder.insert(insertPosition, `\n${currentLineIndentation}${formattedAssertions}\n`);
                     }).then(() => resolve());
 
                     // Command to stop and remove the Docker container
                     const stopContainerCommand = `docker stop ${containerId} && docker rm ${containerId}`;
+                    
                     //console.log("Stopping and removing Docker container:", stopContainerCommand);
+                    
                     exec(stopContainerCommand, (error, stdout, stderr) => {
                         if (error) {
                             console.error(`Stop Error: ${error}`);
@@ -109,14 +118,19 @@ export function insertAssertions() {
 
                 // Handle cancellation by the user
                 token.onCancellationRequested(() => {
-                    console.log("User canceled the running operation");
+        
+                    if (currentProcess) {
+                        currentProcess.kill('SIGINT'); 
+                        currentProcess = null; 
+                    }
+
                     const stopContainerCommand = `docker stop ${containerId} && docker rm ${containerId}`;
                     exec(stopContainerCommand, (error, stdout, stderr) => {
                         if (error) {
                             console.error(`Stop Error: ${error}`);
                         }
                     });
-                    reject();
+        
                 });
             });
         });

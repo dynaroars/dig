@@ -1,7 +1,7 @@
 
 
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { ChildProcess, exec } from 'child_process';
 import { getAssertionsForLatestVtrace } from '../utils/dig_utils';
 import * as path from 'path';
 
@@ -174,10 +174,6 @@ function processStdOut(stdout: string, editor: vscode.TextEditor) {
     const invariantLines = lines.filter(line => line.match(/^\d+\./));
     const currentLine = editor.document.lineAt(editor.selection.active.line);
     const currentLineIndentation = currentLine.text.substring(0, currentLine.firstNonWhitespaceCharacterIndex);
-    /*const assertions = invariantLines.map(line => {
-        const invariant = line.substring(line.indexOf(' ') + 1);
-        return `${currentLineIndentation}assert(${invariant});`;
-    }).join('\n');*/
     const initialPosition = editor.selection.active;
     const textUpToPosition = editor.document.getText(new vscode.Range(new vscode.Position(0,0), initialPosition));
     const formattedAssertions = getAssertionsForLatestVtrace(stdout, textUpToPosition, currentLineIndentation);
@@ -188,14 +184,9 @@ function processStdOut(stdout: string, editor: vscode.TextEditor) {
         return;
     }
 
-    /*editor.edit(editBuilder => {
-        editBuilder.insert(initialPosition, `\n\n${assertions}\n`);
-    });*/
-
     editor.edit(editBuilder => {
-        //editBuilder.insert(initialPosition, `\n\n${assertions}\n`);
         editBuilder.insert(insertPosition, `\n${currentLineIndentation}${formattedAssertions}\n`);
-    }); // Ensure the progress notification is closed
+    }); 
 }
 /**
  * Executes the constructed DIG command and handles the output.
@@ -204,30 +195,53 @@ function processStdOut(stdout: string, editor: vscode.TextEditor) {
  * @param editor The active text editor.
  */
 function execCommand(command: string, editor: vscode.TextEditor) {
-    console.log("Running command:", command);
-  
+    //console.log("Running command:", command);
+
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Running DIG...",
-        cancellable: false
-    }, async (progress) => {
-        return new Promise<void>((resolve) => {
-            exec(command, (error, stdout, stderr) => {
-                console.log(`STDOUT: ${stdout}`);
-                if (error) {
-                    handleDigError(error, stderr);
-                    // Resolve the promise to stop the process bar
-                    resolve(); 
-                    return;
+        cancellable: true
+    }, async (progress, token) => {
+        let currentProcess: ChildProcess | null = null;
+        return new Promise<void>((resolve, reject) => {
+            currentProcess = exec(command, (error, stdout, stderr) => {
+                if (token.isCancellationRequested) {
+                    //console.log("Operation was canceled by the user.");
+                    return resolve();
                 }
 
-                processStdErr(stderr);
-                processStdOut(stdout, editor);
-                // Resolve the promise
-                resolve(); 
-            });
+            console.log(`STDOUT: ${stdout}`);
+            if (error) {
+                handleDigError(error, stderr);
+                resolve();
+                return;
+            }
+
+            processStdErr(stderr);
+            processStdOut(stdout, editor);
+            resolve();
         });
+
+        currentProcess.on('exit', (code: number) => {
+            if (code !== 0 && !token.isCancellationRequested) {
+                reject(new Error(`Process exited with code ${code}`));
+            }
+        });
+
+        token.onCancellationRequested(() => {
+            if (currentProcess) {
+                currentProcess.kill('SIGINT');
+                currentProcess = null;
+            }
+            reject(new Error('User canceled the operation'));
+        });
+    }).catch(error => {
+        if (error.message !== 'User canceled the operation') {
+            vscode.window.showErrorMessage(`Error: ${error.message}`);
+            console.error('Error:', error);
+        }
     });
+});
 }
 
 

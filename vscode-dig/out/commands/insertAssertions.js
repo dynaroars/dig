@@ -56,7 +56,7 @@ function insertAssertions() {
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Running DIG",
-        cancellable: false
+        cancellable: true
     }, (progress, token) => {
         return new Promise((resolve, reject) => {
             (0, child_process_1.exec)(dockerStartCommand, (error, stdout, stderr) => {
@@ -69,7 +69,10 @@ function insertAssertions() {
                 //console.log(`Docker container started with ID: ${containerId}`);
                 const runScriptCommand = `docker exec ${containerId} /root/miniconda3/bin/python3 -O dig.py ${filename} -log 2`;
                 //console.log("Running script inside Docker container:", runScriptCommand);
-                (0, child_process_1.exec)(runScriptCommand, (error, stdout, stderr) => {
+                let currentProcess = (0, child_process_1.exec)(runScriptCommand, (error, stdout, stderr) => {
+                    if (token.isCancellationRequested) {
+                        return resolve();
+                    }
                     console.log(`STDOUT: ${stdout}`);
                     if (error) {
                         vscode.window.showErrorMessage(`Error running DIG: ${stderr}`);
@@ -113,14 +116,16 @@ function insertAssertions() {
                 });
                 // Handle cancellation by the user
                 token.onCancellationRequested(() => {
-                    console.log("User canceled the running operation");
+                    if (currentProcess) {
+                        currentProcess.kill('SIGINT');
+                        currentProcess = null;
+                    }
                     const stopContainerCommand = `docker stop ${containerId} && docker rm ${containerId}`;
                     (0, child_process_1.exec)(stopContainerCommand, (error, stdout, stderr) => {
                         if (error) {
                             console.error(`Stop Error: ${error}`);
                         }
                     });
-                    reject();
                 });
             });
         });
