@@ -1,4 +1,3 @@
-
 # Runs CIVL on a C file containing an assertion
 
 import argparse
@@ -37,3 +36,4 @@ if __name__ == "__main__":
     # Runs CIVL and prints the output in a json format
     output = run_civl(args.file_path, args.symexefile, args.max_depth)
     print(json.dumps(output))
+

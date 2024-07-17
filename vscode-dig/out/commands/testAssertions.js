@@ -41,17 +41,14 @@ async function testAssertions() {
         vscode.window.showInformationMessage('Open a file to test assertions.');
         return;
     }
-    // Get all the assertions in the file
     const document = editor.document;
     const text = document.getText();
     const assertionRegex = /assert\(.*\);/g;
     const matches = text.match(assertionRegex);
-    // If there are no assertions, show a message and return
     if (!matches || matches.length === 0) {
         vscode.window.showInformationMessage('No assertions found to test.');
         return;
     }
-    // If there are assertions, get the selected assertions or all the assertions if none are selected
     const selection = editor.selection;
     const selectedAssertions = matches.filter((match, index) => {
         const matchStartPos = document.positionAt(text.indexOf(match));
@@ -59,25 +56,23 @@ async function testAssertions() {
         return selection.intersection(new vscode.Range(matchStartPos, matchEndPos)) !== undefined;
     });
     const assertionsToTest = selectedAssertions.length > 0 ? selectedAssertions : matches;
-    const fileDirectory = path.dirname(editor.document.uri.fsPath); // The directory of the file being tested
-    const context = (0, context_1.getContext)(); // Get the context of the extension
-    const globalStoragePath = context.globalStorageUri.fsPath; // The global storage path of the extension
+    const fileDirectory = path.dirname(editor.document.uri.fsPath); //The directory of the file being edited
+    const context = (0, context_1.getContext)(); //The context of the extension
+    const globalStoragePath = context.globalStorageUri.fsPath; //The global storage path of the extension
     const civlUtilsScriptPath = vscode.Uri.joinPath(context.extensionUri, 'src', 'utils', 'civl_utils.py').fsPath;
-    const instrumentScriptPath = path.join(globalStoragePath, 'src', 'c_instrument.py'); // The path to the C instrument script
-    const symexefileBase = path.join(fileDirectory, 'symexefile'); // The base path for the temporary files
-    const failedAssertions = []; // A list of failed assertions
-    const passedAssertions = []; // A list of passed assertions
+    const instrumentScriptPath = path.join(globalStoragePath, 'dig', 'src', 'c_instrument.py'); //The path to the CIVL instrument script
+    const symexefileBase = path.join(fileDirectory, 'symexefile'); //The base path for the temporary files
+    const failedAssertions = [];
+    const passedAssertions = [];
     /**
      * Runs the conversion script and CIVL on a given file.
      */
     const runConversionAndCivl = (tempFilePath, index) => {
         return new Promise((resolve, reject) => {
-            const convertedFilePath = `${symexefileBase}_converted_${index}.c`; // The path to the converted file
-            const traceFilePath = `${symexefileBase}_trace_${index}.c`; // The path to the trace file
-            // The command to run the conversion script
+            const convertedFilePath = `${symexefileBase}_converted_${index}.c`; //The path to the converted file
+            const traceFilePath = `${symexefileBase}_trace_${index}.c`; //The path to the trace file
             const conversionCommand = `python3 "${instrumentScriptPath}" "${tempFilePath}" "${convertedFilePath}" "${traceFilePath}"`;
-            console.log(`Running conversion command: ${conversionCommand}`);
-            // Runs the conversion script
+            //console.log(`Running conversion command: ${conversionCommand}`);
             (0, child_process_1.exec)(conversionCommand, (conversionError, conversionStdout, conversionStderr) => {
                 if (conversionError) {
                     console.error(`Conversion Error: ${conversionError.message}`);
@@ -87,7 +82,7 @@ async function testAssertions() {
                 if (conversionStderr) {
                     console.error(`Conversion Stderr: ${conversionStderr}`);
                 }
-                console.log(`Converted file created: ${convertedFilePath}`);
+                //console.log(`Converted file created: ${convertedFilePath}`);
                 if (fs.existsSync(convertedFilePath)) {
                     console.log(`Converted file exists: ${convertedFilePath}`);
                 }
@@ -96,13 +91,16 @@ async function testAssertions() {
                     reject('Converted file does not exist.');
                     return;
                 }
-                // The command to run CIVL
                 const civlCommand = `python3 "${civlUtilsScriptPath}" "${tempFilePath}" "${convertedFilePath}" --max_depth=10`;
-                console.log(`Running CIVL command: ${civlCommand}`);
+                //console.log(`Running CIVL command: ${civlCommand}`);
                 const execOptions = {
                     cwd: fileDirectory,
+                    env: {
+                        ...process.env,
+                        CIVL_HOME: path.join(globalStoragePath, 'dig', 'EXTERNAL_FILES', 'CIVL-1.22_5854'),
+                        PATH: process.env.PATH + path.delimiter + path.join(globalStoragePath, 'dig', 'EXTERNAL_FILES', 'CIVL-1.22_5854', 'bin')
+                    }
                 };
-                // Runs CIVL
                 (0, child_process_1.exec)(civlCommand, execOptions, (civlError, civlStdout, civlStderr) => {
                     if (civlError) {
                         console.error(`CIVL Error: ${civlError.message}`);
@@ -112,13 +110,11 @@ async function testAssertions() {
                     if (civlStderr) {
                         console.error(`CIVL Stderr: ${civlStderr}`);
                     }
-                    // Parses the output of CIVL
                     let result;
                     try {
                         const output = JSON.parse(civlStdout);
                         result = {
                             file: tempFilePath,
-                            // If the output contains "Violation 0 encountered", the assertion failed
                             violation: output.output.includes("Violation 0 encountered"),
                             output: output.output,
                             error: output.error,
@@ -128,7 +124,7 @@ async function testAssertions() {
                         reject(`Parse Error: ${parseError.message}`);
                         return;
                     }
-                    // Cleans up temporary files
+                    // Cleans up the temporary files
                     [tempFilePath, convertedFilePath, traceFilePath].forEach(file => {
                         if (fs.existsSync(file)) {
                             fs.unlinkSync(file);
@@ -141,23 +137,22 @@ async function testAssertions() {
         });
     };
     try {
-        const resultsFilePath = path.join(fileDirectory, 'civl_results.json'); // The path to the json file storing CIVLs output
-        const results = []; // A list of results for each assertion
+        const resultsFilePath = path.join(fileDirectory, 'civl_results.json'); //The path to the results file
+        const results = [];
         const newTextLines = text.split('\n');
-        // Loop that runs the conversion and CIVL for each temp file created
+        // Runs the conversion script and civl command on each temporary file created
         for (let i = 0; i < assertionsToTest.length; i++) {
             const tempFilePath = `${symexefileBase}_assert_${i}.c`; // The path to the temporary file
             const tempFileContent = createTempFileContent(text, assertionsToTest[i]); // The content of the temporary file
             fs.writeFileSync(tempFilePath, tempFileContent);
-            console.log(`Temporary file created at: ${tempFilePath}`);
-            const result = await runConversionAndCivl(tempFilePath, i); // Run the conversion and CIVL scripts on the temp file
+            //console.log(`Temporary file created at: ${tempFilePath}`);
+            const result = await runConversionAndCivl(tempFilePath, i);
             results.push(result);
-            // Get the position of the assertion in the document
             const startPos = document.positionAt(text.indexOf(assertionsToTest[i]));
-            // If the assertion failed, add it to the failed assertions list. Else add it to the passed assertions list and update the document to display a valid comment next to it
+            // If the assertion failed, add it to the failedAssertions array. Otherwise, add a "valid" comment to the assertion
             if (result.violation) {
                 failedAssertions.push(`Line ${startPos.line + 1}: ${assertionsToTest[i]}`);
-                console.log(`Diagnostic added for assertion at line ${startPos.line}`);
+                //console.log(`Diagnostic added for assertion at line ${startPos.line}`);
             }
             else {
                 const lineIndex = startPos.line;
@@ -167,15 +162,14 @@ async function testAssertions() {
                 passedAssertions.push({ line: lineIndex, text: assertionsToTest[i] });
             }
         }
-        // Save the results to a JSON file
         fs.writeFileSync(resultsFilePath, JSON.stringify(results, null, 2));
-        console.log(`Results saved to ${resultsFilePath}`);
+        //console.log(`Results saved to ${resultsFilePath}`);
         const newTextWithValidComments = newTextLines.join('\n');
         let edit = new vscode.WorkspaceEdit();
         let fullRange = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(document.lineCount - 1, document.lineAt(document.lineCount - 1).text.length));
         edit.replace(editor.document.uri, fullRange, newTextWithValidComments);
         await vscode.workspace.applyEdit(edit);
-        // If there are failed assertions, display a message to the user and ask if they want to remove them
+        // If there are any failed assertions dislpay a message to the user and ask if they wish to remove them
         if (failedAssertions.length > 0) {
             const message = `The following assertions failed:\n\n${failedAssertions.join('\n')}\n\nWould you like to remove them?`;
             const removeButton = 'Remove';
@@ -193,7 +187,7 @@ async function testAssertions() {
         // Remove the civl_results.json file
         if (fs.existsSync(resultsFilePath)) {
             fs.unlinkSync(resultsFilePath);
-            console.log(`Deleted file: ${resultsFilePath}`);
+            //console.log(`Deleted file: ${resultsFilePath}`);
         }
     }
     catch (error) {
@@ -203,7 +197,7 @@ async function testAssertions() {
 }
 exports.testAssertions = testAssertions;
 /**
- * Creates the content for a temporary file containing only one assertion.
+ * Creates the cintent for a temporary file containing only one assertion.
  */
 function createTempFileContent(originalContent, assertion) {
     const lines = originalContent.split('\n');
