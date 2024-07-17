@@ -49,15 +49,12 @@ async function activate(context) {
         const digRepoPath = path_1.default.join(targetDirectory, 'dig');
         if (!repoCloned || !fs_1.default.existsSync(digRepoPath)) {
             await (0, docker_utils_1.cloneDIGRepository)(targetDirectory);
-            vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
+            //vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
             await context.globalState.update(repoClonedKey, true);
-        }
-        else {
-            console.log('DIG repository already cloned. Skipping cloning.');
         }
         try {
             if (!(await (0, docker_utils_2.checkIfImageExists)('dig'))) {
-                console.log('Building Docker image as it does not exist...');
+                console.log('Building Docker image ...');
                 await (0, docker_utils_1.buildDockerImage)(targetDirectory);
             }
         }
@@ -68,13 +65,10 @@ async function activate(context) {
         const ultimateRepoCloned = context.globalState.get(ultimateRepoClonedKey, false);
         const ultimateRepoPath = path_1.default.join(targetDirectory, 'UltimateAtomizer');
         if (!ultimateRepoCloned || !fs_1.default.existsSync(ultimateRepoPath)) {
-            console.log('Cloning Ultimate Atomizer repository...');
+            //console.log('Cloning Ultimate Atomizer repository...');
             await (0, ultimate_automizer_utils_1.cloneUltimateRepo)();
-            vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
+            //vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
             await context.globalState.update(ultimateRepoClonedKey, true);
-        }
-        else {
-            console.log(`Ultimate repository already cloned. Skipping cloning. Path: ${ultimateRepoPath}`);
         }
         const ultimateBase = new ultimate_1.UltimateBase(context);
         ultimateBase.setToolchainFile(vscode.Uri.file(path_1.default.join(ultimateRepoPath, 'trunk/examples/toolchains/AutomizerC.xml')));

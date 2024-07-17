@@ -50,17 +50,13 @@ export abstract class UltimateBase {
     setToolchainFile(path: vscode.Uri) {
         if (fs.existsSync(path.fsPath) && RegExp(/(.*\.xml$)/).exec(path.fsPath)) {
             this.toolchainFilePath = path;
-        } else {
-            console.log(`Toolchain file ${path} does not exist`);
-        }
+        } 
     }
 
     setSettingsFile(path: vscode.Uri) {
         if (fs.existsSync(path.fsPath) && RegExp(/(.*\.epf$)/).exec(path.fsPath)) {
             this.settingsFilePath = path;
-        } else {
-            console.log(`Settings file ${path} does not exist`);
-        }
+        } 
     }
 
    protected abstract runOn(input: vscode.TextDocument | string, language?: string): void;

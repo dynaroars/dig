@@ -26,13 +26,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
             if (!repoCloned || !fs.existsSync(digRepoPath)) {
                 await cloneDIGRepository(targetDirectory);
-                vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
+                //vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
                 await context.globalState.update(repoClonedKey, true);
             } 
 
         try {
             if (!(await checkIfImageExists('dig'))) {
-                console.log('Building Docker image as it does not exist...');
+                console.log('Building Docker image ...');
                 await buildDockerImage(targetDirectory);
             }
         } catch (error: any) {
@@ -44,9 +44,9 @@ export async function activate(context: vscode.ExtensionContext) {
         const ultimateRepoPath = path.join(targetDirectory, 'UltimateAtomizer');
 
         if (!ultimateRepoCloned || !fs.existsSync(ultimateRepoPath)) {
-            console.log('Cloning Ultimate Atomizer repository...');
+            //console.log('Cloning Ultimate Atomizer repository...');
             await cloneUltimateRepo();
-            vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
+            //vscode.window.showInformationMessage('Ultimate repository successfully cloned and ready to use.');
             await context.globalState.update(ultimateRepoClonedKey, true);
         } 
 

@@ -1175,7 +1175,6 @@ function runUltimateAutomizer(ultimateRepoPath, cFilePath, env) {
                 processUltimateOutput(stdout, stderr);
                 resolve();
             });
-            // Simulate progress updates (you can modify or remove this as per your needs)
             let progressIncrement = 0;
             const interval = setInterval(() => {
                 progressIncrement += 10;

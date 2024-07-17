@@ -97,16 +97,10 @@ class UltimateBase {
         if (fs.existsSync(path.fsPath) && RegExp(/(.*\.xml$)/).exec(path.fsPath)) {
             this.toolchainFilePath = path;
         }
-        else {
-            console.log(`Toolchain file ${path.fsPath} does not exist`);
-        }
     }
     setSettingsFile(path) {
         if (fs.existsSync(path.fsPath) && RegExp(/(.*\.epf$)/).exec(path.fsPath)) {
             this.settingsFilePath = path;
-        }
-        else {
-            console.log(`Settings file ${path.fsPath} does not exist`);
         }
     }
     getResultsOfLastRun() {
