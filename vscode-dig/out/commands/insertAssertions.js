@@ -51,7 +51,7 @@ function insertAssertions() {
     const filename = path.basename(filePath);
     // Command to start a Docker container
     const dockerStartCommand = `docker run -d --platform linux/amd64 -v "${filePath}:/dig/src/${filename}" -w /dig/src dig tail -f /dev/null`;
-    console.log("Starting Docker container:", dockerStartCommand);
+    //console.log("Starting Docker container:", dockerStartCommand);
     // Display progress notification while DIG is running
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
@@ -66,9 +66,9 @@ function insertAssertions() {
                     return reject();
                 }
                 const containerId = stdout.trim();
-                console.log(`Docker container started with ID: ${containerId}`);
+                //console.log(`Docker container started with ID: ${containerId}`);
                 const runScriptCommand = `docker exec ${containerId} /root/miniconda3/bin/python3 -O dig.py ${filename} -log 2`;
-                console.log("Running script inside Docker container:", runScriptCommand);
+                //console.log("Running script inside Docker container:", runScriptCommand);
                 (0, child_process_1.exec)(runScriptCommand, (error, stdout, stderr) => {
                     console.log(`STDOUT: ${stdout}`);
                     if (error) {
@@ -104,7 +104,7 @@ function insertAssertions() {
                     }).then(() => resolve());
                     // Command to stop and remove the Docker container
                     const stopContainerCommand = `docker stop ${containerId} && docker rm ${containerId}`;
-                    console.log("Stopping and removing Docker container:", stopContainerCommand);
+                    //console.log("Stopping and removing Docker container:", stopContainerCommand);
                     (0, child_process_1.exec)(stopContainerCommand, (error, stdout, stderr) => {
                         if (error) {
                             console.error(`Stop Error: ${error}`);

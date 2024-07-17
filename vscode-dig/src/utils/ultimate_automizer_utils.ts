@@ -8,17 +8,17 @@ export async function cloneUltimateRepo(): Promise<void> {
     const context = getContext();
     const targetDirectory = path.join(context.globalStorageUri.fsPath, 'UltimateAtomizer');
 
-    console.log(`Target directory for Ultimate Atomizer repository: ${targetDirectory}`);
+    //console.log(`Target directory for Ultimate Atomizer repository: ${targetDirectory}`);
 
     // Check if the directory already exists
     if (fs.existsSync(targetDirectory)) {
-        console.log(`Directory already exists: ${targetDirectory}`);
+        //console.log(`Directory already exists: ${targetDirectory}`);
         return;
     }
 
     return new Promise((resolve, reject) => {
         const command = `git clone --depth 1 https://github.com/ultimate-pa/ultimate.git "${targetDirectory}"`;
-        console.log(`Running command: ${command}`);
+        //onsole.log(`Running command: ${command}`);
 
         exec(command, (error, stdout, stderr) => {
             if (error) {
@@ -27,7 +27,7 @@ export async function cloneUltimateRepo(): Promise<void> {
                 reject(error);
                 return;
             }
-            console.log(`Successfully cloned Ultimate Atomizer repository to ${targetDirectory}`);
+            //console.log(`Successfully cloned Ultimate Atomizer repository to ${targetDirectory}`);
             resolve();
         });
     });
