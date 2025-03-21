@@ -75,4 +75,97 @@ DIG+ allows you to fine-tune invariant generation by selecting additional DIG fl
 3. Choose desired flags (e.g., --maxdeg, --noeqts, --se_maxdepth).
 4. Confirm the selection, and DIG+ will generate assertions according to the selected flags.
 
+## Example Usage
+The following is an example of how the code will look after using DIG+. When you right-click on vtrace2() and select "Insert Assertions", DIG+ will automatically generate and insert assertions inferred from the program. The two lines marked with a "//valid" comment have been verified by CIVL by running "Test Asserions".
+
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <math.h>
+
+void vassume(int b){}
+void vtrace1(int x, int y, int q, int r, int a, int b){}
+void vtrace2(int x, int y, int q, int r){}
+
+int mainQ(int x, int y){
+    vassume(x >= 1 && y >= 1);
+
+    int q = 0;
+    int r = x;
+    int a = 0;
+    int b = 0;
+
+    while(1) {
+        if (!(r >= y))
+            break;
+        a = 1;
+        b = y;
+
+        while (1){
+            // Marking location for invariant generation
+            vtrace1(x, y, q, r, a, b);
+            break;
+
+            a = 2 * a;
+            b = 2 * b;
+        }
+        r = r - b;
+        q = q + a;
+    }
+
+    // Marking location for invariant generation (this is the line where "Insert Assertions" was called)
+    vtrace2(x, y, q, r);
+
+    // DIG generated invariant
+    assert(b - y == 0); // valid
+    // DIG generated invariant
+    assert(q * y + r - x == 0); // valid
+    // DIG generated invariant
+    assert(r - x <= 0);
+    // DIG generated invariant
+    assert(y - max(b, 0) == 0);
+    // DIG generated invariant
+    assert(b - max(y, 0) == 0);
+    // DIG generated invariant
+    assert(min(b, r) - y == 0);
+    // DIG generated invariant
+    assert(b - min(x, y) == 0);
+    // DIG generated invariant
+    assert(y - max(a, b) == 0);
+    // DIG generated invariant
+    assert(b - max(a, y) == 0);
+    // DIG generated invariant
+    assert(min(r, y) - b == 0);
+    // DIG generated invariant
+    assert(max(a, y, 0) - b == 0);
+    // DIG generated invariant
+    assert(max(a, b, 0) - y == 0);
+    // DIG generated invariant
+    assert(a - 1 - min(x, 0) == 0);
+    // DIG generated invariant
+    assert(a - 1 - min(y, 0) == 0);
+    // DIG generated invariant
+    assert(a - 1 - min(q, y, 0) == 0);
+    // DIG generated invariant
+    assert(a - 1 - min(r, y, 0) == 0);
+    // DIG generated invariant
+    assert(a - 1 - min(b, x, 0) == 0);
+    // DIG generated invariant
+    assert(min(q, x, 0) - a - 1 == 0);
+    // DIG generated invariant
+    assert(min(b, y, 0) - a - 1 == 0);
+    // DIG generated invariant
+    assert(a - 1 - min(x, y, 0) == 0);
+    // DIG generated invariant
+    assert(min(r, x, 0) - a - 1 == 0);
+
+    return q;
+}
+
+int main(int argc, char **argv){
+    mainQ(atoi(argv[1]), atoi(argv[2]));
+}
+```
 
