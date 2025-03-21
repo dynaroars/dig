@@ -27,6 +27,7 @@ Currently, the tool supports the analysis and generation of invariants exclusive
 
 7)	Error Handling -- Automatically remove invalid assertions to ensure code correctness.
 
+
 ***** INSTALLATION *****
 
 To install and use DIG+, follow these steps:
@@ -55,6 +56,7 @@ To install and use DIG+, follow these steps:
         3.	Click "Start Debugging" (green play button).
         4.	This opens a new Extension Development Host window.
         5.	Open a C file in the new window.
+
 
 ***** HOW TO USE DIG+ *****
 
