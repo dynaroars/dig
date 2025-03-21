@@ -34,9 +34,9 @@ To install and use DIG+, follow these steps:
   
   1) Prerequisites
      Ensure the following dependencies are installed on your system:
-        •	Visual Studio Code
-        •	Docker (Required for DIG & CIVL execution)
-        •	Git 
+        - Visual Studio Code
+	- Docker (Required for DIG & CIVL execution)
+	- Git 
 
      Verify installations:
 	      docker --version
