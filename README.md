@@ -1,8 +1,10 @@
 
 ******* DIG+-- BRINGING INVARIANT ANALYSIS TO MODERN IDES *******
+
 A VS Code extension that integrates DIG and CIVL for seamless program invariant generation and checking.
 
 ***** OVERVIEW *****
+
 DIG+ is a Visual Studio Code extension designed to bring program invariant analysis directly into the development environment. By integrating the DIG (Dynamic Invariant Generator) and CIVL (Symbolic Execution Tool) using the Language Server Protocol (LSP), DIG+ allows developers to automatically infer, check, and refine program invariants in real time—without the need for complex command-line interactions.
 
 DIG+ simplifies formal verification by making powerful program analysis techniques accessible to researchers, software engineers, and students alike. 
