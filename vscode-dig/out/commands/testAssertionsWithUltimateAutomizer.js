@@ -1,3 +1,4 @@
+"use strict";
 /*import * as vscode from 'vscode';
 import { exec } from 'child_process';
 
@@ -9,7 +10,7 @@ export function testWithUltimateAutomizer() {
     }
 
     // Collect necessary paths and options from the user or configuration
-    const specPath = "/Users/stefaniapiciorea/Library/Application Support/Code/User/globalStorage/undefined_publisher.vscode-dig/UltimateAtomizer/releaseScripts/default/adds/props/Reach.prp"; 
+    const specPath = "/Users/stefaniapiciorea/Library/Application Support/Code/User/globalStorage/undefined_publisher.vscode-dig/UltimateAtomizer/releaseScripts/default/adds/props/Reach.prp";
     const architecture = "64bit"; // Replace with actual architecture (32bit or 64bit)
     const memoryModel = "precise"; // Replace with actual memory model (simple or precise)
     const cFilePath = editor.document.uri.fsPath; // Current file path
@@ -79,7 +80,31 @@ function processUltimateOutput(stdout: string, stderr: string) {
     }
 }
 */
-
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.testWithUltimateAutomizer = void 0;
 /*
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
@@ -196,7 +221,6 @@ function processUltimateOutput(stdout: string, stderr: string) {
     }
 }
 */
-
 /*
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
@@ -451,8 +475,6 @@ function processUltimateOutput(stdout: string, stderr: string) {
         vscode.window.showErrorMessage(`Counterexample found:\n${counterexample}`);
     }
 } GOOD*/
-
-
 /*
 import * as vscode from 'vscode';
 import { exec, execSync } from 'child_process';
@@ -593,7 +615,6 @@ function processUltimateOutput(stdout: string, stderr: string) {
     }
 }
 */
-
 /*
 import * as vscode from 'vscode';
 import { exec, execSync } from 'child_process';
@@ -735,7 +756,6 @@ function processUltimateOutput(stdout: string, stderr: string) {
     }
 }
 */
-
 /*
 
 import * as vscode from 'vscode';
@@ -875,7 +895,6 @@ function processUltimateOutput(stdout: string, stderr: string) {
     }
 }
 */
-
 /*
 import * as vscode from 'vscode';
 import { exec, execSync } from 'child_process';
@@ -1050,34 +1069,27 @@ function findJavaHome(): string | null {
     return null;
 }
 */
-
-import * as vscode from 'vscode';
-import { exec, execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { UltimateFactory } from '../utils/ultimateFactory';
-
-
-export function testWithUltimateAutomizer() {
+const vscode = __importStar(require("vscode"));
+const child_process_1 = require("child_process");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+function testWithUltimateAutomizer() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showInformationMessage('Open a file to test assertions.');
         return;
     }
-
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
         vscode.window.showErrorMessage('Please open a workspace folder first.');
         return;
     }
-
     const workspacePath = workspaceFolders[0].uri.fsPath;
     const ultimateRepoPath = path.join(workspacePath, 'UltimateAtomizer');
     const cFilePath = editor.document.uri.fsPath; // Current file path
-
     if (!fs.existsSync(ultimateRepoPath)) {
         vscode.window.showInformationMessage('Cloning Ultimate repository...');
-        exec(`git clone https://github.com/ultimate-pa/ultimate.git ${ultimateRepoPath}`, (error, stdout, stderr) => {
+        (0, child_process_1.exec)(`git clone https://github.com/ultimate-pa/ultimate.git ${ultimateRepoPath}`, (error, stdout, stderr) => {
             if (error) {
                 vscode.window.showErrorMessage(`Error cloning Ultimate repository: ${stderr}`);
                 console.error(`Error cloning Ultimate repository: ${stderr}`);
@@ -1087,38 +1099,37 @@ export function testWithUltimateAutomizer() {
             //console.log(stdout);
             buildAndRunUltimateAutomizer(ultimateRepoPath, cFilePath);
         });
-    } else {
+    }
+    else {
         buildAndRunUltimateAutomizer(ultimateRepoPath, cFilePath);
     }
 }
-
-function buildAndRunUltimateAutomizer(ultimateRepoPath: string, cFilePath: string) {
+exports.testWithUltimateAutomizer = testWithUltimateAutomizer;
+function buildAndRunUltimateAutomizer(ultimateRepoPath, cFilePath) {
     vscode.window.showInformationMessage('Building Ultimate...');
-
     // Find the JAVA_HOME path
-    let javaHomePath: string;
+    let javaHomePath;
     try {
-        javaHomePath = execSync('/usr/libexec/java_home -v 11').toString().trim();
-    } catch (error) {
+        javaHomePath = (0, child_process_1.execSync)('/usr/libexec/java_home -v 11').toString().trim();
+    }
+    catch (error) {
         vscode.window.showErrorMessage('Failed to find JAVA_HOME. Make sure JDK 11 is installed.');
         console.error('Failed to find JAVA_HOME:', error);
         return;
     }
-
     const env = { ...process.env, JAVA_HOME: javaHomePath };
     const ultimateTestPath = path.join(ultimateRepoPath, 'trunk', 'source', 'UltimateTest');
     const debugLogPath = path.join(ultimateTestPath, 'debug.log');
-
-    exec(`cd ${ultimateTestPath} && mvn clean install -Pmaterialize -Dtycho.version=1.6.0 -Dtycho.target-platform=JavaSE-11 -Dorg.osgi.framework.executionenvironment=JavaSE-11 -e -X > debug.log 2>&1`, { env }, (error, stdout, stderr) => {
+    (0, child_process_1.exec)(`cd ${ultimateTestPath} && mvn clean install -Pmaterialize -Dtycho.version=1.6.0 -Dtycho.target-platform=JavaSE-11 -Dorg.osgi.framework.executionenvironment=JavaSE-11 -e -X > debug.log 2>&1`, { env }, (error, stdout, stderr) => {
         if (error) {
             vscode.window.showErrorMessage('Error building Ultimate. Check the debug.log for details.');
             console.error(`Error building Ultimate: ${stderr}`);
             console.log(stdout);
-
             // Check if debug.log exists and print its contents
             if (fs.existsSync(debugLogPath)) {
                 readDebugLogFile(debugLogPath);
-            } else {
+            }
+            else {
                 console.error('debug.log file not found.');
             }
             return;
@@ -1127,37 +1138,31 @@ function buildAndRunUltimateAutomizer(ultimateRepoPath: string, cFilePath: strin
         runUltimateAutomizer(ultimateRepoPath, cFilePath, env);
     });
 }
-
-function readDebugLogFile(logFilePath: string) {
+function readDebugLogFile(logFilePath) {
     fs.readFile(logFilePath, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading debug.log:', err);
-        } else {
+        }
+        else {
             console.log('debug.log contents:', data);
         }
     });
 }
-
-
-function runUltimateAutomizer(ultimateRepoPath: string, cFilePath: string, env: any) {
+function runUltimateAutomizer(ultimateRepoPath, cFilePath, env) {
     const specPath = path.join(ultimateRepoPath, 'releaseScripts', 'default', 'adds', 'props', 'Reach.prp');
     const ultimatePath = path.join(ultimateRepoPath, 'releaseScripts', 'legacy', 'svcomp2015', 'Ultimate.py');
     const toolchainPath = path.join(ultimateRepoPath, 'trunk', 'examples', 'toolchains', 'AutomizerC.xml');
     const settingsPath = path.join(ultimateRepoPath, 'releaseScripts', 'default', 'config', 'svcomp-Reach-64bit-Automizer_Bitvector.epf');
-
     const ultimateCommand = `python3 "${ultimatePath}" -tc "${toolchainPath}" -i "${cFilePath}" -s "${settingsPath}"`;
-
     console.log(`Running command: ${ultimateCommand}`);
-
     vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Running Ultimate Automizer",
         cancellable: false
     }, async (progress) => {
         progress.report({ increment: 0 });
-
-        return new Promise<void>((resolve, reject) => {
-            exec(ultimateCommand, { env }, (error, stdout, stderr) => {
+        return new Promise((resolve, reject) => {
+            (0, child_process_1.exec)(ultimateCommand, { env }, (error, stdout, stderr) => {
                 if (error) {
                     vscode.window.showErrorMessage(`Error running Ultimate Automizer: ${stderr}`);
                     console.error(`Error running Ultimate Automizer: ${stderr}`);
@@ -1170,21 +1175,19 @@ function runUltimateAutomizer(ultimateRepoPath: string, cFilePath: string, env: 
                 processUltimateOutput(stdout, stderr);
                 resolve();
             });
-
-        
             let progressIncrement = 0;
             const interval = setInterval(() => {
                 progressIncrement += 10;
                 if (progressIncrement <= 100) {
                     progress.report({ increment: 10 });
-                } else {
+                }
+                else {
                     clearInterval(interval);
                 }
             }, 1000);
         });
     });
 }
-
 /*function runUltimateAutomizer(filePath: string, method: string = 'automizer', context: vscode.ExtensionContext) {
     const ultimateRepoPath = context.globalStorageUri.fsPath + '/UltimateAutomizer';
     const toolchainPath = vscode.Uri.file(`${ultimateRepoPath}/trunk/examples/toolchains/AutomizerC.xml`);
@@ -1205,18 +1208,14 @@ function runUltimateAutomizer(ultimateRepoPath: string, cFilePath: string, env: 
             break;
     }
 }*/
-
-function processUltimateOutput(stdout: string, stderr: string) {
+function processUltimateOutput(stdout, stderr) {
     console.log('Ultimate Automizer Output:', stdout);
     console.error('Ultimate Automizer Error Output:', stderr);
-
     vscode.window.showInformationMessage(`Ultimate Automizer Output: ${stdout}`);
     vscode.window.showErrorMessage(`Ultimate Automizer Error Output: ${stderr}`);
-
     const lines = stdout.split('\n');
     let verificationResult = "Unknown";
     let counterexample = "";
-
     for (const line of lines) {
         if (line.includes("Verification Result")) {
             verificationResult = line;
@@ -1225,9 +1224,9 @@ function processUltimateOutput(stdout: string, stderr: string) {
             counterexample += line + '\n';
         }
     }
-
     vscode.window.showInformationMessage(`Ultimate Automizer Result: ${verificationResult}`);
     if (counterexample) {
         vscode.window.showErrorMessage(`Counterexample found:\n${counterexample}`);
     }
 }
+//# sourceMappingURL=testAssertionsWithUltimateAutomizer.js.map

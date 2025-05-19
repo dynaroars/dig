@@ -6,8 +6,20 @@
   "engines": {
     "vscode": "^1.87.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:vscode-dig.insertAssertions",
+    "onCommand:vscode-dig.testAssertions",
+    "onCommand:vscode-dig.insertCustomAssertions",
+    "onCommand:vscode-dig.testAssertionsWithUltimateAutomizer"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dynaroars/dig/tree/dig-vscode/vscode-dig"
+  },
   "contributes": {
     "commands": [
       {
@@ -17,16 +29,16 @@
       {
         "command": "vscode-dig.testAssertions",
         "title": "Test Assertions"
-    },
-    {
-      "command": "vscode-dig.insertCustomAssertions",
-      "title": "Insert Custom Assertions"
-    },
-    { "command": "vscode-dig.testAssertionsWithUltimateAutomizer",
-      "title": "Test Assertions with Ultimate Automizer"
-    }
+      },
+      {
+        "command": "vscode-dig.insertCustomAssertions",
+        "title": "Insert Custom Assertions"
+      },
+      {
+        "command": "vscode-dig.testAssertionsWithUltimateAutomizer",
+        "title": "Test Assertions with Ultimate Automizer"
+      }
     ],
-    
     "menus": {
       "editor/context": [
         {
@@ -38,15 +50,15 @@
           "when": "editorTextFocus",
           "command": "vscode-dig.testAssertions",
           "group": "navigation"
-      },
-      {
-        "when": "editorTextFocus",
-        "command": "vscode-dig.insertCustomAssertions",
-        "group": "navigation"
-      }
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "vscode-dig.insertCustomAssertions",
+          "group": "navigation"
+        }
       ]
     },
-  "configuration": {
+    "configuration": {
       "type": "object",
       "title": "Ultimate Configuration",
       "properties": {
@@ -67,14 +79,15 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.87.0",
-    "@types/mocha": "^10.0.6",
+    "@types/mocha": "^10.0.10",
     "@types/node": "18.x",
+    "@types/vscode": "^1.87.0",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
     "@vscode/test-cli": "^0.0.6",
-    "@vscode/test-electron": "^2.3.9"
-  }
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "license": "MIT"
 }
