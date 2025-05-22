@@ -89,5 +89,10 @@
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+  "out",
+  "resources/dot_sarl"
+]
+
 }

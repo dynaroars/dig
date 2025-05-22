@@ -52,6 +52,16 @@ async function activate(context) {
             //vscode.window.showInformationMessage('DIG repository successfully cloned and ready to use.');
             await context.globalState.update(repoClonedKey, true);
         }
+        const bundledDotSarlPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'dot_sarl').fsPath;
+        const digDotSarlPath = path_1.default.join(targetDirectory, 'EXTERNAL_FILES', 'dot_sarl');
+        try {
+            fs_1.default.copyFileSync(bundledDotSarlPath, digDotSarlPath);
+            console.log('Successfully replaced dot_sarl in DIG repo.');
+        }
+        catch (err) {
+            console.error('Failed to replace dot_sarl:', err);
+            vscode.window.showWarningMessage('DIG was cloned, but dot_sarl could not be patched.');
+        }
         try {
             if (!(await (0, docker_utils_2.checkIfImageExists)('dig'))) {
                 console.log('Building Docker image ...');
