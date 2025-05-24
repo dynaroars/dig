@@ -10,6 +10,7 @@ import { cloneUltimateRepo } from './utils/ultimate_automizer_utils';
 import path from 'path';
 import fs from 'fs';
 import { UltimateBase } from './utils/ultimate';
+import { exec } from 'child_process';
 
 export async function activate(context: vscode.ExtensionContext) {
     const imageName = 'dig';
@@ -42,7 +43,27 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showWarningMessage('DIG was cloned, but dot_sarl could not be patched.');
         }
 
+        const civlJarPath = path.join(targetDirectory, 'EXTERNAL_FILES', 'CIVL-1.22_5854', 'lib', 'civl-1.22_5854.jar');
+        const civlTgzPath = path.join(targetDirectory, 'EXTERNAL_FILES', 'CIVL-1.22_5854.tgz');
+        const civlExtractPath = path.join(targetDirectory, 'EXTERNAL_FILES');
 
+        if (!fs.existsSync(civlJarPath)) {
+        if (fs.existsSync(civlTgzPath)) {
+        
+        console.log('CIVL jar not found — extracting archive...');
+        exec(`tar -xzf "${civlTgzPath}" -C "${civlExtractPath}"`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Failed to extract CIVL: ${stderr}`);
+        } else {
+            console.log('CIVL archive extracted successfully.');
+        }
+            });
+        } else {
+        
+        console.warn('CIVL archive not found — skipping extraction.');
+        }
+        }
+        
         try {
             if (!(await checkIfImageExists('dig'))) {
                 console.log('Building Docker image ...');
