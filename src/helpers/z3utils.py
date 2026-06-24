@@ -47,7 +47,7 @@ class Z3:
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 
     @classmethod
-    def _get_vars(cls: type[Z3], f: z3.ExprRef, rs: set[Any]):
+    def _get_vars(cls: type[Z3], f: z3.ExprRef, rs: set[Any]) -> None:
         """
         Helper method to obtain variables from a formula f recursively.
         Results are stored in the list rs.
@@ -240,7 +240,7 @@ class Z3:
         return models is False
 
     @classmethod
-    def parse(cls, node):
+    def parse(cls, node: str | Any) -> z3.ExprRef:
         """
         Parse a string to a Z3 expression
         E.g.,  parse("x>=10*10")
@@ -332,13 +332,10 @@ class Z3:
     @functools.cache
     def simplify(f: z3.ExprRef) -> z3.ExprRef:
         assert z3.is_expr(f), f
-        simpl = z3.Tactic("ctx-solver-simplify")
-        simpl = z3.TryFor(simpl, settings.SOLVER_TIMEOUT)
-        try:
-            f = simpl(f).as_expr()
-        except z3.Z3Exception:
-            pass
-        return f
+        # Use Z3's built-in lightweight simplifier (constant folding, arithmetic
+        # normalization) instead of ctx-solver-simplify which is solver-backed and
+        # can take seconds per call.
+        return z3.simplify(f)
 
     @staticmethod
     def to_smt2_str(f: z3.ExprRef, status: str = "unknown", name: str = "benchmark", logic: str = "") -> str:

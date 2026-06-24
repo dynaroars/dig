@@ -11,6 +11,7 @@ import itertools
 import functools
 import multiprocessing
 import math
+import numpy as np
 import sympy
 from sympy.solvers.solveset import linsolve
 import helpers.vcommon as CM
@@ -328,23 +329,78 @@ class Miscs:
 
     @beartype
     @classmethod
-    def refine(cls, eqts: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
+    def refine(cls, eqts: list[sympy.Expr | sympy.Rel],
+               do_reduce: bool = True) -> list[sympy.Expr | sympy.Rel]:
 
         if not eqts:
             return eqts
 
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
-        eqts = cls.reduce_eqts(eqts)
+        if do_reduce:
+            eqts = cls.reduce_eqts(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
         eqts = cls.remove_ugly(eqts)
 
         return eqts
 
+    @classmethod
+    def coef_matrix_rank(cls, eqts: list, uks: list) -> int:
+        """
+        Fast numpy rank of the template coefficient matrix.
+        Returns -1 on any failure so callers can treat it as unknown.
+        """
+        try:
+            M = np.array(
+                [[int(e.coeff(uk)) for uk in uks] for e in eqts],
+                dtype=np.float64,
+            )
+            return int(np.linalg.matrix_rank(M)) if M.size > 0 else 0
+        except Exception:
+            return -1
+
+    @classmethod
+    def _null_space_fast(cls, eqts: list, uks: list) -> list | None:
+        """
+        Compute null space of the template coefficient matrix using two passes:
+        1. NumPy SVD (float64) to quickly detect full rank — if the matrix has no
+           null space, return [] immediately without calling sympy at all.
+        2. sympy.Matrix.nullspace() for exact rational null vectors when the rank
+           check indicates a non-trivial null space exists.
+
+        Avoids the overhead of linsolve's FiniteSet / parametric-solution machinery.
+        Returns a list of sympy column vectors, or None to fall back to linsolve.
+
+        The eqts are linear in uks (trace values are integers, so each expression
+        is sum(integer_j * uk_j)), making exact integer extraction safe.
+        """
+        try:
+            rows = [[int(expr.coeff(uk)) for uk in uks] for expr in eqts]
+        except (TypeError, AttributeError, ValueError):
+            return None
+
+        # Fast numpy rank check: if rank == len(uks) the null space is trivial
+        M_np = np.array(rows, dtype=np.float64)
+        if M_np.size == 0:
+            return None
+        s = np.linalg.svd(M_np, compute_uv=False)
+        tol = max(M_np.shape) * np.finfo(np.float64).eps * (s[0] if len(s) else 1.0)
+        rank = int(np.sum(s > tol))
+        if rank >= len(uks):
+            return []  # full column rank → trivial null space, skip sympy entirely
+
+        # Exact null space via sympy (Bareiss/fraction-free Gaussian elimination)
+        M_sym = sympy.Matrix(rows)
+        try:
+            return M_sym.nullspace()
+        except Exception:
+            return None
+
     @beartype
     @classmethod
     def solve_eqts(cls, eqts: list[sympy.Expr | sympy.Rel],
-                   terms: list[Any], uks: list[sympy.Symbol]) -> list[sympy.Eq]:
+                   terms: list[Any], uks: list[sympy.Symbol],
+                   do_reduce: bool = True) -> list[sympy.Eq]:
 
         assert eqts, eqts
         assert terms, terms
@@ -353,18 +409,38 @@ class Miscs:
         # assert len(eqts) >= len(uks), (len(eqts), len(uks))
 
         mlog.debug(f"solving {len(uks)} uks using {len(eqts)} eqts")
-        sol = linsolve(eqts, uks)
-        #print(eqts)
-        #print(uks)
-        #print(sol)
-        vals = list(list(sol)[0])
 
-        if all(v == 0 for v in vals):
+        null_vecs = cls._null_space_fast(eqts, uks)
+        if null_vecs is not None:
+            if not null_vecs:
+                return []
+            # each null_vec is a sympy column Matrix; zip with terms directly
+            eqts_ = [
+                sum(c * t for c, t in zip(nvec, terms) if c != 0)
+                for nvec in null_vecs
+            ]
+            eqts_ = [e for e in eqts_ if e != 0]
+        else:
+            # fall back to sympy linsolve
+            sol = linsolve(eqts, uks)
+            #print(eqts)
+            #print(uks)
+            #print(sol)
+            sol_list = list(sol)
+            if not sol_list:
+                return []
+            vals = list(sol_list[0])
+            if all(v == 0 for v in vals):
+                return []
+            eqts_ = cls.instantiate_template(terms, uks, vals)
+            if not isinstance(eqts_, list):
+                eqts_ = [eqts_]
+
+        if not eqts_:
             return []
 
-        eqts_ = cls.instantiate_template(terms, uks, vals)
-        mlog.debug(f"got {len(eqts_)} eqts after instantiating")
-        eqts_ = cls.refine(eqts_)
+        mlog.debug(f"got {len(eqts_)} eqts after solving")
+        eqts_ = cls.refine(eqts_, do_reduce=do_reduce)
         mlog.debug(f"got {len(eqts_)} eqts after refinement")
         return [sympy.Eq(eqt, 0) for eqt in eqts_]
 

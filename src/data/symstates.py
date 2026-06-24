@@ -403,9 +403,9 @@ class SymStates(dict):
     
     @beartype
     def mcheck_depth(self, ssd: SymStatesDepth,
-                     inv:infer.inv.Inv | None, 
+                     inv:infer.inv.Inv | None,
                      inv_expr: None | z3.BoolRef,
-                     inps: None | data.traces.Inps, 
+                     inps: None | data.traces.Inps,
                      ncexs:int ) -> tuple[list, bool]:
         # assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
 

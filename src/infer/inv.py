@@ -1,5 +1,7 @@
+from __future__ import annotations
 import abc
 from collections import Counter
+from collections.abc import Iterable
 from enum import Enum
 import functools
 from time import time
@@ -26,6 +28,9 @@ class InvStat(str, Enum):
     PROVED = "p"
     DISPROVED = "d"
     UNKNOWN = "u"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class Inv(metaclass=abc.ABCMeta):
@@ -56,38 +61,41 @@ class Inv(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def mystr(self):
+    def mystr(self) -> str:
         pass
 
-    def __str__(self, print_stat=False):
+    def __str__(self, print_stat: bool = False) -> str:
         s = self.mystr
         if print_stat:
             s = f"{s} {self.stat}"
         return s
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.inv)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.inv)
 
-    def __eq__(self, o):
-        assert isinstance(o, Inv), o
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, Inv):
+            return NotImplemented
         return self.inv.__eq__(o.inv)
 
-    def __ne__(self, o):
+    def __ne__(self, o: object) -> bool:
+        if not isinstance(o, Inv):
+            return NotImplemented
         return not self.inv.__eq__(o.inv)
 
-    def get_stat(self):
+    def get_stat(self) -> InvStat | None:
         return self._stat
 
-    def set_stat(self, stat):
+    def set_stat(self, stat: InvStat) -> None:
         assert stat in {self.PROVED, self.DISPROVED, self.UNKNOWN}, stat
         self._stat = stat
 
     stat = property(get_stat, set_stat)
 
-    def reset_stat(self):
+    def reset_stat(self) -> None:
         self._stat = None
 
     @beartype
@@ -95,22 +103,22 @@ class Inv(metaclass=abc.ABCMeta):
         return all(self.test_single_trace(trace) for trace in traces)
 
     @property
-    def is_proved(self):
+    def is_proved(self) -> bool:
         return self.stat == self.PROVED
 
     @property
-    def is_disproved(self):
+    def is_disproved(self) -> bool:
         return self.stat == self.DISPROVED
 
     @property
-    def is_unknown(self):
+    def is_unknown(self) -> bool:
         return self.stat == self.UNKNOWN
 
     @property
     def cinvs_category(self) -> str:
         raise NotImplementedError(f"{type(self)} must implement cinvs_category")
 
-    def test_single_trace(self, trace):
+    def test_single_trace(self, trace: data.traces.Trace) -> bool:
         assert isinstance(trace, data.traces.Trace), trace
 
         # temp fix: disable traces that wih extreme large values
@@ -140,11 +148,11 @@ class Inv(metaclass=abc.ABCMeta):
 
 
 class FalseInv(Inv):
-    def __init__(self, inv, stat=None):
+    def __init__(self, inv: int, stat: InvStat | None = None) -> None:
         assert inv == 0, inv
         super().__init__(inv, stat)
 
-    def __str__(self, print_stat=False):
+    def __str__(self, print_stat: bool = False) -> str:
         s = str(self.inv)
         if print_stat:
             s = f"{s} {self.stat}"
@@ -156,7 +164,7 @@ class FalseInv(Inv):
         return Z3.zFalse
 
     @property
-    def mystr(self):
+    def mystr(self) -> str:
         return "False"
 
     @property
@@ -164,7 +172,7 @@ class FalseInv(Inv):
         return 'falseinvs'
 
     @classmethod
-    def mk(cls):
+    def mk(cls) -> FalseInv:
         return FalseInv(0)
 
 
@@ -176,7 +184,7 @@ class RelTerm(NamedTuple):
     term: sympy.Expr
 
     @classmethod
-    def mk(cls, term):
+    def mk(cls, term: sympy.Expr) -> RelTerm:
         assert (
             isinstance(term, sympy.Expr)
             and not term.is_relational()
@@ -184,22 +192,22 @@ class RelTerm(NamedTuple):
         return cls(term)
 
     @property
-    def symbols(self):
+    def symbols(self) -> set:
         return Miscs.get_vars(self.term)
 
-    def eval_traces(self, traces, pred=None):
+    def eval_traces(self, traces: data.traces.Traces, pred=None) -> list | bool:
         return traces.myeval(self.term, pred)
 
-    def mk_lt(self, val):
+    def mk_lt(self, val: int) -> sympy.Rel:
         return self._mk_rel(operator.lt, val)
 
-    def mk_le(self, val):
+    def mk_le(self, val: int) -> sympy.Rel:
         return self._mk_rel(operator.le, val)
 
-    def mk_eq(self, val):
+    def mk_eq(self, val: int) -> sympy.Rel:
         return self._mk_rel(operator.eq, val)
 
-    def _mk_rel(self, myop, val):
+    def _mk_rel(self, myop, val: int) -> sympy.Rel:
         """
         return myop(self.term, val), e.g., x + y <= 8
         """
@@ -209,7 +217,7 @@ class RelTerm(NamedTuple):
 
 
 class Invs(set):
-    def __init__(self, invs=()):
+    def __init__(self, invs: Iterable[Inv] = ()) -> None:
         assert all(isinstance(inv, Inv) for inv in invs), invs
         super().__init__(invs)
 
@@ -218,11 +226,11 @@ class Invs(set):
         return super().__contains__(inv)
 
     @property
-    def typ_ctr(self):
+    def typ_ctr(self) -> Counter:
         return Counter(inv.__class__.__name__ for inv in self)
 
     @property
-    def cinvs(self):
+    def cinvs(self) -> CInvs:
         return CInvs(self)
 
     @beartype
@@ -233,7 +241,7 @@ class Invs(set):
             super().add(inv)
         return not_in
 
-    def test(self, traces):
+    def test(self, traces: data.traces.Traces) -> Invs:
         assert self, self
 
         def f(tasks):
@@ -251,7 +259,7 @@ class Invs(set):
         invs = self.__class__(myinvs)
         return invs
 
-    def simplify(self):
+    def simplify(self) -> Invs:
         return self.__class__(self.cinvs.simplify())
 
 
@@ -274,8 +282,8 @@ class CInvs:
             getattr(self, inv.cinvs_category).append(inv)
 
     @classmethod
-    def get_max_deg(cls, inv):
-        try: 
+    def get_max_deg(cls, inv: Inv) -> int | None:
+        try:
             p = inv.inv
             if p.is_Relational:
                 return Miscs.get_max_deg(p.lhs)
@@ -285,8 +293,8 @@ class CInvs:
             return None
 
 
-    def __str__(self, print_stat=False, print_first_n=None,
-                writeresults=False):
+    def __str__(self, print_stat: bool = False, print_first_n: int | None = None,
+                writeresults: bool = False) -> str:
         ss = []
 
         def mylen(x):
@@ -311,7 +319,7 @@ class CInvs:
 
         return ('; ' if writeresults else '\n').join(ss)
 
-    def simplify(self):
+    def simplify(self) -> list[Inv]:
         eqts = self.eqts
         eqts_largecoefs = self.eqts_largecoefs
         octs = self.octs
@@ -523,8 +531,6 @@ class DInvs(dict):
         return dinvs
 
     def update(self, dinvs):
-        # NOTE: mutates dinvs in-place (merges self into it) AND returns deltas.
-        # Callers in alg.py depend on both effects.
         assert isinstance(dinvs, DInvs), dinvs
         deltas = self.__class__()
         for loc in self:

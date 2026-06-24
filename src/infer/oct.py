@@ -22,7 +22,7 @@ class Oct(infer.inv.Inv):
     Octagonal invariants c1x + c2y <= c3
     """
     @beartype
-    def __init__(self, myoct:sympy.Le, stat=None) -> None:
+    def __init__(self, myoct: sympy.Le, stat: infer.inv.InvStat | None = None) -> None:
         """
         For both <=  (normal OctInvs)  or < (Precond in PrePost)
         """
@@ -49,7 +49,7 @@ class Infer(infer.infer._Opt):
 
     IUPPER = settings.IUPPER
 
-    def __init__(self, symstates, prog):
+    def __init__(self, symstates, prog) -> None:
         super().__init__(symstates, prog)
 
     @beartype
@@ -62,7 +62,7 @@ class Infer(infer.infer._Opt):
         return Oct(term_ub)
 
     @classmethod
-    def my_get_terms(cls, symbols):
+    def my_get_terms(cls, symbols: tuple[sympy.Symbol, ...]) -> list:
         assert symbols, symbols
         assert settings.IDEG >= 1, settings.IDEG
 
@@ -95,7 +95,7 @@ class Infer(infer.infer._Opt):
         return terms
 
     @staticmethod
-    def my_get_terms_user(symbols, uterms):
+    def my_get_terms_user(symbols, uterms: set) -> set:
         assert isinstance(uterms, set) and uterms, uterms
         assert all(isinstance(t, str) for t in uterms), uterms
 
@@ -117,7 +117,7 @@ class Infer(infer.infer._Opt):
         return terms
 
     @staticmethod
-    def get_excludes(terms, inps):
+    def get_excludes(terms: list, inps: set) -> set:
         excludes = set()
         for term in terms:
             t_symbs = set(map(str, term.symbols))

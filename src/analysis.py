@@ -45,7 +45,7 @@ class MaxDepthChanges(NamedTuple):
     d2: int | None
 
 
-@dataclass
+@dataclass(slots=True)
 class Result:
     resultfile: ClassVar[str] = 'result'
     filename: Any
@@ -159,6 +159,8 @@ class AResult(Result):
         return the # of variables, max deg, and number of terms
         """
         import infer.mp
+        import infer.congruence
+        import infer.nested_array
 
         # if isinstance(inv, infer.inv.prepost.PrePost):
         #     mlog.warning("Not very accurate for PREPOST")
@@ -169,6 +171,14 @@ class AResult(Result):
             vs = inv.term.symbols
             maxdeg = 1
             nterms = 2
+        elif isinstance(inv, infer.congruence.Congruence):
+            vs = inv.inv.a.free_symbols
+            maxdeg = 1
+            nterms = len(inv.inv.a.args) or 1
+        elif isinstance(inv, infer.nested_array.NestedArray):
+            vs = set()
+            maxdeg = 0
+            nterms = 0
         else:
             p = inv.inv
             vs = p.free_symbols
@@ -324,7 +334,6 @@ class Benchmark:
         self.benchmark_dir = benchmark_dir
 
         # compute which runs have to do in case there are some existing runs
-        self.toruns = []
         myruns = set(range(ntimes))
         for i, f in enumerate(bfiles):
             bmdir = benchmark_dir / f.stem

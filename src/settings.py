@@ -104,7 +104,8 @@ class C:
     CIVL_HOME = Path("../EXTERNAL_FILES/civl")
     CIVL_JAR = CIVL_HOME / "lib"
     if CIVL_JAR.is_dir():
-        CIVL_JAR = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"][0]
+        jars = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"]
+        CIVL_JAR = jars[0] if jars else CIVL_JAR
     CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth} {file}"
     CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
 
@@ -203,43 +204,43 @@ def setup(settings, args):
         else:
             opts.append("-readsstates")
 
-    if args.inpMaxV and args.inpMaxV >= 1:
+    if args.inpMaxV is not None and args.inpMaxV >= 1:
         if settings:
             settings.INP_MAX_V = args.inpMaxV
         else:
             opts.append(f"-inpMaxV {args.inpMaxV}")
 
-    if args.iupper and args.iupper >= 1:
+    if args.iupper is not None and args.iupper >= 1:
         if settings:
             settings.IUPPER = args.iupper
         else:
             opts.append(f"-iupper {args.iupper}")
 
-    if args.ideg and args.ideg >= 1:
+    if args.ideg is not None and args.ideg >= 1:
         if settings:
             settings.IDEG = args.ideg
         else:
             opts.append(f"-ideg {args.ideg}")
 
-    if args.iterms and args.iterms >= 1:
+    if args.iterms is not None and args.iterms >= 1:
         if settings:
             settings.ITERMS = args.iterms
         else:
             opts.append(f"-iterms {args.iterms}")
 
-    if args.icoefs and args.icoefs >= 1:
+    if args.icoefs is not None and args.icoefs >= 1:
         if settings:
             settings.ICOEFS = args.icoefs
         else:
             opts.append(f"-icoefs {args.icoefs}")
 
-    if args.maxterm and args.maxterm >= 1:
+    if args.maxterm is not None and args.maxterm >= 1:
         if settings:
             settings.MAX_TERM = args.maxterm
         else:
             opts.append(f"-maxterm {args.maxterm}")
 
-    if args.nrandinps and args.nrandinps >= 1:
+    if args.nrandinps is not None and args.nrandinps >= 1:
         if settings:
             settings.N_RAND_INPS = args.nrandinps
         else:
@@ -251,14 +252,14 @@ def setup(settings, args):
         else:
             opts.append(f'-uterms "{args.uterms}"')  # not tested
 
-    if args.se_mindepth and args.se_mindepth >= 1:
+    if args.se_mindepth is not None and args.se_mindepth >= 1:
         if settings:
             settings.Java.SE_MIN_DEPTH = args.se_mindepth
             settings.C.SE_MIN_DEPTH = args.se_mindepth
         else:
             opts.append(f"-se_mindepth {args.se_mindepth}")
 
-    if args.se_maxdepth and args.se_maxdepth >= 1:
+    if args.se_maxdepth is not None and args.se_maxdepth >= 1:
         if settings:
             settings.SE_MAX_DEPTH = args.se_maxdepth
         else:

@@ -13,6 +13,7 @@ from helpers.miscs import Miscs
 from helpers.z3utils import Z3
 import infer.inv
 import infer.infer
+import data.prog
 import data.traces
 
 
@@ -80,7 +81,7 @@ class Congruence(infer.inv.Inv):
     def expr(self) -> z3.ExprRef:
         return self.inv.expr
 
-    def test_single_trace(self, trace: data.traces.Traces) -> bool:
+    def test_single_trace(self, trace: data.traces.Trace) -> bool:
         assert isinstance(trace, data.traces.Trace), trace
         b = self.inv._eval(trace)
         return b
@@ -92,7 +93,7 @@ class Infer(infer.infer._Infer):
         raise NotImplementedError("congruence symbolic-states path not implemented; use gen_from_traces")
 
     @classmethod
-    def gen_from_traces(cls, traces, symbols):
+    def gen_from_traces(cls, traces: data.traces.Traces, symbols: data.prog.Symbs) -> list:
         ps = []
         terms = Miscs.get_terms_fixed_coefs(
             symbols.symbolic, settings.ITERMS, settings.ICOEFS)
@@ -118,6 +119,8 @@ class Infer(infer.infer._Infer):
         except TypeError:
             return None, None
         
+        if g == 0:
+            return None, None
         if g == 1 or g == -1:
             g = None
         else:

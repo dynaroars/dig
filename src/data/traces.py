@@ -1,3 +1,4 @@
+from __future__ import annotations
 import csv
 import pdb
 from pathlib import Path
@@ -25,7 +26,7 @@ class SymbsVals(NamedTuple):
     """
     @beartype
     @classmethod
-    def mk(cls, ss: tuple, vs: tuple):
+    def mk(cls, ss: tuple, vs: tuple) -> SymbsVals:
         return cls(ss, vs)
 
     @beartype
@@ -60,7 +61,7 @@ class SymbsValsSet(set):
 
 class Trace(SymbsVals):
     @property
-    def mydict(self):
+    def mydict(self) -> dict:
         # use for expression substitution
         try:
             return self._mydict
@@ -77,7 +78,7 @@ class Trace(SymbsVals):
             return self._mydict
 
     @property
-    def mydict_str(self):
+    def mydict_str(self) -> dict:
         # use for maxplus eval
         try:
             return self._mydict_str
@@ -87,7 +88,7 @@ class Trace(SymbsVals):
             return self._mydict_str
 
     @classmethod
-    def parse(cls, ss, vs):
+    def parse(cls, ss: tuple | list, vs: tuple | list) -> Trace:
         assert isinstance(ss, (tuple, list)), ss
         assert isinstance(vs, (tuple, list)), vs
 
@@ -97,13 +98,13 @@ class Trace(SymbsVals):
         return Trace(tuple(ss), vs)
 
     @classmethod
-    def fromDict(cls, d):
+    def fromDict(cls, d: dict) -> Trace:
         # {'y': 1, 'x': 2, 'r': 2, 'b': 2}
         ss = tuple(sorted(d))
         vs = tuple(d[s] for s in ss)
         return cls(ss, vs)
 
-    def myeval(self, expr):
+    def myeval(self, expr) -> sympy.Expr:
         assert Miscs.is_expr(expr), expr
         rs = expr.xreplace(self.mydict)
         return rs
@@ -118,7 +119,7 @@ class Traces(SymbsValsSet):
         else:
             return str(len(self))
 
-    def myeval(self, expr, pred=None):
+    def myeval(self, expr, pred=None) -> list | bool:
         assert Miscs.is_expr(expr), expr
 
         if pred is None:
@@ -127,7 +128,7 @@ class Traces(SymbsValsSet):
             return any(pred(trace.myeval(expr)) for trace in self)
 
     @classmethod
-    def extract(cls, cexs, useOne=True):
+    def extract(cls, cexs: dict, useOne: bool = True) -> Traces:
         """
         cexs is a dict{inv: [dict]}
         for each disproved inv, use just 1 cex
@@ -172,7 +173,7 @@ class Traces(SymbsValsSet):
 
         return exprs
 
-    def padzeros(self, ss) :
+    def padzeros(self, ss: set) -> Traces:
         new_traces = Traces()
         for t in self:
             tss = set(t.ss)
@@ -211,7 +212,7 @@ class DTraces(dict):
             self[loc].add(trace)
         return not_in
 
-    def merge(self, new_traces):
+    def merge(self, new_traces: DTraces) -> DTraces:
         """
         add new traces and return those that are really new
         """
@@ -222,17 +223,17 @@ class DTraces(dict):
                 if not_in:
                     new_traces_.add(loc, trace)
                 else:
-                    mlog.warning(f"trace {trace} exist")
+                    mlog.debug(f"trace {trace} exist")
         return new_traces_
 
     @classmethod
-    def mk(cls, locs):
+    def mk(cls, locs) -> DTraces:
         assert locs
         return cls({loc: Traces() for loc in locs})
 
     @beartype
     @staticmethod
-    def parse(traces, inv_decls):
+    def parse(traces, inv_decls) -> DTraces:
         """
         parse trace for new traces
         # >>> traces = ['vtrace1; 0; 285; 1; 9; 285; 9 ', 'vtrace1; 0; 285; 2; 18; 285; 9; ', 'vtrace1; 0; 285; 4; 36; 285; 9; ']
@@ -331,7 +332,7 @@ class Inp(SymbsVals):
 
 
 class Inps(SymbsValsSet):
-    def merge(self, ds, ss) -> None:
+    def merge(self, ds, ss) -> Inps:
         """
         ds can be
         1. cexs = {loc:{inv: {'x': val, 'y': val}}}

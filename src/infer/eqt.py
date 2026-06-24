@@ -9,6 +9,7 @@ import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
 
+import data.prog
 import data.traces
 import infer.inv
 import infer.infer
@@ -20,7 +21,7 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 class Eqt(infer.inv.Inv):
 
     @beartype
-    def __init__(self, eqt:sympy.Equality, stat=None)->None:
+    def __init__(self, eqt: sympy.Equality, stat: infer.inv.InvStat | None = None) -> None:
         assert eqt.rhs == 0, eqt
 
         super().__init__(eqt, stat)
@@ -39,8 +40,8 @@ class Infer(infer.infer._CEGIR):
 
     @beartype
     @classmethod
-    def gen_from_traces(cls, deg:int,
-                        traces:data.traces.Traces, symbols) -> list[Eqt]:
+    def gen_from_traces(cls, deg: int,
+                        traces: data.traces.Traces, symbols: data.prog.Symbs) -> list[Eqt]:
 
         mydeg = deg
         eqts = []
@@ -217,9 +218,18 @@ class Infer(infer.infer._CEGIR):
         exprs = list(exprs)
 
         curIter = 0
+        prev_rank = -1
 
         while True:
             curIter += 1
+
+            # skip solve if no new linearly independent rows since last iteration
+            curr_rank = Miscs.coef_matrix_rank(exprs, uks)
+            if curr_rank >= 0 and curr_rank == prev_rank:
+                mlog.debug(f"{loc}: rank unchanged ({curr_rank}), skipping solve")
+                break
+            prev_rank = curr_rank
+
             mlog.debug(f"{loc}, iter {curIter} infer using {len(exprs)} exprs")
             new_eqts = Miscs.solve_eqts(exprs, ts, uks)
             unchecks = [eqt for eqt in new_eqts if eqt not in cache]

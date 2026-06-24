@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pdb
 import itertools
 import functools
@@ -38,14 +39,14 @@ class Term(NamedTuple):
         return s
 
     @classmethod
-    def mk(cls, a, b, is_max: bool = True):
+    def mk(cls, a, b, is_max: bool = True) -> Term:
         if not isinstance(a, tuple):
             a = (a,)
         if not isinstance(b, tuple):
             b = (b,)
         return cls(a, b, is_max)
 
-    def mk_le(self, uv):
+    def mk_le(self, uv: int) -> Term:
         """
         return term <= uv
         a - b <= uv ~> a - uv <= b
@@ -75,7 +76,7 @@ class Term(NamedTuple):
             )
 
     @classmethod
-    def get_terms(cls, terms):
+    def get_terms(cls, terms: list | tuple) -> list:
         """
         Generate (weak) mp terms of the form
         xi <= max(c1+x1, ... ,cn+xn, c0) and
@@ -218,7 +219,7 @@ class Term(NamedTuple):
 
 
 class MMP(infer.inv.Inv):
-    def __init__(self, term, is_ieq=True, stat=None):
+    def __init__(self, term: Term, is_ieq: bool | None = True, stat: infer.inv.InvStat | None = None) -> None:
         """
         term = max(x, y) - z
 
@@ -234,14 +235,14 @@ class MMP(infer.inv.Inv):
         self.term = term
         self.is_ieq = is_ieq
 
-    def lambdastr(self, use_lambda=False):
+    def lambdastr(self, use_lambda: bool = False) -> str:
         s = self.term.__str__(use_lambda)
         if self.is_ieq is not None:
             s += f" {'<=' if self.is_ieq is True else '=='} 0"
         return s
 
     @property
-    def mystr(self):
+    def mystr(self) -> str:
         return self.lambdastr(use_lambda=False)
 
     @property
@@ -249,7 +250,7 @@ class MMP(infer.inv.Inv):
         return 'mps'
 
     @property
-    def is_eqt(self):
+    def is_eqt(self) -> bool:
         return self.is_ieq is False
 
     @property
@@ -272,7 +273,7 @@ class MMP(infer.inv.Inv):
 
         return expr
 
-    def test_single_trace(self, trace: data.traces.Traces) -> bool:
+    def test_single_trace(self, trace: data.traces.Trace) -> bool:
         assert isinstance(trace, data.traces.Trace), trace
 
         trace = trace.mydict_str
@@ -346,7 +347,7 @@ class Infer(infer.infer._Opt):
     """
     IUPPER = settings.IUPPER_MMP
 
-    def __init__(self, symstates, prog):
+    def __init__(self, symstates, prog) -> None:
         super().__init__(symstates, prog)
 
     @staticmethod

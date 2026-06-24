@@ -1,6 +1,7 @@
+from __future__ import annotations
 import abc
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 import pdb
 import random
 import tempfile
@@ -29,15 +30,12 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class InferType(str, Enum):
+class InferType(StrEnum):
     EQTS = "eqts"
     IEQS = "ieqs"
     MINMAX = "minmax"
     CONGRUENCE = "congruence"
     PREPOSTS = "preposts"
-
-    def __str__(self):
-        return self.value
 
 
 class Dig(metaclass=abc.ABCMeta):
@@ -248,10 +246,10 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
         return dinvs, dtraces
 
-    def _infer_ieqs(self):
+    def _infer_ieqs(self) -> tuple[DInvs, None]:
         return infer.oct.Infer(self.symstates, self.prog).gen(), None
 
-    def _infer_minmax(self):       
+    def _infer_minmax(self) -> tuple[DInvs, None]:
         return infer.mp.Infer(self.symstates, self.prog).gen(), None
 
     @beartype
@@ -363,7 +361,7 @@ class DigTraces(Dig):
         dinvs = self.sanitize(dinvs, self.dtraces)
         return dinvs
 
-    def _nested_arrays_tasks(self):
+    def _nested_arrays_tasks(self) -> list:
         def _f(l):
             return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
 
@@ -371,7 +369,7 @@ class DigTraces(Dig):
             return self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_ARRAYS, _g,  _f)
 
-    def _eqts_tasks(self, maxdeg):
+    def _eqts_tasks(self, maxdeg: int | None) -> list:
         autodeg = self.get_auto_deg(maxdeg)
 
         def _f(l):
@@ -382,7 +380,7 @@ class DigTraces(Dig):
             return not self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_EQTS, _g, _f)
 
-    def _ieqs_tasks(self):
+    def _ieqs_tasks(self) -> list:
         def _f(l):
             return infer.oct.Infer.gen_from_traces(
                 self.dtraces[l], self.inv_decls[l])
@@ -391,7 +389,7 @@ class DigTraces(Dig):
             return not self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_IEQS, _g,  _f)
 
-    def _minmax_tasks(self):
+    def _minmax_tasks(self) -> list:
         def _f(l):
             return infer.mp.Infer.gen_from_traces(
                 self.dtraces[l], self.inv_decls[l])
@@ -400,7 +398,7 @@ class DigTraces(Dig):
             return not self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_MINMAXPLUS, _g, _f)
 
-    def _congruences_tasks(self):
+    def _congruences_tasks(self) -> list:
         def _f(l):
             return infer.congruence.Infer.gen_from_traces(
                 self.dtraces[l], self.inv_decls[l])
@@ -409,13 +407,13 @@ class DigTraces(Dig):
             return not self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_CONGRUENCES, _g,  _f)
 
-    def _mk_tasks(self, cond1, cond2, _f):
+    def _mk_tasks(self, cond1, cond2, _f: Callable) -> list:
         if not cond1:
             return []
         return [(loc, _f) for loc in self.dtraces if cond2(loc)]
 
     @classmethod
-    def mk(cls, tracefile, test_tracefile):
+    def mk(cls, tracefile: Path, test_tracefile: Path | None) -> DigTraces:
         assert tracefile.is_file(), tracefile
         assert test_tracefile is None or test_tracefile.is_file()
 

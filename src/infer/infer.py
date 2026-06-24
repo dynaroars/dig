@@ -35,13 +35,12 @@ class _Infer(metaclass=abc.ABCMeta):
     def gen(self) -> infer.inv.DInvs:
         pass
 
-    @beartype
     @classmethod
     @abc.abstractmethod
-    def gen_from_traces(cls, traces: data.traces.DTraces, 
-                        symbols: tuple[sympy.core.symbol.Symbol,...]) -> infer.inv.DInvs:
+    def gen_from_traces(cls, *args, **kwargs):
         """
-        Generating invariants directly from traces
+        Generating invariants directly from traces.
+        Each subclass defines its own signature (degree, symbols, etc.).
         """
         pass
 
