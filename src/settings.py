@@ -17,6 +17,9 @@ DO_CONGRUENCES = True  # support congruence relations
 DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
+DO_POLY_INEQS = True  # support degree-2 polynomial inequality invariants
+DO_BITWISE = True     # support bitwise AND-mask invariants
+DO_POLY_CONGS = True  # support degree-2 modular congruence invariants
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = None  # write vtraces to csv
@@ -41,6 +44,7 @@ UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
 IUPPER = 20  # t <= iupper
+POLY_IUPPER = 300  # upper-bound threshold for degree-2 polynomial inequality terms
 IUPPER_MMP = 2  # for min/max ieqs
 IDEG = 1  # deg (if 1 then linear)
 ITERMS = 2  # octagonal
@@ -174,6 +178,24 @@ def setup(settings, args):
             settings.DO_PREPOSTS = not args.nopreposts
         else:
             opts.append("-nopreposts")
+
+    if args.nopoly:
+        if settings:
+            settings.DO_POLY_INEQS = not args.nopoly
+        else:
+            opts.append("-nopoly")
+
+    if args.nobitwise:
+        if settings:
+            settings.DO_BITWISE = not args.nobitwise
+        else:
+            opts.append("-nobitwise")
+
+    if args.nopolycong:
+        if settings:
+            settings.DO_POLY_CONGS = not args.nopolycong
+        else:
+            opts.append("-nopolycong")
 
     if args.noincrdepth:
         if settings:

@@ -24,6 +24,9 @@ import infer.eqt
 import infer.oct
 import infer.mp
 import infer.congruence
+import infer.poly_ineq
+import infer.bitwise
+import infer.poly_cong
 
 DBG = pdb.set_trace
 
@@ -190,6 +193,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 if dtraces_:
                     dtraces.merge(dtraces_)
 
+            dinvs.merge(self._infer_trace_based(dtraces))
             dinvs = self.sanitize(dinvs, dtraces)
 
             self.time_d["total"] = time.time() - st
@@ -251,6 +255,28 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
     def _infer_minmax(self) -> tuple[DInvs, None]:
         return infer.mp.Infer(self.symstates, self.prog).gen(), None
+
+    def _infer_trace_based(self, dtraces: DTraces) -> DInvs:
+        """Run trace-only inference types on dtraces gathered during CEGIR."""
+        result = DInvs()
+        for loc in dtraces:
+            if loc not in self.inv_decls or self.inv_decls[loc].array_only:
+                continue
+            traces = dtraces[loc]
+            symbs = self.inv_decls[loc]
+            if settings.DO_CONGRUENCES:
+                for inv in infer.congruence.Infer.gen_from_traces(traces, symbs):
+                    result.add(loc, inv)
+            if settings.DO_POLY_INEQS:
+                for inv in infer.poly_ineq.Infer.gen_from_traces(traces, symbs):
+                    result.add(loc, inv)
+            if settings.DO_BITWISE:
+                for inv in infer.bitwise.Infer.gen_from_traces(traces, symbs):
+                    result.add(loc, inv)
+            if settings.DO_POLY_CONGS:
+                for inv in infer.poly_cong.Infer.gen_from_traces(traces, symbs):
+                    result.add(loc, inv)
+        return result
 
     @beartype
     def get_symbolic_states(self) -> SymStates:
@@ -349,7 +375,10 @@ class DigTraces(Dig):
                  self._eqts_tasks(maxdeg) +
                  self._ieqs_tasks() +
                  self._minmax_tasks() +
-                 self._congruences_tasks())
+                 self._congruences_tasks() +
+                 self._poly_ineqs_tasks() +
+                 self._bitwise_tasks() +
+                 self._poly_congs_tasks())
 
         def f(tasks):
             rs = [(loc, _f(loc)) for loc, _f in tasks]
@@ -416,6 +445,33 @@ class DigTraces(Dig):
         def _g(l):
             return not self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_CONGRUENCES, _g,  _f)
+
+    def _poly_ineqs_tasks(self) -> list:
+        def _f(l):
+            return infer.poly_ineq.Infer.gen_from_traces(
+                self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_POLY_INEQS, _g, _f)
+
+    def _bitwise_tasks(self) -> list:
+        def _f(l):
+            return infer.bitwise.Infer.gen_from_traces(
+                self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_BITWISE, _g, _f)
+
+    def _poly_congs_tasks(self) -> list:
+        def _f(l):
+            return infer.poly_cong.Infer.gen_from_traces(
+                self.dtraces[l], self.inv_decls[l])
+
+        def _g(l):
+            return not self.inv_decls[l].array_only
+        return self._mk_tasks(settings.DO_POLY_CONGS, _g, _f)
 
     def _mk_tasks(self, cond1, cond2, _f: Callable) -> list:
         if not cond1:

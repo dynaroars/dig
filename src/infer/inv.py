@@ -277,6 +277,9 @@ class CInvs:
         self.congruences = []
         self.arr_rels = []
         self.falseinvs = []
+        self.poly_ineqs = []
+        self.bitwise = []
+        self.poly_congs = []
 
         for inv in self.invs:
             getattr(self, inv.cinvs_category).append(inv)
@@ -307,6 +310,9 @@ class CInvs:
             + sorted(self.congruences, key=mylen)
             + sorted(self.arr_rels, key=mylen)
             + sorted(self.falseinvs, key=mylen)
+            + sorted(self.poly_ineqs, key=mylen)
+            + sorted(self.bitwise, key=mylen)
+            + sorted(self.poly_congs, key=mylen)
         )
 
         if print_first_n and print_first_n < len(invs):
@@ -327,6 +333,9 @@ class CInvs:
         congruences = self.congruences
         arr_rels = self.arr_rels
         falseinvs = self.falseinvs
+        poly_ineqs = self.poly_ineqs
+        bitwise = self.bitwise
+        poly_congs = self.poly_congs
 
         assert not falseinvs, falseinvs
 
@@ -385,7 +394,7 @@ class CInvs:
         octs_simple = self._simplify_slow(
             octs_simple, mps_eqt + octs_mps, "octs_simple")
 
-        done += octs_simple + octs_mps + arr_rels
+        done += octs_simple + octs_mps + arr_rels + poly_ineqs + bitwise + poly_congs
         return done
 
     @classmethod

@@ -161,6 +161,8 @@ class AResult(Result):
         import infer.mp
         import infer.congruence
         import infer.nested_array
+        import infer.bitwise
+        import infer.poly_cong
 
         # if isinstance(inv, infer.inv.prepost.PrePost):
         #     mlog.warning("Not very accurate for PREPOST")
@@ -179,6 +181,15 @@ class AResult(Result):
             vs = set()
             maxdeg = 0
             nterms = 0
+        elif isinstance(inv, infer.bitwise.Bitwise):
+            import sympy
+            vs = {sympy.Symbol(inv.inv.var)}
+            maxdeg = 1
+            nterms = 1
+        elif isinstance(inv, infer.poly_cong.PolyCong):
+            vs = inv.inv.term.free_symbols
+            maxdeg = Miscs.get_max_deg(inv.inv.term)
+            nterms = len(inv.inv.term.args) or 1
         else:
             p = inv.inv
             vs = p.free_symbols

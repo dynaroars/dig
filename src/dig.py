@@ -131,6 +131,27 @@ if __name__ == "__main__":
     )
 
     ag(
+        "--nopoly",
+        "-nopoly",
+        action="store_true",
+        help="don't compute degree-2 polynomial inequality invariants",
+    )
+
+    ag(
+        "--nobitwise",
+        "-nobitwise",
+        action="store_true",
+        help="don't compute bitwise AND-mask invariants",
+    )
+
+    ag(
+        "--nopolycong",
+        "-nopolycong",
+        action="store_true",
+        help="don't compute degree-2 modular congruence invariants",
+    )
+
+    ag(
         "--noincrdepth",
         "-noincrdepth",
         action="store_true",
