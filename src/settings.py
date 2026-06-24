@@ -28,6 +28,7 @@ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 30
+SE_MAX_DEPTH_PYTHON = 8  # default for --python_symex; overridden by --se_maxdepth
 SOLVER_TIMEOUT = 3  # secs
 EQT_RATE = 1.5
 UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
@@ -262,6 +263,7 @@ def setup(settings, args):
     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
         if settings:
             settings.SE_MAX_DEPTH = args.se_maxdepth
+            settings.SE_MAX_DEPTH_PYTHON = args.se_maxdepth
         else:
             opts.append(f"-se_maxdepth {args.se_maxdepth}")
             

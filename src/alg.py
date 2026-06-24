@@ -15,7 +15,7 @@ from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.prog
-from data.symstates import SymStates, SymStatesMakerJava, SymStatesMakerC
+from data.symstates import SymStates, SymStatesMakerJava, SymStatesMakerC, SymStatesMakerPythonC
 from data.traces import DTraces
 
 from infer.inv import DInvs
@@ -313,6 +313,16 @@ class DigSymStatesC(DigSymStates):
     @property
     def exe_cmd(self) -> str:
         return settings.C.C_RUN(exe=self.mysrc.traceexe)
+
+
+class DigSymStatesPyC(DigSymStatesC):
+    """Uses the Python symbolic execution engine instead of CIVL."""
+    symstatesmaker_cls = SymStatesMakerPythonC
+
+    @beartype
+    @property
+    def symexefile(self) -> Path:
+        return self.filename
 
 
 class DigTraces(Dig):

@@ -296,6 +296,8 @@ class Z3:
             return z3.Int(str(node.id))
         elif isinstance(node, ast.Constant):
             return z3.IntVal(str(node.value))
+        elif isinstance(node, ast.Not):
+            return z3.Not
         elif isinstance(node, ast.Add):
             return operator.add
         elif isinstance(node, ast.Mult):

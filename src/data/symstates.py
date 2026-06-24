@@ -667,6 +667,10 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         self.tmpdir = tmpdir
         self.ninps = ninps
 
+    @property
+    def maxdepth(self) -> int:
+        return settings.SE_MAX_DEPTH
+
     @beartype
     @abc.abstractmethod
     def mk(self, depth: int) -> str:
@@ -679,7 +683,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         """
 
         mind = self.mindepth
-        maxd = settings.SE_MAX_DEPTH 
+        maxd = self.maxdepth
         if mind >= maxd:
             mlog.warning(f"symbolic execution: mindepth {mind} >= maxdepth {maxd}, "
                          f"setting mindepth=maxdepth={maxd}")
@@ -854,6 +858,38 @@ class SymStatesMakerC(SymStatesMaker):
         """
         assert depth >= 1, depth
         return settings.C.CIVL_RUN(maxdepth=depth, file=self.filename)
+
+
+class SymStatesMakerPythonC(SymStatesMakerC):
+    """
+    Python symbolic execution engine replacing CIVL for simple C programs.
+    Overrides get_symstates() to call CSymEx directly instead of running CIVL.
+    """
+    # Python symex explores paths incrementally — a lower starting depth is fine.
+    mindepth = 2
+
+    @property
+    def maxdepth(self) -> int:
+        return settings.SE_MAX_DEPTH_PYTHON
+
+    @beartype
+    def mk(self, depth: int) -> str:
+        return f"python-symex {self.filename} depth={depth}"
+
+    @beartype
+    def get_symstates(self, depth: int) -> None | list:
+        assert depth >= 1, depth
+        from data.symex_c import CSymEx
+        mlog.debug(f"python symex: {self.filename} depth={depth}")
+        try:
+            engine = CSymEx(self.filename, depth)
+            results = engine.run()
+        except Exception as ex:
+            mlog.error(f"python symex failed at depth {depth}: {ex}")
+            return None
+        if results:
+            mlog.debug(f"got {len(results)} symstates at depth {depth}")
+        return results or None
 
 
 class SymStatesMakerJava(SymStatesMaker):
