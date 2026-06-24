@@ -40,6 +40,10 @@ class Oct(infer.inv.Inv):
     def mystr(self) -> str:
         return f"{self.inv.lhs} <= {self.inv.rhs}"
 
+    @property
+    def cinvs_category(self) -> str:
+        return 'octs'
+
 
 class Infer(infer.infer._Opt):
 
@@ -95,9 +99,9 @@ class Infer(infer.infer._Opt):
         assert isinstance(uterms, set) and uterms, uterms
         assert all(isinstance(t, str) for t in uterms), uterms
 
-        uterms = set(sympy.sympify(term) for term in uterms)
+        uterms = {sympy.sympify(term) for term in uterms}
 
-        if not set(v for t in uterms for v in t.free_symbols).issubset(set(symbols)):
+        if not {v for t in uterms for v in t.free_symbols}.issubset(set(symbols)):
             raise NameError(f"{uterms} contain symbols not in {symbols}")
         terms = set()
         for t in uterms:

@@ -22,7 +22,6 @@ import helpers.vcommon as CM
 import data.traces
 
 from beartype import beartype
-from beartype.typing import Tuple, List, Dict
 
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
@@ -71,7 +70,7 @@ class Symbs(tuple):
     def __new__(cls, ss):
         assert ss, ss
         assert all(isinstance(s, Symb) for s in ss), ss
-        return super(Symbs, cls).__new__(cls, ss)
+        return super().__new__(cls, ss)
 
     def __str__(self):
         return "; ".join(map(str, self))
@@ -94,7 +93,7 @@ class Symbs(tuple):
 
     @beartype
     @property
-    def exprs(self) -> List:
+    def exprs(self) -> list:
         try:
             ret = self._exprs
             return ret
@@ -104,7 +103,7 @@ class Symbs(tuple):
 
     @beartype
     @classmethod
-    def mk(cls, ls: List[str]) -> Tuple:
+    def mk(cls, ls: list[str]) -> tuple:
         """
         I x , D y .. ->  {x: int, y: double}
 
@@ -176,7 +175,7 @@ class Prog:
 
     # PRIVATE METHODS
     @beartype
-    def _get_traces(self, inp: data.traces.Inp) -> List[str]:
+    def _get_traces(self, inp: data.traces.Inp) -> list[str]:
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
                 for v in inp.vs)
@@ -190,7 +189,7 @@ class Prog:
         return traces
 
     @beartype
-    def _get_traces_mp(self, inps: data.traces.Inps) -> Dict:
+    def _get_traces_mp(self, inps: data.traces.Inps) -> dict:
         """
         run program on inps and obtain traces in parallel
         return {inp: traces}
@@ -310,7 +309,7 @@ class Src(metaclass=abc.ABCMeta):
 class Java(Src):
     @beartype
     def __init__(self, filename:Path, tmpdir:Path) -> None:
-        super().__init__(filenae, tmpdir)
+        super().__init__(filename, tmpdir)
 
         cmd = settings.Java.INSTRUMENT(
             filename=self.filename, tracefile=self.tracefile, symexefile=self.symexefile
@@ -338,10 +337,7 @@ class Java(Src):
                     shlex.split(cmd), capture_output=True, check=True, text=True
                 )
             except subprocess.CalledProcessError as ex:
-                mlog.error(
-                    "cmd '{}' gives error\n{}".format(
-                        " ".join(ex.cmd), ex.stderr)
-                )
+                mlog.error(f"cmd '{' '.join(ex.cmd)}' gives error\n{ex.stderr}")
                 raise
             filename = (tmpdir / funname).with_suffix(".class")
             basename = Path(filename.name)
@@ -363,7 +359,7 @@ class C(Src):
         self._compile_test(self.tracefile, self.traceexe)
 
     @beartype
-    def check(self, filename: Path, tmpdir: Path) -> Tuple[Path, Path, str]:
+    def check(self, filename: Path, tmpdir: Path) -> tuple[Path, Path, str]:
         basename = Path(filename.name)
         funname = basename.stem
         self._compile_test(filename, tmpdir / f"{funname}.exe")

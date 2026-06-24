@@ -1,5 +1,6 @@
 import abc
 from collections import Counter
+from enum import Enum
 import functools
 from time import time
 import pdb
@@ -9,7 +10,6 @@ from typing import NamedTuple
 import sympy
 import z3
 from beartype import beartype
-from beartype.typing import Union
 
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
@@ -22,14 +22,20 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class Inv(metaclass=abc.ABCMeta):
-
+class InvStat(str, Enum):
     PROVED = "p"
     DISPROVED = "d"
     UNKNOWN = "u"
 
+
+class Inv(metaclass=abc.ABCMeta):
+
+    PROVED = InvStat.PROVED
+    DISPROVED = InvStat.DISPROVED
+    UNKNOWN = InvStat.UNKNOWN
+
     @beartype
-    def __init__(self, inv: Union[int, tuple, str, sympy.Equality, sympy.Le], stat = None) -> None:
+    def __init__(self, inv: int | tuple | str | sympy.Equality | sympy.Le, stat = None) -> None:
         """
         stat = None means never been checked
         """
@@ -100,6 +106,10 @@ class Inv(metaclass=abc.ABCMeta):
     def is_unknown(self):
         return self.stat == self.UNKNOWN
 
+    @property
+    def cinvs_category(self) -> str:
+        raise NotImplementedError(f"{type(self)} must implement cinvs_category")
+
     def test_single_trace(self, trace):
         assert isinstance(trace, data.traces.Trace), trace
 
@@ -149,6 +159,10 @@ class FalseInv(Inv):
     def mystr(self):
         return "False"
 
+    @property
+    def cinvs_category(self) -> str:
+        return 'falseinvs'
+
     @classmethod
     def mk(cls):
         return FalseInv(0)
@@ -189,13 +203,13 @@ class RelTerm(NamedTuple):
         """
         return myop(self.term, val), e.g., x + y <= 8
         """
-        assert myop == operator.eq or myop == operator.le or myop == operator.lt, myop
+        assert myop in {operator.eq, operator.le, operator.lt}, myop
 
         return myop(self.term, val)
 
 
 class Invs(set):
-    def __init__(self, invs=set()):
+    def __init__(self, invs=()):
         assert all(isinstance(inv, Inv) for inv in invs), invs
         super().__init__(invs)
 
@@ -256,33 +270,8 @@ class CInvs:
         self.arr_rels = []
         self.falseinvs = []
 
-        import infer.eqt
-        import infer.oct
-        import infer.mp
-        import infer.congruence
-        import infer.nested_array
-
-        eqts, eqts_largecoefs, octs, mps, congruences, falseinvs = [], [], [], [], [], []
-        arr_rels = []
         for inv in self.invs:
-            mylist = None
-            if isinstance(inv, infer.eqt.Eqt):
-                if len(Miscs.get_coefs(inv.inv.lhs)) > 10:
-                    mylist = self.eqts_largecoefs
-                else:
-                    mylist = self.eqts
-            elif isinstance(inv, infer.oct.Oct):
-                mylist = self.octs
-            elif isinstance(inv, infer.mp.MMP):
-                mylist = self.mps
-            elif isinstance(inv, infer.nested_array.NestedArray):
-                mylist = self.arr_rels
-            elif isinstance(inv, infer.congruence.Congruence):
-                mylist = self.congruences
-            else:
-                assert isinstance(inv, FalseInv), inv
-                mylist = self.falseinvs
-            mylist.append(inv)
+            getattr(self, inv.cinvs_category).append(inv)
 
     @classmethod
     def get_max_deg(cls, inv):
@@ -419,7 +408,7 @@ class CInvs:
 
         Miscs.show_removed(f"_simplify_fast {msg}", len(
             ps), len(wrs), time() - st)
-        ps = [p for p in wrs]
+        ps = list(wrs)
         return ps
 
     @classmethod
@@ -526,11 +515,16 @@ class DInvs(dict):
             return [(loc, self[loc].test(dtraces[loc])) for loc in tasks]
 
         wrs = MP.run_mp("test_dinvs", tasks, f, settings.DO_MP)
-        dinvs = DInvs({loc: invs for loc, invs in wrs if invs})
+        dinvs = DInvs()
+        for loc, invs in wrs:
+            if invs:
+                dinvs[loc] = invs
         Miscs.show_removed("test_dinvs", self.siz, dinvs.siz, time() - st)
         return dinvs
 
     def update(self, dinvs):
+        # NOTE: mutates dinvs in-place (merges self into it) AND returns deltas.
+        # Callers in alg.py depend on both effects.
         assert isinstance(dinvs, DInvs), dinvs
         deltas = self.__class__()
         for loc in self:
@@ -561,14 +555,17 @@ class DInvs(dict):
             return [(loc, self[loc].simplify()) for loc in tasks]
 
         wrs = MP.run_mp("simplify", list(self), f, settings.DO_MP)
-        mlog.debug("done simplifying , time {}".format(time() - st))
-        dinvs = self.__class__((loc, invs) for loc, invs in wrs if invs)
+        mlog.debug(f"done simplifying, time {time() - st}")
+        dinvs = self.__class__()
+        for loc, invs in wrs:
+            if invs:
+                dinvs[loc] = invs
         Miscs.show_removed("simplify", self.siz, dinvs.siz, time() - st)
         return dinvs
 
     @beartype
     @classmethod
-    def mk_false_invs(cls, locs) -> dict:
+    def mk_false_invs(cls, locs) -> 'DInvs':
         dinvs = cls()
         for loc in locs:
             dinvs.add(loc, FalseInv.mk())
@@ -576,7 +573,7 @@ class DInvs(dict):
 
     @beartype
     @classmethod
-    def mk(cls, loc:str, invs:Invs) -> dict:
+    def mk(cls, loc:str, invs:Invs) -> 'DInvs':
         new_invs = cls()
         new_invs[loc] = invs
         return new_invs

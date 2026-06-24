@@ -177,7 +177,7 @@ def setup(settings, args):
         if settings:
             settings.DO_INCR_DEPTH = not args.noincrdepth
         else:
-            opts.append("-noincredepth")
+            opts.append("-noincrdepth")
 
     if args.dosolverstats:
         if settings:

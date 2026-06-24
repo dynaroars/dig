@@ -1,7 +1,9 @@
 import abc
 from collections.abc import Callable
+from enum import Enum
 import pdb
 import random
+import tempfile
 import time
 from pathlib import Path
 import sys
@@ -27,12 +29,23 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class Dig(metaclass=abc.ABCMeta):
+class InferType(str, Enum):
     EQTS = "eqts"
     IEQS = "ieqs"
     MINMAX = "minmax"
     CONGRUENCE = "congruence"
     PREPOSTS = "preposts"
+
+    def __str__(self):
+        return self.value
+
+
+class Dig(metaclass=abc.ABCMeta):
+    EQTS = InferType.EQTS
+    IEQS = InferType.IEQS
+    MINMAX = InferType.MINMAX
+    CONGRUENCE = InferType.CONGRUENCE
+    PREPOSTS = InferType.PREPOSTS
 
     @beartype
     def __init__(self, filename: Path) -> None:
@@ -101,7 +114,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         super().start(seed, maxdeg)
 
         assert settings.TMPDIR.is_dir()
-        import tempfile
 
         prefix = hash(self.seed)
         self.tmpdir = Path(

@@ -1,7 +1,7 @@
 import pdb
 from functools import reduce
 from math import gcd
-import typing
+from typing import NamedTuple
 from beartype import beartype
 
 import sympy
@@ -20,7 +20,7 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class MyCongruence(typing.NamedTuple):
+class MyCongruence(NamedTuple):
     """
     a === b (mod n)
 
@@ -73,6 +73,10 @@ class Congruence(infer.inv.Inv):
         return str(self.inv)
 
     @property
+    def cinvs_category(self) -> str:
+        return 'congruences'
+
+    @property
     def expr(self) -> z3.ExprRef:
         return self.inv.expr
 
@@ -85,14 +89,7 @@ class Congruence(infer.inv.Inv):
 class Infer(infer.infer._Infer):
 
     def gen(self) -> infer.inv.DInvs:
-
-        locs = self.prog.locs
-        tasks = [(loc, self._get_init_traces(loc)) for loc in locs]
-
-        return infer.inv.DInvs()
-
-    def _get_init_traces(self, loc):
-        pass
+        raise NotImplementedError("congruence symbolic-states path not implemented; use gen_from_traces")
 
     @classmethod
     def gen_from_traces(cls, traces, symbols):
@@ -112,7 +109,7 @@ class Infer(infer.infer._Infer):
         return ps
 
     @classmethod
-    def _solve(cls, X: typing.List[int]) -> typing.Tuple[typing.Optional[int], typing.Optional[int]]:
+    def _solve(cls, X: list[int]) -> tuple[int | None, int | None]:
         assert(X), X
         b = None
         Y = [X[0] - v for v in X]

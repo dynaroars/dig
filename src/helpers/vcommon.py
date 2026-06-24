@@ -1,27 +1,26 @@
 """
 To run doctest
-$ ~/miniconda3/bin/python3 -m doctest -v helpers/vcommon.py 
+$ ~/miniconda3/bin/python3 -m doctest -v helpers/vcommon.py
 """
 
-
-from typing import List, Iterable, Any, Tuple, Dict, Sequence, Set
-from typing import Type, TypeVar, Union, Optional, Callable
-from typing import Iterator
 import logging
+import pickle
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
 
-def pause(s: Optional[str]=None):
+
+def pause(s: str | None = None):
     """ do something """
     input("Press any key to continue ..." if s is None else s)
 
 
 def iread(filename: str) -> Iterator[str]:
     """ return a generator """
-    with open(filename, 'r') as fh:
-        for line in fh:
-            yield line
+    return Path(filename).open()
 
 
-def strip_contents(lines: Iterator[str], strip_c: Optional[str]='#'):
+def strip_contents(lines: Iterator[str], strip_c: str | None = '#'):
     lines = (l.strip() for l in lines)
     lines = (l for l in lines if l)
     if strip_c:
@@ -29,7 +28,7 @@ def strip_contents(lines: Iterator[str], strip_c: Optional[str]='#'):
     return lines
 
 
-def iread_strip(filename: str, strip_c: Optional[str]='#') -> Iterator[str]:
+def iread_strip(filename: str, strip_c: str | None = '#') -> Iterator[str]:
     """
     like iread but also strip out comments and empty line
     """
@@ -53,36 +52,23 @@ def getLogger(name: str, level: int) -> logging.Logger:
 
 
 def getLogLevel(level: int) -> int:
-    assert level in set(range(5))
-
-    if level == 0:
-        return logging.CRITICAL
-    elif level == 1:
-        return logging.ERROR
-    elif level == 2:
-        return logging.WARNING
-    elif level == 3:
-        return logging.INFO
-    else:
-        return logging.DEBUG
+    assert 0 <= level < 5
+    levels = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    return levels[level]
 
 
-def vsave(filename: str, sobj: Any, mode: str ='wb'):
+def vsave(filename: str, sobj: Any, mode: str = 'wb'):
     with open(filename, mode) as fh:
-        import pickle
         pickle.dump(sobj, fh)
 
 
-def vload(filename: str, mode: str ='rb') -> Any:
+def vload(filename: str, mode: str = 'rb') -> Any:
     with open(filename, mode) as fh:
-        import pickle
-        sobj = pickle.load(fh)
-    return sobj
+        return pickle.load(fh)
 
 
-def vread(filename: str):
-    with open(filename, 'r') as fh:
-        return fh.read()
+def vread(filename: str) -> str:
+    return Path(filename).read_text()
 
 
 if __name__ == "__main__":

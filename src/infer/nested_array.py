@@ -2,14 +2,12 @@ import pdb
 import itertools
 import functools
 
-from collections import namedtuple, defaultdict, OrderedDict
+from collections import namedtuple, defaultdict
 from collections.abc import Iterable
 
 import sympy
 import z3
 from beartype import beartype
-from beartype.typing import List, Dict, Union
-
 import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
@@ -37,6 +35,10 @@ class NestedArray(infer.inv.Inv):
     @property
     def mystr(self) -> str:
         return str(self.inv)
+
+    @property
+    def cinvs_category(self) -> str:
+        return 'arr_rels'
 
     @staticmethod
     def eval_lambda(inv, idx_info, tc):
@@ -94,7 +96,7 @@ class NestedArray(infer.inv.Inv):
 
         assert (idx_info is None or
                 isinstance(idx_info, list) and
-                all(isinstance(v, dict) for v in idx_info)), indx_info
+                all(isinstance(v, dict) for v in idx_info)), idx_info
         assert isinstance(tc, dict), tc
         assert all(isinstance(k, str) for k in tc), tc.keys()
 
@@ -103,7 +105,6 @@ class NestedArray(infer.inv.Inv):
 
         arrs = [v for v in vs if v in tc]  # A,B
 
-        from infer.nested_array import ExtFun, MyMiscs
         extfuns = [v for v in vs if v in ExtFun.d]
         idxStr = [v for v in vs if v not in arrs + extfuns]  # i,j,k
 
@@ -125,7 +126,7 @@ class NestedArray(infer.inv.Inv):
         except TypeError:
             return False
         except NameError as msg:
-            mlog.warn(msg)
+            mlog.warning(msg)
             return False
 
     def test_single_trace(self, trace):
@@ -169,7 +170,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
     """
 
-    def __new__(cls, root=None, children=[], commute=False):
+    def __new__(cls, root=None, children=(), commute=False):
         assert(root is None or isinstance(root, (str, sympy.Expr))), root
         assert isinstance(children, Iterable), children
         assert isinstance(commute, bool), commute
@@ -247,8 +248,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             return str(ret)
         else:
             if self.root in ExtFun.d:
-                rs = '({})'.format(','.join(c.__str__(leaf_content)
-                                            for c in self.children))
+                rs = f"({','.join(c.__str__(leaf_content) for c in self.children)})"
             else:
                 rs = ''.join(
                     f"[{c.__str__(leaf_content)}]" for c in self.children)
@@ -372,7 +372,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
         return all(c.is_leaf for c in self.children)
 
     @beartype
-    def get_non_leaf_nodes(self, nodes:List=[]) -> List[str]:
+    def get_non_leaf_nodes(self, nodes:list=()) -> list[str]:
         """
         Returns the *names* of the non-leaves nodes
 
@@ -393,7 +393,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
             return nodes
 
     @beartype
-    def gen_formula(self, v:int, data:Dict[str, List]) -> Union[z3.ExprRef, None]:
+    def gen_formula(self, v:int, data:dict[str, list]) -> z3.ExprRef | None:
         """
         Generate a formula recursively to represent the data structure of tree based on
         input value v and data.
@@ -470,7 +470,7 @@ class Tree(namedtuple("Tree", ("root", "children", "commute"))):
 
     @beartype
     @staticmethod
-    def uniq(trees:List, tree) -> List:
+    def uniq(trees:list, tree) -> list:
         assert isinstance(trees, list) and all(isinstance(t, Tree)
                                                for t in trees) and trees, trees
         assert isinstance(tree, Tree), tree
@@ -578,8 +578,7 @@ class AEXP(namedtuple("AEXP", ("lt", "rt"))):
 
         if do_lambda:
             l_idxs_ = ','.join([f'i{li}' for li in l_idxs])
-            nodes = OrderedDict((n, None)
-                                for n in self.rt.get_non_leaf_nodes())
+            nodes = dict.fromkeys(self.rt.get_non_leaf_nodes())
             nodes = [self.lt.root] + list(nodes)
             lambda_ = f"lambda {','.join(nodes)},{l_aformat}"  # v,a,b,c,i1,i2
             rs = f"{lambda_}: {rs}"
@@ -810,10 +809,10 @@ class XInfo(namedtuple("XInfo", ("assumes", "consts",
                                  "extvars", "inputs",
                                  "outputs", "myall", "myglobals"))):
 
-    def __new__(cls, assumes=[], consts=[],
-                expects=[], extfuns=[], extvars=[],
-                inputs=[], outputs=[],
-                myall=[], myglobals=[]):
+    def __new__(cls, assumes=(), consts=(),
+                expects=(), extfuns=(), extvars=(),
+                inputs=(), outputs=(),
+                myall=(), myglobals=()):
 
         return super().__new__(cls, assumes, consts,
                                expects, extfuns, extvars,
@@ -999,9 +998,8 @@ class ExtFun(str):
                 def _set(l):
                     return list(set(tuple(sorted(e)) for e in l))
 
-                d = OrderedDict((k, _set(d[k])) for k in d)
-            rs = OrderedDict()
-            rs[self] = d
+                d = {k: _set(d[k]) for k in d}
+            rs = {self: d}
 
             # print('fun: {}, fvals {}, idxs {}'
             #       .format(self, len(d.keys()), len(idxs)))
@@ -1208,7 +1206,7 @@ class ExtFun(str):
         vval = ev[idx:].strip()
         vval = ReadFile.formatter(vval)
         vval = ReadFile.strToRatOrList(vval, is_num_val=None)
-        return OrderedDict([(vname, vval)])
+        return {vname: vval}
 
     @classmethod
     def gen_extvars(cls, xinfo):
@@ -1282,9 +1280,7 @@ def get_traces(tcs, ntcs, ntcs_extra):
     assert ntcs >= 0, ntcs
     assert ntcs_extra >= 0, ntcs_extra
 
-    print('Total traces {}, '
-          'request (ntcs {}, ntcs_extra {})'
-          .format(len(tcs), ntcs, ntcs_extra))
+    print(f'Total traces {len(tcs)}, request (ntcs {ntcs}, ntcs_extra {ntcs_extra})')
 
     if len(tcs) <= ntcs:
         tcs1 = tcs[:]
@@ -1296,8 +1292,7 @@ def get_traces(tcs, ntcs, ntcs_extra):
         tcs1 = [tcs[i] for i in idxs[:ntcs]]
         tcs2 = [tcs[i] for i in idxs[ntcs:ntcs+ntcs_extra]]
 
-    print('mk_traces: |tcs1|={}, |tcs2|={} '
-          .format(len(tcs1), len(tcs2)))
+    print(f'mk_traces: |tcs1|={len(tcs1)}, |tcs2|={len(tcs2)}')
 
     return tcs1, tcs2
 
@@ -1353,7 +1348,7 @@ class MyMiscs(object):
         >>> MyMiscs.get_idxs([1,[0,[5]],8,[8]])
         {0: [(1, 0)], 1: [(0,)], 5: [(1, 1, 0)], 8: [(2,), (3, 0)]}
 
-        >>> assert MyMiscs.get_idxs([]) == OrderedDict()
+        >>> assert MyMiscs.get_idxs([]) == {}
         """
 
         rs = [(v, tuple(idx)) for idx, v in cls.travel(A)]

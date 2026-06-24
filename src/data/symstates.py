@@ -4,7 +4,6 @@ Symbolic States
 import functools
 import sys
 import shlex
-from collections import defaultdict
 import abc
 import pdb
 from multiprocessing import Queue
@@ -12,6 +11,7 @@ from pathlib import Path
 from queue import Empty
 import subprocess
 
+import json
 import z3
 from beartype import beartype
 
@@ -224,7 +224,7 @@ class PCs(set):  #{PathConds}
     def __init__(self, loc:str, depth:int, read_from_file:bool = False) -> None:
         assert depth >= 1, depth
         
-        super().__init__(set())
+        super().__init__()
         self.loc = loc
         self.depth = depth
         self._read_from_file = read_from_file  # if read from file then will not contain PathConds, just _expr
@@ -278,7 +278,7 @@ class SymStates(dict):
         self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
         self.solver_stats_ = []  # periodically save solver_stats results here
 
-        super().__init__(dict())
+        super().__init__()
 
     @beartype
     @property
@@ -311,7 +311,6 @@ class SymStates(dict):
             "inps": inps,
             "ss": ss
         }
-        import json
         jdata = json.dumps(data)
         sstatesfile.write_text(jdata)
 
@@ -322,7 +321,6 @@ class SymStates(dict):
         """
         assert sstatesfile.is_file(), sstatesfile
         
-        import json
         data = json.loads(sstatesfile.read_text())
         ss = data["ss"]
 
@@ -348,19 +346,19 @@ class SymStates(dict):
             f"{dinvs.__str__(print_first_n=20)}")
         tasks = [(loc, inv)
                  for loc in dinvs for inv in dinvs[loc] if inv.stat is None]
-        refsD = {(loc, str(inv)): inv for loc, inv in tasks}
+        refsD = {(loc, id(inv)): inv for loc, inv in tasks}
 
         def f(tasks):
             return [
-                (loc, str(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
+                (loc, id(inv), self.mcheck_d(loc, inv, inps, ncexs=1))
                 for loc, inv in tasks
             ]
 
         wrs = MP.run_mp("prove", tasks, f, settings.DO_MP)
         mCexs = []
         mdinvs = infer.inv.DInvs()
-        for loc, str_inv, (cexs, is_succ) in wrs:
-            inv = refsD[(loc, str_inv)]
+        for loc, inv_id, (cexs, is_succ) in wrs:
+            inv = refsD[(loc, inv_id)]
 
             if cexs:
                 stat = infer.inv.Inv.DISPROVED
@@ -406,7 +404,7 @@ class SymStates(dict):
     @beartype
     def mcheck_depth(self, ssd: SymStatesDepth,
                      inv:infer.inv.Inv | None, 
-                     inv_expr: None | z3.z3.BoolRef, 
+                     inv_expr: None | z3.BoolRef,
                      inps: None | data.traces.Inps, 
                      ncexs:int ) -> tuple[list, bool]:
         # assert inv_expr is None or z3.is_expr(inv_expr), inv_expr
@@ -504,8 +502,8 @@ class SymStates(dict):
 
     @beartype
     def mmaximize_depth(self, ssd:SymStatesDepth , 
-                        term_expr: z3.ExprRef, 
-                        iupper: int) -> tuple[int | None, z3.z3.CheckSatResult]:
+                        term_expr: z3.ExprRef,
+                        iupper: int) -> tuple[int | None, z3.CheckSatResult]:
 
 
         @beartype
@@ -575,8 +573,8 @@ class SymStates(dict):
     @beartype
     @classmethod
     def mmaximize(cls, ss: z3.ExprRef, 
-                  term_expr: z3.ExprRef, 
-                  iupper: int) -> tuple:
+                  term_expr: z3.ExprRef,
+                  iupper: int) -> tuple[int | None, z3.CheckSatResult]:
 
         assert iupper >= 1, iupper
         
@@ -675,7 +673,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         pass
 
     @beartype
-    def compute(self) -> defaultdict:
+    def compute(self) -> dict:
         """
         Run symbolic execution to obtain symbolic states
         """
@@ -687,7 +685,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
                          f"setting mindepth=maxdepth={maxd}")
             mind = maxd
             
-        tasks = [depth for depth in range(mind, maxd + 1)]
+        tasks = list(range(mind, maxd + 1))
 
         def f(tasks):
             rs = [(depth, self.get_symstates(depth)) for depth in tasks]
@@ -766,7 +764,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
 
     @beartype
     @classmethod
-    def merge(cls, depthss: list, pc_cls) -> defaultdict:
+    def merge(cls, depthss: list, pc_cls) -> dict:
         """
         Merge PC's info into symstates sd[loc][depth]
         """
@@ -783,12 +781,12 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         def zslocal(p):
             return Z3.parse(p)
 
-        symstates = defaultdict(lambda: defaultdict(lambda: PCs(loc, depth)))
+        symstates: dict = {}
         for depth, ss in depthss:
             for (loc, pcs, slocals) in ss:
                 try:
                     pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
-                    symstates[loc][depth].add(pc)
+                    symstates.setdefault(loc, {}).setdefault(depth, PCs(loc, depth)).add(pc)
                 except MemoryError:
                     mlog.error(f"cannot parse pcs {pcs}")
                     mlog.error(f"cannot parse slocals {slocals}")

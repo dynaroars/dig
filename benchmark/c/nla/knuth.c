@@ -1,9 +1,10 @@
 #include <stdio.h>
-#include <math.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 void vassume(int b){}
 void vtrace1(int n, int a, int r, int k, int q, int d, int s, int t){}
 void vtrace2(int n, int a, int r, int k, int q, int d, int s, int t){}
+
+static int isqrt(int n) { int s = 0; while ((s+1)*(s+1) <= n) s++; return s; }
 
 int mainQ(int n, int a){
      //algorithm searching for a divisor for factorization, by Knuth
@@ -15,7 +16,7 @@ int mainQ(int n, int a){
 
      k=n % (d-2);
      q=4*(n/(d-2) - n/d);
-     s=(int)sqrt(n);
+     s=isqrt(n);
 
      while(1){
 	  //assert(d*d*q - 2*q*d - 4*r*d + 4*k*d  + 8*r == 8*n);
@@ -61,7 +62,8 @@ int mainQ(int n, int a){
 }
 
 
-void main(int argc, char **argv){
+int main(int argc, char **argv){
      mainQ(atoi(argv[1]), atoi(argv[2]));
+     return 0;
 }
 

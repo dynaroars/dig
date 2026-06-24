@@ -1,7 +1,8 @@
+import csv
 import pdb
 from pathlib import Path
 from collections.abc import Iterable
-import typing
+from typing import NamedTuple
 import sympy
 from beartype import beartype
 import z3
@@ -16,7 +17,7 @@ import settings
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-class SymbsVals(typing.NamedTuple):
+class SymbsVals(NamedTuple):
     ss: tuple
     vs: tuple
     """ "
@@ -45,7 +46,7 @@ class SymbsVals(typing.NamedTuple):
 class SymbsValsSet(set):
     
     @beartype
-    def __init__(self, myset=set()) -> None:
+    def __init__(self, myset=()) -> None:
         super().__init__(myset)
 
     @beartype
@@ -93,7 +94,7 @@ class Trace(SymbsVals):
         vs = tuple(Miscs.str2list(t) if '[' in t else Miscs.str2rat(t)
                    for t in vs)
 
-        return Trace(ss, vs)
+        return Trace(tuple(ss), vs)
 
     @classmethod
     def fromDict(cls, d):
@@ -303,7 +304,6 @@ class DTraces(dict):
         """
         assert tracefile.is_file() and tracefile.suffix == ".csv", tracefile
 
-        import csv
         with open(tracefile) as csvfile:
             traces = []
             # determine variable declarations for different locations
@@ -367,10 +367,10 @@ class Inps(SymbsValsSet):
         else:
             assert isinstance(ds, set) and all(
                 isinstance(d, tuple) for d in ds), ds
-            new_inps = [inp for inp in ds]
+            new_inps = list(ds)
 
         new_inps = [Inp(ss, inp) for inp in new_inps]
-        new_inps = set(inp for inp in new_inps if inp not in self)
+        new_inps = {inp for inp in new_inps if inp not in self}
         for inp in new_inps:
             self.add(inp)
         return Inps(new_inps)

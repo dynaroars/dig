@@ -2,14 +2,16 @@
 Analyze Dig's results
 """
 import argparse
+from dataclasses import dataclass
 import pdb
 import random
 import shutil
 import sys
 import time
-from collections import Counter, defaultdict, namedtuple
+from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median_low
+from typing import Any, ClassVar, NamedTuple
 
 import helpers.vcommon as CM
 import infer.inv
@@ -22,28 +24,39 @@ DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
-CheckSolverCalls = namedtuple("CheckSolverCalls", "stat")
-CheckDepthChanges = namedtuple("CheckDepthChanges", "prop v1 d1 v2 d2")
-MaxSolverCalls = namedtuple("MaxSolverCalls", "stat")
-MaxDepthChanges = namedtuple("MaxDepthChanges", "prop v1 d1 v2 d2")
+class CheckSolverCalls(NamedTuple):
+    stat: Any
+
+class CheckDepthChanges(NamedTuple):
+    prop: Any
+    v1: int | None
+    d1: int | None
+    v2: int | None
+    d2: int | None
+
+class MaxSolverCalls(NamedTuple):
+    stat: Any
+
+class MaxDepthChanges(NamedTuple):
+    prop: Any
+    v1: int | None
+    d1: int | None
+    v2: int | None
+    d2: int | None
 
 
+@dataclass
 class Result:
-    resultfile: str = 'result'
+    resultfile: ClassVar[str] = 'result'
+    filename: Any
+    seed: float
+    dinvs: Any
+    dtraces: Any
+    stats: Any
+    time_d: dict
 
-    def __init__(self, filename, seed,
-                 dinvs, dtraces,
-                 stats,
-                 time_d):
-
-        assert isinstance(time_d, dict) and time_d, time_d
-
-        self.filename = filename
-        self.seed = seed
-        self.dinvs = dinvs
-        self.dtraces = dtraces
-        self.stats = stats
-        self.time_d = time_d
+    def __post_init__(self):
+        assert isinstance(self.time_d, dict) and self.time_d, self.time_d
 
     def save(self, todir):
         assert todir.is_dir(), todir
@@ -131,7 +144,7 @@ class AResult(Result):
             ntermss.append(nterms)
 
             # print(inv, vs, maxdeg, nterms)
-        vss = set(str(v) for vs in vss for v in vs)
+        vss = {str(v) for vs in vss for v in vs}
         nvs = len(vss)
         maxdeg = max(maxdegs)
         nterms = max(ntermss)
@@ -177,7 +190,8 @@ class Results:
 
     def start(self, f):
         rs = self.results
-        _ = [r.analyze() for r in rs]
+        for r in rs:
+            r.analyze()
 
         nruns = len(rs)
         nlocs = f(len(r.dinvs) for r in rs)
@@ -215,8 +229,7 @@ class Results:
         for r in rs:
             for t in r.time_d:
                 time_d[t].append(r.time_d[t])
-        time_s = ', '.join("{} {:.1f}s".format(t, f(time_d[t]))
-                           for t in time_d)
+        time_s = ', '.join(f"{t} {f(time_d[t]):.1f}s" for t in time_d)
 
         print(f"* prog {self.prog} locs {nlocs}; "
               f"{invtypss} V {V} T {T} D {D}; NL {NL} ({D}) ;")

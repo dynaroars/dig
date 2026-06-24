@@ -5,7 +5,7 @@ $ ~/miniconda3/bin/python3 -m doctest -v helpers/miscs.py
 
 from __future__ import annotations
 from collections.abc import Iterable, Callable
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 import pdb
 import itertools
 import functools
@@ -50,9 +50,7 @@ class Miscs:
         vs = (v for p in props for v in p.free_symbols)
         return [v for v in sorted(set(vs), key=str) if isinstance(v, sympy.Symbol)]
 
-    str2rat_cache: dict[str, sympy.Rational] = {}
-
-    @beartype 
+    @beartype
     @staticmethod
     def str2list(s: str) -> tuple:
         rs = tuple(eval(s))
@@ -144,15 +142,16 @@ class Miscs:
         >>> assert(Miscs.get_max_deg(x*y**2 + 3*y) == 3)
         """
 
-        if isinstance(p, (int, sympy.core.numbers.Integer)):
-            return 0
-        elif isinstance(p, sympy.Expr) and (p.is_Symbol or p.is_Mul or p.is_Pow):  # x,  x*y, x**3
-            return int(sum(sympy.degree_list(p)))
-        elif isinstance(p, sympy.Add):
-            return max(cls.get_max_deg(a) for a in p.args)
-        else:
-            mlog.warning(f"cannot handle {p} of type {type(p)}")
-            return 0
+        match p:
+            case int() | sympy.Integer():
+                return 0
+            case sympy.Expr() if p.is_Symbol or p.is_Mul or p.is_Pow:  # x, x*y, x**3
+                return int(sum(sympy.degree_list(p)))
+            case sympy.Add():
+                return max(cls.get_max_deg(a) for a in p.args)
+            case _:
+                mlog.warning(f"cannot handle {p} of type {type(p)}")
+                return 0
 
     @beartype    
     @classmethod
@@ -310,11 +309,11 @@ class Miscs:
     def remove_ugly(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr |  sympy.Rel]:
 
         @functools.cache
-        def is_nice_coef(c: Union[int, float]) -> bool:
+        def is_nice_coef(c: int | float) -> bool:
             return abs(c) <= settings.UGLY_FACTOR or c % 10 == 0 or c % 5 == 0
 
         @functools.cache
-        def is_nice_eqt(eqt: Union[sympy.Expr, sympy.Rel]) -> bool:
+        def is_nice_eqt(eqt: sympy.Expr | sympy.Rel) -> bool:
             return (len(eqt.args) <= settings.UGLY_FACTOR
                     and all(is_nice_coef(c) for c in cls.get_coefs(eqt)))
 
@@ -388,9 +387,8 @@ class Miscs:
         """
         assert terms, terms
         assert uks, uks
-        assert len(terms) == len(uks) == len(vs), (terms, uks, vs)
 
-        cs = [(t, u, v) for t, u, v in zip(terms, uks, vs) if v != 0]
+        cs = [(t, u, v) for t, u, v in zip(terms, uks, vs, strict=True) if v != 0]
         terms_, uks_, vs_ = zip(*cs)
 
         eqt = sum(t*v for t, v in zip(terms_, vs_))
@@ -444,15 +442,33 @@ class Miscs:
         generates a dict where keys are k's and values are [v's]
         e.g.,
 
-        >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)]) 
+        >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)])
         {'a': [1, 3], 'b': [2, 10], 'c': [4]}
         """
-        return functools.reduce(lambda d, kv: d.setdefault(kv[0], []).append(kv[1]) or d, l, {})
+        d: defaultdict = defaultdict(list)
+        for k, v in l:
+            d[k].append(v)
+        return dict(d)
 
-    @beartype        
+    @beartype
     @staticmethod
     def merge_dict(l: list[dict[Any, Any]]) -> dict[Any, Any]:
-        return functools.reduce(lambda x, y: OrderedDict(list(x.items()) + list(y.items())), l, {})
+        result: dict = {}
+        for d in l:
+            result |= d
+        return result
+
+
+# Module-level state for fork-based Pool workers.
+# Pool.map() pickles the callable and args, which fails for closures that capture
+# z3 ctypes. Workaround: store both in globals before Pool() forks; workers
+# inherit them via fork. Only a picklable integer index crosses the IPC boundary.
+_MP_FN: Any = None
+_MP_WLOADS: list = []
+
+
+def _mp_run_worker(idx: int):
+    return _MP_FN(_MP_WLOADS[idx])
 
 
 class MP:
@@ -486,69 +502,41 @@ class MP:
             cpu_id = i % n_cpus
             wloads[cpu_id].append(task)
 
-        _wloads = [wl for wl in sorted(wloads.values(), key=len)]
+        _wloads = list(sorted(wloads.values(), key=len))
         return _wloads
-
-    @classmethod
-    def wprocess(cls, f, mytasks: list[Any], myQ: None | multiprocessing.Queue):
-        try:
-            rs = f(mytasks)
-        except BaseException as ex:
-            if myQ is None:
-                raise
-            else:
-                import traceback
-                rs = RuntimeError(traceback.format_exc())
-
-        if myQ is None:
-            return rs
-        else:
-            myQ.put(rs)
-
 
     @classmethod
     def run_mp(cls, taskname: str, tasks: list[Any], f: Callable[[list[Any]], Any], DO_MP: bool) -> list[Any]:
         """
-        Run wprocess on tasks in parallel
+        Run f on task batches, optionally in parallel via a fork-based Pool.
+
+        Uses fork (not spawn/ProcessPoolExecutor) so f can capture non-picklable
+        state such as z3 ctypes.  Only integer batch indices cross the IPC
+        boundary; the actual closure and workload are inherited by workers through
+        the module-level globals set before Pool() forks.
         """
+        global _MP_FN, _MP_WLOADS
 
         n_cpus = multiprocessing.cpu_count()
         if DO_MP and len(tasks) >= 2 and n_cpus >= 2:
-            Q: multiprocessing.Queue = multiprocessing.Queue()
-            wloads = MP.get_workload(tasks, n_cpus=n_cpus)
+            _MP_WLOADS = MP.get_workload(tasks, n_cpus=n_cpus)
+            _MP_FN = f
             mlog.debug(
-                f"{taskname}:running {len(tasks)} jobs "
-                f"using {len(wloads)} threads: {list(map(len, wloads))}"
+                f"{taskname}: running {len(tasks)} jobs "
+                f"using {len(_MP_WLOADS)} workers: {list(map(len, _MP_WLOADS))}"
             )
-
-            workers = [
-                multiprocessing.Process(target=cls.wprocess, args=(f, wl, Q)) for wl in wloads
-            ]
-
-            for w in workers:
-                w.start()
+            try:
+                with multiprocessing.Pool(processes=len(_MP_WLOADS)) as pool:
+                    batch_results = pool.map(_mp_run_worker, range(len(_MP_WLOADS)))
+            finally:
+                _MP_FN = None
+                _MP_WLOADS = []
 
             wrs = []
-            exc = None
-            for _ in workers:
-                rs = Q.get()
-                if isinstance(rs, list):
-                    wrs.extend(rs)
-                else:
-                    mlog.debug(f"Got exception from worker")
-                    exc = rs
-                    break
-
-            for w in workers:
-                w.terminate()
-                w.join()
-
-            if exc is not None:
-                raise exc
-
-
+            for rs in batch_results:
+                wrs.extend(rs)
         else:
-            wrs = cls.wprocess(f, tasks, myQ=None)
+            wrs = f(tasks)
 
         return wrs
 

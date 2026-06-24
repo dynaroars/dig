@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Type, TypeVar, Union, Optional, Callable
-from typing import List, Iterable, Any, Tuple, Dict, Sequence, Set, FrozenSet
+from collections.abc import Callable
+from typing import Any
 
 import ast
 import pdb
@@ -19,35 +19,35 @@ class Z3:
     TIMEOUT = settings.SOLVER_TIMEOUT * 1000
 
     @classmethod
-    def _process_fs(cls: Type[Z3], 
-                    fs: List[Union[None, z3.ExprRef]],
-                    and_or_f: Callable[[List[z3.ExprRef]], z3.ExprRef]) -> Union[None, z3.ExprRef]:
+    def _process_fs(cls: type[Z3],
+                    fs: list[z3.ExprRef | None],
+                    and_or_f: Callable[[list[z3.ExprRef]], Any]) -> z3.ExprRef | None:
 
         assert (isinstance(fs, list) and
                 all(isinstance(f, z3.ExprRef) or f is None for f in fs)), fs
 
-        fs = [f for f in fs if f is not None]
-        if not fs:
+        filtered: list[z3.ExprRef] = [f for f in fs if f is not None]
+        if not filtered:
             return None
-        if len(fs) == 1:
-            return fs[0]
+        if len(filtered) == 1:
+            return filtered[0]
 
-        return and_or_f(fs)
+        return and_or_f(filtered)
 
     @classmethod
-    def _and(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]]) -> Union[None, z3.ExprRef]:
+    def _and(cls: type[Z3], fs: list[z3.ExprRef | None]) -> z3.ExprRef | None:
         return cls._process_fs(fs, z3.And)
 
     @classmethod
-    def _or(cls: Type[Z3], fs: List[Union[None, z3.ExprRef]]) -> Union[None, z3.ExprRef]:
+    def _or(cls: type[Z3], fs: list[z3.ExprRef | None]) -> z3.ExprRef | None:
         return cls._process_fs(fs, z3.Or)
 
     @classmethod
-    def is_var(cls: Type[Z3], v: Any) -> bool:
+    def is_var(cls: type[Z3], v: Any) -> bool:
         return z3.is_const(v) and v.decl().kind() == z3.Z3_OP_UNINTERPRETED
 
     @classmethod
-    def _get_vars(cls: Type[Z3], f: z3.ExprRef, rs: Set[Any]):
+    def _get_vars(cls: type[Z3], f: z3.ExprRef, rs: set[Any]):
         """
         Helper method to obtain variables from a formula f recursively.
         Results are stored in the list rs.
@@ -62,31 +62,30 @@ class Z3:
 
     @classmethod
     @functools.cache
-    def get_vars(cls: Type[Z3], f: z3.ExprRef) -> FrozenSet[z3.ExprRef]:
+    def get_vars(cls: type[Z3], f: z3.ExprRef) -> frozenset[z3.ExprRef]:
         """
         >>> x,y,z = z3.Ints("x y z")
         >>> assert(Z3.get_vars(z3.And(x + y == z , y + z == z)) == {z, y, x})
         """
         assert isinstance(f, z3.ExprRef), f
 
-        rs: Set[Any] = set()
+        rs: set[Any] = set()
         cls._get_vars(f, rs)
         return frozenset(rs)
 
     @classmethod
-    def create_solver(cls: Type[Z3], 
+    def create_solver(cls: type[Z3],
                         maximize: bool = False
-                        ) -> Union[z3.Optimize, z3.Solver]:
+                        ) -> z3.Optimize | z3.Solver:
         assert isinstance(maximize, bool), maximize
 
         solver = z3.Optimize() if maximize else z3.Solver()
-        solver.set(timeout=cls.TIMEOUT)
         solver.set("timeout", cls.TIMEOUT)
         return solver
 
     @classmethod
-    def extract(cls: Type[Z3], models: List[z3.ModelRef], 
-                f: Callable[[str], str]) -> Tuple[List[Dict[str, str]], bool]:
+    def extract(cls: type[Z3], models: list[z3.ModelRef],
+                f: Callable[[str], str]) -> tuple[list[dict[str, str]], bool]:
 
         assert (
                 models is None
@@ -98,7 +97,7 @@ class Z3:
                 )
         ), models
 
-        cexs: List = list()
+        cexs: list = []
         is_succ = models is not None
         if is_succ and models:  # disproved
             cexs = []
@@ -115,10 +114,10 @@ class Z3:
         return cexs, is_succ
 
     @classmethod
-    def get_models(cls: Type[Z3],
+    def get_models(cls: type[Z3],
                    f: z3.ExprRef,
                    k: int
-                  ) -> Tuple[Union[None, bool, List[Union[z3.Optimize, z3.Solver]]], int]:
+                  ) -> tuple[None | bool | list[z3.Optimize | z3.Solver], z3.CheckSatResult]:
         """
         Returns the first k models satisfiying f.
         If f is not satisfiable, returns False.
@@ -133,7 +132,7 @@ class Z3:
         models = []
         i = 0
         while solver.check() == z3.sat and i < k:
-            i = i + 1
+            i += 1
             m = solver.model()
             if not m:  # if m == []
                 mlog.warning("sat but no model")
@@ -157,7 +156,7 @@ class Z3:
 
         stat = solver.check()
         if stat == z3.unknown:  # for unknown/unsat/sat, use == instead of is
-            rs: Union[None, bool, List[Any]] = None
+            rs: None | bool | list[Any] = None
         elif stat == z3.unsat and i == 0:
             rs = False
         else:
@@ -174,12 +173,12 @@ class Z3:
         return rs, stat
 
     @classmethod
-    def is_valid(cls: Type[Z3], claim: z3.ExprRef) -> bool:
+    def is_valid(cls: type[Z3], claim: z3.ExprRef) -> bool:
         _, stat = cls.get_models(z3.Not(claim), 1)
         return stat == z3.unsat
 
     @classmethod
-    def imply(cls: Type[Z3], fs: List[z3.ExprRef], g: z3.ExprRef) -> bool:
+    def imply(cls: type[Z3], fs: list[z3.ExprRef], g: z3.ExprRef) -> bool:
         """
         >>> var('x y')
         (x, y)
@@ -220,10 +219,10 @@ class Z3:
         return cls._imply(fs, g)
 
     @classmethod
-    def _imply(cls: Type[Z3], 
-                fs: Union(z3.ExprRef, List[z3.ExprRef]), 
-                g: z3.ExprRef, 
-                is_conj: Optional[bool] = True) -> bool:
+    def _imply(cls: type[Z3],
+                fs: z3.ExprRef | list[z3.ExprRef],
+                g: z3.ExprRef,
+                is_conj: bool | None = True) -> bool:
         assert z3.is_expr(g), g
 
         if is_conj:  # And(fs) => g
@@ -245,7 +244,7 @@ class Z3:
         """
         Parse a string to a Z3 expression
         E.g.,  parse("x>=10*10")
-        
+
         Note cannot parse something like tCtr == y - 1/2*sqrt(4*y**2 - 8*x + 4*y + 1) + 1/2
         """
         # print(ast.dump(node))
@@ -295,8 +294,8 @@ class Z3:
 
         elif isinstance(node, ast.Name):
             return z3.Int(str(node.id))
-        elif isinstance(node, ast.Num):
-            return z3.IntVal(str(node.n))
+        elif isinstance(node, ast.Constant):
+            return z3.IntVal(str(node.value))
         elif isinstance(node, ast.Add):
             return operator.add
         elif isinstance(node, ast.Mult):
@@ -350,14 +349,14 @@ class Z3:
         return s
 
     @classmethod
-    def from_smt2_str(cls: Type[Z3], s: str) -> z3.ExprRef:
+    def from_smt2_str(cls: type[Z3], s: str) -> z3.ExprRef:
         assertions = z3.parse_smt2_string(s)
         expr = cls.zTrue if not assertions else assertions[0]
         assert z3.is_expr(expr), expr
         return expr
 
     @classmethod
-    def model_str(cls: Type[Z3], m: Union[List, z3.ModelRef], as_str: bool = True) -> Union[List, str]:
+    def model_str(cls: type[Z3], m: list | z3.ModelRef, as_str: bool = True) -> list | str | z3.ModelRef | None:
         """
         Returned a 'sorted' model by its keys.
         e.g. if the model is y = 3 , x = 10, then the result is
@@ -378,6 +377,3 @@ class Z3:
                 return vs
         else:
             return str(m) if as_str else m
-
-
-

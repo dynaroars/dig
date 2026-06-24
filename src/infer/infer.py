@@ -57,8 +57,8 @@ class _Infer(metaclass=abc.ABCMeta):
         return new_dtraces
 
     @beartype
-    def check(self, dinvs:infer.inv.DInvs, 
-              inps: None|data.traces.Inps) -> tuple[dict,infer.inv.DInvs]:
+    def check(self, dinvs: infer.inv.DInvs,
+              inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
         if self.symstates:
             cexs, dinvs = self.symstates.check(dinvs, inps)
         else:
@@ -115,7 +115,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         }
         ieqs = infer.inv.DInvs()
         for loc in refs:
-            for inv in refs[loc].keys():
+            for inv in refs[loc]:
                 ieqs.setdefault(loc, infer.inv.Invs()).add(inv)
 
         _, ieqs = self.check(ieqs, inps=None)
@@ -174,12 +174,12 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def my_get_terms(cls, terms, inps) -> list:
+    def my_get_terms(cls, symbols) -> list:
         pass
 
     @staticmethod
     @abc.abstractmethod
-    def get_excludes(term) -> set:
+    def get_excludes(terms, inps) -> set:
         pass
 
     @beartype
@@ -191,7 +191,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         Compute convex hulls from traces
         """
         maxV = cls.IUPPER
-        minV = -1 * maxV
+        minV = -maxV
 
         tasks = cls.my_get_terms(symbols.symbolic)
 

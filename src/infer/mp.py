@@ -1,7 +1,7 @@
 import pdb
 import itertools
-import typing
 import functools
+from typing import NamedTuple
 import sympy
 import z3
 
@@ -18,13 +18,13 @@ DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class Term(typing.NamedTuple):
+class Term(NamedTuple):
     a: tuple
     b: tuple
     is_max: bool
 
     @property
-    def symbols(self) -> typing.Set[str]:
+    def symbols(self) -> set[str]:
         return set(map(str, Miscs.get_vars(self.a + self.b)))
 
     def __str__(self, use_lambda: bool = False) -> str:
@@ -144,7 +144,7 @@ class Term(typing.NamedTuple):
         assert terms, terms
 
         terms = sorted(terms, key=lambda x: str(x))
-        results = set((t, (0,)) for t in terms)
+        results = {(t, (0,)) for t in terms}
         for i, term in enumerate(terms):
             terms_ = terms[:i] + terms[i + 1:]
             powerset = itertools.chain.from_iterable(
@@ -212,7 +212,7 @@ class Term(typing.NamedTuple):
         f = eval(lambda_str)
         symbols = f.__code__.co_varnames
         # if trace has more keys than variables in lambda str then remove them
-        trace = dict([(s, trace[s]) for s in symbols])
+        trace = {s: trace[s] for s in symbols}
         rs = f(**trace)
         return rs
 
@@ -243,6 +243,10 @@ class MMP(infer.inv.Inv):
     @property
     def mystr(self):
         return self.lambdastr(use_lambda=False)
+
+    @property
+    def cinvs_category(self) -> str:
+        return 'mps'
 
     @property
     def is_eqt(self):
@@ -399,7 +403,7 @@ class Infer(infer.infer._Opt):
                 excludes.add(term)
                 continue
 
-            t_symbs = set.union(a_symbs, b_symbs)
+            t_symbs = a_symbs | b_symbs
 
             if len(t_symbs) <= 1:  # finding bound of single input val,
                 continue

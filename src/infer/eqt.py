@@ -30,6 +30,10 @@ class Eqt(infer.inv.Inv):
     def mystr(self) -> str:
         return f"{self.inv.lhs} == {self.inv.rhs}"
 
+    @property
+    def cinvs_category(self) -> str:
+        return 'eqts_largecoefs' if len(Miscs.get_coefs(self.inv.lhs)) > 10 else 'eqts'
+
 
 class Infer(infer.infer._CEGIR):
 
@@ -45,28 +49,17 @@ class Infer(infer.infer._CEGIR):
                 symbols.names, mydeg, settings.EQT_RATE
             )
 
-            if len(traces) < len(uks) and False:
-                mydeg = mydeg - 1
-                mlog.warning(
-                    f"{len(traces)} traces < {len(uks)} uks, reducing to deg {mydeg}")
-                continue
-
             template = sum(t*u for t, u in zip(ts, uks))
             exprs = list(traces.instantiate(template, n_eqts_needed))
             #print(exprs)
-            #CM.pause() 
-            if len(exprs) < len(uks) and False:
-                mydeg = mydeg - 1
-                mlog.warning(
-                    f"{len(exprs)} exprs < {len(uks)} uks, reducing deg to {mydeg}")
-                continue
+            #CM.pause()
 
             eqts = Miscs.solve_eqts(exprs, ts, uks)
             if not eqts:
-                mydeg = mydeg - 1
+                mydeg -= 1
                 mlog.warning(f"NO EQTS RESULTS, reducing deg to {mydeg}")
 
-        return [Eqt(eqt)for eqt in eqts]
+        return [Eqt(eqt) for eqt in eqts]
 
     @beartype
     def gen(self, deg:int) -> tuple[infer.inv.DInvs, data.traces.DTraces] :
@@ -194,10 +187,10 @@ class Infer(infer.infer._CEGIR):
         # if cannot generate sufficient traces, adjust degree
         while not exprs:
             if deg <= 1:
-                mlog.warn(f"deg {deg}, unable to generate sufficient traces")
+                mlog.warning(f"deg {deg}, unable to generate sufficient traces")
                 return  # cannot generate enough traces
 
-            deg = deg - 1
+            deg -= 1
             mlog.info(
                 f"Reduce polynomial degree to {deg}, terms {len(ts)}, uks {len(uks)}"
             )
@@ -247,8 +240,11 @@ class Infer(infer.infer._CEGIR):
             dinvs = infer.inv.DInvs.mk(loc, new_eqts)
             cexs, dinvs = self.check(dinvs, None)
 
-            [eqts.add(inv) for inv in dinvs[loc] if not inv.is_disproved]
-            [cache.add(inv.inv) for inv in dinvs[loc] if inv.stat is not None]
+            for inv in dinvs[loc]:
+                if not inv.is_disproved:
+                    eqts.add(inv)
+                if inv.stat is not None:
+                    cache.add(inv.inv)
 
             if loc not in cexs:
                 mlog.debug(f"{loc}: no disproved candidates -- break")
