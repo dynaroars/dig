@@ -223,11 +223,11 @@ if __name__ == "__main__":
     )
 
     ag(
-        "--python_symex",
-        "-python_symex",
+        "--civl",
+        "-civl",
         action="store_true",
         default=False,
-        help="use Python symbolic execution engine instead of CIVL (for .c files)",
+        help="use CIVL symbolic execution engine instead of the Python engine (for .c files)",
     )
 
     ag(
@@ -269,10 +269,10 @@ if __name__ == "__main__":
         if inp.suffix in (".java", ".class"):
             dig = alg.DigSymStatesJava(inp)
         elif inp.suffix == ".c":
-            if args.python_symex:
-                dig = alg.DigSymStatesPyC(inp)
-            else:
+            if args.civl:
                 dig = alg.DigSymStatesC(inp)
+            else:
+                dig = alg.DigSymStatesPyC(inp)
         else:
             # traces file(s)
             test_tracefile = Path(args.test_tracefile) \
