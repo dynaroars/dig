@@ -53,6 +53,8 @@ class Infer(infer.infer._CEGIR):
 
             template = sum(t*u for t, u in zip(ts, uks))
             exprs = list(traces.instantiate(template, n_eqts_needed))
+            #print(exprs)
+            #CM.pause() 
             if len(exprs) < len(uks) and False:
                 mydeg = mydeg - 1
                 mlog.warning(

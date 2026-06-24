@@ -34,9 +34,9 @@ DIG's numerical relations (in particular, nonlinear relations) have been used in
  
 
 
-## :hammer: Setting up and Using DIG 
+## Setting up and Using DIG 
 
-### Setup using Docker
+### Setup using Docker (for manual installation, see the [Dockerfile](./Dockerfile) for details)
 <details>
 
 <summary><kbd>details</kbd></summary> 

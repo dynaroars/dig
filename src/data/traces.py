@@ -147,7 +147,7 @@ class Traces(SymbsValsSet):
         return (trace.mydict for trace in self)
 
     @beartype
-    def instantiate(self, template, ntraces: int | None) -> set[z3.ExprRef]:
+    def instantiate(self, template, ntraces: int | None):  # -> set[z3.ExprRef]:
         assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
 

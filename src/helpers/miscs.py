@@ -10,6 +10,7 @@ import pdb
 import itertools
 import functools
 import multiprocessing
+import math
 import sympy
 from sympy.solvers.solveset import linsolve
 import helpers.vcommon as CM
@@ -47,7 +48,7 @@ class Miscs:
         props = props if isinstance(props, Iterable) else [props]
         props = (p for p in props if isinstance(p, (sympy.Expr, sympy.Rel)))
         vs = (v for p in props for v in p.free_symbols)
-        return sorted(set(vs), key=str)
+        return [v for v in sorted(set(vs), key=str) if isinstance(v, sympy.Symbol)]
 
     str2rat_cache: dict[str, sympy.Rational] = {}
 
@@ -145,7 +146,7 @@ class Miscs:
 
         if isinstance(p, (int, sympy.core.numbers.Integer)):
             return 0
-        elif p.is_Symbol or p.is_Mul or p.is_Pow:  # x,  x*y, x**3
+        elif isinstance(p, sympy.Expr) and (p.is_Symbol or p.is_Mul or p.is_Pow):  # x,  x*y, x**3
             return int(sum(sympy.degree_list(p)))
         elif isinstance(p, sympy.Add):
             return max(cls.get_max_deg(a) for a in p.args)
@@ -175,7 +176,7 @@ class Miscs:
                 return d
 
             # look ahead
-            nterms: int = sympy.binomial(nvs + d + 1, d + 1)
+            nterms: int = math.comb(nvs + d + 1, d + 1)
             if nterms > nts:
                 return d
         return max_deg
@@ -493,18 +494,18 @@ class MP:
         try:
             rs = f(mytasks)
         except BaseException as ex:
-            mlog.debug(f"Got exception in worker: {ex}")
             if myQ is None:
                 raise
             else:
-                rs = ex
+                import traceback
+                rs = RuntimeError(traceback.format_exc())
 
         if myQ is None:
             return rs
         else:
             myQ.put(rs)
 
-    @beartype            
+
     @classmethod
     def run_mp(cls, taskname: str, tasks: list[Any], f: Callable[[list[Any]], Any], DO_MP: bool) -> list[Any]:
         """
@@ -528,13 +529,23 @@ class MP:
                 w.start()
 
             wrs = []
+            exc = None
             for _ in workers:
                 rs = Q.get()
                 if isinstance(rs, list):
                     wrs.extend(rs)
                 else:
-                    mlog.debug(f"Got exception from worker: {rs}")
-                    raise rs
+                    mlog.debug(f"Got exception from worker")
+                    exc = rs
+                    break
+
+            for w in workers:
+                w.terminate()
+                w.join()
+
+            if exc is not None:
+                raise exc
+
 
         else:
             wrs = cls.wprocess(f, tasks, myQ=None)
