@@ -486,7 +486,7 @@ Technical information about DIG and projects build upon DIG can be found from th
 
 1. ThanhVu Nguyen, KimHao Nguyen, and Hai Duong. [**SymInfer: Inferring Numerical Invariants using Symbolic States**](https://dynaroars.github.io/pubs/nguyen2022syminfer.pdf). International Conference on Software Engineering-Tool Demo (ICSE-Demo), pages 197--201, 2022
 1. ThanhVu Nguyen, KimHao Nguyen, Matthew Dwyer. [**Using Symbolic States to Infer Numerical Invariants**](https://dynaroars.github.io/pubs/nguyen2021using.pdf). Transactions on Software Engineering (TSE), 2021
-1. Didier Ishimwe, KimHao Nguyen, and ThanhVu Nguyen. Dynaplex: Analyzing Program Complexity using Dynamically Inferred Recurrence Relations, Proc. ACM Program. Lang. (OOPSLA), pages 1--23, 2021
+1. Didier Ishimwe, KimHao Nguyen, and ThanhVu Nguyen. **Dynaplex: Analyzing Program Complexity using Dynamically Inferred Recurrence Relations**, Proc. ACM Program. Lang. (OOPSLA), pages 1--23, 2021
 1. Ton Chanh Le, Timos Antonopoulos, Parisa Fathololumi, Eric Koskinen, ThanhVu Nguyen. **DynamiTe: Dynamic Termination and Non-termination** Proofs. Proc. ACM Program. Lang. (OOPSLA), 2020
 1. ThanhVu Nguyen, Didier Ishimwe, Alexey Malyshev, Timos Antonopoulos, and Quoc-Sang Phan. **Using Dynamically Inferred Invariants to Analyze Program Runtime Complexity**. Workshop on Software Security from Design to Deployment, 2020
 1. ThanhVu Nguyen, Matthew Dwyer, and William Visser. **SymInfer: Inferring Program Invariants using Symbolic States**. In Automated Software Engineering (ASE). IEEE, 2017.
