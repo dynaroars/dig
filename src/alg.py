@@ -4,6 +4,7 @@ from collections.abc import Callable
 from enum import StrEnum
 import pdb
 import random
+import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -226,6 +227,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         )
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()  # output stats
+        shutil.rmtree(self.tmpdir)
 
     @beartype
     def _infer(self, typ: str, _get_invs: Callable) -> tuple:
