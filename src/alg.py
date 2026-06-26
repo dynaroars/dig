@@ -157,7 +157,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                     mlog.warning(f"{loc}: no symbolic states. Skip")
                     self.inv_decls.pop(loc)
             
-            mlog.info(f"got symbolic states in {et:.2f}s")
+            mlog.info(
+                f"got {self.symstates.siz} symstates for {len(self.symstates)} "
+                f"locs {list(map(str, self.symstates))} in {et:.2f}s")
 
             self._deg_hints = {}
             if settings.DO_EQTS:
@@ -205,7 +207,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             dtraces.vwrite(self.inv_decls, tracefile)
             mlog.info(f"{dtraces.siz} traces written to {tracefile}")
 
-        print(f"tmpdir: {self.tmpdir}")
+        mlog.debug(f"tmpdir: {self.tmpdir}")
         return dinvs
 
     @beartype
@@ -300,10 +302,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 self.mysrc.funname,
                 self.mysrc.symexedir,
             )
-            mlog.info(
-                f"got {symstates.siz} symstates for "
-                f"{len(symstates)} locs: {list(map(str, symstates))}"
-            )
 
             if settings.WRITE_SSTATES:
                 sstatesfile = Path(settings.WRITE_SSTATES)
@@ -348,14 +346,14 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 for loc, rows in rows_by_loc.items():
                     exec_rows.setdefault(loc, []).append(rows)
 
+            parts = []
             for loc in sorted(exec_rows):
                 per_var, mx = Miscs.estimate_degree(exec_rows[loc])
                 if mx is not None:
                     hints[loc] = mx
-                mlog.info(
-                    f"[deg-estimate] {loc}: trace var-degrees {per_var} "
-                    f"-> max {mx} (ceiling {ceiling})"
-                )
+                parts.append(f"{loc} max {mx} {per_var}")
+            if parts:
+                mlog.info(f"deg-est (ceiling {ceiling}): " + "; ".join(parts))
         except Exception as ex:
             mlog.debug(f"degree estimate failed: {ex}")
         finally:
