@@ -1,0 +1,630 @@
+{
+  "complexity/cav09_fig1a": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "complexity/cav09_fig1d": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "complexity/cav09_fig2d": {
+    "eqts": [
+      "m*n - tCtr"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "complexity/cav09_fig3a": {
+    "eqts": [
+      "n*tCtr - tCtr**2"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "complexity/cav09_fig5b": {
+    "eqts": [
+      "a + tCtr - y",
+      "tCtr**2 - 2*tCtr*y - tCtr + 2*x"
+    ],
+    "min_invs": 7,
+    "status": "ok"
+  },
+  "complexity/pldi09_ex6": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "complexity/pldi09_fig1": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "complexity/pldi09_fig2": {
+    "eqts": [
+      "M**2*N**2 - M**2*N*P + M*N**2*P - M*N**2*tCtr + 2*M*N**2 - M*N*P**2 + M*N*P*tCtr - M*N*P - M*N*tCtr + N**2*P - N**2*tCtr + N**2 - N*P*tCtr + N*tCtr**2 - N*tCtr"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "complexity/pldi09_fig4_1": {
+    "eqts": [
+      "n - tCtr + 1"
+    ],
+    "min_invs": 6,
+    "status": "ok"
+  },
+  "complexity/pldi09_fig4_2": {
+    "eqts": [
+      "m*n - m*tCtr + n - y",
+      "x"
+    ],
+    "min_invs": 13,
+    "status": "ok"
+  },
+  "complexity/pldi09_fig4_3": {
+    "eqts": [
+      "m*n + n - tCtr"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "complexity/pldi09_fig4_4": {
+    "eqts": [
+      "h*m - h - n + tCtr"
+    ],
+    "min_invs": 6,
+    "status": "ok"
+  },
+  "complexity/pldi09_fig4_5": {
+    "eqts": [
+      "m**2 - m*n + n*tCtr - tCtr**2"
+    ],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "complexity/popl09_fig2_1": {
+    "eqts": [
+      "a**2*tCtr + a*b*tCtr - a*m*tCtr - 2*a*n*tCtr + 2*a*tCtr**2 - b*n*tCtr + b*tCtr**2 + m*n*tCtr - m*tCtr**2 + n**2*tCtr - 2*n*tCtr**2 + tCtr**3"
+    ],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "complexity/popl09_fig2_2": {
+    "eqts": [
+      "a**2*tCtr + a*b*tCtr - 3*a*n*tCtr + 2*a*tCtr**2 - b*n*tCtr + b*tCtr**2 + 2*n**2*tCtr - 3*n*tCtr**2 + tCtr**3"
+    ],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "complexity/popl09_fig3_4": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "complexity/popl09_fig4_1": {
+    "eqts": [
+      "m*tCtr + n*tCtr - tCtr**2"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "complexity/popl09_fig4_2": {
+    "eqts": [
+      "a**2*tCtr + a*b*tCtr - a*m*tCtr - 2*a*n*tCtr + 2*a*tCtr**2 - b*n*tCtr + b*tCtr**2 + m*n*tCtr - m*tCtr**2 + n**2*tCtr - 2*n*tCtr**2 + tCtr**3"
+    ],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "complexity/popl09_fig4_3": {
+    "eqts": [
+      "m*x - tCtr + x",
+      "n - x",
+      "y"
+    ],
+    "min_invs": 20,
+    "status": "ok"
+  },
+  "complexity/popl09_fig4_4": {
+    "eqts": [
+      "m*n + n - tCtr"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "hola/01.dig": {
+    "eqts": [
+      "x - y"
+    ],
+    "min_invs": 7,
+    "status": "ok"
+  },
+  "hola/02.dig": {
+    "eqts": [
+      "x - y"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/03.dig": {
+    "eqts": [],
+    "min_invs": 1,
+    "status": "ok"
+  },
+  "hola/04.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/05.dig": {
+    "eqts": [
+      "i**3 - 3*i**2*j - 3*i**2 + 3*i*j**2 + 4*i*j - j**3 - j**2"
+    ],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/06.dig": {
+    "eqts": [
+      "x - y"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/07.dig": {
+    "eqts": [
+      "a + b - 3*n"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/08.dig": {
+    "eqts": [],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/09.dig": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "hola/10.dig": {
+    "eqts": [],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/11.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/12.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/13.dig": {
+    "eqts": [
+      "j*k - 2*k**2 - 2*k"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/14.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/15.dig": {
+    "eqts": [],
+    "min_invs": 1,
+    "status": "ok"
+  },
+  "hola/16.dig": {
+    "eqts": [
+      "i - j + y"
+    ],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/17.dig": {
+    "eqts": [
+      "6*k - n**3 + n - 6"
+    ],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/18.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/19.dig": {
+    "eqts": [
+      "n - y"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "hola/20.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/21.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/22.dig": {
+    "eqts": [
+      "x - z",
+      "y - z"
+    ],
+    "min_invs": 6,
+    "status": "ok"
+  },
+  "hola/23.dig": {
+    "eqts": [],
+    "min_invs": 1,
+    "status": "ok"
+  },
+  "hola/24.dig": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "hola/25.dig": {
+    "eqts": [
+      "j"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/26.dig": {
+    "eqts": [
+      "x - y"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/27.dig": {
+    "eqts": [],
+    "min_invs": 1,
+    "status": "ok"
+  },
+  "hola/28.dig": {
+    "eqts": [],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/29.dig": {
+    "eqts": [
+      "a - d + 1",
+      "b - c + 1"
+    ],
+    "min_invs": 6,
+    "status": "ok"
+  },
+  "hola/30.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/31.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/32.dig": {
+    "eqts": [
+      "i - j"
+    ],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/33.dig": {
+    "eqts": [
+      "i - j"
+    ],
+    "min_invs": 3,
+    "status": "ok"
+  },
+  "hola/34.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/35.dig": {
+    "eqts": [
+      "n - x"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "hola/36.dig": {
+    "eqts": [
+      "a - b",
+      "w - z"
+    ],
+    "min_invs": 8,
+    "status": "ok"
+  },
+  "hola/37.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/38.dig": {
+    "eqts": [
+      "x - 2*y"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/39.dig": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "hola/40.dig": {
+    "eqts": [
+      "a - b"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/41.dig": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "hola/42.dig": {
+    "eqts": [
+      "a - x - y + 1"
+    ],
+    "min_invs": 8,
+    "status": "ok"
+  },
+  "hola/43.dig": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "hola/44.dig": {
+    "eqts": [],
+    "min_invs": 6,
+    "status": "ok"
+  },
+  "hola/45.dig": {
+    "eqts": [
+      "x - y"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "hola/46.dig": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
+  "nla/bresenham": {
+    "eqts": [
+      "2*X*y + X - 2*Y*x - 2*Y + v"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "nla/cohencu": {
+    "eqts": [
+      "12*y - z**2 + 6*z - 12",
+      "6*n - z + 6"
+    ],
+    "min_invs": 15,
+    "status": "ok"
+  },
+  "nla/cohendiv": {
+    "eqts": [
+      "a*y - b",
+      "q*y + r - x"
+    ],
+    "min_invs": 28,
+    "status": "ok"
+  },
+  "nla/dijkstra": {
+    "eqts": [
+      "h",
+      "n - r",
+      "n*q - p**2 - q*r",
+      "p"
+    ],
+    "min_invs": 38,
+    "status": "ok"
+  },
+  "nla/divbin": {
+    "eqts": [
+      "A - b*q - r",
+      "A - r",
+      "q"
+    ],
+    "min_invs": 15,
+    "status": "ok"
+  },
+  "nla/egcd": {
+    "eqts": [
+      "a*q - b*p + y",
+      "a*s - b*r - x",
+      "p*s - q*r - 1"
+    ],
+    "min_invs": 11,
+    "status": "ok"
+  },
+  "nla/egcd2": {
+    "eqts": [
+      "a - p*x - r*y",
+      "b - q*x - s*y",
+      "q*x + s*y"
+    ],
+    "min_invs": 70,
+    "status": "ok"
+  },
+  "nla/egcd3": {
+    "eqts": [
+      "a - p*x - r*y",
+      "b",
+      "b - q*x - s*y",
+      "q*x + s*y"
+    ],
+    "min_invs": 127,
+    "status": "ok"
+  },
+  "nla/fermat1": {
+    "eqts": [
+      "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+    ],
+    "min_invs": 24,
+    "status": "ok"
+  },
+  "nla/fermat2": {
+    "eqts": [
+      "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+    ],
+    "min_invs": 8,
+    "status": "ok"
+  },
+  "nla/freire1": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "nla/freire1_int": {
+    "eqts": [
+      "a - r**2 + r - 2*x"
+    ],
+    "min_invs": 7,
+    "status": "ok"
+  },
+  "nla/freire2": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "fail"
+  },
+  "nla/geo1": {
+    "eqts": [
+      "x*z - x - y + 1"
+    ],
+    "min_invs": 6,
+    "status": "ok"
+  },
+  "nla/geo2": {
+    "eqts": [
+      "x*z - x - y*z + 1"
+    ],
+    "min_invs": 7,
+    "status": "ok"
+  },
+  "nla/geo3": {
+    "eqts": [],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "nla/hard": {
+    "eqts": [
+      "A - B*q - r",
+      "A - r",
+      "B*p - d",
+      "q"
+    ],
+    "min_invs": 23,
+    "status": "ok"
+  },
+  "nla/knuth": {
+    "eqts": [],
+    "min_invs": 0,
+    "status": "timeout"
+  },
+  "nla/lcm1": {
+    "eqts": [],
+    "min_invs": 30,
+    "status": "ok"
+  },
+  "nla/lcm2": {
+    "eqts": [
+      "2*a*b - u*x - v*y"
+    ],
+    "min_invs": 11,
+    "status": "ok"
+  },
+  "nla/mannadiv": {
+    "eqts": [
+      "a + b + q*y - x"
+    ],
+    "min_invs": 8,
+    "status": "ok"
+  },
+  "nla/prod4br": {
+    "eqts": [
+      "a*b*p + q - x*y"
+    ],
+    "min_invs": 11,
+    "status": "ok"
+  },
+  "nla/prodbin": {
+    "eqts": [
+      "a*b - x*y - z",
+      "a*b - z"
+    ],
+    "min_invs": 16,
+    "status": "ok"
+  },
+  "nla/ps1": {
+    "eqts": [
+      "x - y"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "nla/ps2": {
+    "eqts": [
+      "2*x - y**2 - y"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "nla/ps3": {
+    "eqts": [
+      "6*x - 2*y**3 - 3*y**2 - y"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "nla/ps4": {
+    "eqts": [
+      "4*x - y**4 - 2*y**3 - y**2"
+    ],
+    "min_invs": 4,
+    "status": "ok"
+  },
+  "nla/ps5": {
+    "eqts": [
+      "30*x - 6*y**5 - 15*y**4 - 10*y**3 + y"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "nla/ps6": {
+    "eqts": [
+      "12*x - 2*y**6 - 6*y**5 - 5*y**4 + y**2"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
+  "nla/sqrt1": {
+    "eqts": [
+      "2*a - t + 1",
+      "4*s - t**2 - 2*t - 1"
+    ],
+    "min_invs": 8,
+    "status": "ok"
+  }
+}

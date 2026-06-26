@@ -15,6 +15,12 @@ dependencies = [
     "numpy",
 ]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [project.urls]
 Homepage = "https://github.com/dynaroars/dig"
 
