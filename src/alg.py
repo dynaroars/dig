@@ -146,7 +146,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         else:  # use symbolic states
             st = time.time()
-            mlog.info("computing symbolic states ...")
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
             self.time_d["symbolic_states"] = et
@@ -231,7 +230,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE}, typ
         
-        mlog.info(f"started inferring {typ} ...")
+        mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
         st = time.time()
 
@@ -267,7 +266,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         for enabled, label, gen_fn in checks:
             if not enabled:
                 continue
-            mlog.info(f"started inferring {label} ...")
             st = time.time()
             batch = DInvs()
             for loc in locs:

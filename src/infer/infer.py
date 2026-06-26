@@ -114,10 +114,8 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         ieqs = ieqs.remove_disproved()
         tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
-        kind = type(self).__module__.split(".")[-1]  # 'oct' or 'mp'
-        mlog.info(
-            f"[{kind}] maximizing {len(tasks)} terms at {len(locs)} locs "
-            f"(this can take a while)")
+        mlog.debug(
+            f"inferring upperbounds for {len(tasks)} terms at {len(locs)} locs")
 
         # computing convex hull
         def f(tasks):
