@@ -16,7 +16,7 @@ mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)
-    TIMEOUT = settings.SOLVER_TIMEOUT * 1000
+    RLIMIT = settings.SOLVER_RLIMIT
 
     @classmethod
     def _process_fs(cls: type[Z3],
@@ -80,7 +80,9 @@ class Z3:
         assert isinstance(maximize, bool), maximize
 
         solver = z3.Optimize() if maximize else z3.Solver()
-        solver.set("timeout", cls.TIMEOUT)
+        # rlimit = deterministic work-unit cutoff (reproducible under MP
+        # contention), the sole solver bound.
+        solver.set("rlimit", cls.RLIMIT)
         return solver
 
     @classmethod
@@ -240,6 +242,26 @@ class Z3:
         return models is False
 
     @classmethod
+    @functools.cache
+    def _parse_str(cls, s: str) -> z3.ExprRef:
+        """
+        Cached string->z3 path. Terms (e.g. octagon lhs) get parsed many times
+        across the incremental-depth solver loops; memoizing on the source
+        string avoids redundant ast.parse + z3.simplify. The recursive parse
+        below is passed ast nodes (never str), so it never re-enters this cache.
+        """
+        s = s.replace("^", "**")
+        tnode = ast.parse(s)
+        tnode = tnode.body[0].value
+        try:
+            expr = cls.parse(tnode)
+            expr = z3.simplify(expr)
+            return expr
+        except NotImplementedError:
+            mlog.error(f"cannot parse: '{s}'\n{ast.dump(tnode)}")
+            raise
+
+    @classmethod
     def parse(cls, node: str | Any) -> z3.ExprRef:
         """
         Parse a string to a Z3 expression
@@ -250,17 +272,7 @@ class Z3:
         # print(ast.dump(node))
 
         if isinstance(node, str):
-            node = node.replace("^", "**")
-
-            tnode = ast.parse(node)
-            tnode = tnode.body[0].value
-            try:
-                expr = cls.parse(tnode)
-                expr = z3.simplify(expr)
-                return expr
-            except NotImplementedError:
-                mlog.error(f"cannot parse: '{node}'\n{ast.dump(tnode)}")
-                raise
+            return cls._parse_str(node)
 
         elif isinstance(node, ast.BoolOp):
             vals = [cls.parse(v) for v in node.values]
@@ -274,6 +286,19 @@ class Z3:
             return z3.Or
 
         elif isinstance(node, ast.BinOp):
+            if (isinstance(node.op, ast.Pow)
+                    and isinstance(node.right, ast.Constant)
+                    and isinstance(node.right.value, int)
+                    and node.right.value >= 0):
+                # z3.Int('x') ** n returns Real sort; expand to multiplication to stay in Int
+                base = cls.parse(node.left)
+                exp = node.right.value
+                if exp == 0:
+                    return z3.IntVal(1)
+                result = base
+                for _ in range(exp - 1):
+                    result = result * base
+                return result
             left = cls.parse(node.left)
             right = cls.parse(node.right)
             op = cls.parse(node.op)
@@ -295,6 +320,10 @@ class Z3:
         elif isinstance(node, ast.Name):
             return z3.Int(str(node.id))
         elif isinstance(node, ast.Constant):
+            if isinstance(node.value, bool):
+                return z3.BoolVal(node.value)
+            if isinstance(node.value, float):
+                return z3.RealVal(str(node.value))
             return z3.IntVal(str(node.value))
         elif isinstance(node, ast.Not):
             return z3.Not

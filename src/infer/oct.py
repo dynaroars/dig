@@ -23,9 +23,6 @@ class Oct(infer.inv.Inv):
     """
     @beartype
     def __init__(self, myoct: sympy.Le, stat: infer.inv.InvStat | None = None) -> None:
-        """
-        For both <=  (normal OctInvs)  or < (Precond in PrePost)
-        """
         assert isinstance(myoct, sympy.Le), myoct
 
         super().__init__(myoct, stat)

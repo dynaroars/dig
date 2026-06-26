@@ -150,40 +150,20 @@ class SymState:
     loop_depth: int = 0
     exit: Exit = Exit.NORMAL
 
-    # ── copying helpers ──────────────────────────────────────────────
-
-    def _copy(self) -> SymState:
-        return SymState(
-            env=dict(self.env),
-            pc=list(self.pc),
-            loop_depth=self.loop_depth,
-            exit=self.exit,
-        )
-
     def add_constraint(self, cond: z3.ExprRef) -> SymState:
-        s = self._copy()
-        s.pc.append(z3.simplify(cond))
-        return s
+        return copy.replace(self, pc=self.pc + [z3.simplify(cond)])
 
     def set_var(self, name: str, val: z3.ExprRef) -> SymState:
-        s = self._copy()
-        s.env[name] = z3.simplify(val)
-        return s
+        return copy.replace(self, env={**self.env, name: z3.simplify(val)})
 
     def with_exit(self, reason: Exit) -> SymState:
-        s = self._copy()
-        s.exit = reason
-        return s
+        return copy.replace(self, exit=reason)
 
     def inc_loop(self) -> SymState:
-        s = self._copy()
-        s.loop_depth += 1
-        return s
+        return copy.replace(self, loop_depth=self.loop_depth + 1)
 
     def reset_exit(self) -> SymState:
-        s = self._copy()
-        s.exit = Exit.NORMAL
-        return s
+        return copy.replace(self, exit=Exit.NORMAL)
 
     # ── smt2 serialisation ───────────────────────────────────────────
 
@@ -237,6 +217,7 @@ class CSymEx:
         self.filename = filename
         self.max_depth = max_depth
         self.records: list[PathRecord] = []
+        self._fresh_ctr = 0  # for naming fresh vars from modeled calls
 
         # Solver for feasibility (reused with push/pop)
         self.solver = z3.Solver()
@@ -364,11 +345,44 @@ class CSymEx:
         # Unknown: pass through
         return states
 
+    def _model_call(self, node: c_ast.FuncCall,
+                    state: SymState) -> tuple[z3.ExprRef, list[z3.ExprRef]] | None:
+        """
+        Model a pure helper/library call as a fresh symbolic value plus the
+        path constraints that define it. Returns (value, constraints) or None
+        if the call isn't modeled. Lets symex handle programs like knuth that
+        call e.g. isqrt without inlining the helper's loop.
+        """
+        if not isinstance(node.name, c_ast.ID):
+            return None
+        fname = node.name.name
+        args = node.args.exprs if node.args else []
+        if fname == "isqrt" and len(args) == 1:
+            x = self._eval_expr(args[0], state)
+            s = z3.Int(self._fresh_name("isqrt"))
+            # integer sqrt: s >= 0 and s*s <= x < (s+1)*(s+1)
+            cons = [s >= 0, s * s <= x, (s + 1) * (s + 1) > x]
+            return s, cons
+        return None
+
+    def _fresh_name(self, prefix: str) -> str:
+        self._fresh_ctr += 1
+        return f"_{prefix}_{self._fresh_ctr}"
+
     def _exec_decl(self,
                    node: c_ast.Decl,
                    states: list[SymState]) -> list[SymState]:
         result = []
         for state in states:
+            if isinstance(node.init, c_ast.FuncCall):
+                modeled = self._model_call(node.init, state)
+                if modeled is not None:
+                    val, cons = modeled
+                    ns = state
+                    for c in cons:
+                        ns = ns.add_constraint(c)
+                    result.append(ns.set_var(node.name, val))
+                    continue
             if node.init is not None:
                 val = self._eval_expr(node.init, state)
             else:
@@ -382,6 +396,18 @@ class CSymEx:
                      states: list[SymState]) -> list[SymState]:
         result = []
         for state in states:
+            # modeled calls (e.g. s = isqrt(n)) add defining constraints
+            if node.op == "=" and isinstance(node.rvalue, c_ast.FuncCall):
+                modeled = self._model_call(node.rvalue, state)
+                if modeled is not None:
+                    val, cons = modeled
+                    target = (node.lvalue.name
+                              if isinstance(node.lvalue, c_ast.ID) else None)
+                    ns = state
+                    for c in cons:
+                        ns = ns.add_constraint(c)
+                    result.append(ns.set_var(target, val) if target else ns)
+                    continue
             rhs = self._eval_expr(node.rvalue, state)
             if node.op == "=":
                 val = rhs

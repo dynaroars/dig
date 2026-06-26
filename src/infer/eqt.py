@@ -36,7 +36,7 @@ class Eqt(infer.inv.Inv):
         return 'eqts_largecoefs' if len(Miscs.get_coefs(self.inv.lhs)) > 10 else 'eqts'
 
 
-class Infer(infer.infer._CEGIR):
+class Infer(infer.infer._Infer):
 
     @beartype
     @classmethod

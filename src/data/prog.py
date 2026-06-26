@@ -164,7 +164,10 @@ class Prog:
 
         while len(inps) < n_needed:
             old_siz = len(inps)
-            for inp_range in valid_ranges:
+            # iterate in a canonical order so RNG is consumed deterministically:
+            # set iteration order is not stable across processes (it forks via
+            # _get_traces_mp), which otherwise makes generated inps vary run-to-run.
+            for inp_range in sorted(valid_ranges):
                 myinp = self._get_inp_from_range(inp_range)
                 inps.add(myinp)
 
@@ -305,45 +308,6 @@ class Src(metaclass=abc.ABCMeta):
         assert not d.exists(), d
         d.mkdir()
         return d
-
-class Java(Src):
-    @beartype
-    def __init__(self, filename:Path, tmpdir:Path) -> None:
-        super().__init__(filename, tmpdir)
-
-        cmd = settings.Java.INSTRUMENT(
-            filename=self.filename, tracefile=self.tracefile, symexefile=self.symexefile
-        )
-        try:
-            cp = subprocess.run(
-                shlex.split(cmd), capture_output=True, check=True, text=True
-            )
-        except subprocess.CalledProcessError as ex:
-            ex_cmd = " ".join(ex.cmd)
-            mlog.error(f"cmd '{ex_cmd}' gives error\n{ex.stderr}")
-            raise
-
-        self.inp_decls, self.inv_decls, self.mainQ_name = \
-             self.parse_type_info(cp.stdout)
-
-    def check(self, filename, tmpdir):
-        basename = Path(filename.name)  # c.class
-        funname = basename.stem  # c
-
-        if basename.suffix == ".java":
-            cmd = settings.Java.COMPILE(filename=filename, tmpdir=tmpdir)
-            try:
-                cp = subprocess.run(
-                    shlex.split(cmd), capture_output=True, check=True, text=True
-                )
-            except subprocess.CalledProcessError as ex:
-                mlog.error(f"cmd '{' '.join(ex.cmd)}' gives error\n{ex.stderr}")
-                raise
-            filename = (tmpdir / funname).with_suffix(".class")
-            basename = Path(filename.name)
-
-        return filename, basename, funname
-
 
 class C(Src):
     @beartype

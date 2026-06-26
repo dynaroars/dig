@@ -146,10 +146,13 @@ class Term(NamedTuple):
 
         terms = sorted(terms, key=lambda x: str(x))
         results = {(t, (0,)) for t in terms}
+        # cap operands per min/max term to keep generation polynomial (see
+        # settings.MP_MAX_SUBSET); avoids the O(n*2^n) blowup on many-var progs.
+        max_r = min(len(terms) - 1, settings.MP_MAX_SUBSET)
         for i, term in enumerate(terms):
             terms_ = terms[:i] + terms[i + 1:]
             powerset = itertools.chain.from_iterable(
-                itertools.combinations(terms_, r) for r in range(len(terms_) + 1)
+                itertools.combinations(terms_, r) for r in range(max_r + 1)
             )
             powerset = [ps for ps in powerset if ps]
             for pset in powerset:

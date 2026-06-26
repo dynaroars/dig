@@ -43,6 +43,13 @@ def vwrite(filename: str, contents: str, mode: str = 'w'):
 def getLogger(name: str, level: int) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
+    if logger.handlers:
+        # Already configured (e.g. the same module re-requesting its logger).
+        # Don't stack another handler, which would duplicate every line; just
+        # update the level on the existing one.
+        for h in logger.handlers:
+            h.setLevel(level)
+        return logger
     ch = logging.StreamHandler()
     ch.setLevel(level)
     formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")

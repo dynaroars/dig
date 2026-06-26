@@ -11,7 +11,6 @@ import settings
 import helpers.vcommon as CM
 from helpers.miscs import Miscs
 from helpers.z3utils import Z3
-import infer.inv
 import infer.infer
 import data.prog
 import data.traces
@@ -95,11 +94,20 @@ class Infer(infer.infer._Infer):
     @classmethod
     def gen_from_traces(cls, traces: data.traces.Traces, symbols: data.prog.Symbs) -> list:
         ps = []
-        terms = Miscs.get_terms_fixed_coefs(
-            symbols.symbolic, settings.ITERMS, settings.ICOEFS)
+        syms = symbols.symbolic
+        terms = Miscs.get_terms_fixed_coefs(syms, settings.ITERMS, settings.ICOEFS)
+
+        # degree-2 monomials (x*x, x*y, y*y, ...)
+        vars_ = [s for s in syms if not s.is_number]
+        for i, x in enumerate(vars_):
+            for y in vars_[i:]:
+                terms.add(x * y)
+
         for term in terms:
             term_vals = infer.inv.RelTerm(term).eval_traces(traces)
-            if len(set(term_vals)) == 1:  # all are same
+            # need enough distinct values to trust the inferred modulus;
+            # too few and the gcd-of-differences overfits (see _solve).
+            if len(set(term_vals)) < settings.CONGRUENCE_MIN_NVALS:
                 continue
             b, n = cls._solve(term_vals)
             if b is None:

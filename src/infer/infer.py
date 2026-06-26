@@ -70,13 +70,6 @@ class _Infer(metaclass=abc.ABCMeta):
         return cexs, dinvs
 
 
-class _CEGIR(_Infer, metaclass=abc.ABCMeta):
-    """
-    Find invs using a guess and check iterative CEGIR approach
-    """
-    pass
-
-
 class _Opt(_Infer, metaclass=abc.ABCMeta):
     """
     Find upperbounds of polynomials and min/max terms 

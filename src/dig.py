@@ -1,4 +1,5 @@
 import pdb
+import os
 import sys
 import datetime
 import time
@@ -9,10 +10,10 @@ DBG = pdb.set_trace
 
 """
 Example runs:
-- python3 -O dig.py ../benchmark/nla/Bresenham.java
-- python3 -O dig.py ../benchmark/nla/Bresenham.java -benchmark_times 5  :  run this file 5 times
+- python3 -O dig.py ../benchmark/nla/Bresenham.c
+- python3 -O dig.py ../benchmark/nla/Bresenham.c -benchmark_times 5  :  run this file 5 times
 - python3 -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir /path/to/existing_dir/ :  run all files in this dir 5 times
-- python3 -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir existing_dir/ :  run all files in this dir 5 times and store results in `existing_dir`. If existing_dir has results from previous runs, will only attempt to do incomplete runs.  
+- python3 -O dig.py ../benchmark/nla/ -benchmark_times 5 -benchmark_dir existing_dir/ :  run all files in this dir 5 times and store results in `existing_dir`. If existing_dir has results from previous runs, will only attempt to do incomplete runs.
 
 
 Run on traces
@@ -20,12 +21,22 @@ Run on traces
 """
     
 if __name__ == "__main__":
+    # Reproducibility: set iteration order influences the order RNG is consumed,
+    # so without a fixed hash seed results vary run-to-run even with -seed. Pin it
+    # and re-exec once (PYTHONHASHSEED must be set before the interpreter starts).
+    # orig_argv preserves interpreter flags (e.g. -O). Opt out by setting the var
+    # yourself, e.g. PYTHONHASHSEED=random.
+    if os.environ.get("PYTHONHASHSEED") is None:
+        os.environ["PYTHONHASHSEED"] = "0"
+        os.execv(sys.executable,
+                 getattr(sys, "orig_argv", [sys.executable] + sys.argv))
+
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
     ag(
         "inp",
         help=(
-            "input file (.c, .java. , .class, trace_text_file) "
+            "input file (.c, trace_text_file) "
             "for invariant generation or result directory for analysis"
         ),
     )
@@ -121,34 +132,6 @@ if __name__ == "__main__":
         "-nominmaxplus",
         action="store_true",
         help="don't compute min/max-plus invariants",
-    )
-
-    ag(
-        "--nopreposts",
-        "-nopreposts",
-        action="store_true",
-        help="don't compute prepost specs",
-    )
-
-    ag(
-        "--nopoly",
-        "-nopoly",
-        action="store_true",
-        help="don't compute degree-2 polynomial inequality invariants",
-    )
-
-    ag(
-        "--nobitwise",
-        "-nobitwise",
-        action="store_true",
-        help="don't compute bitwise AND-mask invariants",
-    )
-
-    ag(
-        "--nopolycong",
-        "-nopolycong",
-        action="store_true",
-        help="don't compute degree-2 modular congruence invariants",
     )
 
     ag(
@@ -287,9 +270,7 @@ if __name__ == "__main__":
             mlog.warning("DEBUG MODE ON. Can be slow !")
         import alg
 
-        if inp.suffix in (".java", ".class"):
-            dig = alg.DigSymStatesJava(inp)
-        elif inp.suffix == ".c":
+        if inp.suffix == ".c":
             if args.civl:
                 dig = alg.DigSymStatesC(inp)
             else:

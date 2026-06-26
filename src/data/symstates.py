@@ -127,97 +127,6 @@ class PathCondCIVL(PathCond):
         )
 
 
-class PathCondJPF(PathCond):
-
-    @beartype
-    @classmethod
-    def parse_parts(cls, lines:list[str], delim:str="**********") -> list[str]:
-        """
-        Return a list of strings representing path conditions
-        [['loc: vtrace1(IIIIII)V',
-        'pc: constraint # = 2',
-        'y_2_SYMINT >= CONST_1 &&', 'x_1_SYMINT >= CONST_1',
-        'vars: int x, int y, int q, int r, int a, int b,',
-        'SYM: x = x_1_SYMINT',
-        'SYM: y = y_2_SYMINT',
-        'CON: q = 0',
-        'SYM: r = x_1_SYMINT',
-        'CON: a = 0',
-        'CON: b = 0']]
-        """
-        parts, curpart = [], []
-
-        start = delim + " START"
-        end = delim + " END"
-        do_append = False
-
-        lines = [line.strip() for line in lines]
-        lines = [line for line in lines if line]
-        for line in lines:
-            if line.startswith(start):
-                do_append = True
-                continue
-            elif line.startswith(end):
-                do_append = False
-                if curpart:
-                    parts.append(curpart)
-                    curpart = []
-            else:
-                if do_append:
-                    curpart.append(line)
-
-        return parts
-
-    @beartype
-    @classmethod
-    def parse_part(cls, ss: list[str]) -> tuple[int, str, str]:
-        """
-        vtrace1
-        [('int', 'x'), ('int', 'y'), ('int', 'q'),
-          ('int', 'r'), ('int', 'a'), ('int', 'b')]
-        ['y_2_SYMINT >= 1', 'x_1_SYMINT >= 1']
-        ['x==x_1_SYMINT', 'y==y_2_SYMINT', 'q==0', 'r==x_1_SYMINT', 'a==0', 'b==0']
-        """
-
-        assert isinstance(ss, list) and ss, ss
-        loc = None
-        pcs = []
-
-        curpart = []
-        for s in ss:
-            if "loc: " in s:
-                loc = s.split()[1]  # e.g., vtrace30(I)V
-                loc = loc.split("(")[0]  # vtrace30
-                continue
-            elif "vars: " in s:
-                pcs = curpart[1:]  # ignore pc constraint #
-                curpart = []
-                continue
-            curpart.append(s)
-        slocals = curpart[:]
-        assert loc, loc
-
-        slocals = [cls.replace_str(p) for p in slocals if p]
-        slocals = " and ".join(slocals) if slocals else None
-        pcs = [cls.replace_str(pc) for pc in pcs if pc]
-        pcs = " and ".join(pcs) if pcs else None
-
-        return loc, pcs, slocals
-
-    @classmethod
-    @functools.cache
-    def replace_str(cls, s: str) -> str:
-        return (
-            s.replace("&&", "")
-                .replace(" = ", "==")
-                .replace("CONST_", "")
-                .replace("REAL_", "")
-                .replace("%NonLinInteger%", "")
-                .replace("SYM:", "")
-                .replace("CON:", "")
-                .strip()
-        )
-
 class PCs(set):  #{PathConds}
 
     @beartype
@@ -233,29 +142,17 @@ class PCs(set):  #{PathConds}
     def add(self, pc:PathCond):
         super().add(pc)
 
-    @beartype
-    @property
+    @functools.cached_property
     def myexpr(self) -> z3.ExprRef:
-        try:
-            return self._expr
-        except AttributeError:
-            _expr = z3.Or([p.expr for p in self])
-            self._expr = Z3.simplify(_expr)
-            return self._expr
+        return Z3.simplify(z3.Or([p.expr for p in self]))
 
-    @beartype
-    @property
+    @functools.cached_property
     def mypc(self) -> z3.ExprRef:
-        try:
-            return self._pc
-        except AttributeError:
-            _pc = z3.Or([p.pc for p in self])
-            self._pc = Z3.simplify(_pc)
-            return self._pc
+        return Z3.simplify(z3.Or([p.pc for p in self]))
 
     @beartype
-    def vread(self, expr:str) -> None:
-        self._expr = Z3.from_smt2_str(expr)    
+    def vread(self, expr: str) -> None:
+        self.__dict__['myexpr'] = Z3.from_smt2_str(expr)    
     
 
 class SymStatesDepth(dict):  # depth -> PCs
@@ -492,7 +389,7 @@ class SymStates(dict):
         assert z3.is_expr(term_expr), term_expr
 
         if settings.DO_INCR_DEPTH:
-            v, stat = self.mmaximize_depth(self[loc], term_expr, iupper)
+            v, stat = self.mmaximize_depth(loc, self[loc], term_expr, iupper)
 
         else:
             v, stat = self.mmaximize(
@@ -501,15 +398,23 @@ class SymStates(dict):
         return v
 
     @beartype
-    def mmaximize_depth(self, ssd:SymStatesDepth , 
+    def mmaximize_depth(self, loc: str, ssd:SymStatesDepth ,
                         term_expr: z3.ExprRef,
                         iupper: int) -> tuple[int | None, z3.CheckSatResult]:
 
 
         @beartype
         def f(depth: int):
-            ss = self.get_symstates_at_depth(ssd, depth=depth)
-            maxv, stat = self.mmaximize(ss, term_expr, iupper)
+            # reuse one Optimize per (loc, depth) with the symbolic state
+            # asserted once; each term just pushes its objective and pops.
+            # avoids rebuilding+re-asserting ss for every one of the hundreds
+            # of candidate terms maximized at this loc.
+            opt = self._get_max_opt(loc, depth, ssd)
+            opt.push()
+            try:
+                maxv, stat = self._solve_max(opt, term_expr, iupper)
+            finally:
+                opt.pop()
             self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
 
@@ -572,14 +477,25 @@ class SymStates(dict):
 
     @beartype
     @classmethod
-    def mmaximize(cls, ss: z3.ExprRef, 
+    def mmaximize(cls, ss: z3.ExprRef,
                   term_expr: z3.ExprRef,
                   iupper: int) -> tuple[int | None, z3.CheckSatResult]:
 
         assert iupper >= 1, iupper
-        
+
         opt = Z3.create_solver(maximize=True)
         opt.add(ss)
+        return cls._solve_max(opt, term_expr, iupper)
+
+    @beartype
+    @staticmethod
+    def _solve_max(opt: z3.Optimize, term_expr: z3.ExprRef,
+                   iupper: int) -> tuple[int | None, z3.CheckSatResult]:
+        """
+        Maximize term_expr against an Optimize whose constraints are already
+        asserted. Caller owns the solver's push/pop scope (so it can be reused
+        across terms).
+        """
         h = opt.maximize(term_expr)
         try:
             stat = opt.check()
@@ -598,6 +514,24 @@ class SymStates(dict):
                 except ValueError:  # invalid literal for 3/4
                     pass
         return None, stat
+
+    @beartype
+    def _get_max_opt(self, loc: str, depth: int,
+                     ssd: SymStatesDepth) -> z3.Optimize:
+        """
+        Process-local cache of an Optimize per (loc, depth) with the symbolic
+        state asserted once. Built lazily so each forked MP worker populates
+        its own cache (z3 objects must not cross the fork boundary).
+        """
+        cache = self.__dict__.setdefault("_max_opt_cache", {})
+        key = (loc, depth)
+        opt = cache.get(key)
+        if opt is None:
+            ss = self.get_symstates_at_depth(ssd, depth=depth)
+            opt = Z3.create_solver(maximize=True)
+            opt.add(ss)
+            cache[key] = opt
+        return opt
 
     # helpers
     @beartype
@@ -892,46 +826,3 @@ class SymStatesMakerPythonC(SymStatesMakerC):
         return results or None
 
 
-class SymStatesMakerJava(SymStatesMaker):
-    pc_cls = PathCondJPF
-    mindepth = settings.Java.SE_MIN_DEPTH
-
-    def mk(self, depth:int) -> str:
-        assert depth >= 1, depth
-        
-        max_val = settings.INP_MAX_V
-        return settings.Java.JPF_RUN(jpffile=self.mk_JPF_runfile(max_val, depth))
-
-    @beartype
-    def mk_JPF_runfile(self, max_int: int, depth: int) -> Path:
-        assert max_int >= 0, max_int
-
-        symargs = ["sym"] * self.ninps
-        symargs = "#".join(symargs)
-        stmts = [
-            f"target={self.funname}",
-            f"classpath={self.tmpdir}",
-            f"symbolic.method={self.funname}.{self.mainQName}({symargs})",
-            "listener=gov.nasa.jpf.symbc.InvariantListenerVu",
-            "vm.storage.class=nil",
-            "search.multiple_errors=true",
-            f"symbolic.min_int={-max_int}",
-            f"symbolic.max_int={max_int}",
-            f"symbolic.min_long={-max_int}",
-            f"symbolic.max_long={max_int}",
-            f"symbolic.min_short={-max_int}",
-            f"symbolic.max_short={max_int}",
-            f"symbolic.min_float={-max_int}.0f",
-            f"symbolic.max_float={max_int}.0f",
-            f"symbolic.min_double={-max_int}.0",
-            f"symbolic.max_double={max_int}.0",
-            "symbolic.dp=z3bitvector",
-            f"search.depth_limit={depth}",
-        ]
-        contents = "\n".join(stmts)
-
-        filename = self.tmpdir / f"{self.funname}_{max_int}_{depth}.jpf"
-
-        assert not filename.is_file(), filename
-        filename.write_text(contents)
-        return filename

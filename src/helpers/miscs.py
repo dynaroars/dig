@@ -6,10 +6,13 @@ $ ~/miniconda3/bin/python3 -m doctest -v helpers/miscs.py
 from __future__ import annotations
 from collections.abc import Iterable, Callable
 from collections import defaultdict
+import ast
 import pdb
 import itertools
 import functools
 import multiprocessing
+import signal
+import threading
 import math
 import numpy as np
 import sympy
@@ -23,6 +26,10 @@ from beartype.typing import Any
 DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
+
+
+class _GroebnerTimeout(Exception):
+    """Raised when sympy.groebner exceeds its time budget (see reduce_eqts)."""
 
 
 class Miscs:
@@ -54,7 +61,9 @@ class Miscs:
     @beartype
     @staticmethod
     def str2list(s: str) -> tuple:
-        rs = tuple(eval(s))
+        # Trace values are literals (e.g. "[1, 2, 3]"); literal_eval parses
+        # them without the arbitrary-code-execution exposure of bare eval().
+        rs = tuple(ast.literal_eval(s))
         return rs
 
 
@@ -195,8 +204,8 @@ class Miscs:
 
     @beartype
     @staticmethod
-    def get_terms_fixed_coefs(ss, subset_siz: int, icoef: int, 
-                              do_create_terms:bool=True) -> set[sympy.Expr]:
+    def get_terms_fixed_coefs(ss, subset_siz: int, icoef: int,
+                              do_create_terms:bool=True) -> set:
         """
         if do_create_terms = True, then return x*y,  otherwise, return (x,y)
 
@@ -259,10 +268,43 @@ class Miscs:
         if len(ps) <= 1:
             return ps
 
-        ps_ = sympy.groebner(ps, *cls.get_vars(ps))
+        try:
+            ps_ = cls._groebner_timed(ps, cls.get_vars(ps),
+                                      settings.GROEBNER_TIMEOUT)
+        except _GroebnerTimeout:
+            mlog.warning(
+                f"groebner timed out (>{settings.GROEBNER_TIMEOUT}s) on "
+                f"{len(ps)} ps; keeping unreduced eqts")
+            return ps
         ps_ = [x for x in ps_]
         mlog.debug(f"Grobner basis: from {len(ps)} to {len(ps_)} ps")
         return ps_ if len(ps_) < len(ps) else ps
+
+    @staticmethod
+    def _groebner_timed(ps: list, vs: list, timeout_s: int):
+        """
+        sympy.groebner with a wall-clock bound via SIGALRM. Groebner basis is
+        worst-case doubly-exponential and is known to hang on some inputs; on
+        timeout we raise _GroebnerTimeout so the caller can fall back.
+
+        SIGALRM only works on the main thread; off-thread (shouldn't happen in
+        the fork-based MP workers, which run tasks on their main thread) we just
+        run without a timer.
+        """
+        if (timeout_s <= 0
+                or threading.current_thread() is not threading.main_thread()):
+            return sympy.groebner(ps, *vs)
+
+        def _handler(signum, frame):
+            raise _GroebnerTimeout()
+
+        old = signal.signal(signal.SIGALRM, _handler)
+        signal.setitimer(signal.ITIMER_REAL, timeout_s)
+        try:
+            return sympy.groebner(ps, *vs)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, old)
 
     @beartype
     @staticmethod
@@ -602,7 +644,9 @@ class MP:
                 f"using {len(_MP_WLOADS)} workers: {list(map(len, _MP_WLOADS))}"
             )
             try:
-                with multiprocessing.Pool(processes=len(_MP_WLOADS)) as pool:
+                # Use fork so workers inherit _MP_FN/_MP_WLOADS globals (3.14+ defaults to forkserver)
+                ctx = multiprocessing.get_context("fork")
+                with ctx.Pool(processes=len(_MP_WLOADS)) as pool:
                     batch_results = pool.map(_mp_run_worker, range(len(_MP_WLOADS)))
             finally:
                 _MP_FN = None

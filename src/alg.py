@@ -11,12 +11,13 @@ from pathlib import Path
 import sys
 from beartype import beartype
 
+
 import settings
 from helpers.miscs import Miscs, MP
 import helpers.vcommon as CM
 
 import data.prog
-from data.symstates import SymStates, SymStatesMakerJava, SymStatesMakerC, SymStatesMakerPythonC
+from data.symstates import SymStates, SymStatesMakerC, SymStatesMakerPythonC
 from data.traces import DTraces
 
 from infer.inv import DInvs
@@ -25,9 +26,6 @@ import infer.eqt
 import infer.oct
 import infer.mp
 import infer.congruence
-import infer.poly_ineq
-import infer.bitwise
-import infer.poly_cong
 
 DBG = pdb.set_trace
 
@@ -39,7 +37,6 @@ class InferType(StrEnum):
     IEQS = "ieqs"
     MINMAX = "minmax"
     CONGRUENCE = "congruence"
-    PREPOSTS = "preposts"
 
 
 class Dig(metaclass=abc.ABCMeta):
@@ -47,7 +44,6 @@ class Dig(metaclass=abc.ABCMeta):
     IEQS = InferType.IEQS
     MINMAX = InferType.MINMAX
     CONGRUENCE = InferType.CONGRUENCE
-    PREPOSTS = InferType.PREPOSTS
 
     @beartype
     def __init__(self, filename: Path) -> None:
@@ -232,7 +228,7 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
     @beartype
     def _infer(self, typ: str, _get_invs: Callable) -> tuple:
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
-                       self.CONGRUENCE, self.PREPOSTS}, typ
+                       self.CONGRUENCE}, typ
         
         mlog.debug(f"infer '{typ}' at {len(self.locs)} locs")
 
@@ -259,25 +255,28 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         return infer.mp.Infer(self.symstates, self.prog).gen(), None
 
     def _infer_trace_based(self, dtraces: DTraces) -> DInvs:
-        """Run trace-only inference types on dtraces gathered during CEGIR."""
+        """Run trace-only inference types on dtraces."""
         result = DInvs()
-        for loc in dtraces:
-            if loc not in self.inv_decls or self.inv_decls[loc].array_only:
+        locs = [loc for loc in dtraces
+                if loc in self.inv_decls and not self.inv_decls[loc].array_only]
+
+        checks = [
+            (settings.DO_CONGRUENCES, "congruences", infer.congruence.Infer.gen_from_traces),
+        ]
+        for enabled, label, gen_fn in checks:
+            if not enabled:
                 continue
-            traces = dtraces[loc]
-            symbs = self.inv_decls[loc]
-            if settings.DO_CONGRUENCES:
-                for inv in infer.congruence.Infer.gen_from_traces(traces, symbs):
-                    result.add(loc, inv)
-            if settings.DO_POLY_INEQS:
-                for inv in infer.poly_ineq.Infer.gen_from_traces(traces, symbs):
-                    result.add(loc, inv)
-            if settings.DO_BITWISE:
-                for inv in infer.bitwise.Infer.gen_from_traces(traces, symbs):
-                    result.add(loc, inv)
-            if settings.DO_POLY_CONGS:
-                for inv in infer.poly_cong.Infer.gen_from_traces(traces, symbs):
-                    result.add(loc, inv)
+            st = time.time()
+            batch = DInvs()
+            for loc in locs:
+                for inv in gen_fn(dtraces[loc], self.inv_decls[loc]):
+                    batch.add(loc, inv)
+            et = time.time() - st
+            if batch.siz:
+                mlog.info(f"got {batch.siz} {label} in {et:.2f}s")
+            result.merge(batch)
+            self.time_d[label] = et
+
         return result
 
     @beartype
@@ -309,23 +308,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 sys.exit(0)
 
         return symstates
-
-
-class DigSymStatesJava(DigSymStates):
-    mysrc_cls = data.prog.Java
-    symstatesmaker_cls = SymStatesMakerJava
-
-    @beartype
-    @property
-    def symexefile(self) -> Path:
-        return self.filename
-
-    @beartype
-    @property
-    def exe_cmd(self) -> str:
-        return settings.Java.JAVA_RUN(
-            tracedir=self.mysrc.tracedir, funname=self.mysrc.funname
-        )
 
 
 class DigSymStatesC(DigSymStates):
@@ -377,10 +359,7 @@ class DigTraces(Dig):
                  self._eqts_tasks(maxdeg) +
                  self._ieqs_tasks() +
                  self._minmax_tasks() +
-                 self._congruences_tasks() +
-                 self._poly_ineqs_tasks() +
-                 self._bitwise_tasks() +
-                 self._poly_congs_tasks())
+                 self._congruences_tasks())
 
         def f(tasks):
             rs = [(loc, _f(loc)) for loc, _f in tasks]
@@ -447,33 +426,6 @@ class DigTraces(Dig):
         def _g(l):
             return not self.inv_decls[l].array_only
         return self._mk_tasks(settings.DO_CONGRUENCES, _g,  _f)
-
-    def _poly_ineqs_tasks(self) -> list:
-        def _f(l):
-            return infer.poly_ineq.Infer.gen_from_traces(
-                self.dtraces[l], self.inv_decls[l])
-
-        def _g(l):
-            return not self.inv_decls[l].array_only
-        return self._mk_tasks(settings.DO_POLY_INEQS, _g, _f)
-
-    def _bitwise_tasks(self) -> list:
-        def _f(l):
-            return infer.bitwise.Infer.gen_from_traces(
-                self.dtraces[l], self.inv_decls[l])
-
-        def _g(l):
-            return not self.inv_decls[l].array_only
-        return self._mk_tasks(settings.DO_BITWISE, _g, _f)
-
-    def _poly_congs_tasks(self) -> list:
-        def _f(l):
-            return infer.poly_cong.Infer.gen_from_traces(
-                self.dtraces[l], self.inv_decls[l])
-
-        def _g(l):
-            return not self.inv_decls[l].array_only
-        return self._mk_tasks(settings.DO_POLY_CONGS, _g, _f)
 
     def _mk_tasks(self, cond1, cond2, _f: Callable) -> list:
         if not cond1:

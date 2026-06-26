@@ -1,27 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+
+void vassume(int b){}
+void vtrace1(int x, int y, int k){}
+
 int mainQ(int k){
-     assert (k>=0);          
-     int y = 0;
-     int x = 0;
-     int c = 0;
+    vassume(k >= 0);
+    vassume(k <= 30);
 
-     while(1){
-	  //%%%traces: int x, int y, int k
-	  if (!(c < k)) break;
-    
-	  c = c + 1;
-	  y = y + 1;
-	  x = x + 1;
-     }
-     return x;
+    int y = 0;
+    int x = 0;
+    int c = 0;
+
+    while(1){
+	vtrace1(x, y, k);
+	if (!(c < k)) break;
+	c = c + 1;
+	y = y + 1;
+	x = x + 1;
+    }
+    return x;
 }
 
-
-
-int main(int argc, char **argv){
-     mainQ(atoi(argv[1]));
-     return 0;
+void main(int argc, char **argv){
+    mainQ(atoi(argv[1]));
 }
-

@@ -1,6 +1,5 @@
 import pdb
 from functools import partial
-import os.path
 from pathlib import Path
 
 DBG = pdb.set_trace
@@ -16,10 +15,6 @@ DO_IEQS = True  # support (octagonal) inequalities
 DO_CONGRUENCES = True  # support congruence relations
 DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
-DO_PREPOSTS = False  # support prepostconditions #TODO not well-tested
-DO_POLY_INEQS = True  # support degree-2 polynomial inequality invariants
-DO_BITWISE = True     # support bitwise AND-mask invariants
-DO_POLY_CONGS = True  # support degree-2 modular congruence invariants
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = None  # write vtraces to csv
@@ -32,8 +27,16 @@ INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 30
 SE_MAX_DEPTH_PYTHON = 8  # default for --python_symex; overridden by --se_maxdepth
-SOLVER_TIMEOUT = 3  # secs
+# Deterministic z3 work-unit budget: the *real* cutoff for solver calls.
+# Unlike wall-clock timeout, rlimit counts solver work, so results are
+# reproducible regardless of CPU contention under multiprocessing.
+# Calibrated to ~3s of CPU work on a typical core (see create_solver).
+SOLVER_RLIMIT = 15_000_000
 EQT_RATE = 1.5
+# Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
+# candidate eqts (e.g. egcd, 8 vars). Bound it; on timeout we fall back to the
+# unreduced eqts, which is reduce_eqts's documented behavior anyway.
+GROEBNER_TIMEOUT = 5  # secs
 UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
 MAX_TERM = 200
 
@@ -43,57 +46,31 @@ INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 
 # Iequalities
-IUPPER = 20  # t <= iupper
-POLY_IUPPER = 300  # upper-bound threshold for degree-2 polynomial inequality terms
-IUPPER_MMP = 2  # for min/max ieqs
+IUPPER = 50  # t <= iupper
+IUPPER_MMP = 1  # for min/max ieqs
+# Cap on the # of operands inside a min/max-plus term, i.e. max(y1,..,yk).
+# Term generation is O(n*2^n) in the # of vars; without a cap, programs with
+# many vars (e.g. egcd, 8 vars) explode into thousands of mostly-spurious terms
+# and time out in generation + simplify. Large-subset mp terms are rarely true.
+MP_MAX_SUBSET = 2
 IDEG = 1  # deg (if 1 then linear)
 ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
+# min # of distinct term values required to trust a congruence mod n.
+# guards against a large modulus inferred from too few values (gcd overfit):
+# the chance of a spurious shared divisor is ~1/2^(nvals-1), so a flat
+# minimum suffices (large moduli are self-protecting).
+CONGRUENCE_MIN_NVALS = 5
 
 # options for full specs analysis
 CTR_VAR = "Ct"  # counter variable contains this string
 POST_LOC = "post"  # vtraceX_post  indicates postconditions
 
 # Program Paths
-SRC_DIR = Path(__file__).parent
-
 TRACE_DIR = "traces"
 SYMEXE_DIR = "symexe"
 TRACE_INDICATOR = "vtrace"
 MAINQ_FUN = "mainQ"
-
-# Must be Java 8 because JPF/SPF requires Java 8
-JAVAC_CMD = Path("/usr/bin/javac")
-JAVA_CMD = Path("/usr/bin/java")
-
-
-class Java:
-    SE_MIN_DEPTH = 7
-
-    JAVA_INSTRUMENT_DIR = SRC_DIR / "java"
-    ASM_JAR = JAVA_INSTRUMENT_DIR / "asm-all-5.2.jar"
-    assert JAVA_INSTRUMENT_DIR.is_dir(), JAVA_INSTRUMENT_DIR
-    assert ASM_JAR.is_file(), ASM_JAR
-    CLASSPATH = f"{JAVA_INSTRUMENT_DIR}:{ASM_JAR}"
-
-    JPF_HOME = Path(os.path.expandvars("$JPF_HOME")) / "jpf-core"
-    JPF_JAR = JPF_HOME / "build/RunJPF.jar"
-    JVM_FLAGS = "-Xmx1024m -ea"
-
-    JPF_RUN = f"{JAVA_CMD} {JVM_FLAGS} -jar {JPF_JAR} " "{jpffile}"
-    JPF_RUN = partial(JPF_RUN.format)
-
-    COMPILE = f"{JAVAC_CMD} " "-g {filename} -d {tmpdir}"
-    COMPILE = partial(COMPILE.format)
-
-    INSTRUMENT = (
-        f"{JAVA_CMD} -cp {CLASSPATH} " "Instrument {filename} {tracefile} {symexefile}"
-    )
-    INSTRUMENT = partial(INSTRUMENT.format)
-
-    JAVA_RUN = f"{JAVA_CMD} " "-ea -cp {tracedir} {funname}"
-    JAVA_RUN = partial(JAVA_RUN.format)
-
 
 class C:
     SE_MIN_DEPTH = 20
@@ -111,163 +88,89 @@ class C:
     if CIVL_JAR.is_dir():
         jars = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"]
         CIVL_JAR = jars[0] if jars else CIVL_JAR
-    CIVL_RUN = "{java} -jar {jar} verify -maxdepth={maxdepth} {file}"
-    CIVL_RUN = partial(CIVL_RUN.format, java=JAVA_CMD, jar=CIVL_JAR)
+    CIVL_RUN = "/usr/bin/java -jar {jar} verify -maxdepth={maxdepth} {file}"
+    CIVL_RUN = partial(CIVL_RUN.format, jar=CIVL_JAR)
+
+
+# Declarative tables driving setup(). Each entry maps an argparse attribute to
+# the settings attribute it overrides and the CLI flag used to reconstruct it
+# when re-invoking dig.py as a subprocess (benchmark mode).
+
+# store_true flags: when present, force the named DO_* setting to a fixed value.
+# The "no..." flags disable a feature (set False); -dosolverstats enables one.
+_BOOL_FLAGS = (
+    # (arg_attr, setting_attr, cli_flag, value_when_present)
+    ("nosimplify", "DO_SIMPLIFY", "-nosimplify", False),
+    ("nofilter", "DO_FILTER", "-nofilter", False),
+    ("noss", "DO_SS", "-noss", False),
+    ("nomp", "DO_MP", "-nomp", False),
+    ("noeqts", "DO_EQTS", "-noeqts", False),
+    ("noieqs", "DO_IEQS", "-noieqs", False),
+    ("nocongruences", "DO_CONGRUENCES", "-nocongruences", False),
+    ("noarrays", "DO_ARRAYS", "-noarrays", False),
+    ("nominmaxplus", "DO_MINMAXPLUS", "-nominmaxplus", False),
+    ("noincrdepth", "DO_INCR_DEPTH", "-noincrdepth", False),
+    ("dosolverstats", "DO_SOLVER_STATS", "-dosolverstats", True),
+)
+
+# String options: applied verbatim when truthy. (Subprocess reconstruction emits
+# the bare flag without its value, matching the original behavior.)
+_STR_FLAGS = (
+    # (arg_attr, setting_attr, cli_flag)
+    ("writevtraces", "WRITE_VTRACES", "-writevtraces"),
+    ("writesstates", "WRITE_SSTATES", "-writesstates"),
+    ("readsstates", "READ_SSTATES", "-readsstates"),
+)
+
+# Int options: applied when given and >= 1; reconstructed as "-flag <value>".
+_INT_FLAGS = (
+    # (arg_attr, setting_attr, cli_flag)
+    ("inpMaxV", "INP_MAX_V", "-inpMaxV"),
+    ("iupper", "IUPPER", "-iupper"),
+    ("ideg", "IDEG", "-ideg"),
+    ("iterms", "ITERMS", "-iterms"),
+    ("icoefs", "ICOEFS", "-icoefs"),
+    ("maxterm", "MAX_TERM", "-maxterm"),
+    ("nrandinps", "N_RAND_INPS", "-nrandinps"),
+)
 
 
 def setup(settings, args):
+    """
+    Apply command-line ``args`` to the global ``settings`` module.
+
+    Two modes:
+    - ``settings`` truthy: mutate the settings module in place and return a
+      configured logger.
+    - ``settings`` falsy (None): collect the equivalent CLI flags and return
+      them as a string, used to re-invoke dig.py as a benchmark subprocess.
+    """
     import helpers.vcommon
 
     opts = []
-    if args.nosimplify:
-        if settings:
-            settings.DO_SIMPLIFY = not args.nosimplify
-        else:
-            opts.append("-nosimplify")
 
-    if args.nofilter:
-        if settings:
-            settings.DO_FILTER = not args.nofilter
-        else:
-            opts.append("-nofilter")
+    for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
+        if getattr(args, arg_attr):
+            if settings:
+                setattr(settings, set_attr, value)
+            else:
+                opts.append(flag)
 
-    if args.noss:
-        if settings:
-            settings.DO_SS = not args.noss
-        else:
-            opts.append("-noss")
+    for arg_attr, set_attr, flag in _STR_FLAGS:
+        val = getattr(args, arg_attr)
+        if val:
+            if settings:
+                setattr(settings, set_attr, val)
+            else:
+                opts.append(flag)
 
-    if args.nomp:
-        if settings:
-            settings.DO_MP = not args.nomp
-        else:
-            opts.append("-nomp")
-
-    if args.noeqts:
-        if settings:
-            settings.DO_EQTS = not args.noeqts
-        else:
-            opts.append("-noeqts")
-
-    if args.noieqs:
-        if settings:
-            settings.DO_IEQS = not args.noieqs
-        else:
-            opts.append("-noieqs")
-
-    if args.nocongruences:
-        if settings:
-            settings.DO_CONGRUENCES = not args.nocongruences
-        else:
-            opts.append("-nocongruences")
-
-    if args.noarrays:
-        if settings:
-            settings.DO_ARRAYS = not args.noarrays
-        else:
-            opts.append("-noarrays")
-
-    if args.nominmaxplus:
-        if settings:
-            settings.DO_MINMAXPLUS = not args.nominmaxplus
-        else:
-            opts.append("-nominmaxplus")
-
-    if args.nopreposts:
-        if settings:
-            settings.DO_PREPOSTS = not args.nopreposts
-        else:
-            opts.append("-nopreposts")
-
-    if args.nopoly:
-        if settings:
-            settings.DO_POLY_INEQS = not args.nopoly
-        else:
-            opts.append("-nopoly")
-
-    if args.nobitwise:
-        if settings:
-            settings.DO_BITWISE = not args.nobitwise
-        else:
-            opts.append("-nobitwise")
-
-    if args.nopolycong:
-        if settings:
-            settings.DO_POLY_CONGS = not args.nopolycong
-        else:
-            opts.append("-nopolycong")
-
-    if args.noincrdepth:
-        if settings:
-            settings.DO_INCR_DEPTH = not args.noincrdepth
-        else:
-            opts.append("-noincrdepth")
-
-    if args.dosolverstats:
-        if settings:
-            settings.DO_SOLVER_STATS = args.dosolverstats
-        else:
-            opts.append("-dosolverstats")
-
-    if args.writevtraces:
-        if settings:
-            settings.WRITE_VTRACES = args.writevtraces
-        else:
-            opts.append("-writevtraces")
-    
-    if args.writesstates:
-        if settings:
-            settings.WRITE_SSTATES = args.writesstates
-        else:
-            opts.append("-writesstates")
-
-    if args.readsstates:
-        if settings:
-            settings.READ_SSTATES = args.readsstates
-        else:
-            opts.append("-readsstates")
-
-    if args.inpMaxV is not None and args.inpMaxV >= 1:
-        if settings:
-            settings.INP_MAX_V = args.inpMaxV
-        else:
-            opts.append(f"-inpMaxV {args.inpMaxV}")
-
-    if args.iupper is not None and args.iupper >= 1:
-        if settings:
-            settings.IUPPER = args.iupper
-        else:
-            opts.append(f"-iupper {args.iupper}")
-
-    if args.ideg is not None and args.ideg >= 1:
-        if settings:
-            settings.IDEG = args.ideg
-        else:
-            opts.append(f"-ideg {args.ideg}")
-
-    if args.iterms is not None and args.iterms >= 1:
-        if settings:
-            settings.ITERMS = args.iterms
-        else:
-            opts.append(f"-iterms {args.iterms}")
-
-    if args.icoefs is not None and args.icoefs >= 1:
-        if settings:
-            settings.ICOEFS = args.icoefs
-        else:
-            opts.append(f"-icoefs {args.icoefs}")
-
-    if args.maxterm is not None and args.maxterm >= 1:
-        if settings:
-            settings.MAX_TERM = args.maxterm
-        else:
-            opts.append(f"-maxterm {args.maxterm}")
-
-    if args.nrandinps is not None and args.nrandinps >= 1:
-        if settings:
-            settings.N_RAND_INPS = args.nrandinps
-        else:
-            opts.append(f"-nrandinps {args.nrandinps}")
+    for arg_attr, set_attr, flag in _INT_FLAGS:
+        val = getattr(args, arg_attr)
+        if val is not None and val >= 1:
+            if settings:
+                setattr(settings, set_attr, val)
+            else:
+                opts.append(f"{flag} {val}")
 
     if args.uterms:
         if settings:
@@ -277,7 +180,6 @@ def setup(settings, args):
 
     if args.se_mindepth is not None and args.se_mindepth >= 1:
         if settings:
-            settings.Java.SE_MIN_DEPTH = args.se_mindepth
             settings.C.SE_MIN_DEPTH = args.se_mindepth
         else:
             opts.append(f"-se_mindepth {args.se_mindepth}")
@@ -288,7 +190,7 @@ def setup(settings, args):
             settings.SE_MAX_DEPTH_PYTHON = args.se_maxdepth
         else:
             opts.append(f"-se_maxdepth {args.se_maxdepth}")
-            
+
     if args.tmpdir:
         if settings:
             settings.TMPDIR = Path(args.tmpdir)
@@ -303,4 +205,3 @@ def setup(settings, args):
     else:
         opts.append(f"-log_level {args.log_level}")
         return " ".join(opts)
-    

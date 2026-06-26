@@ -45,7 +45,7 @@ class Inv(metaclass=abc.ABCMeta):
         stat = None means never been checked
         """
         assert (inv == 0 or  # FalseInv
-                # PrePost and Max/MinPlus
+                # Max/MinPlus
                 (isinstance(inv, tuple) and (len(inv) == 2 or len(inv) == 4)) or
                 (isinstance(inv, tuple) and len(inv) == 3) or  # congruence
                 isinstance(inv, str) or   # Array relation
@@ -277,9 +277,6 @@ class CInvs:
         self.congruences = []
         self.arr_rels = []
         self.falseinvs = []
-        self.poly_ineqs = []
-        self.bitwise = []
-        self.poly_congs = []
 
         for inv in self.invs:
             getattr(self, inv.cinvs_category).append(inv)
@@ -298,32 +295,45 @@ class CInvs:
 
     def __str__(self, print_stat: bool = False, print_first_n: int | None = None,
                 writeresults: bool = False) -> str:
-        ss = []
-
         def mylen(x):
             return len(str(x))
 
-        invs = (
-            sorted(self.eqts + self.eqts_largecoefs, key=mylen)
-            + sorted(self.octs, key=mylen)
-            + sorted(self.mps, key=mylen)
-            + sorted(self.congruences, key=mylen)
-            + sorted(self.arr_rels, key=mylen)
-            + sorted(self.falseinvs, key=mylen)
-            + sorted(self.poly_ineqs, key=mylen)
-            + sorted(self.bitwise, key=mylen)
-            + sorted(self.poly_congs, key=mylen)
-        )
+        if writeresults:
+            invs = (
+                sorted(self.eqts + self.eqts_largecoefs, key=mylen)
+                + sorted(self.octs, key=mylen)
+                + sorted(self.mps, key=mylen)
+                + sorted(self.congruences, key=mylen)
+                + sorted(self.arr_rels, key=mylen)
+                + sorted(self.falseinvs, key=mylen)
+            )
+            if print_first_n and print_first_n < len(invs):
+                invs = invs[:print_first_n] + ["..."]
+            parts = []
+            for inv in invs:
+                deg = self.get_max_deg(inv)
+                s = inv if isinstance(inv, str) else inv.__str__(print_stat)
+                parts.append(f"{s} {deg}")
+            return '; '.join(parts)
 
-        if print_first_n and print_first_n < len(invs):
-            invs = invs[:print_first_n] + ["..."]
-
-        for i, inv in enumerate(invs):
-            deg = self.get_max_deg(inv)
-            inv = inv if isinstance(inv, str) else inv.__str__(print_stat)
-            ss.append(f"{inv} {deg}" if writeresults else f"{i + 1}. {inv}")
-
-        return ('; ' if writeresults else '\n').join(ss)
+        categories = [
+            ("Eqt",        self.eqts + self.eqts_largecoefs),
+            ("Oct",        self.octs),
+            ("MinMax",     self.mps),
+            ("Congruence", self.congruences),
+            ("Array",      self.arr_rels),
+        ]
+        lines = []
+        for label, invs in categories:
+            if not invs:
+                continue
+            invs = sorted(invs, key=mylen)
+            if print_first_n and print_first_n < len(invs):
+                invs = invs[:print_first_n] + ["..."]
+            parts = [inv.__str__(print_stat) if not isinstance(inv, str) else inv
+                     for inv in invs]
+            lines.append(f"  {label}: {'; '.join(parts)}")
+        return '\n'.join(lines)
 
     def simplify(self) -> list[Inv]:
         eqts = self.eqts
@@ -333,9 +343,6 @@ class CInvs:
         congruences = self.congruences
         arr_rels = self.arr_rels
         falseinvs = self.falseinvs
-        poly_ineqs = self.poly_ineqs
-        bitwise = self.bitwise
-        poly_congs = self.poly_congs
 
         assert not falseinvs, falseinvs
 
@@ -394,7 +401,7 @@ class CInvs:
         octs_simple = self._simplify_slow(
             octs_simple, mps_eqt + octs_mps, "octs_simple")
 
-        done += octs_simple + octs_mps + arr_rels + poly_ineqs + bitwise + poly_congs
+        done += octs_simple + octs_mps + arr_rels
         return done
 
     @classmethod

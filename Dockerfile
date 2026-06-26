@@ -8,7 +8,7 @@ RUN apt install -y build-essential libc6 git software-properties-common emacs-no
 # Install miniconda & sympy & z3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash ./Miniconda3-latest-Linux-x86_64.sh -b
-RUN /root/miniconda3/bin/conda install sympy pip -y
+RUN /root/miniconda3/bin/conda install python=3.14 sympy pip -y
 RUN /root/miniconda3/bin/pip3 install z3-solver beartype pycparser numpy
 RUN rm -rf ./Miniconda3-latest-Linux-x86_64.sh
 
