@@ -7,7 +7,9 @@ from __future__ import annotations
 from collections.abc import Iterable, Callable
 from collections import defaultdict
 import ast
+import os
 import pdb
+import sys
 import itertools
 import functools
 import multiprocessing
@@ -651,6 +653,28 @@ def _mp_run_worker(idx: int):
     return _MP_FN(_MP_WLOADS[idx])
 
 
+def _worker_init():
+    """
+    Make each fork-based Pool worker die with its parent so an interrupted or
+    killed DIG run can't leave workers busy-looping (e.g. mid z3 solve). Uses
+    Linux PR_SET_PDEATHSIG; a no-op elsewhere. The `with Pool` context manager
+    only cleans up on normal/exception exit — this covers the uncatchable cases
+    (SIGKILL, parent crash).
+    """
+    if sys.platform != "linux":
+        return
+    try:
+        import ctypes
+        PR_SET_PDEATHSIG = 1
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(
+            PR_SET_PDEATHSIG, signal.SIGKILL)
+        # race: parent may have died between fork and prctl above
+        if os.getppid() == 1:
+            os._exit(1)
+    except Exception:
+        pass
+
+
 class MP:
     @beartype    
     @staticmethod
@@ -708,7 +732,8 @@ class MP:
             try:
                 # Use fork so workers inherit _MP_FN/_MP_WLOADS globals (3.14+ defaults to forkserver)
                 ctx = multiprocessing.get_context("fork")
-                with ctx.Pool(processes=len(_MP_WLOADS)) as pool:
+                with ctx.Pool(processes=len(_MP_WLOADS),
+                              initializer=_worker_init) as pool:
                     batch_results = pool.map(_mp_run_worker, range(len(_MP_WLOADS)))
             finally:
                 _MP_FN = None
