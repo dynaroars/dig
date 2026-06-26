@@ -158,9 +158,10 @@ class Traces(SymbsValsSet):
             exprs = set(template.xreplace(t) for t in self.mydicts)
         else:
             ntracesExtra = ntraces * settings.TRACE_MULTIPLIER
-            for t in self.mydicts:
-
-                expr = template.xreplace(t)
+            # iterate in a canonical order so the subset picked by the break
+            # below doesn't depend on set iteration order (hashing / PYTHONHASHSEED)
+            for trace in sorted(self, key=str):
+                expr = template.xreplace(trace.mydict)
                 if expr not in exprs:
                     exprs.add(expr)
                     if len(exprs) >= ntracesExtra:
