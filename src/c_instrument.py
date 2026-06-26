@@ -43,19 +43,6 @@ class AddPrintfVisitor(c_ast.NodeVisitor):
 
 
 
-class AddPrintfCivl(AddPrintfVisitor):
-    @beartype
-    def _create_new_funs(self, myname: str, myvars: list[str]) -> list[c_ast.FuncCall]:
-        value_ = "; ".join(f"{name} = %d" for name in myvars) + "\\n"
-        myvars_ = [c_ast.ID(name=x) for x in myvars]
-        exprs_ = [c_ast.Constant(type="string", 
-                                 value=f'\"{myname}: {value_}"')] + myvars_
-        funcCall = c_ast.FuncCall(name=c_ast.ID(name="printf"),
-                                  args=c_ast.ExprList(exprs=exprs_))
-        pc_call = c_ast.FuncCall(name=c_ast.ID(name="$pathCondition"), args=None)
-        return [funcCall, pc_call]
-
-
 class AddPrintfInstr(AddPrintfVisitor):
     @beartype
     def _create_new_funs(self, myname: str, myvars: list[str]) -> list[c_ast.FuncCall]:
@@ -107,21 +94,6 @@ class PrintTypeVisitor(c_ast.NodeVisitor):
                                  for p in node.decl.type.args.params]
 
 
-class ChangeMainQCall(c_ast.NodeVisitor):
-    """
-    mainQ(atoi(argv[1], ...)  -> mainQ(x, ...)
-    """
-    def __init__(self, mainQ_params) -> None:
-        self.mainQ_params = mainQ_params
-        
-    def visit_FuncDef(self, node:c_ast.Node) -> None:
-        if node.decl.name == "main" and len(node.body.block_items) == 1:
-            mainQ_names = [c_ast.ID(name=name) for name, _ in self.mainQ_params]
-            funcCall = c_ast.FuncCall(name=c_ast.ID(name="mainQ"),
-                                      args=c_ast.ExprList(exprs=mainQ_names))
-            node.body.block_items = [funcCall]
-    
-
 @beartype
 def gen(filename: Path, myast: c_ast.FileAST, includes: list[str]) -> None:
     generator = c_generator.CGenerator()
@@ -130,7 +102,7 @@ def gen(filename: Path, myast: c_ast.FileAST, includes: list[str]) -> None:
     vwrite(filename, instr)
 
 @beartype    
-def instrument(filename: Path, tracefile: Path,  symexefile: Path) -> list[str]:
+def instrument(filename: Path, tracefile: Path) -> list[str]:
     includes = []
     src = []
     text = filename.read_text()
@@ -155,31 +127,15 @@ def instrument(filename: Path, tracefile: Path,  symexefile: Path) -> list[str]:
     ChangeVassertVisitor("vassume", "assert").visit(ast_instr)
     gen(tracefile, ast_instr, includes)
 
-    
-    #civl instrumentation
-    ast_civl =  parser.parse(src)
-    #remove vassume def
-    ast_civl.ext = [node for node in ast_civl.ext
-                    if not (isinstance(node, c_ast.FuncDef) and
-                            node.decl.name == "vassume")]
-    # change vassume call to $assume
-    ChangeVassertVisitor("vassume", "$assume").visit(ast_civl)
-    # add printf and pathcond calls to vtrace defs
-    AddPrintfCivl("vtrace").visit(ast_civl)
-    vis = PrintTypeVisitor("vtrace", "mainQ")    
-    vis.visit(ast_civl)
-    
-    #change mainQ(atoi(arg), ..) -> mainQ(x, ..)
-    ChangeMainQCall(vis.mainQ_params).visit(ast_civl)
-    includes = [i.replace('<','"').replace('>','"') for i in includes]
-    inps = [f"$input {typ} {name};" for name, typ in vis.mainQ_params]
-    gen(symexefile, ast_civl, ['#include "civlc.cvh"'] + includes + inps)
+    # collect variable type info (vtrace/mainQ signatures) for inp/inv decls
+    ast_typ = parser.parse(src)
+    vis = PrintTypeVisitor("vtrace", "mainQ")
+    vis.visit(ast_typ)
     return vis.typ_info
 
 
 if __name__ == '__main__':
     filename = Path(sys.argv[1])
-    symexefile = Path(sys.argv[2])    
-    tracefile = Path(sys.argv[3])
-    typ_output = instrument(filename, tracefile, symexefile)
+    tracefile = Path(sys.argv[2])
+    typ_output = instrument(filename, tracefile)
     print('\n'.join(typ_output))

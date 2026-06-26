@@ -10,7 +10,7 @@ DIG's numerical relations (in particular, nonlinear equalities) have been used f
 - array analysis (finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, `ICSE12`, `TOSEM13`)
 
 DIG is written in Python using the **SAGE** mathematics system. It infers invariants using dynamic execution (over execution traces) and checks those invariants using symbolic states and constraint solving.
-DIG uses symbolic execution (**Symbolic PathFinder** for Java and **CIVL** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
+DIG uses symbolic execution (**Symbolic PathFinder** for Java and a built-in **Python symbolic execution engine** for C) to collect symbolic states and the **Z3** SMT solver for constraint solving.
 
 The current version of DIG works with programs written in Java, Java bytecode, and C. The tool also infers  invariants direclty from given  program execution traces.
 
@@ -337,55 +337,11 @@ $ cd src/java
 $ make
 ```
 
-#### For C files: install the [CIVL symbolic execution tool](https://vsl.cis.udel.edu/civl/)
+#### For C files
 
-* Build CIL
-
-```sh
-# build CIL
-$ git clone https://github.com/cil-project/cil.git
-$ cd cil
-$ ./configure ; make
-```
-
-* Compile the Ocaml files in `ocaml` directory for instrumenting C files (to CIVL format)
-
-```sh
-# in DIG's src directory
-$ cd src/ocaml
-$ edit Makefile  #point the OCAML_OPTIONS to where CIL is
-$ make
-```
-
-* Get CIVL
-
-```sh
-$ wget --no-check-certificate https://vsl.cis.udel.edu/lib/sw/civl/1.20/r5259/release/CIVL-1.20_5259.tgz
-$ tar xf CIVL-1.20_5259.tgz
-$ ln -sf CIVL-1.20_5259 civl
-$ ln -sf civl/lib/ lib
-
-
-# Tell CIVL to use Z3  by editing the ~/.sarl file
-prover {
- aliases = z3;
- kind = Z3;
- version = "4.8.7 - 64 bit";
- path = "/home/SHARED/Devel/Z3/z3/z3";
- timeout = 10.0;
- showQueries = false;
- showInconclusives = false;
- showErrors = true;
-}
-
-# test CIVL
-$ /home/SHARED/Devel/JAVA/jdk/bin/java -jar /home/SHARED/Devel/CIVL/lib/civl-1.20_5259.jar verify -maxdepth=20 $DIG/tests/tools/cohendiv_civl.c
-CIVL v1.20 of 2019-09-27 -- http://vsl.cis.udel.edu/civl
-vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
-path condition: (0<=(X_x-1))&&(0<=(X_y-1))
-...
-
-```
+No extra setup is needed: DIG uses a built-in Python symbolic execution engine
+(`pycparser`-based) to collect symbolic states from C source, so only `pycparser`
+(installed above) is required.
 
 #### Setup Paths
 

@@ -266,11 +266,10 @@ class Src(metaclass=abc.ABCMeta):
         tracedir = self.mkdir(tmpdir / settings.TRACE_DIR)
         tracefile = tracedir / basename
         symexedir = self.mkdir(tmpdir / settings.SYMEXE_DIR)
-        symexefile = symexedir / basename
 
         self.filename, self.basename, self.funname = filename, basename, funname
         self.tracedir, self.tracefile = tracedir, tracefile
-        self.symexedir, self.symexefile = symexedir, symexefile
+        self.symexedir = symexedir
          
 
     @abc.abstractmethod
@@ -315,7 +314,7 @@ class C(Src):
         super().__init__(filename, tmpdir)
 
         from c_instrument import instrument
-        typ = instrument(self.filename, self.tracefile, self.symexefile)
+        typ = instrument(self.filename, self.tracefile)
         self.inp_decls, self.inv_decls, self.mainQ_name = \
             self.parse_type_info('\n'.join(typ))
 

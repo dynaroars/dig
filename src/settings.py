@@ -83,14 +83,6 @@ class C:
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
 
-    CIVL_HOME = Path("../EXTERNAL_FILES/civl")
-    CIVL_JAR = CIVL_HOME / "lib"
-    if CIVL_JAR.is_dir():
-        jars = [f for f in CIVL_JAR.iterdir() if f.suffix == ".jar"]
-        CIVL_JAR = jars[0] if jars else CIVL_JAR
-    CIVL_RUN = "/usr/bin/java -jar {jar} verify -maxdepth={maxdepth} {file}"
-    CIVL_RUN = partial(CIVL_RUN.format, jar=CIVL_JAR)
-
 
 # Declarative tables driving setup(). Each entry maps an argparse attribute to
 # the settings attribute it overrides and the CLI flag used to reconstruct it

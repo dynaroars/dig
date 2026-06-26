@@ -74,7 +74,7 @@ class PathCond(NamedTuple):
         return pcs
 
 
-class PathCondCIVL(PathCond):
+class PathCondC(PathCond):
 
     @beartype
     @classmethod
@@ -782,23 +782,11 @@ def merge(ds) -> dict:
 
 
 class SymStatesMakerC(SymStatesMaker):
-    pc_cls = PathCondCIVL
-    mindepth = settings.C.SE_MIN_DEPTH
-
-    @beartype
-    def mk(self, depth: int) -> str:
-        """
-        civl verify -maxdepth=20 -seed=10 /var/tmp/Dig_04lfhmlz/cohendiv.c
-        """
-        assert depth >= 1, depth
-        return settings.C.CIVL_RUN(maxdepth=depth, file=self.filename)
-
-
-class SymStatesMakerPythonC(SymStatesMakerC):
     """
-    Python symbolic execution engine replacing CIVL for simple C programs.
-    Overrides get_symstates() to call CSymEx directly instead of running CIVL.
+    Python symbolic execution engine for simple C programs.
+    Overrides get_symstates() to call CSymEx directly.
     """
+    pc_cls = PathCondC
     # Python symex explores paths incrementally — a lower starting depth is fine.
     mindepth = 2
 

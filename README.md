@@ -414,7 +414,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
   - DIG can also take as input a `csv` file consisting of program traces and it will infer invariants just over those traces (i.e., pure dynamic).
 
 > What are the dependencies for using DIG?
-  - Python, Sympy, Numpy, and the Z3 SMT solver for inferring invariants, an the symbolic execution tool CIVL for checking invariants from source code. Python, Sympy, Numpy, and Z3 can be installed using the Miniconda distribution of Python. CIVL already comes with the DIG distrubition. 
+  - Python, Sympy, Numpy, and the Z3 SMT solver for inferring invariants. DIG uses a built-in Python symbolic execution engine to collect symbolic states from C source code. Python, Sympy, Numpy, and Z3 can be installed using the Miniconda distribution of Python.
 
 >  Do I need to tune DIG to infer invariants?
   - No, DIG should work out of the box and does not require user inputs.  However, if you want to tweak the behavior of DIG, you can do so as shown [here](#wrench-tweaking-dig). 

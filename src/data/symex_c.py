@@ -1,14 +1,14 @@
 """
 Python symbolic execution engine for simple C programs.
 
-Replaces CIVL in DIG for invariant inference on programs using:
+Handles invariant inference on programs using:
   - Integer arithmetic (+ - * / %)
   - while loops with break
   - if/else branching
   - vassume(cond) for preconditions
   - vtraceN(...) for observation points
 
-Output format matches what PathCondCIVL.parse() expects (already replace_str'd).
+Output format matches what PathCondC.parse() expects (already replace_str'd).
 
 Usage (standalone):
     python symex_c.py cohendiv.c --maxdepth 20
@@ -725,11 +725,11 @@ def _is_const_true(node: c_ast.Node) -> bool:
     return isinstance(node, c_ast.Constant) and node.value == "1"
 
 
-# ──────────────────────────────────────── CIVL-compatible text output ──
+# ──────────────────────────────────────────────── text output ──
 
 def run_and_print(filename: Path, max_depth: int) -> None:
     """
-    Run symex and print output in CIVL-compatible text format:
+    Run symex and print output in the text format PathCondC.parse expects:
 
         vtrace1: q = 0; r = X_x; ...
         path condition: (0 <= X_x - 1) and (0 <= X_y - 1)
@@ -739,14 +739,11 @@ def run_and_print(filename: Path, max_depth: int) -> None:
     results = engine.run()
 
     for loc, pc_str, slocal_str in results:
-        # Convert slocal `q == 0 and r == X_x ...` back to CIVL-ish
-        # format:  `vtrace1: q = 0; r = X_x; ...`
-        # We emit Python-expr format with a special prefix so
-        # PathCondPython.parse_parts() can pick it up.
-        slocal_civl = slocal_str.replace(" == ", " = ").replace(" and ", "; ")
-        pc_civl = "true" if pc_str is None else pc_str.replace(" and ", "&&")
-        print(f"{loc}: {slocal_civl}")
-        print(f"path condition: {pc_civl}")
+        # `q == 0 and r == X_x ...` -> `vtrace1: q = 0; r = X_x; ...`
+        slocal_txt = slocal_str.replace(" == ", " = ").replace(" and ", "; ")
+        pc_txt = "true" if pc_str is None else pc_str.replace(" and ", "&&")
+        print(f"{loc}: {slocal_txt}")
+        print(f"path condition: {pc_txt}")
 
 
 # ──────────────────────────────────────────────────── CLI entry point ──

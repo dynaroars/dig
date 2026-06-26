@@ -227,14 +227,6 @@ if __name__ == "__main__":
     )
 
     ag(
-        "--civl",
-        "-civl",
-        action="store_true",
-        default=False,
-        help="use CIVL symbolic execution engine instead of the Python engine (for .c files)",
-    )
-
-    ag(
         "--benchmark_dir",
         "-benchmark_dir",
         type=str,
@@ -271,10 +263,7 @@ if __name__ == "__main__":
         import alg
 
         if inp.suffix == ".c":
-            if args.civl:
-                dig = alg.DigSymStatesC(inp)
-            else:
-                dig = alg.DigSymStatesPyC(inp)
+            dig = alg.DigSymStatesC(inp)
         else:
             # traces file(s)
             test_tracefile = Path(args.test_tracefile) \
