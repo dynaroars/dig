@@ -202,6 +202,68 @@ class Miscs:
 
         return deg
 
+    @staticmethod
+    def seq_degree(values: list[int], max_deg: int = 8) -> int | None:
+        """
+        Degree of the polynomial underlying an equally-spaced sequence, via the
+        method of finite differences: a sequence is degree d iff its d-th
+        difference is constant (and the (d+1)-th vanishes). Returns None if it
+        doesn't stabilize within max_deg, i.e. the values aren't polynomial in
+        the loop index (e.g. subtractive/gcd-style or bit/mod updates).
+
+        Needs >= d+2 points to confirm degree d.
+
+        >>> Miscs.seq_degree([0, 1, 8, 27, 64])   # cubes
+        3
+        >>> Miscs.seq_degree([2, 2, 2, 2])         # constant
+        0
+        >>> Miscs.seq_degree([0, 1, 3, 6, 10])     # triangular -> quadratic
+        2
+        >>> Miscs.seq_degree([1, 2, 4, 8, 16]) is None  # exponential, not poly
+        True
+        """
+        seq = list(values)
+        d = 0
+        while d <= max_deg:
+            if len(seq) < 2:
+                return None             # not enough points to decide
+            if len(set(seq)) == 1:
+                return d                # d-th difference is constant
+            seq = [b - a for a, b in zip(seq, seq[1:])]
+            d += 1
+        return None                     # not polynomial within max_deg
+
+    @classmethod
+    def estimate_degree(cls, exec_rows: list[list[dict]],
+                        max_deg: int = 8) -> tuple[dict[str, int], int | None]:
+        """
+        Estimate each variable's polynomial degree (growth order vs the loop
+        index) from ordered traces, as a *clue* to the invariant degree.
+
+        exec_rows: one entry per execution, each an ordered list of {var: value}
+        rows observed at a single location (in iteration order).
+
+        Returns (per_var, max_seen): per_var maps var -> max detected degree
+        across executions (vars that never stabilize are omitted); max_seen is
+        the overall max (None if nothing stabilized). Note this is a heuristic
+        clue, not a sound upper bound: products of low-order vars can still
+        cancel into a higher-degree relation (e.g. egcd's p*s - q*r).
+        """
+        per_var: dict[str, int] = {}
+        for rows in exec_rows:
+            if len(rows) < 3:
+                continue
+            for v in rows[0]:
+                try:
+                    seq = [int(r[v]) for r in rows]
+                except (KeyError, ValueError, TypeError):
+                    continue
+                d = cls.seq_degree(seq, max_deg)
+                if d is not None:
+                    per_var[v] = max(per_var.get(v, 0), d)
+        mx = max(per_var.values()) if per_var else None
+        return per_var, mx
+
     @beartype
     @staticmethod
     def get_terms_fixed_coefs(ss, subset_siz: int, icoef: int,

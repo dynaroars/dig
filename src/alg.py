@@ -159,6 +159,10 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             
             mlog.info(f"got symbolic states in {et:.2f}s")
 
+            self._deg_hints = {}
+            if settings.DO_EQTS:
+                self._deg_hints = self._estimate_degrees(maxdeg)
+
             tasks = []
             if settings.DO_EQTS:
                 def f():
@@ -244,8 +248,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
     @beartype
     def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
-        dinvs, dtraces = infer.eqt.Infer(
-            self.symstates, self.prog).gen(self.get_auto_deg(maxdeg))
+        dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog).gen(
+            self.get_auto_deg(maxdeg), getattr(self, "_deg_hints", {}))
         return dinvs, dtraces
 
     def _infer_ieqs(self) -> tuple[DInvs, None]:
@@ -308,6 +312,57 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 sys.exit(0)
 
         return symstates
+
+    @beartype
+    def _estimate_degrees(self, maxdeg: int | None) -> dict[str, int]:
+        """
+        Per-location finite-difference degree estimate from traces, used as a
+        *floor* hint for eqt degree selection (never an upper cap). Runs a few
+        inputs and reads each execution's ordered vtrace sequence.
+
+        Side-effect-free wrt determinism: the RNG state and the prog's
+        valid-range cache are saved and restored, so this does not change the
+        inputs/traces later inference would generate.
+        """
+        hints: dict[str, int] = {}
+        rng_state = random.getstate()
+        had_ranges = hasattr(self.prog, "_valid_ranges")
+        try:
+            ceiling = self.get_auto_deg(maxdeg)
+            rinps = self.prog.gen_rand_inps(n_needed=5)
+            inps = data.traces.Inps().merge(rinps, self.inp_decls.names)
+
+            # loc -> list of executions, each an ordered list of {var: val} rows
+            exec_rows: dict[str, list] = {}
+            for inp in inps:
+                rows_by_loc: dict[str, list] = {}
+                for line in self.prog._get_traces(inp):
+                    parts = [p.strip() for p in line.split(";") if p.strip()]
+                    if not parts or parts[0] not in self.inv_decls:
+                        continue
+                    loc, vals = parts[0], parts[1:]
+                    names = self.inv_decls[loc].names
+                    if len(vals) != len(names):
+                        continue
+                    rows_by_loc.setdefault(loc, []).append(dict(zip(names, vals)))
+                for loc, rows in rows_by_loc.items():
+                    exec_rows.setdefault(loc, []).append(rows)
+
+            for loc in sorted(exec_rows):
+                per_var, mx = Miscs.estimate_degree(exec_rows[loc])
+                if mx is not None:
+                    hints[loc] = mx
+                mlog.info(
+                    f"[deg-estimate] {loc}: trace var-degrees {per_var} "
+                    f"-> max {mx} (ceiling {ceiling})"
+                )
+        except Exception as ex:
+            mlog.debug(f"degree estimate failed: {ex}")
+        finally:
+            random.setstate(rng_state)
+            if not had_ranges and hasattr(self.prog, "_valid_ranges"):
+                del self.prog._valid_ranges
+        return hints
 
 
 class DigSymStatesC(DigSymStates):

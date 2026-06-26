@@ -63,18 +63,29 @@ class Infer(infer.infer._Infer):
         return [Eqt(eqt) for eqt in eqts]
 
     @beartype
-    def gen(self, deg:int) -> tuple[infer.inv.DInvs, data.traces.DTraces] :
+    def gen(self, deg: int,
+            deg_hints: dict[str, int] | None = None
+            ) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
         assert deg >= 1, deg
 
         locs = self.prog.locs
         inps = data.traces.Inps()
         dtraces = data.traces.DTraces.mk(locs)
+        deg_hints = deg_hints or {}
 
-        # Try ascending degrees. Traces accumulate across attempts so the
-        # work at degree 2 is not wasted if we need to escalate to degree 3.
-        # Most NLA benchmarks have degree-2 invariants, so this is usually a
-        # 3x+ speedup with no correctness loss.
-        degrees = sorted({2, deg}) if deg > 2 else [deg]
+        # Ascending degrees with per-loc early stop (traces accumulate across
+        # attempts). Always include 2 (cheap warm-up + common case) and the
+        # budget ceiling `deg` (safety net). The finite-difference estimate adds
+        # intermediate target degrees, so high-degree power-sum loops can find
+        # and stop *below* the ceiling (e.g. ps6 at 6 instead of 7) without
+        # losing anything: the ceiling pass still runs for any loc the estimate
+        # under-shoots (e.g. geo3's degree-4 eqts).
+        degrees = {2, deg}
+        for loc in locs:
+            est = deg_hints.get(loc)
+            if est is not None:
+                degrees.add(max(2, min(est, deg)))
+        degrees = sorted(degrees)
 
         dinvs = infer.inv.DInvs()
         for cur_deg in degrees:
@@ -96,7 +107,6 @@ class Infer(infer.infer._Infer):
                 ]
 
             wrs = MP.run_mp("find eqts", tasks, f, settings.DO_MP)
-
             for loc, eqts in wrs:
                 mlog.debug(f"{loc}: got {len(eqts)} eqts at deg {cur_deg}")
                 if eqts:
