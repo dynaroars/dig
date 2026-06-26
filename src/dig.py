@@ -31,6 +31,10 @@ if __name__ == "__main__":
         os.execv(sys.executable,
                  getattr(sys, "orig_argv", [sys.executable] + sys.argv))
 
+    # stream progress as it happens instead of buffering until the run ends
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     aparser = argparse.ArgumentParser("DIG")
     ag = aparser.add_argument
     ag(
