@@ -1,0 +1,45 @@
+[project]
+name = "dig"
+version = "0.1.0"
+description = "DIG: a tool for generating numerical program invariants from traces and symbolic states"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.14"
+
+# Runtime dependencies (previously documented only in the Dockerfile).
+dependencies = [
+    "sympy",
+    "z3-solver",
+    "beartype",
+    "pycparser",
+    "numpy",
+]
+
+[project.urls]
+Homepage = "https://github.com/dynaroars/dig"
+
+# DIG is run as flat scripts from ./src (e.g. `python3 -O src/dig.py ...`),
+# not installed as a package. This file primarily pins dependencies and
+# configures tooling; the sections below point the tools at ./src.
+
+[tool.pyright]
+include = ["src"]
+exclude = ["src/beta", "**/__pycache__"]
+extraPaths = ["src"]
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
+
+[tool.ruff]
+src = ["src"]
+extend-exclude = ["src/beta"]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+# Start conservative: pyflakes (F) + a subset of pycodestyle (E) errors.
+# Widen over time (e.g. add "UP" for pyupgrade once 3.14 idioms are adopted).
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line length handled by formatter, not enforced as an error
+    "E741",  # ambiguous var names (l, etc.) are pervasive in this codebase
+]
