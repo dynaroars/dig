@@ -486,22 +486,46 @@ class Miscs:
         except (TypeError, AttributeError, ValueError):
             return None
 
-        # Fast numpy rank check: if rank == len(uks) the null space is trivial
+        # Fast numpy SVD: rank check + the null-space basis for term reduction.
         M_np = np.array(rows, dtype=np.float64)
         if M_np.size == 0:
             return None
-        s = np.linalg.svd(M_np, compute_uv=False)
+        n = len(uks)
+        _, s, Vh = np.linalg.svd(M_np, full_matrices=True)
         tol = max(M_np.shape) * np.finfo(np.float64).eps * (s[0] if len(s) else 1.0)
         rank = int(np.sum(s > tol))
-        if rank >= len(uks):
+        if rank >= n:
             return []  # full column rank → trivial null space, skip sympy entirely
 
-        # Exact null space via sympy (Bareiss/fraction-free Gaussian elimination)
-        M_sym = sympy.Matrix(rows)
+        # Trace-guided term reduction: rows of Vh past the rank span the numeric
+        # null space (the invariant coefficient space). A term (column) whose
+        # entry is ~0 in *every* null-space basis vector has coefficient 0 in
+        # every invariant, so drop it. The exact (sound) solve then runs on the
+        # relevant subset only — smaller for high-degree / many-var templates
+        # where invariants use few of the C(n+deg, deg) monomials.
+        null_basis = Vh[rank:]                       # (n - rank) x n
+        support = np.abs(null_basis).max(axis=0)     # per-term max |coef|
+        relevant = [j for j in range(n) if support[j] > 1e-7]
+        if not relevant:
+            return None  # numeric degeneracy; let caller fall back
+
+        if len(relevant) < n:
+            mlog.debug(f"term reduction: {n} -> {len(relevant)} terms")
+
+        # Exact null space via sympy on the reduced columns, then map back to
+        # the full uk space (0 for the dropped, provably-uninvolved terms).
+        M_sym = sympy.Matrix([[row[j] for j in relevant] for row in rows])
         try:
-            return M_sym.nullspace()
+            reduced = M_sym.nullspace()
         except Exception:
             return None
+        full_vecs = []
+        for rv in reduced:
+            full = sympy.zeros(n, 1)
+            for i, j in enumerate(relevant):
+                full[j] = rv[i]
+            full_vecs.append(full)
+        return full_vecs
 
     @beartype
     @classmethod
