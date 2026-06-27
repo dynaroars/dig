@@ -277,6 +277,7 @@ class CInvs:
         self.congruences = []
         self.arr_rels = []
         self.falseinvs = []
+        self.llm = []  # LLM-proposed, z3-verified invariants (neuro-symbolic)
 
         for inv in self.invs:
             getattr(self, inv.cinvs_category).append(inv)
@@ -306,6 +307,7 @@ class CInvs:
                 + sorted(self.congruences, key=mylen)
                 + sorted(self.arr_rels, key=mylen)
                 + sorted(self.falseinvs, key=mylen)
+                + sorted(self.llm, key=mylen)
             )
             if print_first_n and print_first_n < len(invs):
                 invs = invs[:print_first_n] + ["..."]
@@ -322,6 +324,7 @@ class CInvs:
             ("MinMax",     self.mps),
             ("Congruence", self.congruences),
             ("Array",      self.arr_rels),
+            ("LLM",        self.llm),
         ]
         lines = []
         for label, invs in categories:

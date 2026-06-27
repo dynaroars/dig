@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest"]
+llm = ["anthropic"]   # neuro-symbolic invariant proposal (llm_infer.py)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

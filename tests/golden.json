@@ -544,6 +544,11 @@
     "min_invs": 23,
     "status": "ok"
   },
+  "nla/isqrt": {
+    "eqts": [],
+    "min_invs": 2,
+    "status": "ok"
+  },
   "nla/knuth": {
     "eqts": [],
     "min_invs": 0,
