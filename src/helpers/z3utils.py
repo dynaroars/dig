@@ -13,6 +13,15 @@ import settings
 DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
+# Pin z3's internal RNGs globally for reproducibility: when a hard query hits
+# the rlimit, z3 returns best-so-far, and an unseeded engine RNG makes that
+# vary run to run (e.g. geo3's minmax). Optimize doesn't accept random_seed via
+# .set(), so set the underlying smt/sat/nlsat seeds at the global level.
+z3.set_param("smt.random_seed", 0)
+z3.set_param("sat.random_seed", 0)
+z3.set_param("nlsat.seed", 0)
+
+
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)

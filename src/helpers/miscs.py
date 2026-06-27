@@ -9,6 +9,7 @@ from collections import defaultdict
 import ast
 import os
 import pdb
+import random
 import sys
 import itertools
 import functools
@@ -647,9 +648,16 @@ class Miscs:
 # inherit them via fork. Only a picklable integer index crosses the IPC boundary.
 _MP_FN: Any = None
 _MP_WLOADS: list = []
+_MP_SEED: int | None = None
 
 
 def _mp_run_worker(idx: int):
+    # Python (3.12+) reseeds the random module nondeterministically on fork, so
+    # any RNG use inside a worker (e.g. eqt's gen_rand_inps) would vary run to
+    # run. Reseed deterministically from the parent's RNG state + the workload
+    # index to restore reproducibility under multiprocessing.
+    if _MP_SEED is not None:
+        random.seed(_MP_SEED + idx)
     return _MP_FN(_MP_WLOADS[idx])
 
 
@@ -719,12 +727,15 @@ class MP:
         boundary; the actual closure and workload are inherited by workers through
         the module-level globals set before Pool() forks.
         """
-        global _MP_FN, _MP_WLOADS
+        global _MP_FN, _MP_WLOADS, _MP_SEED
 
         n_cpus = multiprocessing.cpu_count()
         if DO_MP and len(tasks) >= 2 and n_cpus >= 2 and not multiprocessing.current_process().daemon:
             _MP_WLOADS = MP.get_workload(tasks, n_cpus=n_cpus)
             _MP_FN = f
+            # deterministic per-worker seed derived from the parent's (seeded)
+            # RNG state; read-only, so it doesn't perturb the parent's stream
+            _MP_SEED = hash(random.getstate())
             mlog.debug(
                 f"{taskname}: running {len(tasks)} jobs "
                 f"using {len(_MP_WLOADS)} workers: {list(map(len, _MP_WLOADS))}"
