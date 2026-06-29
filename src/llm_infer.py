@@ -8,18 +8,17 @@ counterexamples that drive a CEGIR refinement loop. Every reported invariant is
 z3-checked against the program's symbolic states, so soundness does not depend
 on the LLM.
 
-  llm: source + traces + counterexamples  ──propose──▶  candidate invariants
-                                               │
-                          DIG symstates + z3  ─┴─verify─▶  proved / cex
-                                               │
-                              cex ──▶ new traces ──▶ re-propose (CEGIR)
+  llm: source + traces + counterexamples  -> propose ->  candidate invariants
+                                               |
+                          DIG symstates + z3  -> verify ->  proved / cex
+                                               |
+                              cex -> new traces -> re-propose (CEGIR)
 
 The LLM backend is pluggable (Anthropic by default); the verifier is the load-
 bearing, sound half and runs with no LLM at all (see verify()).
 """
 from __future__ import annotations
 
-import os
 import random
 import tempfile
 import time

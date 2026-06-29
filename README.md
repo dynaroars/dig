@@ -340,6 +340,57 @@ vtrace3 (9 invs):
 
 </details>
 
+#### Generating Invariants using an LLM (neuro-symbolic, experimental)
+
+<details>
+
+<summary><kbd>details</kbd></summary>
+
+DIG can optionally use an LLM to *propose* candidate invariants, which DIG then
+*verifies soundly* with its symbolic states + Z3. The LLM is only a proposer:
+every reported invariant is Z3-checked against the program's symbolic states, and
+wrong guesses come back as counterexamples that drive a CEGIR refinement loop
+(propose → verify → feed counterexamples back). So **soundness does not depend on
+the LLM** — it can hallucinate and still never produces a false invariant. The
+benefit is that the LLM can suggest forms DIG's algebraic engine does not target
+(e.g., disjunctive, conditional, or nonlinear inequalities).
+
+**Setup.** The LLM mode needs the `anthropic` package and an Anthropic API key:
+
+```sh
+$ pip install anthropic         # (already installed in the Docker image)
+
+# Provide your key via the ANTHROPIC_API_KEY environment variable.
+# Do NOT hard-code it. A simple, safe option is to keep it in a file:
+$ printf 'sk-ant-...' > ~/.anthropic_key && chmod 600 ~/.anthropic_key
+$ export ANTHROPIC_API_KEY=$(cat ~/.anthropic_key)
+```
+
+**Run** with the `-llm` flag:
+
+```sh
+$ ~/miniconda3/bin/python3 -O dig.py ../benchmark/c/nla/cohendiv.c -llm
+...
+* prog cohendiv locs 2; invs 16 (Eqt: 4, Oct: 12) V 6 T 3 D 2; NL 4 (2) ;
+-> time symbolic_states 0.2s, llm_propose 5.3s, verify 0.2s, simplify 0.1s, total 5.7s
+vtrace1 (8 invs):
+  Eqt: -a*y + b == 0; q*y + r - x == 0
+  Oct: -q <= 0; -b <= 0; -r <= 0; -a <= 0; -x <= -1; -y <= -1
+vtrace2 (8 invs):
+  Eqt: -a*y + b == 0; q*y + r - x == 0
+  Oct: -q <= 0; -a <= 0; -y <= -1; a - b <= 0; b - r <= 0; -b + y <= 0
+```
+
+The output uses the same format as a standard run; invariants the LLM proposes
+that DIG's algebraic engine cannot express (nonlinear inequalities, congruences,
+disjunctions) are grouped under an `LLM:` category. Related options:
+
+- `-llm_rounds N` — cap the number of propose/verify (CEGIR) rounds (default `3`).
+- `-llm_no_traces` — prompt the LLM with the program source only, without running
+  it to collect sample traces (the compiled program is never executed for traces).
+
+</details>
+
 
 ### :wrench: Tweaking DIG
 
@@ -434,7 +485,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 - Checking is done by extracting _symbolic states_ using _symbolic execution_ and applying Z3 SMT solver to reason about the states and candidate invariant.s
 - DIG's inferrence is dynamic (mostly), i.e., DIG *is* a data-driven approach
   - Some parts, e.g., inequalities, use static analysis by analyzing symbolic states
-  - Does not use ML for inference (no LLMs, classifers, etc)
+  - By default, does not use ML for inference (no LLMs, classifers, etc); an optional, experimental [LLM mode](#generating-invariants-using-an-llm-neuro-symbolic-experimental) can *propose* candidates, but they are still soundly verified by DIG's symbolic states + Z3
 - DIG follows an _iterative guess-and-check approach_, which infers candidate invs from traces, checks and obtains counterexample traces to improve inference, and repeats
 
 > How to to speed up DIG?
