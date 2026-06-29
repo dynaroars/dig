@@ -83,6 +83,24 @@ class C:
     C_RUN = "{exe}"
     C_RUN = partial(C_RUN.format)
 
+    # max wall-clock seconds a single program run may take. Inputs that don't
+    # terminate within this bound are killed and contribute no traces, so a
+    # non-terminating program can't hang DIG.
+    RUN_TIMEOUT = 2
+
+    # function calls that are rejected by the static safety scan before a file
+    # is compiled/run: file deletion/modification, process spawning, etc. The
+    # input programs are pure numeric computations, so none of these are needed.
+    FORBIDDEN_CALLS = (
+        "system", "popen",
+        "exec", "execl", "execlp", "execle", "execv", "execvp", "execvpe",
+        "fork", "vfork", "clone",
+        "remove", "unlink", "unlinkat", "rmdir", "rename", "renameat",
+        "fopen", "freopen", "open", "openat", "creat",
+        "truncate", "ftruncate",
+        "socket", "connect", "kill",
+    )
+
 
 # Declarative tables driving setup(). Each entry maps an argparse attribute to
 # the settings attribute it overrides and the CLI flag used to reconstruct it

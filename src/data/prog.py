@@ -4,6 +4,7 @@ collecting traces
 """
 
 import abc
+import re
 import shlex
 import itertools
 import random
@@ -187,7 +188,15 @@ class Prog:
         mlog.debug(cmd)
 
         # do not check cmd status, could get error status due to incorrect input
-        cp = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
+        try:
+            cp = subprocess.run(shlex.split(cmd), capture_output=True,
+                                text=True, timeout=settings.C.RUN_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            # the program did not terminate within the budget on this input
+            # (e.g. an infinite loop); skip it rather than hang forever.
+            mlog.warning(
+                f"run timed out after {settings.C.RUN_TIMEOUT}s, no traces: {cmd}")
+            return []
         traces = cp.stdout.splitlines()
         return traces
 
@@ -313,6 +322,8 @@ class C(Src):
     def __init__(self, filename: Path, tmpdir: Path) -> None:
         super().__init__(filename, tmpdir)
 
+        self._safety_scan(self.filename)
+
         from c_instrument import instrument
         typ = instrument(self.filename, self.tracefile)
         self.inp_decls, self.inv_decls, self.mainQ_name = \
@@ -327,6 +338,35 @@ class C(Src):
         funname = basename.stem
         self._compile_test(filename, tmpdir / f"{funname}.exe")
         return filename, basename, funname
+
+    @beartype
+    @staticmethod
+    def _safety_scan(filename: Path) -> None:
+        """
+        Quick static guard run before a file is compiled/executed: DIG runs the
+        input program as a real subprocess, so reject sources that call out to
+        anything with side effects (deleting files, spawning processes, opening
+        sockets, etc.). The benchmarks are pure numeric computations and never
+        need these, so any occurrence is treated as untrusted.
+        """
+        src = filename.read_text()
+        # strip // and /* */ comments so a call name in a comment isn't flagged
+        src = re.sub(r"//[^\n]*", "", src)
+        src = re.sub(r"/\*.*?\*/", "", src, flags=re.DOTALL)
+        # drop `extern ...;` prototype declarations: in preprocessed sources the
+        # expanded system headers declare these names (e.g. `extern int system(
+        # const char *)`) without ever calling them.
+        src = re.sub(r"\bextern\b[^;{}]*;", "", src)
+
+        found = sorted({
+            call for call in settings.C.FORBIDDEN_CALLS
+            # match a call site: name followed by '(' (allowing whitespace)
+            if re.search(rf"\b{re.escape(call)}\s*\(", src)
+        })
+        if found:
+            raise ValueError(
+                f"refusing to run '{filename}': contains potentially unsafe "
+                f"call(s): {', '.join(found)}")
 
     @beartype
     @classmethod
