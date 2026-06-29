@@ -17,7 +17,6 @@ Usage (standalone):
 from __future__ import annotations
 
 import copy
-import sys
 import argparse
 import operator as op_module
 from dataclasses import dataclass, field
@@ -28,9 +27,6 @@ import z3
 from pycparser import c_ast, c_parser
 
 # ─────────────────────────────────────────────────────────── helpers ──
-
-def _sympy_to_z3_int(name: str) -> z3.ArithRef:
-    return z3.Int(name)
 
 
 def _z3_to_py_str(expr: z3.ExprRef) -> str:
