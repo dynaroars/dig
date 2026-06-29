@@ -25,8 +25,7 @@ BENCHMARK_TIMEOUT = 15 * 60  # mins
 N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
-SE_MAX_DEPTH = 30
-SE_MAX_DEPTH_PYTHON = 8  # default for --python_symex; overridden by --se_maxdepth
+SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
 # Deterministic z3 work-unit budget: the *real* cutoff for solver calls.
 # Unlike wall-clock timeout, rlimit counts solver work, so results are
 # reproducible regardless of CPU contention under multiprocessing.
@@ -73,8 +72,6 @@ TRACE_INDICATOR = "vtrace"
 MAINQ_FUN = "mainQ"
 
 class C:
-    SE_MIN_DEPTH = 20
-
     GCC_CMD = "gcc"
 
     COMPILE = "{gcc} {filename} -o {tmpfile}"
@@ -188,16 +185,9 @@ def setup(settings, args):
         else:
             opts.append(f'-uterms "{args.uterms}"')  # not tested
 
-    if args.se_mindepth is not None and args.se_mindepth >= 1:
-        if settings:
-            settings.C.SE_MIN_DEPTH = args.se_mindepth
-        else:
-            opts.append(f"-se_mindepth {args.se_mindepth}")
-
     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
         if settings:
             settings.SE_MAX_DEPTH = args.se_maxdepth
-            settings.SE_MAX_DEPTH_PYTHON = args.se_maxdepth
         else:
             opts.append(f"-se_maxdepth {args.se_maxdepth}")
 

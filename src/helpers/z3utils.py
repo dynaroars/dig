@@ -184,11 +184,6 @@ class Z3:
         return rs, stat
 
     @classmethod
-    def is_valid(cls: type[Z3], claim: z3.ExprRef) -> bool:
-        _, stat = cls.get_models(z3.Not(claim), 1)
-        return stat == z3.unsat
-
-    @classmethod
     def imply(cls: type[Z3], fs: list[z3.ExprRef], g: z3.ExprRef) -> bool:
         """
         >>> var('x y')
@@ -391,26 +386,3 @@ class Z3:
         expr = cls.zTrue if not assertions else assertions[0]
         assert z3.is_expr(expr), expr
         return expr
-
-    @classmethod
-    def model_str(cls: type[Z3], m: list | z3.ModelRef, as_str: bool = True) -> list | str | z3.ModelRef | None:
-        """
-        Returned a 'sorted' model by its keys.
-        e.g. if the model is y = 3 , x = 10, then the result is
-        x = 10, y = 3
-
-        EXAMPLES:
-        see doctest examples from function prove()
-
-        """
-        assert m is None or m == [] or isinstance(m, z3.ModelRef)
-
-        if m:
-            vs = [(v, m[v]) for v in m]
-            vs = sorted(vs, key=lambda a: str(a[0]))
-            if as_str:
-                return '\n'.join(f"{k} = {v}" for (k, v) in vs)
-            else:
-                return vs
-        else:
-            return str(m) if as_str else m

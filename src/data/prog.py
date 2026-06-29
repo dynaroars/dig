@@ -40,11 +40,6 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
         return self.typ == "array"
 
     @beartype
-    @property
-    def is_real(self) -> bool:
-        return self.typ in {"D", "F"}
-
-    @beartype
     def __str__(self) -> str:
         return f"{self.typ} {self.name}"
 
@@ -83,10 +78,6 @@ class Symbs(tuple):
     @property
     def names(self):
         return tuple(s.name for s in self)
-
-    @property
-    def typs(self):
-        return tuple(s.typ for s in self)
 
     @property
     def symbolic(self):

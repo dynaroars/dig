@@ -3,13 +3,11 @@ Symbolic States
 """
 import functools
 import sys
-import shlex
 import abc
 import pdb
 from multiprocessing import Queue
 from pathlib import Path
 from queue import Empty
-import subprocess
 
 import json
 import z3
@@ -606,11 +604,6 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         return settings.SE_MAX_DEPTH
 
     @beartype
-    @abc.abstractmethod
-    def mk(self, depth: int) -> str:
-        pass
-
-    @beartype
     def compute(self) -> dict:
         """
         Run symbolic execution to obtain symbolic states
@@ -667,38 +660,9 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         return symstates
 
     @beartype
+    @abc.abstractmethod
     def get_symstates(self, depth: int) -> None | list:
-        assert depth >= 1, depth
-
-        cmd: str = self.mk(depth)
-        timeout = depth
-        mlog.debug(cmd)
-
-        s = None
-        try:
-            cp = subprocess.run(
-                shlex.split(cmd),
-                timeout=timeout,
-                capture_output=True,
-                check=True,
-                text=True,
-            )
-            s = cp.stdout
-        except subprocess.TimeoutExpired as ex:
-            mlog.debug(
-                f"{ex.__class__.__name__}: {' '.join(ex.cmd)} "
-                f"time out after {ex.timeout}s"
-            )
-            s = ex.stdout
-            s = s if isinstance(s, str) else str(s)
-        except subprocess.CalledProcessError as ex:
-            mlog.error(f"{cmd}\n{ex.stderr}")
-            return None
-
-        pcs = self.pc_cls.parse(s)
-        if pcs:
-            mlog.debug(f"got {len(pcs)} symstates at depth {depth}")
-        return pcs
+        pass
 
     @beartype
     @classmethod
@@ -789,14 +753,6 @@ class SymStatesMakerC(SymStatesMaker):
     pc_cls = PathCondC
     # Python symex explores paths incrementally — a lower starting depth is fine.
     mindepth = 2
-
-    @property
-    def maxdepth(self) -> int:
-        return settings.SE_MAX_DEPTH_PYTHON
-
-    @beartype
-    def mk(self, depth: int) -> str:
-        return f"python-symex {self.filename} depth={depth}"
 
     @beartype
     def get_symstates(self, depth: int) -> None | list:

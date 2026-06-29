@@ -111,10 +111,6 @@ class Inv(metaclass=abc.ABCMeta):
         return self.stat == self.DISPROVED
 
     @property
-    def is_unknown(self) -> bool:
-        return self.stat == self.UNKNOWN
-
-    @property
     def cinvs_category(self) -> str:
         raise NotImplementedError(f"{type(self)} must implement cinvs_category")
 
@@ -198,14 +194,8 @@ class RelTerm(NamedTuple):
     def eval_traces(self, traces: data.traces.Traces, pred=None) -> list | bool:
         return traces.myeval(self.term, pred)
 
-    def mk_lt(self, val: int) -> sympy.Rel:
-        return self._mk_rel(operator.lt, val)
-
     def mk_le(self, val: int) -> sympy.Rel:
         return self._mk_rel(operator.le, val)
-
-    def mk_eq(self, val: int) -> sympy.Rel:
-        return self._mk_rel(operator.eq, val)
 
     def _mk_rel(self, myop, val: int) -> sympy.Rel:
         """
@@ -493,12 +483,6 @@ class DInvs(dict):
     @property
     def typ_ctr(self):
         return sum([self[loc].typ_ctr for loc in self], Counter())
-
-    @property
-    def n_eqs(self):
-        import infer.eqt
-
-        return self.typ_ctr[infer.eqt.Eqt.__name__]
 
     def __str__(self, print_stat=False, print_first_n=None, writeresults=False):
         ss = []
