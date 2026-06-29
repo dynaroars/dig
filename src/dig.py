@@ -53,6 +53,30 @@ if __name__ == "__main__":
 
     ag("--seed", "-seed", type=float, help="use this seed")
 
+    ag(
+        "--llm",
+        "-llm",
+        action="store_true",
+        help="use an LLM (claude) to propose invariants, verified soundly by "
+             "DIG's symbolic states + z3 (requires ANTHROPIC_API_KEY)",
+    )
+
+    ag(
+        "--llm_rounds",
+        "-llm_rounds",
+        type=int,
+        default=3,
+        help="max LLM propose/verify (CEGIR) rounds (default 3)",
+    )
+
+    ag(
+        "--llm_no_traces",
+        "-llm_no_traces",
+        action="store_true",
+        help="LLM mode: prompt with source only, no concrete traces "
+             "(does not run the compiled program)",
+    )
+
     ag("--maxdeg", "-maxdeg",
        type=int,
        default=None,
@@ -64,10 +88,6 @@ if __name__ == "__main__":
        help="number of random inputs (on used with --noss)")
 
     ag("--inpMaxV", "-inpMaxV", type=int, help="max inp value")
-
-    ag("--se_mindepth", "-se_mindepth",
-       type=int,
-       help="depthlimit of symbolic execution")
 
     ag("--se_maxdepth", "-se_maxdepth",
        type=int,
@@ -235,6 +255,36 @@ if __name__ == "__main__":
     )
 
     args = aparser.parse_args()
+
+    # Validate every path-taking flag up front (before any work, and not via
+    # asserts that -O strips) so bad paths fail fast with a clear message.
+    def _check_paths(args):
+        # input paths that must already be a readable file
+        for flag, val in (("-readsstates", args.readsstates),
+                          ("-test_tracefile", args.test_tracefile)):
+            if val and not Path(val).is_file():
+                raise FileNotFoundError(f"{flag} '{val}' is not an existing file")
+        # output file paths: parent dir must exist, and it can't be a directory
+        for flag, val in (("-writeresults", args.writeresults),
+                          ("-writevtraces", args.writevtraces),
+                          ("-writesstates", args.writesstates)):
+            if val:
+                p = Path(val)
+                if p.is_dir():
+                    raise IsADirectoryError(
+                        f"{flag} '{p}' is a directory; give a file path")
+                if not p.parent.is_dir():
+                    raise FileNotFoundError(
+                        f"{flag} dir '{p.parent}' does not exist")
+        # paths that must already be a directory
+        for flag, val in (("-tmpdir", args.tmpdir),
+                          ("-benchmark_dir", args.benchmark_dir)):
+            if val and not Path(val).is_dir():
+                raise NotADirectoryError(
+                    f"{flag} '{val}' is not an existing directory")
+
+    _check_paths(args)
+
     inp = Path(args.inp)
     if args.benchmark_times:
         from analysis import Benchmark
@@ -262,21 +312,29 @@ if __name__ == "__main__":
             mlog.warning("DEBUG MODE ON. Can be slow !")
         import alg
 
-        if inp.suffix == ".c":
-            dig = alg.DigSymStatesC(inp)
+        if inp.suffix == ".c" and args.llm:
+            import llm_infer
+
+            dinvs, time_d = llm_infer.run(inp, seed=seed,
+                                          max_rounds=args.llm_rounds,
+                                          no_traces=args.llm_no_traces)
+            llm_infer.report(inp.stem, dinvs, time_d, seed)
         else:
-            # traces file(s)
-            test_tracefile = Path(args.test_tracefile) \
-                if args.test_tracefile else None
-            dig = alg.DigTraces.mk(inp, test_tracefile)
+            if inp.suffix == ".c":
+                dig = alg.DigSymStatesC(inp)
+            else:
+                # traces file(s)
+                test_tracefile = Path(args.test_tracefile) \
+                    if args.test_tracefile else None
+                dig = alg.DigTraces.mk(inp, test_tracefile)
 
-        dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
-        if dinvs:
-            print(dinvs)
+            dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
+            if dinvs:
+                print(dinvs)
 
-            # write results to file
-            if args.writeresults:
-                resultfile = Path(args.writeresults)
-                invs = dinvs.__str__(writeresults=True)
-                resultfile.write_text(invs)
-                print(f"{dinvs.siz} invs over {len(dinvs)} locs written to {resultfile}")
+        # write results to file (shared by both paths)
+        if dinvs and args.writeresults:
+            resultfile = Path(args.writeresults)
+            invs = dinvs.__str__(writeresults=True)
+            resultfile.write_text(invs)
+            print(f"{dinvs.siz} invs over {len(dinvs)} locs written to {resultfile}")
