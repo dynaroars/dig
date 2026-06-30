@@ -485,12 +485,14 @@ class Miscs:
         """
         try:
             rows = [[expr.coeff(uk) for uk in uks] for expr in eqts]
+            # float-cast for the numpy rank check; a non-numeric coefficient
+            # (template not fully reduced on some trace) means we can't use the
+            # fast path, so fall back to the exact solver.
+            M_np = np.array([[float(c) for c in row] for row in rows],
+                            dtype=np.float64)
         except (TypeError, AttributeError, ValueError):
             return None
 
-        # Fast numpy SVD: rank check + the null-space basis for term reduction.
-        M_np = np.array([[float(c) for c in row] for row in rows],
-                        dtype=np.float64)
         if M_np.size == 0:
             return None
         n = len(uks)
