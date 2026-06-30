@@ -494,27 +494,31 @@
     "status": "ok"
   },
   "nla/freire1": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "a - r**2 + r - 2*x"
+    ],
+    "min_invs": 4,
+    "status": "ok"
   },
   "nla/freire1_int": {
     "eqts": [
       "a - r**2 + r - 2*x"
     ],
-    "min_invs": 7,
+    "min_invs": 6,
     "status": "ok"
   },
   "nla/freire2": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "12*r**2 - 4*s + 1"
+    ],
+    "min_invs": 5,
+    "status": "ok"
   },
   "nla/geo1": {
     "eqts": [
       "x*z - x - y + 1"
     ],
-    "min_invs": 7,
+    "min_invs": 5,
     "status": "ok"
   },
   "nla/geo2": {
