@@ -88,13 +88,26 @@ class Trace(SymbsVals):
             return self._mydict_str
 
     @classmethod
-    def parse(cls, ss: tuple | list, vs: tuple | list) -> Trace:
+    def parse(cls, ss: tuple | list, vs: tuple | list,
+              typs: tuple | list | None = None) -> Trace:
         assert isinstance(ss, (tuple, list)), ss
         assert isinstance(vs, (tuple, list)), vs
 
-        vs = tuple(Miscs.str2list(t) if '[' in t else Miscs.str2rat(t)
-                   for t in vs)
+        if typs is None:
+            typs = [None] * len(vs)
 
+        def conv(v, t):
+            if '[' in v:
+                return Miscs.str2list(v)
+            if t == "D":
+                # real value printed by C as %.17g: read it as the exact double
+                # it denotes (Rational(float(v))), not a truncated decimal, so
+                # dyadic values like 2 - 2**-23 round-trip exactly and the
+                # invariant still holds precisely over the traces.
+                return sympy.Rational(float(v))
+            return Miscs.str2rat(v)
+
+        vs = tuple(conv(v, t) for v, t in zip(vs, typs))
         return Trace(tuple(ss), vs)
 
     @classmethod
@@ -256,8 +269,10 @@ class DTraces(dict):
                 collect concrete states here
                 """
                 continue
-            ss = inv_decls[loc].names
-            mytrace = Trace.parse(ss, vs)
+            symbs = inv_decls[loc]
+            ss = symbs.names
+            typs = tuple(s.typ for s in symbs)
+            mytrace = Trace.parse(ss, vs, typs)
             dtraces.add(loc, mytrace)
 
         return dtraces
