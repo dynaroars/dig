@@ -569,8 +569,12 @@ class CSymEx:
                    for name in rec.param_names if name in rec.env_snapshot]
             if not eqs:
                 continue
-            slocal = z3.simplify(z3.And(eqs))
-            pc = z3.simplify(z3.And(rec.pc_snapshot))   # z3.And([]) is True
+            # Leave pc/slocal unsimplified: PathCond.expr and PCs.myexpr already
+            # z3.simplify at the right granularity, and an eager per-record
+            # simplify here produces a form z3 solves much slower downstream
+            # (~4x in the eqt check phase on cohendiv).
+            slocal = z3.And(eqs)
+            pc = z3.And(rec.pc_snapshot)   # z3.And([]) is True
             out.append((rec.loc, pc, slocal))
         return out
 
