@@ -479,15 +479,18 @@ class Miscs:
         Returns a list of sympy column vectors, or None to fall back to linsolve.
 
         The eqts are linear in uks (trace values are integers, so each expression
-        is sum(integer_j * uk_j)), making exact integer extraction safe.
+        is sum(coef_j * uk_j)). Coefficients may be rationals (e.g. real-valued
+        traces like x = 95/2), so keep them exact for the sympy null space and
+        only float-cast for the numpy rank check.
         """
         try:
-            rows = [[int(expr.coeff(uk)) for uk in uks] for expr in eqts]
+            rows = [[expr.coeff(uk) for uk in uks] for expr in eqts]
         except (TypeError, AttributeError, ValueError):
             return None
 
         # Fast numpy SVD: rank check + the null-space basis for term reduction.
-        M_np = np.array(rows, dtype=np.float64)
+        M_np = np.array([[float(c) for c in row] for row in rows],
+                        dtype=np.float64)
         if M_np.size == 0:
             return None
         n = len(uks)

@@ -320,6 +320,14 @@ class C(Src):
         self.inp_decls, self.inv_decls, self.mainQ_name = \
             self.parse_type_info('\n'.join(typ))
 
+        # register real-valued (float/double) vars so z3 builds them as Reals
+        # consistently across candidate invariants and symbolic states
+        real_names = {s.name for s in self.inp_decls if s.typ in ("D", "F")}
+        for loc in self.inv_decls:
+            real_names |= {s.name for s in self.inv_decls[loc]
+                           if s.typ in ("D", "F")}
+        Z3.set_real_vars(real_names)
+
         self.traceexe = self.tracefile.with_suffix(".exe")
         self._compile_test(self.tracefile, self.traceexe)
 

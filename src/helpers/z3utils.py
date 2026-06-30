@@ -27,6 +27,17 @@ class Z3:
     zFalse = z3.BoolVal(False)
     RLIMIT = settings.SOLVER_RLIMIT
 
+    # names of program variables that are real-valued (float/double). A bare
+    # identifier in parse() becomes z3.Real(name) if listed here, else z3.Int,
+    # so candidate invariants and symbolic states use matching sorts. Populated
+    # once at setup from the (typed) input/trace declarations.
+    REAL_VARS: set = set()
+
+    @classmethod
+    def set_real_vars(cls, names) -> None:
+        cls.REAL_VARS = set(names)
+        cls._parse_str.cache_clear()  # sort of a name may have changed
+
     @classmethod
     def _process_fs(cls: type[Z3],
                     fs: list[z3.ExprRef | None],
@@ -322,7 +333,8 @@ class Z3:
             return op(left, right)
 
         elif isinstance(node, ast.Name):
-            return z3.Int(str(node.id))
+            name = str(node.id)
+            return z3.Real(name) if name in cls.REAL_VARS else z3.Int(name)
         elif isinstance(node, ast.Constant):
             if isinstance(node.value, bool):
                 return z3.BoolVal(node.value)

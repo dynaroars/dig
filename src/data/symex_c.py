@@ -25,6 +25,37 @@ from pycparser import c_ast, c_parser
 
 # ─────────────────────────────────────────────────────────── helpers ──
 
+_REAL = z3.RealSort()
+
+
+def _is_real(e: z3.ExprRef) -> bool:
+    return e.sort() == _REAL
+
+
+def _to_real(e: z3.ExprRef) -> z3.ExprRef:
+    return e if _is_real(e) else z3.ToReal(e)
+
+
+def _to_int(e: z3.ExprRef) -> z3.ExprRef:
+    return z3.ToInt(e) if _is_real(e) else e
+
+
+def _coerce(a: z3.ExprRef, b: z3.ExprRef) -> tuple[z3.ExprRef, z3.ExprRef]:
+    """Bring a numeric pair to a common z3 sort: if either is Real, promote both."""
+    if a.sort() == b.sort():
+        return a, b
+    if _is_real(a) or _is_real(b):
+        return _to_real(a), _to_real(b)
+    return a, b
+
+
+def _type_name(node) -> str | None:
+    """Innermost C type name of a Decl/Typename node, e.g. 'int' or 'double'."""
+    t = getattr(node, "type", None)
+    while t is not None and not isinstance(t, c_ast.IdentifierType):
+        t = getattr(t, "type", None)
+    return t.names[-1] if isinstance(t, c_ast.IdentifierType) else None
+
 
 # ─────────────────────────────────────────────────── symbolic state ──
 
@@ -144,8 +175,10 @@ class CSymEx:
 
     def _make_init_state(self) -> SymState:
         state = SymState()
-        for name, _ in self.mainq_params:
-            state.env[name] = z3.Int(f"X_{name}")
+        for name, typ in self.mainq_params:
+            state.env[name] = (z3.Real(f"X_{name}")
+                               if typ in ("double", "float")
+                               else z3.Int(f"X_{name}"))
         return state
 
     # ── statement execution ───────────────────────────────────────────
@@ -253,11 +286,19 @@ class CSymEx:
                         ns = ns.add_constraint(c)
                     result.append(ns.set_var(node.name, val))
                     continue
+            declared = _type_name(node)
+            is_real_decl = declared in ("double", "float")
             if node.init is not None:
                 val = self._eval_expr(node.init, state)
+                # honor the declared type (e.g. `double x = a;` makes x real)
+                if is_real_decl:
+                    val = _to_real(val)
+                elif declared in ("int", "long", "short", "char"):
+                    val = _to_int(val)
             else:
-                # Uninitialised — use a fresh symbolic var
-                val = z3.Int(f"_uninit_{node.name}")
+                # Uninitialised — use a fresh symbolic var of the declared sort
+                val = (z3.Real(f"_uninit_{node.name}") if is_real_decl
+                       else z3.Int(f"_uninit_{node.name}"))
             result.append(state.set_var(node.name, val))
         return result
 
@@ -460,7 +501,10 @@ class CSymEx:
 
     def _eval_expr(self, node: c_ast.Node, state: SymState) -> z3.ExprRef:
         if isinstance(node, c_ast.Constant):
-            return z3.IntVal(int(node.value))
+            if node.type in ("double", "float"):
+                # exact rational, e.g. "3.25" -> 13/4
+                return z3.RealVal(node.value.rstrip("fF"))
+            return z3.IntVal(int(node.value, 0))
 
         if isinstance(node, c_ast.ID):
             v = state.env.get(node.name)
@@ -476,7 +520,13 @@ class CSymEx:
             return self._eval_binary(node, state)
 
         if isinstance(node, c_ast.Cast):
-            return self._eval_expr(node.expr, state)
+            val = self._eval_expr(node.expr, state)
+            tn = _type_name(node.to_type)
+            if tn in ("double", "float"):
+                return _to_real(val)
+            if tn in ("int", "long", "short", "char"):
+                return _to_int(val)
+            return val
 
         if isinstance(node, c_ast.ExprList):
             # Comma expression: evaluate all, return last
@@ -517,12 +567,16 @@ class CSymEx:
 
         lhs = self._eval_expr(node.left, state)
         rhs = self._eval_expr(node.right, state)
+        # mixed int/real: promote to a common sort so z3 doesn't reject the op
+        # (and so "/" becomes real division when either operand is real)
+        if node.op != "%":
+            lhs, rhs = _coerce(lhs, rhs)
 
         arith = {
             "+": op_module.add,
             "-": op_module.sub,
             "*": op_module.mul,
-            "/": op_module.truediv,   # integer division in Z3
+            "/": op_module.truediv,   # real division if reals, else integer
             "%": op_module.mod,
         }
         cmp = {
@@ -565,8 +619,14 @@ class CSymEx:
         """
         out = []
         for rec in self.records:
-            eqs = [z3.Int(name) == rec.env_snapshot[name]
-                   for name in rec.param_names if name in rec.env_snapshot]
+            eqs = []
+            for name in rec.param_names:
+                v = rec.env_snapshot.get(name)
+                if v is None:
+                    continue
+                # the symstate var must match the value's sort (Real for doubles)
+                var = z3.Real(name) if _is_real(v) else z3.Int(name)
+                eqs.append(var == v)
             if not eqs:
                 continue
             # Leave pc/slocal unsimplified: PathCond.expr and PCs.myexpr already
