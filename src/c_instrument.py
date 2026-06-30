@@ -37,7 +37,8 @@ class AddPrintfVisitor(c_ast.NodeVisitor):
 
     @beartype
     def _insert_funccall(self, node: c_ast.FuncDef)-> None:
-        myvars = [p.name for p in node.decl.type.args.params]
+        myvars = [(p.name, p.type.type.names[0])
+                  for p in node.decl.type.args.params]
         funcalls  = self._create_new_funs(node.decl.name, myvars)
         node.body.block_items = funcalls
 
@@ -45,10 +46,15 @@ class AddPrintfVisitor(c_ast.NodeVisitor):
 
 class AddPrintfInstr(AddPrintfVisitor):
     @beartype
-    def _create_new_funs(self, myname: str, myvars: list[str]) -> list[c_ast.FuncCall]:
-        value = "; ".join("%d" for _ in myvars) + "\\n"
-        myvars_ = [c_ast.ID(name=x) for x in myvars]
-        exprs = [c_ast.Constant(type="string", 
+    def _create_new_funs(self, myname: str,
+                         myvars: list[tuple[str, str]]) -> list[c_ast.FuncCall]:
+        # pick the printf conversion by C type: integers as %d, real types
+        # (float/double) as %.17g so the value round-trips exactly to a rational
+        def fmt(typ: str) -> str:
+            return "%d" if typ == "int" else "%.17g"
+        value = "; ".join(fmt(t) for _, t in myvars) + "\\n"
+        myvars_ = [c_ast.ID(name=n) for n, _ in myvars]
+        exprs = [c_ast.Constant(type="string",
                                 value=f'\"{myname}; {value}"')] + myvars_
         funcCall = c_ast.FuncCall(name=c_ast.ID(name="printf"),
                                   args=c_ast.ExprList(exprs=exprs))
