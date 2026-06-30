@@ -40,89 +40,9 @@ class PathCond(NamedTuple):
     def expr(self):
         return z3.simplify(z3.And(self.pc, self.slocal))
 
-    @beartype
-    @classmethod
-    @abc.abstractmethod
-    def parse_parts(cls, ss: list[str]) -> list:
-        pass
-
-    @beartype
-    @classmethod
-    @abc.abstractmethod
-    def parse_part(cls, s) -> tuple:
-        pass
-
-
-    @classmethod
-    @abc.abstractmethod
-    @functools.cache
-    def replace_str(cls, mystr: str) -> str:
-        pass
-
-    @beartype    
-    @classmethod
-    def parse(cls, s: str) -> None | list[tuple]:
-        assert isinstance(s, str), s
-
-        parts = cls.parse_parts(s.splitlines())
-        if not parts:
-            return None
-
-        pcs = [cls.parse_part(p) for p in parts]
-        return pcs
-
 
 class PathCondC(PathCond):
-
-    @beartype
-    @classmethod
-    def parse_parts(cls, lines:list[str]) -> list[list]:
-        """
-        vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y
-        path condition: (0<=(X_x-1))&&(0<=(X_y-1))
-        vtrace3: x = X_x; y = X_y; r = X_x; q = 0
-        path condition: ((X_x+(-1*X_y)+1)<=0)&&(0<=(X_x-1))&&(0<=(X_y-1))
-        vtrace2: q = 0; r = X_x; a = 1; b = X_y; x = X_x; y = X_y
-        path condition: (0<=(X_x+(-1*X_y)))&&(0<=(X_x-1))&&(0<=(X_y-1))
-        """
-        slocals = []
-        pcs = []
-        lines = [line.strip() for line in lines]
-        lines = [line for line in lines if line]
-        for line in lines:
-            if line.startswith("vtrace"):
-                slocals.append(line)
-            elif line.startswith("path condition"):
-                assert len(pcs) == len(slocals) - 1
-                pcs.append(line)
-
-        parts = [[slocal, pc] for slocal, pc in zip(slocals, pcs)]
-        return parts
-
-    @beartype
-    @classmethod
-    def parse_part(cls, symstates: list) -> tuple:
-        """
-        ['vtrace1: q = 0; r = X_x; a = 0; b = 0; x = X_x; y = X_y',
-        'path condition: (0<=(X_x-1))&&(0<=(X_y-1))']
-        """
-        assert isinstance(symstates, list) and len(symstates) == 2, symstates
-        slocal, pc = symstates
-        pc = pc.split(":")[1].strip()  # path condition: ...
-        pc = None if pc == "true" else cls.replace_str(pc)
-        loc, slocal = slocal.split(":")
-        slocal = cls.replace_str(slocal)
-
-        assert pc is None or len(pc) >= 1
-        assert slocal
-        return loc, pc, slocal
-
-    @classmethod
-    @functools.cache
-    def replace_str(cls, mystr: str) -> str:
-        return (
-            mystr.replace(" = ", " == ").replace(";", " and ").replace("&&", "and").replace("||", "or").replace("div ", "/ ").replace("^", "**").strip()
-        )
+    pass
 
 
 class PCs(set):  #{PathConds}
@@ -618,12 +538,12 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
             
         tasks = list(range(mind, maxd + 1))
 
-        def f(tasks):
-            rs = [(depth, self.get_symstates(depth)) for depth in tasks]
-            rs = [(depth, ss) for depth, ss in rs if ss]
-            return rs
-
-        wrs = MP.run_mp("getting symstates", tasks, f, settings.DO_MP)
+        # The Python symex engine builds z3 path conditions and we consume them
+        # directly, so it runs in-process (no multiprocessing): z3 ASTs can't be
+        # pickled across forked workers, and avoiding that boundary is the whole
+        # point of returning z3 instead of serializing to text and re-parsing.
+        wrs = [(depth, ss) for depth in tasks
+               if (ss := self.get_symstates(depth))]
 
         if not wrs:
             mlog.fatal("symbolic execution cannot obtain symstates, unreachable locs?"
@@ -631,32 +551,10 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
             sys.exit(0)
 
         symstates = self.merge(wrs, self.pc_cls)
-
-        # precompute all z3 exprs
-        tasks = [(loc, depth) for loc in symstates for depth in symstates[loc]]
-
-        def f(tasks):
-            rs = [symstates[loc][depth] for loc, depth in tasks]
-            rs = [(
-                    loc,
-                    depth,
-                    Z3.to_smt2_str(pcs.myexpr),
-                    Z3.to_smt2_str(pcs.mypc)
-                )
-                for pcs, (loc, depth) in zip(rs, tasks)
-            ]
-            return rs
-
-        wrs = MP.run_mp("symstates exprs", tasks, f, settings.DO_MP)
-
-        for loc, depth, myexpr, mypc in sorted(wrs, key=lambda ts: (ts[0], ts[1])):
-            pcs = symstates[loc][depth]
-
-            pcs._expr = Z3.from_smt2_str(myexpr)
-            pcs._pc = Z3.from_smt2_str(mypc)
-
-            mlog.debug(
-                f"loc {loc} depth {depth} has {len(pcs)} uniq symstates")
+        for loc in symstates:
+            for depth in symstates[loc]:
+                mlog.debug(f"loc {loc} depth {depth} has "
+                           f"{len(symstates[loc][depth])} uniq symstates")
         return symstates
 
     @beartype
@@ -675,23 +573,14 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
             depth >= 1 and isinstance(ss, list) for depth, ss in depthss
         ), depthss
 
-        @functools.cache
-        def zpc(p):
-            return Z3.zTrue if p is None else Z3.parse(p)
-
-        @functools.cache
-        def zslocal(p):
-            return Z3.parse(p)
-
+        # pc/slocal arrive as z3 expressions straight from the symex engine
+        # (no text round-trip); just wrap them in the PathCond record.
         symstates: dict = {}
         for depth, ss in depthss:
-            for (loc, pcs, slocals) in ss:
-                try:
-                    pc = pc_cls(loc, zpc(pcs), zslocal(slocals))
-                    symstates.setdefault(loc, {}).setdefault(depth, PCs(loc, depth)).add(pc)
-                except MemoryError:
-                    mlog.error(f"cannot parse pcs {pcs}")
-                    mlog.error(f"cannot parse slocals {slocals}")
+            for (loc, pc, slocal) in ss:
+                pcond = pc_cls(loc, pc, slocal)
+                symstates.setdefault(loc, {}).setdefault(
+                    depth, PCs(loc, depth)).add(pcond)
 
         # only store incremental states at each depth
         for loc in symstates:

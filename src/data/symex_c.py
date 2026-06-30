@@ -8,16 +8,13 @@ Handles invariant inference on programs using:
   - vassume(cond) for preconditions
   - vtraceN(...) for observation points
 
-Output format matches what PathCondC.parse() expects (already replace_str'd).
-
-Usage (standalone):
-    python symex_c.py cohendiv.c --maxdepth 20
+run() returns z3 path conditions directly (consumed in-process by
+SymStatesMakerC), so no text serialization/parsing round-trip is needed.
 """
 
 from __future__ import annotations
 
 import copy
-import argparse
 import operator as op_module
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -27,106 +24,6 @@ import z3
 from pycparser import c_ast, c_parser
 
 # ─────────────────────────────────────────────────────────── helpers ──
-
-
-def _z3_to_py_str(expr: z3.ExprRef) -> str:
-    """
-    Convert a Z3 arithmetic/boolean expression to a Python-expression string
-    that Z3.parse() (in z3utils.py) can round-trip back to a Z3 expr.
-
-    Z3.parse() evaluates the string with Python's ast module, where bare
-    identifiers become z3.Int(name), so we only need valid Python syntax.
-    """
-    if z3.is_int_value(expr):
-        v = expr.as_long()
-        return f"({v})" if v < 0 else str(v)
-
-    if z3.is_const(expr) and expr.decl().kind() == z3.Z3_OP_UNINTERPRETED:
-        return expr.decl().name()
-
-    kind = expr.decl().kind()
-    children = expr.children()
-
-    if kind == z3.Z3_OP_ADD:
-        parts = [_z3_to_py_str(c) for c in children]
-        return "(" + " + ".join(parts) + ")"
-
-    if kind == z3.Z3_OP_MUL:
-        parts = [_z3_to_py_str(c) for c in children]
-        return "(" + " * ".join(parts) + ")"
-
-    if kind == z3.Z3_OP_SUB:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} - {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_UMINUS:
-        return f"(-{_z3_to_py_str(children[0])})"
-
-    if kind == z3.Z3_OP_IDIV or kind == z3.Z3_OP_DIV:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} / {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_MOD:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} % {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_LE:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} <= {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_LT:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} < {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_GE:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} >= {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_GT:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} > {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_EQ:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} == {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_DISTINCT:
-        lhs, rhs = children
-        return f"({_z3_to_py_str(lhs)} != {_z3_to_py_str(rhs)})"
-
-    if kind == z3.Z3_OP_AND:
-        parts = [_z3_to_py_str(c) for c in children]
-        return "(" + " and ".join(parts) + ")"
-
-    if kind == z3.Z3_OP_OR:
-        parts = [_z3_to_py_str(c) for c in children]
-        return "(" + " or ".join(parts) + ")"
-
-    if kind == z3.Z3_OP_NOT:
-        inner = children[0]
-        ikind = inner.decl().kind()
-        ic = inner.children()
-        # Push negation into comparison to produce cleaner output without `not`
-        flip = {
-            z3.Z3_OP_LE: ">",
-            z3.Z3_OP_LT: ">=",
-            z3.Z3_OP_GE: "<",
-            z3.Z3_OP_GT: "<=",
-            z3.Z3_OP_EQ: "!=",
-            z3.Z3_OP_DISTINCT: "==",
-        }
-        if ikind in flip and len(ic) == 2:
-            return f"({_z3_to_py_str(ic[0])} {flip[ikind]} {_z3_to_py_str(ic[1])})"
-        return f"(not {_z3_to_py_str(children[0])})"
-
-    if kind == z3.Z3_OP_TRUE:
-        return "True"
-
-    if kind == z3.Z3_OP_FALSE:
-        return "False"
-
-    # Fallback
-    return str(expr)
 
 
 # ─────────────────────────────────────────────────── symbolic state ──
@@ -160,30 +57,6 @@ class SymState:
 
     def reset_exit(self) -> SymState:
         return copy.replace(self, exit=Exit.NORMAL)
-
-    # ── smt2 serialisation ───────────────────────────────────────────
-
-    def pc_str(self) -> str | None:
-        """Path condition as a Z3.parse()-compatible Python expression, or None."""
-        if not self.pc:
-            return None
-        parts = [_z3_to_py_str(c) for c in self.pc]
-        if len(parts) == 1:
-            return parts[0]
-        return "(" + " and ".join(parts) + ")"
-
-    def slocal_str(self, param_names: list[str]) -> str:
-        """
-        slocal as a Z3.parse()-compatible Python expression.
-        Only includes variables that appear in the vtrace param list.
-        """
-        parts = []
-        for name in param_names:
-            val = self.env.get(name)
-            if val is None:
-                continue
-            parts.append(f"{name} == {_z3_to_py_str(val)}")
-        return " and ".join(parts)
 
 
 # ─────────────────────────────────────────────────── path record ──
@@ -226,17 +99,18 @@ class CSymEx:
 
     # ── public ───────────────────────────────────────────────────────
 
-    def run(self) -> list[tuple[str, str | None, str]]:
+    def run(self) -> list[tuple[str, z3.BoolRef, z3.BoolRef]]:
         """
         Execute symbolically.
 
-        Returns list of (loc, pc_str, slocal_str) tuples ready for
-        SymStatesMaker.merge() — i.e., already replace_str'd Python exprs.
+        Returns list of (loc, pc, slocal) tuples where pc and slocal are z3
+        boolean expressions, consumed directly (in-process) by
+        SymStatesMaker.merge() — no text serialization/parsing round-trip.
         """
-        ast = self._parse()
+        self._parse()
         init_state = self._make_init_state()
         self._exec_compound(self.func_bodies["mainQ"], [init_state])
-        return self._format_records()
+        return self._z3_records()
 
     # ── parsing ───────────────────────────────────────────────────────
 
@@ -679,24 +553,25 @@ class CSymEx:
         # If unknown (timeout), be optimistic and keep the path
         return result != z3.unsat
 
-    # ── output formatting ─────────────────────────────────────────────
+    # ── output ─────────────────────────────────────────────────────────
 
-    def _format_records(self) -> list[tuple[str, str | None, str]]:
+    def _z3_records(self) -> list[tuple[str, z3.BoolRef, z3.BoolRef]]:
         """
-        Return list of (loc, pc_str_or_None, slocal_str) tuples.
+        Return list of (loc, pc, slocal) tuples of z3 boolean expressions.
 
-        pc_str is a Python expression string (or None if unconstrained)
-        that Z3.parse() can evaluate.
-        slocal_str is a conjunction of `var == expr` equalities.
+        pc is the conjunction of the path-condition constraints (z3 True if
+        unconstrained); slocal is the conjunction of `var == expr` equalities
+        over the variables in the vtrace param list.
         """
         out = []
         for rec in self.records:
-            # Build a temp SymState to reuse slocal_str logic
-            s = SymState(env=rec.env_snapshot, pc=rec.pc_snapshot)
-            pc_str = s.pc_str()
-            slocal_str = s.slocal_str(rec.param_names)
-            if slocal_str:
-                out.append((rec.loc, pc_str, slocal_str))
+            eqs = [z3.Int(name) == rec.env_snapshot[name]
+                   for name in rec.param_names if name in rec.env_snapshot]
+            if not eqs:
+                continue
+            slocal = z3.simplify(z3.And(eqs))
+            pc = z3.simplify(z3.And(rec.pc_snapshot))   # z3.And([]) is True
+            out.append((rec.loc, pc, slocal))
         return out
 
 
@@ -719,38 +594,3 @@ def _strip_includes(src: str) -> str:
 
 def _is_const_true(node: c_ast.Node) -> bool:
     return isinstance(node, c_ast.Constant) and node.value == "1"
-
-
-# ──────────────────────────────────────────────── text output ──
-
-def run_and_print(filename: Path, max_depth: int) -> None:
-    """
-    Run symex and print output in the text format PathCondC.parse expects:
-
-        vtrace1: q = 0; r = X_x; ...
-        path condition: (0 <= X_x - 1) and (0 <= X_y - 1)
-        ...
-    """
-    engine = CSymEx(filename, max_depth)
-    results = engine.run()
-
-    for loc, pc_str, slocal_str in results:
-        # `q == 0 and r == X_x ...` -> `vtrace1: q = 0; r = X_x; ...`
-        slocal_txt = slocal_str.replace(" == ", " = ").replace(" and ", "; ")
-        pc_txt = "true" if pc_str is None else pc_str.replace(" and ", "&&")
-        print(f"{loc}: {slocal_txt}")
-        print(f"path condition: {pc_txt}")
-
-
-# ──────────────────────────────────────────────────── CLI entry point ──
-
-def main() -> None:
-    p = argparse.ArgumentParser(description="Python symbolic execution for C")
-    p.add_argument("filename", type=Path)
-    p.add_argument("-maxdepth", type=int, default=20)
-    args = p.parse_args()
-    run_and_print(args.filename, args.maxdepth)
-
-
-if __name__ == "__main__":
-    main()
