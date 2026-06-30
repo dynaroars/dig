@@ -409,6 +409,14 @@
     "min_invs": 2,
     "status": "ok"
   },
+  "nla/ariths": {
+    "eqts": [
+      "2*n - 2*t + 1",
+      "8*s - 4*t**2 + 4*t - 1"
+    ],
+    "min_invs": 5,
+    "status": "ok"
+  },
   "nla/bresenham": {
     "eqts": [
       "2*X*y + X - 2*Y*x - 2*Y + v"
@@ -640,6 +648,13 @@
     "eqts": [
       "2*a - t + 1",
       "4*s - t**2 - 2*t - 1"
+    ],
+    "min_invs": 8,
+    "status": "ok"
+  },
+  "nla/wensley": {
+    "eqts": [
+      "D*d - 2*b"
     ],
     "min_invs": 8,
     "status": "ok"
