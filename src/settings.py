@@ -57,7 +57,7 @@ ITERMS = 2  # octagonal
 ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
 # min # of distinct term values required to trust a congruence mod n.
 # guards against a large modulus inferred from too few values (gcd overfit):
-# the chance of a spurious shared divisor is ~1/2^(nvals-1), so a flat
+# the chance of a spurious shared divisor is ~1/2^SE_MAX_D(nvals-1), so a flat
 # minimum suffices (large moduli are self-protecting).
 CONGRUENCE_MIN_NVALS = 5
 
