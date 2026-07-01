@@ -182,6 +182,10 @@ class Traces(SymbsValsSet):
 
             # instead of doing this, can find out the # 0's in traces
             # the more 0's , the better
+            # NOTE: ties deliberately stay in set order (deterministic under
+            # dig.py's pinned PYTHONHASHSEED). A str tie-break groups
+            # near-dependent rows into the truncated sample and measurably
+            # slows eqt solving (3x on ps5/ps6).
             exprs = sorted(exprs, key=lambda expr: len(Miscs.get_vars(expr)))
             exprs = set(exprs[:ntraces])
 
@@ -192,7 +196,7 @@ class Traces(SymbsValsSet):
         for t in self:
             tss = set(t.ss)
             if len(tss) < len(ss):
-                ss_ = ss - tss
+                ss_ = sorted(ss - tss)  # canonical order, not set order
                 newss = t.ss + tuple(ss_)
                 newvs = t.vs + (0,) * len(ss_)
                 t = Trace(newss, newvs)

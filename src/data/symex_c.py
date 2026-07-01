@@ -111,17 +111,21 @@ class CSymEx:
     """
 
     MAX_STATES = 5000  # hard cap on total active states to prevent explosion
-    SOLVER_TIMEOUT_MS = 3000
+    SOLVER_RLIMIT = 15_000_000  # default; DIG passes settings.SOLVER_RLIMIT
 
-    def __init__(self, filename: Path, max_depth: int) -> None:
+    def __init__(self, filename: Path, max_depth: int,
+                 solver_rlimit: int | None = None) -> None:
         self.filename = filename
         self.max_depth = max_depth
         self.records: list[PathRecord] = []
         self._fresh_ctr = 0  # for naming fresh vars from modeled calls
 
-        # Solver for feasibility (reused with push/pop)
+        # Solver for feasibility (reused with push/pop). Deterministic
+        # work-unit cutoff, not wall-clock: a timeout makes path feasibility
+        # (and thus the symstates themselves) vary with machine load.
+        # rlimit is per-check(), so reuse across push/pop scopes is fine.
         self.solver = z3.Solver()
-        self.solver.set("timeout", self.SOLVER_TIMEOUT_MS)
+        self.solver.set("rlimit", solver_rlimit or self.SOLVER_RLIMIT)
 
         # Populated by _parse():
         self.mainq_params: list[tuple[str, str]] = []   # [(name, type), ...]

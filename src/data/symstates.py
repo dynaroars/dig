@@ -649,7 +649,8 @@ class SymStatesMakerC(SymStatesMaker):
         from data.symex_c import CSymEx
         mlog.debug(f"python symex: {self.filename} depth={depth}")
         try:
-            engine = CSymEx(self.filename, depth)
+            engine = CSymEx(self.filename, depth,
+                            solver_rlimit=settings.SOLVER_RLIMIT)
             results = engine.run()
         except Exception as ex:
             mlog.error(f"python symex failed at depth {depth}: {ex}")

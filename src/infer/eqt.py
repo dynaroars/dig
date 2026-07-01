@@ -51,7 +51,9 @@ class Infer(infer.infer._Infer):
             )
 
             template = sum(t*u for t, u in zip(ts, uks))
-            exprs = list(traces.instantiate(template, n_eqts_needed))
+            # canonical row order: instantiate returns a set, and the eqt
+            # basis the null-space solve produces depends on row order
+            exprs = sorted(traces.instantiate(template, n_eqts_needed), key=str)
             #print(exprs)
             #CM.pause()
 
@@ -233,7 +235,8 @@ class Infer(infer.infer._Infer):
         template = sum(t*u for t, u in zip(ts, uks))
         cache = set()
         eqts = set()  # results
-        exprs = list(exprs)
+        # canonical row order (exprs is a set; see gen_from_traces)
+        exprs = sorted(exprs, key=str)
 
         curIter = 0
         prev_rank = -1
@@ -282,6 +285,6 @@ class Infer(infer.infer._Infer):
             cexs = cexs.padzeros(set(self.inv_decls[loc].names))
             exprs_ = cexs.instantiate(template, None)
             mlog.debug(f"{loc}: {len(exprs_)} new cex exprs")
-            exprs.extend(exprs_)
+            exprs.extend(sorted(exprs_, key=str))
 
         return eqts
