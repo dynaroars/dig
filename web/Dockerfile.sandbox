@@ -1,0 +1,17 @@
+FROM --platform=linux/amd64 debian:bookworm-slim
+
+RUN apt update -y && apt install -y build-essential libc6 git software-properties-common wget && rm -rf /var/lib/apt/lists/*
+
+RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash ./Miniconda3-latest-Linux-x86_64.sh -b && \
+    rm ./Miniconda3-latest-Linux-x86_64.sh
+
+RUN /root/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    /root/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+    /root/miniconda3/bin/conda install python=3.14 sympy pip -y && \
+    /root/miniconda3/bin/pip3 install z3-solver beartype pycparser numpy
+
+WORKDIR /
+COPY . /dig
+
+WORKDIR /dig/src

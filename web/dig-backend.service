@@ -1,0 +1,17 @@
+[Unit]
+Description=DIG Invariant Generator Web Backend Server
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=azan
+WorkingDirectory=/home/azan/dig/web
+ExecStart=/home/azan/dig/web/run_server.sh 5001
+Restart=always
+RestartSec=5
+Environment=PORT=5001
+Environment=USE_DOCKER=true
+
+[Install]
+WantedBy=multi-user.target
