@@ -7,6 +7,17 @@ window.fetch = function (input, init) {
     url = input.url;
   }
   
+  const isGitHubPages = window.location.hostname.includes('roars.dev') || window.location.hostname.includes('github.io');
+  if (isGitHubPages && url.startsWith('/api/')) {
+    const targetUrl = 'https://density-capillary-thinning.ngrok-free.dev' + url;
+    if (typeof input === 'string') {
+      input = targetUrl;
+    } else {
+      input = { ...input, url: targetUrl };
+    }
+    url = targetUrl;
+  }
+  
   if (url.includes('ngrok-free.dev') || window.location.hostname.includes('ngrok-free.dev')) {
     init = init || {};
     init.headers = init.headers || {};
