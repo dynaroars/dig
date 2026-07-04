@@ -144,4 +144,10 @@ venv.bak/
 #myown
 */unused/*
 
+# Node / JS
+node_modules/
+dist/
+.DS_Store
+
+
 

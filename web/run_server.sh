@@ -9,7 +9,9 @@ echo "=== DIG Web Server ==="
 echo "Repo:   $REPO_DIR"
 echo "Port:   $PORT"
 
-if [ -d "$REPO_DIR/venv" ]; then
+if [ -d "$SCRIPT_DIR/venv" ]; then
+    source "$SCRIPT_DIR/venv/bin/activate"
+elif [ -d "$REPO_DIR/venv" ]; then
     source "$REPO_DIR/venv/bin/activate"
 elif [ -d "$HOME/dig_env" ]; then
     source "$HOME/dig_env/bin/activate"
@@ -22,4 +24,4 @@ export PORT="$PORT"
 
 echo "Starting DIG server on port $PORT..."
 cd "$SCRIPT_DIR"
-exec gunicorn --bind "0.0.0.0:$PORT" --timeout 600 --workers 2 --threads 4 server:app
+exec gunicorn --bind "0.0.0.0:$PORT" --timeout 600 --workers 1 --threads 8 server:app

@@ -177,7 +177,8 @@ async function startJob() {
     const data = await res.json();
     if (res.status === 202 && data.job_id) {
       activeJobId = data.job_id;
-      pollTimer = setInterval(pollJobStatus, 1500);
+      pollJobStatus(); 
+      pollTimer = setInterval(pollJobStatus, 500);
     } else {
       showError(data.error || 'Failed to start job.');
     }
@@ -194,7 +195,9 @@ async function pollJobStatus() {
     const data = await res.json();
 
     if (data.raw_output) {
-      document.getElementById('terminal-log').textContent = data.raw_output;
+      const termLog = document.getElementById('terminal-log');
+      termLog.textContent = data.raw_output;
+      termLog.scrollTop = termLog.scrollHeight;
     }
 
     if (data.status === 'completed') {

@@ -24,7 +24,7 @@ class DIGRunner:
             
         self.docker_image = os.environ.get("DIG_DOCKER_IMAGE", "dig-sandbox")
 
-    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None) -> Dict[str, Any]:
         options = options or {}
         timeout = min(int(options.get("timeout", 60)), 300)
         
@@ -35,7 +35,7 @@ class DIGRunner:
             input_file.write_text(code)
             
             # Build CLI arguments for dig.py
-            cmd_opts = ["-log_level", "2"]
+            cmd_opts = ["-log_level", "3"]
             if options.get("maxdeg") is not None:
                 cmd_opts.extend(["-maxdeg", str(options["maxdeg"])])
             if options.get("noeqts"):
@@ -54,87 +54,97 @@ class DIGRunner:
             start_time = time.time()
             
             if self.use_docker:
-                res = self._run_docker(input_file, cmd_opts, timeout)
+                res = self._run_docker(input_file, cmd_opts, timeout, on_output)
             else:
-                res = self._run_direct(input_file, cmd_opts, timeout)
+                res = self._run_direct(input_file, cmd_opts, timeout, on_output)
                 
             runtime = round(time.time() - start_time, 2)
             res["runtime"] = runtime
             res["locations"] = self._parse_invariants(res.get("raw_output", ""))
             return res
 
-    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int) -> Dict[str, Any]:
+    def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,  # Line buffered
+                **kwargs
+            )
+            
+            output_lines = []
+            while True:
+                line = proc.stdout.readline()
+                if not line and proc.poll() is not None:
+                    break
+                if line:
+                    output_lines.append(line)
+                    if on_output:
+                        try:
+                            on_output(line)
+                        except Exception:
+                            pass
+            
+            try:
+                returncode = proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                returncode = proc.wait()
+                raw = "".join(output_lines)
+                return {
+                    "status": "timeout",
+                    "raw_output": raw + "\nExecution timed out.",
+                    "error": "Execution exceeded time limit."
+                }
+                
+            raw = "".join(output_lines)
+            return {
+                "status": "completed" if returncode == 0 else "error",
+                "raw_output": raw,
+                "exit_code": returncode
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "raw_output": str(e),
+                "error": str(e)
+            }
+
+    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None) -> Dict[str, Any]:
+        cpu_cores = os.cpu_count() or 4
+        cpus_to_use = str(max(1, round(cpu_cores * 0.6)))
         container_file = f"/dig/input/{input_file.name}"
         docker_cmd = [
             "docker", "run", "--rm",
             "--network", "none",
             "--memory", "2g",
-            "--cpus", "4",
+            "--cpus", cpus_to_use,
             "--pids-limit", "256",
+            "-e", "PYTHONUNBUFFERED=1",
             "-v", f"{input_file.resolve()}:{container_file}:ro",
+            "-v", f"{DIG_ROOT.resolve()}/src:/dig/src:ro",
             self.docker_image,
-            "/root/miniconda3/bin/python3", "-O", "/dig/src/dig.py", container_file
+            "/root/miniconda3/bin/python3", "-u", "-O", "/dig/src/dig.py", container_file
         ] + cmd_opts
 
-        try:
-            proc = subprocess.run(
-                docker_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=timeout + 5
-            )
-            return {
-                "status": "completed" if proc.returncode == 0 else "error",
-                "raw_output": proc.stdout,
-                "exit_code": proc.returncode
-            }
-        except subprocess.TimeoutExpired as e:
-            return {
-                "status": "timeout",
-                "raw_output": e.stdout or "Execution timed out.",
-                "error": f"Execution exceeded time limit of {timeout} seconds."
-            }
-        except Exception as e:
-            return {
-                "status": "error",
-                "raw_output": str(e),
-                "error": str(e)
-            }
+        return self._run_cmd_stream(docker_cmd, timeout + 5, on_output)
 
-    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int) -> Dict[str, Any]:
+    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None) -> Dict[str, Any]:
         python_exe = sys.executable
-        cmd = [python_exe, "-O", str(DIG_MAIN), str(input_file)] + cmd_opts
+        cmd = [python_exe, "-u", "-O", str(DIG_MAIN), str(input_file)] + cmd_opts
         env = os.environ.copy()
         env["PYTHONPATH"] = str(DIG_ROOT / "src") + ":" + env.get("PYTHONPATH", "")
+        env["PYTHONUNBUFFERED"] = "1"
         
-        try:
-            proc = subprocess.run(
-                cmd,
-                cwd=str(DIG_ROOT / "src"),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=timeout,
-                env=env
-            )
-            return {
-                "status": "completed" if proc.returncode == 0 else "error",
-                "raw_output": proc.stdout,
-                "exit_code": proc.returncode
-            }
-        except subprocess.TimeoutExpired as e:
-            return {
-                "status": "timeout",
-                "raw_output": e.stdout or "Execution timed out.",
-                "error": f"Execution exceeded time limit of {timeout} seconds."
-            }
-        except Exception as e:
-            return {
-                "status": "error",
-                "raw_output": str(e),
-                "error": str(e)
-            }
+        return self._run_cmd_stream(
+            cmd,
+            timeout,
+            on_output,
+            cwd=str(DIG_ROOT / "src"),
+            env=env
+        )
 
     def _parse_invariants(self, output: str) -> list:
         """Parses output log to extract invariants grouped by vtrace location."""

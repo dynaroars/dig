@@ -44,8 +44,13 @@ def _worker(job_id: str):
     input_type = job["input_type"]
     options = job["options"]
 
+    def on_output(text: str):
+        with job_lock:
+            if jobs.get(job_id) and jobs[job_id]["status"] == "running":
+                jobs[job_id]["raw_output"] += text
+
     try:
-        res = runner.run(code=code, input_type=input_type, options=options)
+        res = runner.run(code=code, input_type=input_type, options=options, on_output=on_output)
         with job_lock:
             job["status"] = res["status"]
             job["runtime"] = res.get("runtime")
@@ -123,6 +128,7 @@ def status(job_id: str):
 
     if job["status"] == "running":
         response["elapsed"] = round(time.time() - job.get("started", job["created"]), 1)
+        response["raw_output"] = job["raw_output"]
     elif job["status"] in ("completed", "timeout", "error"):
         response["runtime"] = job["runtime"]
         response["locations"] = job["locations"]
