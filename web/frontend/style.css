@@ -427,22 +427,36 @@ body {
   margin-bottom: var(--space-xl);
 }
 
-.options-row {
-  display: flex;
-  gap: var(--space-md);
+.options-section {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.options-section-title {
+  font-size: 0.72rem;
+  color: var(--accent-1);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin-bottom: var(--space-md);
 }
 
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-md);
+}
+
 .option-group {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .option-label {
-  font-size: 0.78rem;
-  color: var(--text-primary);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -450,13 +464,13 @@ body {
 
 .option-input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   outline: none;
   transition: border-color var(--transition-fast);
 }
@@ -468,12 +482,12 @@ body {
 
 .checkbox-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .checkbox-label {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -484,6 +498,7 @@ body {
 
 .checkbox-label input {
   accent-color: var(--accent-1);
+  cursor: pointer;
 }
 
 /* Action Buttons */

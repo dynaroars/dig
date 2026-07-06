@@ -74,22 +74,98 @@
 
         <!-- Options Accordion / Controls -->
         <div class="options-container">
-          <div class="options-row">
-            <div class="option-group">
-              <label for="maxdeg-input" class="option-label">Max Degree</label>
-              <input type="number" id="maxdeg-input" placeholder="Auto" min="1" max="10" class="option-input" />
-            </div>
-            <div class="option-group">
-              <label for="timeout-input" class="option-label">Timeout (s)</label>
-              <input type="number" id="timeout-input" value="60" min="5" max="300" class="option-input" />
-            </div>
+          <div class="options-header" id="options-toggle" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            <span class="option-label" style="font-size: 0.85rem; margin-bottom: 0;">Configuration Options</span>
+            <span id="options-toggle-icon" style="transition: transform var(--transition-fast);">▼</span>
           </div>
 
-          <div class="checkbox-grid">
-            <label class="checkbox-label"><input type="checkbox" id="chk-noeqts" /> Disable Equalities</label>
-            <label class="checkbox-label"><input type="checkbox" id="chk-noieqs" /> Disable Inequalities</label>
-            <label class="checkbox-label"><input type="checkbox" id="chk-nocongruences" /> Disable Congruences</label>
-            <label class="checkbox-label"><input type="checkbox" id="chk-nominmaxplus" /> Disable Min/Max</label>
+          <div id="options-content">
+            <!-- Basic Options Group -->
+            <div class="options-section">
+              <h4 class="options-section-title">Basic Parameters</h4>
+              <div class="options-grid">
+                <div class="option-group">
+                  <label for="maxdeg-input" class="option-label">Max Degree (-maxdeg)</label>
+                  <input type="number" id="maxdeg-input" placeholder="Auto" min="1" max="10" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="timeout-input" class="option-label">Timeout (s)</label>
+                  <input type="number" id="timeout-input" value="60" min="5" max="300" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="seed-input" class="option-label">Seed (-seed)</label>
+                  <input type="number" step="any" id="seed-input" placeholder="Random" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="uterms-input" class="option-label">Custom Terms (-uterms)</label>
+                  <input type="text" id="uterms-input" placeholder="e.g. y^2; xy+4" class="option-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Invariant Exclusions (Boolean checks) -->
+            <div class="options-section">
+              <h4 class="options-section-title">Invariant Types</h4>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" id="chk-noeqts" /> Disable Equalities (-noeqts)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-noieqs" /> Disable Inequalities (-noieqs)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-nocongruences" /> Disable Congruences (-nocongruences)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-nominmaxplus" /> Disable Min/Max (-nominmaxplus)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-noarrays" /> Disable Array Relations (-noarrays)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-noss" /> Disable Symbolic States (-noss)</label>
+              </div>
+            </div>
+
+            <!-- Advanced / Fine Tuning Parameters -->
+            <div class="options-section">
+              <h4 class="options-section-title">Fine-Tuning Parameters</h4>
+              <div class="options-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="option-group">
+                  <label for="maxterm-input" class="option-label">Max Terms (-maxterm)</label>
+                  <input type="number" id="maxterm-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="nrandinps-input" class="option-label">Num Rand Inputs (-nrandinps)</label>
+                  <input type="number" id="nrandinps-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="inpMaxV-input" class="option-label">Max Input Value (-inpMaxV)</label>
+                  <input type="number" id="inpMaxV-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="se-maxdepth-input" class="option-label">SymbExec Max Depth (-se_maxdepth)</label>
+                  <input type="number" id="se-maxdepth-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="iupper-input" class="option-label">Ieq Upper Bound (-iupper)</label>
+                  <input type="number" id="iupper-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="ideg-input" class="option-label">Ieq Degree (-ideg)</label>
+                  <input type="number" id="ideg-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="iterms-input" class="option-label">Ieq Terms (-iterms)</label>
+                  <input type="number" id="iterms-input" placeholder="Auto" class="option-input" />
+                </div>
+                <div class="option-group">
+                  <label for="icoefs-input" class="option-label">Ieq Coefs (-icoefs)</label>
+                  <input type="number" id="icoefs-input" placeholder="Auto" class="option-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Other Flags -->
+            <div class="options-section">
+              <h4 class="options-section-title">Advanced Behavior Flags</h4>
+              <div class="checkbox-grid">
+                <label class="checkbox-label"><input type="checkbox" id="chk-noincrdepth" /> Disable Incremental Depth (-noincrdepth)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-nosimplify" /> Disable Simplify (-nosimplify)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-nofilter" /> Disable Filter (-nofilter)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-nomp" /> Disable Multiprocessing (-nomp)</label>
+                <label class="checkbox-label"><input type="checkbox" id="chk-dosolverstats" /> Collect Solver Stats (-dosolverstats)</label>
+              </div>
+            </div>
           </div>
         </div>
 

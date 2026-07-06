@@ -49,8 +49,13 @@ def _worker(job_id: str):
             if jobs.get(job_id) and jobs[job_id]["status"] == "running":
                 jobs[job_id]["raw_output"] += text
 
+    def check_cancelled():
+        with job_lock:
+            j = jobs.get(job_id)
+            return j and j["status"] == "cancelled"
+
     try:
-        res = runner.run(code=code, input_type=input_type, options=options, on_output=on_output)
+        res = runner.run(code=code, input_type=input_type, options=options, on_output=on_output, check_cancelled=check_cancelled)
         with job_lock:
             job["status"] = res["status"]
             job["runtime"] = res.get("runtime")

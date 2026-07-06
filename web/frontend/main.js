@@ -144,6 +144,25 @@ function initEvents() {
   document.getElementById('toggle-csv').addEventListener('click', () => setInputType('csv'));
   document.getElementById('run-btn').addEventListener('click', startJob);
   document.getElementById('cancel-btn').addEventListener('click', cancelJob);
+
+  const optionsToggle = document.getElementById('options-toggle');
+  const optionsContent = document.getElementById('options-content');
+  const optionsToggleIcon = document.getElementById('options-toggle-icon');
+  
+  if (optionsToggle && optionsContent && optionsToggleIcon) {
+    optionsContent.style.display = 'none';
+    optionsToggleIcon.style.transform = 'rotate(-90deg)';
+    
+    optionsToggle.addEventListener('click', () => {
+      if (optionsContent.style.display === 'none') {
+        optionsContent.style.display = 'block';
+        optionsToggleIcon.style.transform = 'rotate(0deg)';
+      } else {
+        optionsContent.style.display = 'none';
+        optionsToggleIcon.style.transform = 'rotate(-90deg)';
+      }
+    });
+  }
 }
 
 async function startJob() {
@@ -153,13 +172,50 @@ async function startJob() {
     return;
   }
 
+  const getInputValue = (id, parser = parseInt) => {
+    const el = document.getElementById(id);
+    if (!el || el.value === "") return null;
+    const parsed = parser(el.value);
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  const getTextValue = (id) => {
+    const el = document.getElementById(id);
+    return el && el.value ? el.value.trim() : null;
+  };
+
+  const getCheckboxValue = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.checked : false;
+  };
+
   const options = {
-    maxdeg: document.getElementById('maxdeg-input').value ? parseInt(document.getElementById('maxdeg-input').value) : null,
-    timeout: parseInt(document.getElementById('timeout-input').value) || 60,
-    noeqts: document.getElementById('chk-noeqts').checked,
-    noieqs: document.getElementById('chk-noieqs').checked,
-    nocongruences: document.getElementById('chk-nocongruences').checked,
-    nominmaxplus: document.getElementById('chk-nominmaxplus').checked,
+    timeout: getInputValue('timeout-input') || 60,
+    maxdeg: getInputValue('maxdeg-input'),
+    seed: getInputValue('seed-input', parseFloat),
+    uterms: getTextValue('uterms-input'),
+    
+    noeqts: getCheckboxValue('chk-noeqts'),
+    noieqs: getCheckboxValue('chk-noieqs'),
+    nocongruences: getCheckboxValue('chk-nocongruences'),
+    nominmaxplus: getCheckboxValue('chk-nominmaxplus'),
+    noarrays: getCheckboxValue('chk-noarrays'),
+    noss: getCheckboxValue('chk-noss'),
+
+    maxterm: getInputValue('maxterm-input'),
+    nrandinps: getInputValue('nrandinps-input'),
+    inpMaxV: getInputValue('inpMaxV-input'),
+    se_maxdepth: getInputValue('se-maxdepth-input'),
+    iupper: getInputValue('iupper-input'),
+    ideg: getInputValue('ideg-input'),
+    iterms: getInputValue('iterms-input'),
+    icoefs: getInputValue('icoefs-input'),
+
+    noincrdepth: getCheckboxValue('chk-noincrdepth'),
+    nosimplify: getCheckboxValue('chk-nosimplify'),
+    nofilter: getCheckboxValue('chk-nofilter'),
+    nomp: getCheckboxValue('chk-nomp'),
+    dosolverstats: getCheckboxValue('chk-dosolverstats')
   };
 
   showState('running');

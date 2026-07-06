@@ -4,6 +4,7 @@ import time
 import json
 import tempfile
 import subprocess
+import select
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -24,7 +25,7 @@ class DIGRunner:
             
         self.docker_image = os.environ.get("DIG_DOCKER_IMAGE", "dig-sandbox")
 
-    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None) -> Dict[str, Any]:
+    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None) -> Dict[str, Any]:
         options = options or {}
         timeout = min(int(options.get("timeout", 60)), 300)
         
@@ -36,34 +37,38 @@ class DIGRunner:
             
             # Build CLI arguments for dig.py
             cmd_opts = ["-log_level", "3"]
-            if options.get("maxdeg") is not None:
-                cmd_opts.extend(["-maxdeg", str(options["maxdeg"])])
-            if options.get("noeqts"):
-                cmd_opts.append("-noeqts")
-            if options.get("noieqs"):
-                cmd_opts.append("-noieqs")
-            if options.get("nocongruences"):
-                cmd_opts.append("-nocongruences")
-            if options.get("nominmaxplus"):
-                cmd_opts.append("-nominmaxplus")
-            if options.get("noss"):
-                cmd_opts.append("-noss")
-            if options.get("nomp") or self.use_docker:
-                cmd_opts.append("-nomp")
+            
+            # Numeric options
+            for opt in ["maxdeg", "maxterm", "nrandinps", "inpMaxV", "se_maxdepth", "iupper", "ideg", "iterms", "icoefs"]:
+                if options.get(opt) is not None and options.get(opt) != "":
+                    cmd_opts.extend([f"-{opt}", str(options[opt])])
+            
+            # Float options
+            if options.get("seed") is not None and options.get("seed") != "":
+                cmd_opts.extend(["-seed", str(options["seed"])])
+                
+            # Text options
+            if options.get("uterms") is not None and str(options["uterms"]).strip() != "":
+                cmd_opts.extend(["-uterms", str(options["uterms"])])
+                
+            # Boolean flags
+            for opt in ["noeqts", "noieqs", "nocongruences", "nominmaxplus", "noss", "noarrays", "noincrdepth", "nosimplify", "nofilter", "nomp", "dosolverstats"]:
+                if options.get(opt):
+                    cmd_opts.append(f"-{opt}")
 
             start_time = time.time()
             
             if self.use_docker:
-                res = self._run_docker(input_file, cmd_opts, timeout, on_output)
+                res = self._run_docker(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled)
             else:
-                res = self._run_direct(input_file, cmd_opts, timeout, on_output)
+                res = self._run_direct(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled)
                 
             runtime = round(time.time() - start_time, 2)
             res["runtime"] = runtime
             res["locations"] = self._parse_invariants(res.get("raw_output", ""))
             return res
 
-    def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
+    def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -74,18 +79,58 @@ class DIGRunner:
                 **kwargs
             )
             
+            start_time = time.time()
             output_lines = []
             while True:
-                line = proc.stdout.readline()
-                if not line and proc.poll() is not None:
-                    break
-                if line:
-                    output_lines.append(line)
-                    if on_output:
-                        try:
-                            on_output(line)
-                        except Exception:
-                            pass
+                # Check for cancellation
+                if check_cancelled and check_cancelled():
+                    proc.kill()
+                    proc.wait()
+                    raw = "".join(output_lines)
+                    return {
+                        "status": "cancelled",
+                        "raw_output": raw + "\nExecution cancelled by user.",
+                        "error": "Execution cancelled by user."
+                    }
+
+                # Check for timeout
+                elapsed = time.time() - start_time
+                if elapsed > timeout:
+                    proc.kill()
+                    proc.wait()
+                    raw = "".join(output_lines)
+                    return {
+                        "status": "timeout",
+                        "raw_output": raw + "\nExecution timed out (exceeded limit).",
+                        "error": "Execution exceeded time limit."
+                    }
+                
+                # Check if process stdout is ready to read
+                rlist, _, _ = select.select([proc.stdout], [], [], 1.0)
+                if proc.stdout in rlist:
+                    line = proc.stdout.readline()
+                    if not line: # EOF
+                        if proc.poll() is not None:
+                            break
+                    else:
+                        output_lines.append(line)
+                        if on_output:
+                            try:
+                                on_output(line)
+                            except Exception:
+                                pass
+                else:
+                    # Timeout of 1.0s on select, check if process died
+                    if proc.poll() is not None:
+                        # Process died, flush any remaining output
+                        for line in proc.stdout:
+                            output_lines.append(line)
+                            if on_output:
+                                try:
+                                    on_output(line)
+                                except Exception:
+                                    pass
+                        break
             
             try:
                 returncode = proc.wait(timeout=5)
@@ -112,16 +157,14 @@ class DIGRunner:
                 "error": str(e)
             }
 
-    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None) -> Dict[str, Any]:
-        cpu_cores = os.cpu_count() or 4
-        cpus_to_use = str(max(1, round(cpu_cores * 0.6)))
+    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None) -> Dict[str, Any]:
         container_file = f"/dig/input/{input_file.name}"
         docker_cmd = [
             "docker", "run", "--rm",
             "--network", "none",
-            "--memory", "2g",
-            "--cpus", cpus_to_use,
-            "--pids-limit", "256",
+            "--memory", "4g",
+            "--cpuset-cpus", "0-7",
+            "--pids-limit", "512",
             "-e", "PYTHONUNBUFFERED=1",
             "-v", f"{input_file.resolve()}:{container_file}:ro",
             "-v", f"{DIG_ROOT.resolve()}/src:/dig/src:ro",
@@ -129,9 +172,9 @@ class DIGRunner:
             "/root/miniconda3/bin/python3", "-u", "-O", "/dig/src/dig.py", container_file
         ] + cmd_opts
 
-        return self._run_cmd_stream(docker_cmd, timeout + 5, on_output)
+        return self._run_cmd_stream(docker_cmd, timeout + 5, on_output, check_cancelled=check_cancelled)
 
-    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None) -> Dict[str, Any]:
+    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None) -> Dict[str, Any]:
         python_exe = sys.executable
         cmd = [python_exe, "-u", "-O", str(DIG_MAIN), str(input_file)] + cmd_opts
         env = os.environ.copy()
@@ -142,6 +185,7 @@ class DIGRunner:
             cmd,
             timeout,
             on_output,
+            check_cancelled=check_cancelled,
             cwd=str(DIG_ROOT / "src"),
             env=env
         )
