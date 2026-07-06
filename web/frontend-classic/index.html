@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DIG: Dynamic Invariant Generator</title>
+<style>
+  body { font-family: Times, "Times New Roman", serif; margin: 1em auto; max-width: 62em; padding: 0 1em; }
+  textarea, input, select, button, pre, tt, code { font-family: "Courier New", Courier, monospace; }
+  pre { border: 1px solid #999; background: #f6f6f6; padding: 6px; overflow-x: auto; }
+  fieldset { margin: 0.6em 0; }
+  table.opts td { padding: 1px 10px 1px 2px; }
+  table.invs { border-collapse: collapse; margin: 0.4em 0 1em 0; }
+  table.invs td, table.invs th { border: 1px solid #666; padding: 2px 8px; text-align: left; }
+  .small { font-size: smaller; color: #444; }
+</style>
+</head>
+<body>
+
+<h1>DIG: Dynamic Invariant Generator</h1>
+<p>
+DIG infers program invariants — nonlinear/linear equalities, octagonal
+inequalities, congruences, and min/max-plus relations — from execution traces
+and symbolic states.
+[<a href="https://github.com/dynaroars/dig">GitHub</a>]
+[<a href="https://roars.dev">ROARS Lab</a>]
+</p>
+<hr>
+
+<h2>1. Program input</h2>
+<p>
+<b>Load example:</b>
+<select id="example-select"><option value="">-- select an example --</option></select>
+<button id="load-btn" type="button">Load</button>
+<span id="example-desc" class="small"></span>
+</p>
+<p>
+<b>Input type:</b>
+<label><input type="radio" name="input-type" value="c" checked> C program (annotated with <tt>vtraceX(...)</tt>)</label>
+&nbsp;
+<label><input type="radio" name="input-type" value="csv"> CSV traces</label>
+</p>
+<textarea id="code" rows="24" cols="100" spellcheck="false"
+ style="width: 100%;" placeholder="// Load an example above, or paste a C program / CSV traces here."></textarea>
+
+<h2>2. Options</h2>
+
+<fieldset>
+<legend><b>Numeric parameters</b> <span class="small">(leave blank for DIG defaults)</span></legend>
+<table class="opts">
+<tr>
+  <td><label for="opt-maxdeg"><tt>-maxdeg</tt></label></td><td><input type="number" id="opt-maxdeg" size="5" min="1" max="10"></td>
+  <td>find nonlinear invariants up to this degree</td>
+</tr>
+<tr>
+  <td><label for="opt-maxterm"><tt>-maxterm</tt></label></td><td><input type="number" id="opt-maxterm" size="5" min="1"></td>
+  <td>autodegree (max number of terms)</td>
+</tr>
+<tr>
+  <td><label for="opt-ideg"><tt>-ideg</tt></label></td><td><input type="number" id="opt-ideg" size="5" min="1"></td>
+  <td>degree for inequalities (1 = linear, 2 = quadratic, ...)</td>
+</tr>
+<tr>
+  <td><label for="opt-iterms"><tt>-iterms</tt></label></td><td><input type="number" id="opt-iterms" size="5" min="1"></td>
+  <td>number of terms for inequalities (2 = octagonal)</td>
+</tr>
+<tr>
+  <td><label for="opt-icoefs"><tt>-icoefs</tt></label></td><td><input type="number" id="opt-icoefs" size="5" min="1"></td>
+  <td>coefficients for inequalities (1 = [-1,0,1], i.e., oct)</td>
+</tr>
+<tr>
+  <td><label for="opt-iupper"><tt>-iupper</tt></label></td><td><input type="number" id="opt-iupper" size="5" min="1"></td>
+  <td>max upperbound value for inequalities</td>
+</tr>
+<tr>
+  <td><label for="opt-se_maxdepth"><tt>-se_maxdepth</tt></label></td><td><input type="number" id="opt-se_maxdepth" size="5" min="1"></td>
+  <td>depth limit of symbolic execution</td>
+</tr>
+<tr>
+  <td><label for="opt-nrandinps"><tt>-nrandinps</tt></label></td><td><input type="number" id="opt-nrandinps" size="5" min="1"></td>
+  <td>number of random inputs (only with <tt>-noss</tt>)</td>
+</tr>
+<tr>
+  <td><label for="opt-inpMaxV"><tt>-inpMaxV</tt></label></td><td><input type="number" id="opt-inpMaxV" size="5" min="1"></td>
+  <td>max input value</td>
+</tr>
+<tr>
+  <td><label for="opt-seed"><tt>-seed</tt></label></td><td><input type="number" id="opt-seed" size="8" step="any"></td>
+  <td>random seed (for reproducibility)</td>
+</tr>
+<tr>
+  <td><label for="opt-log_level"><tt>-log_level</tt></label></td>
+  <td><select id="opt-log_level">
+    <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+    <option value="3" selected>3</option><option value="4">4</option>
+  </select></td>
+  <td>logger verbosity (0 = error ... 4 = detail)</td>
+</tr>
+<tr>
+  <td><label for="opt-timeout">timeout (s)</label></td><td><input type="number" id="opt-timeout" size="5" value="120" min="5" max="300"></td>
+  <td>wall-clock limit enforced by the web runner (max 300)</td>
+</tr>
+</table>
+</fieldset>
+
+<fieldset>
+<legend><b>Disable / debugging flags</b></legend>
+<label><input type="checkbox" id="opt-noeqts"> <tt>-noeqts</tt> don't compute equality invariants</label><br>
+<label><input type="checkbox" id="opt-noieqs"> <tt>-noieqs</tt> don't compute inequality/octagonal invariants</label><br>
+<label><input type="checkbox" id="opt-nocongruences"> <tt>-nocongruences</tt> don't compute congruence invariants</label><br>
+<label><input type="checkbox" id="opt-noarrays"> <tt>-noarrays</tt> don't compute array relations</label><br>
+<label><input type="checkbox" id="opt-nominmaxplus"> <tt>-nominmaxplus</tt> don't compute min/max-plus invariants</label><br>
+<label><input type="checkbox" id="opt-noss"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label><br>
+<label><input type="checkbox" id="opt-noincrdepth"> <tt>-noincrdepth</tt> don't use incremental depth</label><br>
+<label><input type="checkbox" id="opt-nosimplify"> <tt>-nosimplify</tt> don't simplify/remove weaker invariants (debugging)</label><br>
+<label><input type="checkbox" id="opt-nofilter"> <tt>-nofilter</tt> don't filter inequality terms (debugging)</label><br>
+<label><input type="checkbox" id="opt-nomp"> <tt>-nomp</tt> don't use multiprocessing</label><br>
+<label><input type="checkbox" id="opt-dosolverstats"> <tt>-dosolverstats</tt> collect solver statistics</label>
+</fieldset>
+
+<fieldset>
+<legend><b>Terms / LLM</b></legend>
+<label for="opt-uterms"><tt>-uterms</tt></label>
+<input type="text" id="opt-uterms" size="40" placeholder="y^2 ; x*y + 4">
+user-supplied terms, separated by <tt>;</tt><br>
+<label><input type="checkbox" id="opt-llm"> <tt>-llm</tt> use an LLM to propose invariants, verified by symbolic states + z3
+  <span class="small">(server needs <tt>ANTHROPIC_API_KEY</tt>)</span></label><br>
+<label for="opt-llm_rounds"><tt>-llm_rounds</tt></label>
+<input type="number" id="opt-llm_rounds" size="4" min="1" placeholder="3"> max LLM propose/verify rounds<br>
+<label><input type="checkbox" id="opt-llm_no_traces"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label>
+</fieldset>
+
+<p>
+<button id="run-btn" type="button"><b>Run DIG</b></button>
+<button id="cancel-btn" type="button" disabled>Cancel</button>
+&nbsp; <b id="status-line">Ready.</b>
+</p>
+<hr>
+
+<h2>3. Discovered invariants</h2>
+<div id="results"><i>(no results yet)</i></div>
+
+<h2>4. Raw execution output</h2>
+<pre id="log">(waiting for execution output)</pre>
+
+<hr>
+<address>DIG &middot; <a href="https://roars.dev">ROARS Lab</a> &middot; George Mason University</address>
+
+<script>
+"use strict";
+
+/* When hosted on roars.dev (or github.io) the backend is not on the same
+   origin: API calls go straight to the ngrok tunnel, same as the original
+   frontend's fetch monkey-patch. Served locally by Flask, "" keeps them
+   relative. */
+var NGROK_API = "https://density-capillary-thinning.ngrok-free.dev";
+var API_BASE = /roars\.dev$|github\.io$/.test(location.hostname) ? NGROK_API : "";
+
+function apiFetch(path, init) {
+  var url = API_BASE + path;
+  init = init || {};
+  if (url.indexOf("ngrok-free.dev") !== -1 || location.hostname.indexOf("ngrok-free.dev") !== -1) {
+    init.headers = init.headers || {};
+    init.headers["ngrok-skip-browser-warning"] = "69420";
+  }
+  return fetch(url, init);
+}
+
+var activeJobId = null;
+var pollTimer = null;
+var startTime = 0;
+var exampleTypes = {};   // id -> "c" | "csv"
+var exampleDescs = {};   // id -> description
+
+function $(id) { return document.getElementById(id); }
+
+function setStatus(msg) { $("status-line").textContent = msg; }
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ---------- examples ---------- */
+
+function loadExampleList() {
+  apiFetch("/api/examples").then(function (r) { return r.json(); }).then(function (data) {
+    var sel = $("example-select");
+    var groups = {};
+    (data.examples || []).forEach(function (ex) {
+      exampleTypes[ex.id] = ex.type;
+      exampleDescs[ex.id] = ex.description || "";
+      var g = ex.group || "Examples";
+      if (!groups[g]) {
+        groups[g] = document.createElement("optgroup");
+        groups[g].label = g;
+        sel.appendChild(groups[g]);
+      }
+      var opt = document.createElement("option");
+      opt.value = ex.id;
+      opt.textContent = ex.name;
+      groups[g].appendChild(opt);
+    });
+  }).catch(function () {
+    setStatus("Could not load example list (is the backend running?).");
+  });
+}
+
+function loadExample() {
+  var id = $("example-select").value;
+  if (!id) return;
+  apiFetch("/api/example/" + id).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.content) {
+      $("code").value = data.content;
+      var type = exampleTypes[id] || "c";
+      var radios = document.getElementsByName("input-type");
+      for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === type);
+      $("example-desc").textContent = exampleDescs[id] || "";
+      setStatus("Loaded example: " + id);
+    }
+  }).catch(function () { setStatus("Failed to load example."); });
+}
+
+/* ---------- options ---------- */
+
+function numOpt(id) {
+  var v = $(id).value;
+  return v === "" ? null : Number(v);
+}
+
+function gatherOptions() {
+  var opts = {
+    maxdeg: numOpt("opt-maxdeg"),
+    maxterm: numOpt("opt-maxterm"),
+    ideg: numOpt("opt-ideg"),
+    iterms: numOpt("opt-iterms"),
+    icoefs: numOpt("opt-icoefs"),
+    iupper: numOpt("opt-iupper"),
+    se_maxdepth: numOpt("opt-se_maxdepth"),
+    nrandinps: numOpt("opt-nrandinps"),
+    inpMaxV: numOpt("opt-inpMaxV"),
+    seed: numOpt("opt-seed"),
+    llm_rounds: numOpt("opt-llm_rounds"),
+    log_level: Number($("opt-log_level").value),
+    timeout: numOpt("opt-timeout") || 120,
+    uterms: $("opt-uterms").value.trim() || null
+  };
+  ["noeqts", "noieqs", "nocongruences", "noarrays", "nominmaxplus", "noss",
+   "noincrdepth", "nosimplify", "nofilter", "nomp", "dosolverstats",
+   "llm", "llm_no_traces"].forEach(function (name) {
+    if ($("opt-" + name).checked) opts[name] = true;
+  });
+  return opts;
+}
+
+/* ---------- run / poll / cancel ---------- */
+
+function runDig() {
+  var code = $("code").value.trim();
+  if (!code) { alert("Please enter a program or traces (or load an example)."); return; }
+
+  var inputType = "c";
+  var radios = document.getElementsByName("input-type");
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) inputType = radios[i].value;
+
+  $("run-btn").disabled = true;
+  $("cancel-btn").disabled = false;
+  $("results").innerHTML = "<i>(running...)</i>";
+  $("log").textContent = "";
+  startTime = Date.now();
+  setStatus("Submitting job...");
+
+  apiFetch("/api/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, input_type: inputType, options: gatherOptions() })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.job_id) {
+      activeJobId = data.job_id;
+      pollTimer = setInterval(poll, 800);
+    } else {
+      finish("Error: " + (data.error || "failed to start job"));
+    }
+  }).catch(function (e) { finish("Network error: " + e.message); });
+}
+
+function poll() {
+  if (!activeJobId) return;
+  apiFetch("/api/status/" + activeJobId).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.raw_output) {
+      var log = $("log");
+      log.textContent = data.raw_output;
+      log.scrollTop = log.scrollHeight;
+    }
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    if (data.status === "running" || data.status === "queued") {
+      setStatus("Status: " + data.status + " (" + elapsed + "s elapsed)");
+    } else if (data.status === "completed") {
+      renderResults(data);
+      finish("Completed in " + (data.runtime || elapsed) + "s.");
+    } else if (data.status === "timeout") {
+      $("results").innerHTML = "<b>Execution timed out.</b>";
+      finish("Timed out after " + elapsed + "s.");
+    } else if (data.status === "cancelled") {
+      finish("Cancelled.");
+    } else if (data.status === "error") {
+      $("results").innerHTML = "<b>Execution error.</b> See raw output below.";
+      finish("Error: " + (data.error || "execution failed"));
+    }
+  }).catch(function () { /* transient poll error; keep polling */ });
+}
+
+function cancelJob() {
+  if (!activeJobId) return;
+  apiFetch("/api/cancel/" + activeJobId, { method: "POST" }).then(function () {
+    finish("Cancelled.");
+    $("results").innerHTML = "<i>(cancelled)</i>";
+  });
+}
+
+function finish(msg) {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  activeJobId = null;
+  $("run-btn").disabled = false;
+  $("cancel-btn").disabled = true;
+  setStatus(msg);
+}
+
+/* ---------- results ---------- */
+
+function renderResults(data) {
+  var locs = data.locations || [];
+  if (locs.length === 0) {
+    $("results").innerHTML = "<i>No invariants discovered. See raw output below.</i>";
+    return;
+  }
+  var html = "";
+  locs.forEach(function (loc) {
+    html += "<h3><tt>" + escapeHtml(loc.header || loc.name) + "</tt></h3>";
+    html += "<table class=\"invs\"><tr><th>#</th><th>Invariant</th><th>Type</th></tr>";
+    loc.invariants.forEach(function (inv, i) {
+      html += "<tr><td>" + (i + 1) + "</td><td><tt>" + escapeHtml(inv.text) +
+              "</tt></td><td>" + escapeHtml(inv.type) + "</td></tr>";
+    });
+    html += "</table>";
+  });
+  $("results").innerHTML = html;
+}
+
+/* ---------- init ---------- */
+
+document.addEventListener("DOMContentLoaded", function () {
+  loadExampleList();
+  $("load-btn").addEventListener("click", loadExample);
+  $("run-btn").addEventListener("click", runDig);
+  $("cancel-btn").addEventListener("click", cancelJob);
+});
+</script>
+
+</body>
+</html>

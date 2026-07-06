@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import signal
 import tempfile
 import subprocess
 import select
@@ -13,6 +14,19 @@ logger = logging.getLogger(__name__)
 
 DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.parent))
 DIG_MAIN = DIG_ROOT / "src" / "dig.py"
+
+# dig.py options exposed to the web API, mirroring src/dig.py's argparse.
+# File-path and benchmark options (-writeresults, -readsstates, -tmpdir,
+# -benchmark_times, ...) are deliberately excluded.
+INT_OPTS = [
+    "maxdeg", "maxterm", "nrandinps", "inpMaxV", "se_maxdepth",
+    "iupper", "ideg", "iterms", "icoefs", "llm_rounds",
+]
+BOOL_OPTS = [
+    "noss", "noeqts", "noieqs", "nocongruences", "noarrays",
+    "nominmaxplus", "noincrdepth", "nosimplify", "nofilter",
+    "nomp", "dosolverstats", "llm", "llm_no_traces",
+]
 
 class DIGRunner:
     """Manages sandboxed execution of DIG using Docker (or direct fallback)."""
@@ -35,26 +49,7 @@ class DIGRunner:
             input_file = tmppath / f"prog{ext}"
             input_file.write_text(code)
             
-            # Build CLI arguments for dig.py
-            cmd_opts = ["-log_level", "3"]
-            
-            # Numeric options
-            for opt in ["maxdeg", "maxterm", "nrandinps", "inpMaxV", "se_maxdepth", "iupper", "ideg", "iterms", "icoefs"]:
-                if options.get(opt) is not None and options.get(opt) != "":
-                    cmd_opts.extend([f"-{opt}", str(options[opt])])
-            
-            # Float options
-            if options.get("seed") is not None and options.get("seed") != "":
-                cmd_opts.extend(["-seed", str(options["seed"])])
-                
-            # Text options
-            if options.get("uterms") is not None and str(options["uterms"]).strip() != "":
-                cmd_opts.extend(["-uterms", str(options["uterms"])])
-                
-            # Boolean flags
-            for opt in ["noeqts", "noieqs", "nocongruences", "nominmaxplus", "noss", "noarrays", "noincrdepth", "nosimplify", "nofilter", "nomp", "dosolverstats"]:
-                if options.get(opt):
-                    cmd_opts.append(f"-{opt}")
+            cmd_opts = self._build_cmd_opts(options)
 
             start_time = time.time()
             
@@ -68,6 +63,22 @@ class DIGRunner:
             res["locations"] = self._parse_invariants(res.get("raw_output", ""))
             return res
 
+    def _build_cmd_opts(self, options: Dict[str, Any]) -> list:
+        """Translate the web options dict into dig.py CLI arguments."""
+        cmd_opts = ["-log_level", str(int(options.get("log_level", 3)))]
+        if options.get("seed") not in (None, ""):
+            cmd_opts.extend(["-seed", str(float(options["seed"]))])
+        for name in INT_OPTS:
+            val = options.get(name)
+            if val not in (None, ""):
+                cmd_opts.extend([f"-{name}", str(int(val))])
+        for name in BOOL_OPTS:
+            if options.get(name):
+                cmd_opts.append(f"-{name}")
+        if options.get("uterms"):
+            cmd_opts.extend(["-uterms", str(options["uterms"])])
+        return cmd_opts
+
     def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
         try:
             proc = subprocess.Popen(
@@ -76,16 +87,25 @@ class DIGRunner:
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,  # Line buffered
+                start_new_session=True,  # own process group, so timeout kill reaps mp children too
                 **kwargs
             )
-            
+
+            def _kill_group():
+                # SIGKILL the whole process group so DIG's fork-pool workers
+                # die with the parent; killing just proc would orphan them
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    proc.kill()
+                proc.wait()
+
             start_time = time.time()
             output_lines = []
             while True:
                 # Check for cancellation
                 if check_cancelled and check_cancelled():
-                    proc.kill()
-                    proc.wait()
+                    _kill_group()
                     raw = "".join(output_lines)
                     return {
                         "status": "cancelled",
@@ -96,15 +116,14 @@ class DIGRunner:
                 # Check for timeout
                 elapsed = time.time() - start_time
                 if elapsed > timeout:
-                    proc.kill()
-                    proc.wait()
+                    _kill_group()
                     raw = "".join(output_lines)
                     return {
                         "status": "timeout",
-                        "raw_output": raw + "\nExecution timed out (exceeded limit).",
-                        "error": "Execution exceeded time limit."
+                        "raw_output": raw + "\nExecution timed out.",
+                        "error": f"Execution exceeded time limit ({timeout}s)."
                     }
-                
+
                 # Check if process stdout is ready to read
                 rlist, _, _ = select.select([proc.stdout], [], [], 1.0)
                 if proc.stdout in rlist:
@@ -131,20 +150,16 @@ class DIGRunner:
                                 except Exception:
                                     pass
                         break
-            
+
+            raw = "".join(output_lines)
+
+
             try:
                 returncode = proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 proc.kill()
                 returncode = proc.wait()
-                raw = "".join(output_lines)
-                return {
-                    "status": "timeout",
-                    "raw_output": raw + "\nExecution timed out.",
-                    "error": "Execution exceeded time limit."
-                }
-                
-            raw = "".join(output_lines)
+
             return {
                 "status": "completed" if returncode == 0 else "error",
                 "raw_output": raw,
@@ -169,6 +184,9 @@ class DIGRunner:
             "-v", f"{input_file.resolve()}:{container_file}:ro",
             "-v", f"{DIG_ROOT.resolve()}/src:/dig/src:ro",
             self.docker_image,
+            # coreutils timeout inside the container: killing the local docker
+            # client would leave the container running
+            "timeout", "--signal=KILL", str(timeout),
             "/root/miniconda3/bin/python3", "-u", "-O", "/dig/src/dig.py", container_file
         ] + cmd_opts
 

@@ -7,7 +7,7 @@ import shutil
 import threading
 import logging
 from pathlib import Path
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from docker_runner import DIGRunner
@@ -17,6 +17,59 @@ logger = logging.getLogger(__name__)
 
 DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.parent))
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
+NLA_DIR = DIG_ROOT / "benchmark" / "c" / "nla"
+CLASSIC_DIR = Path(__file__).resolve().parent / "frontend-classic"
+
+NLA_DESCRIPTIONS = {
+    "ariths": "Built-in arithmetic functions (addition, multiplication).",
+    "bresenham": "Bresenham line drawing algorithm.",
+    "cohencu": "Cohen's cube computation (degree 3).",
+    "cohendiv": "Cohen's integer division with nested loops.",
+    "dijkstra": "Dijkstra's integer square root.",
+    "divbin": "Binary (shift-based) integer division.",
+    "egcd": "Extended Euclidean GCD (single loop).",
+    "egcd2": "Extended Euclidean GCD (two nested loops).",
+    "egcd3": "Extended Euclidean GCD (three nested loops).",
+    "fermat1": "Fermat integer factorization (nested loops).",
+    "fermat2": "Fermat integer factorization (single loop).",
+    "freire1": "Freire's integer square root.",
+    "freire1_int": "Freire's integer square root (integer-only version).",
+    "freire2": "Freire's integer cube root (degree 3).",
+    "geo1": "Geometric series sum.",
+    "geo2": "Geometric series sum (variant).",
+    "geo3": "Geometric series sum with constant factor.",
+    "hard": "Hardware-style integer division.",
+    "isqrt": "Integer square root.",
+    "knuth": "Knuth's divisor-searching algorithm (degree 3).",
+    "lcm1": "Least common multiple via GCD (three branches).",
+    "lcm2": "Least common multiple via GCD (two branches).",
+    "mannadiv": "Manna's integer division.",
+    "prod4br": "Shift-add product with four branches.",
+    "prodbin": "Product by binary shift-add.",
+    "ps1": "Power sum: sum of 1s.",
+    "ps2": "Power sum: sum of i (degree 2).",
+    "ps3": "Power sum: sum of i^2 (degree 3).",
+    "ps4": "Power sum: sum of i^3 (degree 4).",
+    "ps5": "Power sum: sum of i^4 (degree 5).",
+    "ps6": "Power sum: sum of i^5 (degree 6).",
+    "sqrt1": "Integer square root (octagonal inequalities).",
+    "wensley": "Wensley's real division approximation.",
+}
+
+def _example_files() -> dict[str, Path]:
+    """id -> path for every servable example (globbed, so no path traversal)."""
+    files = {}
+    if NLA_DIR.is_dir():
+        for p in sorted(NLA_DIR.glob("*.c")):
+            files[f"nla_{p.stem}"] = p
+    for p in sorted(EXAMPLES_DIR.glob("*.csv")):
+        files[f"csv_{p.stem}"] = p
+    # legacy ids used by the original frontend
+    files["cohendiv"] = EXAMPLES_DIR / "cohendiv.c"
+    files["bresenham"] = EXAMPLES_DIR / "bresenham.c"
+    files["sqrt1"] = EXAMPLES_DIR / "sqrt1.c"
+    files["cohendiv_csv"] = EXAMPLES_DIR / "cohendiv.csv"
+    return files
 
 app = Flask(__name__)
 CORS(app)
@@ -57,6 +110,8 @@ def _worker(job_id: str):
     try:
         res = runner.run(code=code, input_type=input_type, options=options, on_output=on_output, check_cancelled=check_cancelled)
         with job_lock:
+            if job["status"] == "cancelled":
+                return
             job["status"] = res["status"]
             job["runtime"] = res.get("runtime")
             job["locations"] = res.get("locations", [])
@@ -155,53 +210,43 @@ def cancel(job_id: str):
 
 @app.route("/api/examples", methods=["GET"])
 def list_examples():
-    examples = [
-        {
-            "id": "cohendiv",
-            "name": "CohenDiv (C Program)",
-            "type": "c",
-            "description": "Integer division with nested loops. Infers nonlinear equalities and linear inequalities.",
-            "file": "cohendiv.c"
-        },
-        {
-            "id": "bresenham",
-            "name": "Bresenham (C Program)",
-            "type": "c",
-            "description": "Line drawing algorithm. Infers loop invariant and post-condition.",
-            "file": "bresenham.c"
-        },
-        {
-            "id": "sqrt1",
-            "name": "Sqrt1 (C Program)",
-            "type": "c",
-            "description": "Integer square root algorithm demonstrating nonlinear octagonal inequalities.",
-            "file": "sqrt1.c"
-        },
-        {
-            "id": "cohendiv_csv",
-            "name": "CohenDiv Traces (CSV)",
-            "type": "csv",
-            "description": "Execution trace samples for CohenDiv algorithm.",
-            "file": "cohendiv.csv"
-        }
-    ]
+    examples = []
+    for ex_id, path in _example_files().items():
+        if ex_id.startswith("nla_"):
+            stem = path.stem
+            examples.append({
+                "id": ex_id,
+                "name": stem,
+                "type": "c",
+                "group": "NLA C benchmarks",
+                "description": NLA_DESCRIPTIONS.get(stem, "NLA benchmark program."),
+                "file": path.name,
+            })
+        elif ex_id.startswith("csv_"):
+            examples.append({
+                "id": ex_id,
+                "name": f"{path.stem} traces",
+                "type": "csv",
+                "group": "CSV traces",
+                "description": f"Execution trace samples for {path.stem}.",
+                "file": path.name,
+            })
     return jsonify({"examples": examples})
 
 @app.route("/api/example/<example_id>", methods=["GET"])
 def get_example(example_id: str):
-    mapping = {
-        "cohendiv": EXAMPLES_DIR / "cohendiv.c",
-        "bresenham": EXAMPLES_DIR / "bresenham.c",
-        "sqrt1": EXAMPLES_DIR / "sqrt1.c",
-        "cohendiv_csv": EXAMPLES_DIR / "cohendiv.csv"
-    }
-    file_path = mapping.get(example_id)
+    file_path = _example_files().get(example_id)
     if file_path and file_path.exists():
         return jsonify({
             "id": example_id,
             "content": file_path.read_text()
         })
     return jsonify({"error": "Example not found"}), 404
+
+@app.route("/", methods=["GET"])
+@app.route("/index2.html", methods=["GET"])
+def classic_index():
+    return send_from_directory(CLASSIC_DIR, "index.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
