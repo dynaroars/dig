@@ -177,7 +177,7 @@ class DIGRunner:
         docker_cmd = [
             "docker", "run", "--rm",
             "--network", "none",
-            "--memory", "4g",
+            "--memory", "8g",
             "--cpuset-cpus", "0-7",
             "--pids-limit", "512",
             "-e", "PYTHONUNBUFFERED=1",

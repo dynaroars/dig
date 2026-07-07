@@ -758,7 +758,10 @@ class MP:
         """
         global _MP_FN, _MP_WLOADS, _MP_SEED
 
-        n_cpus = multiprocessing.cpu_count()
+        try:
+            n_cpus = len(os.sched_getaffinity(0))
+        except AttributeError:
+            n_cpus = multiprocessing.cpu_count()
         if DO_MP and len(tasks) >= 2 and n_cpus >= 2 and not multiprocessing.current_process().daemon:
             _MP_WLOADS = MP.get_workload(tasks, n_cpus=n_cpus)
             _MP_FN = f
