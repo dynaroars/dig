@@ -32,9 +32,11 @@
     "status": "ok"
   },
   "complexity/pldi09_ex6": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "i - n - 1"
+    ],
+    "min_invs": 6,
+    "status": "ok"
   },
   "complexity/pldi09_fig1": {
     "eqts": [],
@@ -200,8 +202,8 @@
   },
   "hola/12.dig": {
     "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "min_invs": 2,
+    "status": "ok"
   },
   "hola/13.dig": {
     "eqts": [
@@ -211,9 +213,11 @@
     "status": "ok"
   },
   "hola/14.dig": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "a**2 - m**2"
+    ],
+    "min_invs": 4,
+    "status": "ok"
   },
   "hola/15.dig": {
     "eqts": [],
@@ -235,9 +239,11 @@
     "status": "ok"
   },
   "hola/18.dig": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "j - 5"
+    ],
+    "min_invs": 2,
+    "status": "ok"
   },
   "hola/19.dig": {
     "eqts": [
@@ -247,14 +253,19 @@
     "status": "ok"
   },
   "hola/20.dig": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "k - x - y",
+      "m**2 - m*n + m"
+    ],
+    "min_invs": 3,
+    "status": "ok"
   },
   "hola/21.dig": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "k**2 - 6000*k*n + 8000000*n**2"
+    ],
+    "min_invs": 6,
+    "status": "ok"
   },
   "hola/22.dig": {
     "eqts": [
@@ -313,8 +324,8 @@
   },
   "hola/31.dig": {
     "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "min_invs": 7,
+    "status": "ok"
   },
   "hola/32.dig": {
     "eqts": [
@@ -351,9 +362,11 @@
     "status": "ok"
   },
   "hola/37.dig": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "m - n + 1"
+    ],
+    "min_invs": 3,
+    "status": "ok"
   },
   "hola/38.dig": {
     "eqts": [
@@ -364,8 +377,8 @@
   },
   "hola/39.dig": {
     "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "min_invs": 2,
+    "status": "ok"
   },
   "hola/40.dig": {
     "eqts": [
