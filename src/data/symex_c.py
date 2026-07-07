@@ -3,8 +3,9 @@ Python symbolic execution engine for simple C programs.
 
 Handles invariant inference on programs using:
   - Integer arithmetic (+ - * / %)
-  - while loops with break
-  - if/else branching
+  - while / for / do-while loops with break and continue (a for's `next`
+    runs before every guard re-test, including after continue, per C)
+  - if/else branching and switch (C fallthrough; break exits the switch)
   - vassume(cond) for preconditions
   - vtraceN(...) for observation points
   - vassert(cond) checked with z3 per path (results in self.assert_results;
@@ -33,7 +34,9 @@ Opt-in modes (all default-off so DIG-facing symstates are untouched):
   - merge_states: merge simple if/else diamonds into one state with
     If-valued variables (2^n paths over n diamonds become 1)
 
-Not modeled: pointers/&, '->' (no heap), 2-D arrays, struct params to mainQ.
+Not modeled: pointers/&, '->' (no heap), 2-D arrays, struct params to mainQ,
+goto/labels. Unsupported statements raise NotImplementedError rather than
+being silently skipped.
 
 Post-run APIs: gen_inputs() (concrete inputs covering every explored path),
 gen_test_harness() (compilable C driver replaying every path concretely),
@@ -53,7 +56,7 @@ branch decisions with source locations leading to the violation), printed
 by the CLI under "witness trace:".
 
 run() returns z3 path conditions directly (consumed in-process by
-SymStatesMakerC), so no text serialization/parsing round-trip is needed.
+SymStatesMakerC in DIG), so no text serialization/parsing round-trip is needed.
 
 Standalone: this file has no DIG dependencies — copy it anywhere and run
 `python symex_c.py prog.c [--depth N] [--gen-tests]` with just z3-solver
@@ -420,7 +423,7 @@ class CSymEx:
                 henv = {n: z3.Const(f"_ind_{n}", v.sort())
                         for n, v in entry[0].env.items()}
                 hstate = SymState(env=dict(henv))
-                cond_node, body = _loop_cond_body(node)
+                cond_node, body, nxt = _loop_cond_body(node)
                 graw, hstate = self._eval_expr_effects(cond_node, hstate)
                 for c in cands:
                     hstate = hstate.add_constraint(_subst_env(c, henv))
@@ -429,8 +432,8 @@ class CSymEx:
                     break   # loop can't iterate under the candidates
                 self._hypothetical = True
                 try:
-                    post = [s for s in self._exec_compound(body, [hstate])
-                            if s.exit not in (Exit.BREAK, Exit.RETURN)]
+                    post = self._after_body(
+                        self._exec_compound(body, [hstate]), nxt)
                 finally:
                     self._hypothetical = False
                 kept = []
@@ -478,7 +481,7 @@ class CSymEx:
         try:
             if not entry_states:
                 return ("unknown", None)   # loop head unreachable
-            cond_node, body = _loop_cond_body(node)
+            cond_node, body, nxt = _loop_cond_body(node)
             unknown = False
 
             # base: heads 0 .. k-1 on every path in
@@ -492,7 +495,8 @@ class CSymEx:
                     if r == z3.unknown:
                         unknown = True
                 if head < k - 1:
-                    states = self._advance_iteration(states, cond_node, body)
+                    states = self._advance_iteration(states, cond_node,
+                                                     body, nxt)
 
             # step: havoc; k heads assumed to satisfy inv, prove head k
             # (vassert in the body is a no-op here — see _hypothetical)
@@ -504,7 +508,8 @@ class CSymEx:
                 for _ in range(k):
                     states = [st.add_constraint(_subst_env(inv, st.env))
                               for st in states]
-                    states = self._advance_iteration(states, cond_node, body)
+                    states = self._advance_iteration(states, cond_node,
+                                                     body, nxt)
             finally:
                 self._hypothetical = False
             for st in states:
@@ -543,7 +548,7 @@ class CSymEx:
         try:
             if not entry_states:
                 return ("unknown", None)
-            cond_node, body = _loop_cond_body(node)
+            cond_node, body, nxt = _loop_cond_body(node)
             henv = {name: z3.Const(f"_ind_{name}", val.sort())
                     for name, val in entry_states[0].env.items()}
             h = SymState(env=dict(henv))
@@ -563,12 +568,12 @@ class CSymEx:
 
             self._hypothetical = True
             try:
-                post = self._exec_compound(body, [h])
+                # paths that break/return leave the loop anyway; the rest
+                # head back to the guard (running a for's `next` first)
+                post = self._after_body(self._exec_compound(body, [h]), nxt)
             finally:
                 self._hypothetical = False
             for s in post:
-                if s.exit in (Exit.BREAK, Exit.RETURN):
-                    continue   # that path leaves the loop anyway
                 post_rank = _subst_env(rank, s.env)
                 r, cex = self._counterexample(
                     s.pc, op_module.le(post_rank,
@@ -599,22 +604,29 @@ class CSymEx:
 
     def _advance_iteration(self, states: list[SymState],
                            cond_node: c_ast.Node,
-                           body: c_ast.Compound) -> list[SymState]:
+                           body: c_ast.Compound,
+                           nxt: c_ast.Node | None = None) -> list[SymState]:
         """One loop iteration: assume the guard, run the body; paths that
         exit (guard false, break, return) drop out — they have no further
         loop-head obligations."""
-        nxt = []
+        out = []
         for st in states:
             graw, st2 = self._eval_expr_effects(cond_node, st)
             st2 = st2.add_constraint(_as_bool(graw))
             if not self._feasible(st2):
                 continue
-            for s in self._exec_compound(body, [st2]):
-                if s.exit == Exit.CONTINUE:
-                    nxt.append(s.reset_exit())
-                elif s.exit == Exit.NORMAL:
-                    nxt.append(s)
-        return nxt
+            out.extend(self._after_body(self._exec_compound(body, [st2]),
+                                        nxt))
+        return out
+
+    def _after_body(self, post: list[SymState],
+                    nxt: c_ast.Node | None) -> list[SymState]:
+        """Paths that completed a loop body and head back to the guard
+        (normal fall-through or continue); break/return paths drop out.
+        Runs a for-loop's `next` on them, matching _exec_while."""
+        back = [s.reset_exit() if s.exit == Exit.CONTINUE else s
+                for s in post if s.exit in (Exit.NORMAL, Exit.CONTINUE)]
+        return self._exec_stmt(nxt, back) if nxt is not None and back else back
 
     def _states_reaching(self, node: c_ast.Node) -> list[SymState]:
         """Symbolic states at first arrival at `node` (paths stop there)."""
@@ -794,8 +806,19 @@ class CSymEx:
         if isinstance(node, c_ast.While):
             return self._exec_while(node, states)
 
+        if isinstance(node, c_ast.DoWhile):
+            return self._exec_dowhile(node, states)
+
         if isinstance(node, c_ast.For):
             return self._exec_for(node, states)
+
+        if isinstance(node, c_ast.Switch):
+            return self._exec_switch(node, states)
+
+        if isinstance(node, c_ast.DeclList):   # for (int i = 0, j = n; ...)
+            for d in node.decls:
+                states = self._exec_decl(d, states)
+            return states
 
         if isinstance(node, c_ast.FuncCall):
             return self._exec_call(node, states)
@@ -823,8 +846,27 @@ class CSymEx:
         if isinstance(node, c_ast.UnaryOp) and node.op in ("p++", "p--", "++", "--"):
             return self._exec_incr_stmt(node, states)
 
-        # Unknown: pass through
-        return states
+        if isinstance(node, (c_ast.EmptyStatement, c_ast.Pragma)):
+            return states
+
+        # Any other expression used as a statement (`x;`, `(void)f();`,
+        # comma lists like the `i++, j++` of a for-next): evaluate it for
+        # its side effects and discard the value
+        if isinstance(node, (c_ast.ExprList, c_ast.UnaryOp, c_ast.BinaryOp,
+                             c_ast.TernaryOp, c_ast.Cast, c_ast.ID,
+                             c_ast.Constant, c_ast.ArrayRef,
+                             c_ast.StructRef)):
+            out = []
+            for s in states:
+                _, s = self._eval_expr_effects(node, s)
+                out.append(s)
+            return out
+
+        # Anything else (goto, labels, ...) is not modeled: fail loudly
+        # rather than silently dropping its semantics
+        raise NotImplementedError(
+            f"unsupported statement {type(node).__name__}"
+            f" at {node.coord or '?'}")
 
     def _model_call(self, node: c_ast.FuncCall,
                     state: SymState) -> tuple[z3.ExprRef, list[z3.ExprRef]] | None:
@@ -1211,13 +1253,21 @@ class CSymEx:
     def _exec_while(self,
                     node: c_ast.While,
                     states: list[SymState],
-                    _iter: int = 0) -> list[SymState]:
+                    _iter: int = 0,
+                    next_stmt: c_ast.Node | None = None) -> list[SymState]:
         """
         Unroll the while loop up to max_depth total iterations.
         Each unique state tracks its own loop_depth so paths share depth budgets.
+        next_stmt is a for-loop's increment: it runs before every re-test of
+        the guard, including after `continue` (C semantics).
         """
         if not states:
             return []
+
+        if not isinstance(node.stmt, c_ast.Compound):
+            node = c_ast.While(cond=node.cond,
+                               stmt=c_ast.Compound(block_items=[node.stmt]),
+                               coord=node.coord)
 
         # Hard cap to prevent explosion
         if len(states) > self.MAX_STATES:
@@ -1283,24 +1333,107 @@ class CSymEx:
                         else:
                             result.append(s)
 
+        # for-loop increment: runs on every path headed back to the guard
+        # (normal fall-through and `continue` alike, never break/return)
+        if next_stmt is not None and continuing:
+            continuing = self._exec_stmt(next_stmt, continuing)
+
         # Recurse for states re-entering the loop
-        result.extend(self._exec_while(node, continuing, _iter + 1))
+        result.extend(self._exec_while(node, continuing, _iter + 1, next_stmt))
+        return result
+
+    def _exec_dowhile(self,
+                      node: c_ast.DoWhile,
+                      states: list[SymState]) -> list[SymState]:
+        """do body while(cond): run the body once unconditionally (break
+        exits, continue proceeds to the guard), then it is exactly while(cond)."""
+        if not states:
+            return []
+
+        body = (node.stmt if isinstance(node.stmt, c_ast.Compound)
+                else c_ast.Compound(block_items=[node.stmt]))
+        result: list[SymState] = []
+        continuing: list[SymState] = []
+        for state in states:
+            first = self._exec_compound(
+                body, [state.inc_loop().with_trace(
+                    f"{node.coord} loop-iter {state.loop_depth + 1}")])
+            for s in first:
+                if s.exit == Exit.BREAK:
+                    result.append(s.reset_exit())
+                elif s.exit == Exit.CONTINUE:
+                    continuing.append(s.reset_exit())
+                elif s.exit == Exit.NORMAL:
+                    continuing.append(s)
+                else:  # RETURN
+                    result.append(s)
+
+        fake_while = c_ast.While(cond=node.cond, stmt=body, coord=node.coord)
+        result.extend(self._exec_while(fake_while, continuing))
         return result
 
     def _exec_for(self,
                   node: c_ast.For,
                   states: list[SymState]) -> list[SymState]:
-        # Desugar: init; while(cond) { body; next; }
+        # Desugar: init; while(cond) body, with `next` run before each
+        # re-test of the guard so `continue` still executes it
         if node.init:
             states = self._exec_stmt(node.init, states)
 
         cond = node.cond or c_ast.Constant("int", "1")
-        body_items = node.stmt.block_items or [] if isinstance(node.stmt, c_ast.Compound) else [node.stmt]
-        if node.next:
-            body_items = body_items + [node.next]
+        fake_while = c_ast.While(cond=cond, stmt=node.stmt, coord=node.coord)
+        return self._exec_while(fake_while, states, next_stmt=node.next)
 
-        fake_while = c_ast.While(cond=cond, stmt=c_ast.Compound(block_items=body_items))
-        return self._exec_while(fake_while, states)
+    def _exec_switch(self,
+                     node: c_ast.Switch,
+                     states: list[SymState]) -> list[SymState]:
+        """
+        switch(e): fork one path per case label (labels are distinct
+        constants, so the equalities are mutually exclusive) plus a
+        default/no-match path, executing from the matched label onward
+        (C fallthrough) until break — which exits the switch only;
+        continue and return propagate to the enclosing construct.
+        """
+        items = (node.stmt.block_items or []
+                 if isinstance(node.stmt, c_ast.Compound) else [node.stmt])
+        # pycparser nests each label's trailing statements under it, so the
+        # switch body is a flat list of Case/Default nodes
+        labels = [it for it in items
+                  if isinstance(it, (c_ast.Case, c_ast.Default))]
+
+        result: list[SymState] = []
+        for state in states:
+            sw, state = self._eval_expr_effects(node.cond, state)
+            case_eqs = {}   # label index -> switch-expr == case-value
+            for i, lab in enumerate(labels):
+                if isinstance(lab, c_ast.Case):
+                    a, b = _coerce(sw, self._eval_expr(lab.expr, state))
+                    case_eqs[i] = op_module.eq(a, b)
+            no_match = (z3.And(*[z3.Not(eq) for eq in case_eqs.values()])
+                        if case_eqs else z3.BoolVal(True))
+
+            matched_paths = []   # (entry label index, path constraint, tag)
+            for i, lab in enumerate(labels):
+                if isinstance(lab, c_ast.Case):
+                    matched_paths.append((i, case_eqs[i], f"case {_short(case_eqs[i])}"))
+                else:
+                    matched_paths.append((i, no_match, "default"))
+            if not any(isinstance(lab, c_ast.Default) for lab in labels):
+                matched_paths.append((len(labels), no_match, "no-match"))
+
+            for i, path_cond, tag in matched_paths:
+                fork = state.add_constraint(path_cond).with_trace(
+                    f"{node.coord} switch {tag}")
+                if not self._feasible(fork):
+                    continue
+                body = c_ast.Compound(block_items=[
+                    s for lab in labels[i:] for s in (lab.stmts or [])])
+                for s in self._exec_compound(body, [fork]):
+                    if s.exit == Exit.BREAK:
+                        result.append(s.reset_exit())
+                    else:   # NORMAL fell off the end; CONTINUE/RETURN propagate
+                        result.append(s)
+        return result
 
     def _exec_call(self,
                    node: c_ast.FuncCall,
@@ -1731,19 +1864,16 @@ def _find_loops(body: c_ast.Node) -> list[c_ast.Node]:
 
 
 def _loop_cond_body(node: c_ast.While | c_ast.For
-                    ) -> tuple[c_ast.Node, c_ast.Compound]:
-    """(condition expr, body-as-Compound) of a While or For loop;
-    a For's `next` is appended to the body, mirroring _exec_for."""
+                    ) -> tuple[c_ast.Node, c_ast.Compound, c_ast.Node | None]:
+    """(condition expr, body-as-Compound, for-`next` or None) of a While
+    or For loop. `next` is kept separate from the body, mirroring
+    _exec_for: it runs before every guard re-test, even after continue."""
+    body = (node.stmt if isinstance(node.stmt, c_ast.Compound)
+            else c_ast.Compound(block_items=[node.stmt]))
     if isinstance(node, c_ast.While):
-        body = (node.stmt if isinstance(node.stmt, c_ast.Compound)
-                else c_ast.Compound(block_items=[node.stmt]))
-        return node.cond, body
+        return node.cond, body, None
     cond = node.cond or c_ast.Constant("int", "1")
-    items = (list(node.stmt.block_items or [])
-             if isinstance(node.stmt, c_ast.Compound) else [node.stmt])
-    if node.next:
-        items = items + [node.next]
-    return cond, c_ast.Compound(block_items=items)
+    return cond, body, node.next
 
 
 def _subst_env(inv: z3.ExprRef, env: dict[str, z3.ExprRef]) -> z3.ExprRef:

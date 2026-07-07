@@ -530,6 +530,72 @@ class TestLoops:
             assert_record_implies(
                 rec, X("a") * X("d") + X("b") == X("c"))
 
+    def test_for_continue_still_runs_increment(self, tmp_path):
+        # C semantics: continue in a for loop jumps to `next`, not past it
+        _, res = symex(tmp_path, """
+            int mainQ(int x, int y){
+                int hits = 0;
+                int i;
+                for (i = 0; i < 4; i++) {
+                    if (i == 1) continue;
+                    hits = hits + 1;
+                }
+                vtrace1(i, hits, x, y);
+                return 0;
+            }
+        """, depth=10)
+        assert len(res) == 1
+        assert_record_implies(res[0], z3.And(X("a") == 4, X("b") == 3))
+
+    def test_dowhile_body_runs_at_least_once(self, tmp_path):
+        _, res = symex(tmp_path, """
+            int mainQ(int n, int y){
+                vassume(n == 0);
+                int i = 0;
+                do { i = i + 1; } while (i < n);
+                vtrace1(i, n, y, i);
+                return 0;
+            }
+        """, depth=5)
+        assert len(res) == 1
+        assert_record_implies(res[0], X("a") == 1)
+
+    def test_switch_forks_per_case_with_fallthrough(self, tmp_path):
+        _, res = symex(tmp_path, """
+            int mainQ(int x, int y){
+                vassume(x >= 0 && x <= 2);
+                int r = 0;
+                switch (x) {
+                    case 0: r = 1;      /* falls through */
+                    case 1: r = r + 10; break;
+                    default: r = 99;
+                }
+                vtrace1(x, r, y, r);
+                return r;
+            }
+        """, depth=5)
+        # one path per case plus default: x=0 -> 11, x=1 -> 10, x=2 -> 99
+        assert len(res) == 3
+        for xv, rv in [(0, 11), (1, 10), (2, 99)]:
+            assert any(implied(pc, slocal,
+                               z3.Implies(X("a") == xv, X("b") == rv))
+                       and satisfiable(pc, slocal, X("a") == xv)
+                       for _, pc, slocal in res)
+
+    def test_goto_raises_instead_of_silently_skipping(self, tmp_path):
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + """
+            int mainQ(int x, int y){
+                if (x > 0) goto done;
+                x = -x;
+            done:
+                vtrace1(x, y, x, y);
+                return x;
+            }
+        """)
+        with pytest.raises(NotImplementedError, match="Goto"):
+            CSymEx(f, 5).run()
+
     def test_max_states_cap_is_respected(self, tmp_path):
         f = tmp_path / "prog.c"
         f.write_text(HEADER + """
