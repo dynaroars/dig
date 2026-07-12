@@ -14,8 +14,10 @@ import sys
 import itertools
 import functools
 import multiprocessing
+import queue
 import signal
 import threading
+import traceback
 import math
 import numpy as np
 import sympy
@@ -671,32 +673,39 @@ class Miscs:
         return result
 
 
-# Module-level state for fork-based Pool workers.
-# Pool.map() pickles the callable and args, which fails for closures that capture
-# z3 ctypes. Workaround: store both in globals before Pool() forks; workers
-# inherit them via fork. Only a picklable integer index crosses the IPC boundary.
+# Module-level state for fork-based workers.
+# Pickling the callable and args fails for closures that capture z3 ctypes.
+# Workaround: store both in globals before the workers fork; workers inherit
+# them via fork. Only the batch index and the (picklable) results cross the
+# IPC boundary.
 _MP_FN: Any = None
 _MP_WLOADS: list = []
 _MP_SEED: int | None = None
 
 
-def _mp_run_worker(idx: int):
+def _mp_run_worker(idx: int, out_q) -> None:
+    """
+    Run one batch in a freshly forked process and send back (idx, ok, payload).
+    """
+    _worker_init()
     # Python (3.12+) reseeds the random module nondeterministically on fork, so
     # any RNG use inside a worker (e.g. eqt's gen_rand_inps) would vary run to
-    # run. Reseed deterministically from the parent's RNG state + the workload
+    # run. Reseed deterministically from the parent's RNG state + the batch
     # index to restore reproducibility under multiprocessing.
-    if _MP_SEED is not None:
-        random.seed(_MP_SEED + idx)
-    return _MP_FN(_MP_WLOADS[idx])
+    random.seed(_MP_SEED + idx)
+    try:
+        rs = _MP_FN(_MP_WLOADS[idx])
+        out_q.put((idx, True, rs))
+    except Exception:
+        out_q.put((idx, False, traceback.format_exc()))
 
 
 def _worker_init():
     """
-    Make each fork-based Pool worker die with its parent so an interrupted or
-    killed DIG run can't leave workers busy-looping (e.g. mid z3 solve). Uses
-    Linux PR_SET_PDEATHSIG; a no-op elsewhere. The `with Pool` context manager
-    only cleans up on normal/exception exit — this covers the uncatchable cases
-    (SIGKILL, parent crash).
+    Make each forked worker die with its parent so an interrupted or killed
+    DIG run can't leave workers busy-looping (e.g. mid z3 solve). Uses Linux
+    PR_SET_PDEATHSIG; a no-op elsewhere. run_mp's cleanup only runs on normal/
+    exception exit — this covers the uncatchable cases (SIGKILL, parent crash).
     """
     if sys.platform != "linux":
         return
@@ -713,82 +722,144 @@ def _worker_init():
 
 
 class MP:
-    @beartype    
+    # Fixed number of task batches (and hence per-batch RNG seeds). Must NOT
+    # depend on cpu_count: batch boundaries and seeds determine results, so
+    # deriving them from the machine would make results differ across machines.
+    # Machines with fewer cores run the same batches on fewer processes; z3's
+    # rlimit budget keeps solver results independent of CPU contention.
+    N_BATCHES = 12
+
+    @beartype
     @staticmethod
-    def get_workload(tasks: Iterable[Any], n_cpus: int) -> list[list[Any]]:
+    def get_workload(tasks: list[Any], n_batches: int) -> list[list[Any]]:
         """
-        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
+        Split tasks into at most n_batches round-robin batches, smallest
+        batches first. This layout (and hence the concatenated result order,
+        which downstream order-sensitive steps like trace sampling and
+        simplification observe) is the historical one the golden results were
+        recorded with — keep it; only n_batches was decoupled from cpu_count.
+
+        >>> wls = MP.get_workload(list(range(12)),7); [len(wl) for wl in wls]
         [1, 1, 2, 2, 2, 2, 2]
 
-        >>> wls = MP.get_workload(range(12),5); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(list(range(12)),5); [len(wl) for wl in wls]
         [2, 2, 2, 3, 3]
 
-        >>> wls = MP.get_workload(range(20),7); [len(wl) for wl in wls]
+        >>> wls = MP.get_workload(list(range(20)),7); [len(wl) for wl in wls]
         [2, 3, 3, 3, 3, 3, 3]
 
-        >>> wls = MP.get_workload(range(20),20); [len(wl) for wl in wls]
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        >>> MP.get_workload(list(range(3)), 7)
+        [[0], [1], [2]]
 
-        >>> wls = MP.get_workload(range(12),7); [len(wl) for wl in wls]
-        [1, 1, 2, 2, 2, 2, 2]
-
-        >>> wls = MP.get_workload(range(146), 20); [len(wl) for wl in wls]
-        [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8]
+        >>> wls = MP.get_workload(list(range(146)), 12); [len(wl) for wl in wls]
+        [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13]
         """
         assert len(tasks) >= 1, tasks
-        assert n_cpus >= 1, n_cpus
+        assert n_batches >= 1, n_batches
 
         wloads = defaultdict(list)
         for i, task in enumerate(tasks):
-            cpu_id = i % n_cpus
-            wloads[cpu_id].append(task)
+            wloads[i % n_batches].append(task)
 
-        _wloads = list(sorted(wloads.values(), key=len))
-        return _wloads
+        return sorted(wloads.values(), key=len)
 
     @classmethod
     def run_mp(cls, taskname: str, tasks: list[Any], f: Callable[[list[Any]], Any], DO_MP: bool) -> list[Any]:
         """
-        Run f on task batches, optionally in parallel via a fork-based Pool.
+        Run f over `tasks` split into at most N_BATCHES batches, each batch
+        in a fresh forked process when DO_MP (else in-process).
 
-        Uses fork (not spawn/ProcessPoolExecutor) so f can capture non-picklable
-        state such as z3 ctypes.  Only integer batch indices cross the IPC
-        boundary; the actual closure and workload are inherited by workers through
-        the module-level globals set before Pool() forks.
+        Determinism contract for the parallel (default) path: results do not
+        depend on cpu_count or on scheduling, so they are reproducible across
+        machines. Batch layout, result order, and per-batch RNG seeds derive
+        only from len(tasks) and the parent's RNG state; each batch runs in
+        its own pristine fork of the parent — one Process per batch, so no
+        z3/caching state leaks between batches through a reused worker, and a
+        1-core machine forks (and gets) exactly the same batches as a 64-core
+        one; results are concatenated in batch order (deterministic, see
+        get_workload, but not the original task order).
+
+        The serial path (DO_MP off, nested inside a worker, or a single
+        batch) is a plain in-process f(tasks). It is equally deterministic
+        but -nomp results may legitimately differ from mp results: forked
+        batches consume per-batch RNG streams (serial consumes the parent's
+        one stream), and fork isolation discards each batch's in-place side
+        effects (caches, inv stats) that a serial run keeps. Faithful
+        in-process emulation of fork semantics is not possible, so -nomp is a
+        debugging fallback, not a result-identical mode; golden results are
+        defined by the default mp mode.
+
+        Uses fork (not spawn/Pool/ProcessPoolExecutor) so f can capture
+        non-picklable state such as z3 ctypes, and so every fork happens from
+        the main thread before any helper thread exists (forking a threaded
+        parent, as Pool worker-respawn does, can deadlock the child). Only the
+        batch index and the results cross the IPC boundary; the callable and
+        workload are inherited through the module-level globals set before the
+        forks.
         """
         global _MP_FN, _MP_WLOADS, _MP_SEED
 
+        if not tasks:
+            return []
+
+        wloads = cls.get_workload(tasks, cls.N_BATCHES)
+        if (not DO_MP or len(wloads) < 2
+                or multiprocessing.current_process().daemon):
+            return f(tasks)
+
+        # per-batch seeds derive from the parent's (seeded) RNG state;
+        # reading the state doesn't perturb the parent's stream
+        seed = hash(random.getstate())
+
+        mlog.debug(
+            f"{taskname}: running {len(tasks)} jobs "
+            f"using {len(wloads)} batches: {list(map(len, wloads))}"
+        )
+        _MP_FN, _MP_WLOADS, _MP_SEED = f, wloads, seed
+        procs = []
         try:
-            n_cpus = len(os.sched_getaffinity(0))
-        except AttributeError:
-            n_cpus = multiprocessing.cpu_count()
-        if DO_MP and len(tasks) >= 2 and n_cpus >= 2 and not multiprocessing.current_process().daemon:
-            _MP_WLOADS = MP.get_workload(tasks, n_cpus=n_cpus)
-            _MP_FN = f
-            # deterministic per-worker seed derived from the parent's (seeded)
-            # RNG state; read-only, so it doesn't perturb the parent's stream
-            _MP_SEED = hash(random.getstate())
-            mlog.debug(
-                f"{taskname}: running {len(tasks)} jobs "
-                f"using {len(_MP_WLOADS)} workers: {list(map(len, _MP_WLOADS))}"
-            )
-            try:
-                # Use fork so workers inherit _MP_FN/_MP_WLOADS globals (3.14+ defaults to forkserver)
-                ctx = multiprocessing.get_context("fork")
-                with ctx.Pool(processes=len(_MP_WLOADS),
-                              initializer=_worker_init) as pool:
-                    batch_results = pool.map(_mp_run_worker, range(len(_MP_WLOADS)))
-            finally:
-                _MP_FN = None
-                _MP_WLOADS = []
+            # Use fork so workers inherit _MP_FN/_MP_WLOADS globals (3.14+
+            # defaults to forkserver). daemon=True so nested run_mp calls
+            # inside a worker take the serial path.
+            ctx = multiprocessing.get_context("fork")
+            out_q = ctx.Queue()
+            for idx in range(len(wloads)):
+                p = ctx.Process(target=_mp_run_worker, args=(idx, out_q),
+                                daemon=True)
+                p.start()
+                procs.append(p)
 
-            wrs = []
-            for rs in batch_results:
-                wrs.extend(rs)
-        else:
-            wrs = f(tasks)
+            by_idx: dict[int, Any] = {}
+            grace = 0
+            while len(by_idx) < len(wloads):
+                try:
+                    idx, ok, payload = out_q.get(timeout=1)
+                except queue.Empty:
+                    dead = [i for i, p in enumerate(procs)
+                            if not p.is_alive() and i not in by_idx]
+                    # a few extra polls so a just-exited worker's queued
+                    # result can still drain through the pipe
+                    grace = grace + 1 if dead else 0
+                    if dead and grace >= 3:
+                        raise RuntimeError(
+                            f"{taskname}: worker(s) {dead} died without "
+                            f"returning a result (exitcodes "
+                            f"{[procs[i].exitcode for i in dead]})")
+                    continue
+                grace = 0
+                if not ok:
+                    raise RuntimeError(
+                        f"{taskname}: worker {idx} failed:\n{payload}")
+                by_idx[idx] = payload
+            for p in procs:
+                p.join()
+        finally:
+            for p in procs:
+                if p.is_alive():
+                    p.terminate()
+            _MP_FN, _MP_WLOADS, _MP_SEED = None, [], None
 
-        return wrs
+        return [r for idx in range(len(wloads)) for r in by_idx[idx]]
 
 
 if __name__ == "__main__":
