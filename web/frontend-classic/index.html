@@ -15,6 +15,8 @@
     }
   }
   pre { overflow-x: auto; }
+  summary { cursor: pointer; }
+  summary h2 { display: inline; }
   fieldset { margin: 0.6em 0; }
   table.opts td { padding: 1px 10px 1px 2px; }
   table.invs { border-collapse: collapse; margin: 0.4em 0 1em 0; }
@@ -50,7 +52,8 @@ inequalities, congruences, and min/max-plus relations — from program code or e
 <textarea id="code" rows="24" cols="100" spellcheck="false"
  style="width: 100%;" placeholder="// Load an example above, or paste a C program / CSV traces here."></textarea>
 
-<h2>2. Options</h2>
+<details>
+<summary><h2>2. Options</h2> <span class="small">(optional &mdash; click to configure DIG; defaults are used otherwise)</span></summary>
 
 <fieldset>
 <legend><b>Numeric parameters</b> <span class="small">(leave blank for DIG defaults)</span></legend>
@@ -136,6 +139,7 @@ user-supplied terms, separated by <tt>;</tt><br>
 <input type="number" id="opt-llm_rounds" size="4" min="1" placeholder="3"> max LLM propose/verify rounds<br>
 <label><input type="checkbox" id="opt-llm_no_traces"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label>
 </fieldset>
+</details>
 
 <p>
 <button id="run-btn" type="button"><b>Run DIG</b></button>
