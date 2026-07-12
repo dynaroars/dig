@@ -3,15 +3,23 @@
 <head>
 <meta charset="utf-8">
 <title>DIG: Dynamic Invariant Generator</title>
+<link rel="stylesheet" type="text/css" href="https://roars.dev/files/org.css">
 <style>
-  body { font-family: Times, "Times New Roman", serif; margin: 1em auto; max-width: 62em; padding: 0 1em; }
-  textarea, input, select, button, pre, tt, code { font-family: "Courier New", Courier, monospace; }
-  pre { border: 1px solid #999; background: #f6f6f6; padding: 6px; overflow-x: auto; }
+  :root { color-scheme: light dark; }
+  textarea, input, select, button, tt { font-family: "Courier New", Courier, monospace; }
+  @media (prefers-color-scheme: dark) {
+    textarea, input, select, button {
+      background: #073642;
+      color: #93a1a1;
+      border: 1px solid #586e75;
+    }
+  }
+  pre { overflow-x: auto; }
   fieldset { margin: 0.6em 0; }
   table.opts td { padding: 1px 10px 1px 2px; }
   table.invs { border-collapse: collapse; margin: 0.4em 0 1em 0; }
   table.invs td, table.invs th { border: 1px solid #666; padding: 2px 8px; text-align: left; }
-  .small { font-size: smaller; color: #444; }
+  .small { font-size: smaller; }
 </style>
 </head>
 <body>

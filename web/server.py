@@ -243,18 +243,10 @@ def get_example(example_id: str):
         })
     return jsonify({"error": "Example not found"}), 404
 
-DIST_DIR = Path(__file__).resolve().parent / "frontend" / "dist"
-
 @app.route("/", methods=["GET"])
 @app.route("/index.html", methods=["GET"])
 def classic_index():
     return send_from_directory(CLASSIC_DIR, "index.html")
-
-@app.route("/index2.html", methods=["GET"])
-def modern_index():
-    if (DIST_DIR / "index2.html").exists():
-        return send_from_directory(DIST_DIR, "index2.html")
-    return send_from_directory(Path(__file__).resolve().parent / "frontend", "index2.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
