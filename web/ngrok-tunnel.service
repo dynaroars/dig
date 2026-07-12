@@ -4,7 +4,7 @@ After=network.target dig-backend.service
 
 [Service]
 User=azan
-ExecStart=/usr/local/bin/ngrok http 80 --domain=density-capillary-thinning.ngrok-free.dev
+ExecStart=/usr/local/bin/ngrok http 5001 --domain=density-capillary-thinning.ngrok-free.dev
 Restart=always
 RestartSec=10
 
