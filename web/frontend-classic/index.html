@@ -15,6 +15,33 @@
     }
   }
   pre { overflow-x: auto; }
+
+  /* code editor: transparent textarea layered over a highlighted <pre> */
+  #editor { position: relative; width: 100%; height: 30em; margin: 0.4em 0; }
+  #editor pre, #editor textarea {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    margin: 0; padding: 6px; border: 1px solid #999; box-sizing: border-box;
+    font-family: "Courier New", Courier, monospace; font-size: 13px; line-height: 1.35;
+    white-space: pre; overflow: auto; tab-size: 4; box-shadow: none;
+  }
+  #hl { pointer-events: none; }
+  #code {
+    background: transparent; color: transparent; caret-color: #000;
+    resize: none; border-color: transparent; z-index: 1;
+  }
+  #code::placeholder { color: #999; font-style: italic; }
+  .c-kw { color: #859900; font-weight: bold; }
+  .c-ty { color: #b58900; }
+  .c-str { color: #2aa198; }
+  .c-num { color: #d33682; }
+  .c-pp { color: #cb4b16; }
+  .c-com { color: #93a1a1; font-style: italic; }
+  @media (prefers-color-scheme: dark) {
+    #code { background: transparent; color: transparent; caret-color: #93a1a1; }
+    #hl { border-color: #586e75; }
+    .c-com { color: #586e75; }
+  }
+
   summary { cursor: pointer; }
   summary h2 { display: inline; }
   fieldset { margin: 0.6em 0; }
@@ -49,8 +76,11 @@ inequalities, congruences, and min/max-plus relations — from program code or e
 &nbsp;
 <label><input type="radio" name="input-type" value="csv"> CSV traces</label>
 </p>
-<textarea id="code" rows="24" cols="100" spellcheck="false"
- style="width: 100%;" placeholder="// Load an example above, or paste a C program / CSV traces here."></textarea>
+<div id="editor">
+<pre id="hl" aria-hidden="true"><code id="hl-code"></code></pre>
+<textarea id="code" spellcheck="false" wrap="off"
+ placeholder="// Load an example above, or paste a C program / CSV traces here."></textarea>
+</div>
 
 <details>
 <summary><h2>2. Options</h2> <span class="small">(optional &mdash; click to configure DIG; defaults are used otherwise)</span></summary>
@@ -191,6 +221,44 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/* ---------- syntax highlighting ----------
+   The #code textarea has transparent text and sits on top of #hl, a <pre>
+   that renders the same content with token colors; scrolling is synced. */
+
+var C_TOKEN = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|("(?:\\[\s\S]|[^"\\\n])*"?|'(?:\\[\s\S]|[^'\\\n])*'?)|(^[ \t]*#[^\n]*)|(\b(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)[uUlLfF]*\b)|(\b(?:auto|break|case|const|continue|default|do|else|enum|extern|for|goto|if|inline|register|restrict|return|sizeof|static|struct|switch|typedef|union|volatile|while|assert|vtrace\d*|mainQ)\b)|(\b(?:bool|char|double|float|int|long|short|signed|unsigned|void|size_t|u?int(?:8|16|32|64)_t)\b)/gm;
+
+function highlightC(src) {
+  var out = "", last = 0, m;
+  C_TOKEN.lastIndex = 0;
+  while ((m = C_TOKEN.exec(src)) !== null) {
+    out += escapeHtml(src.slice(last, m.index));
+    var cls = m[1] ? "c-com" : m[2] ? "c-str" : m[3] ? "c-pp" :
+              m[4] ? "c-num" : m[5] ? "c-kw" : "c-ty";
+    out += "<span class=\"" + cls + "\">" + escapeHtml(m[0]) + "</span>";
+    last = C_TOKEN.lastIndex;
+  }
+  return out + escapeHtml(src.slice(last));
+}
+
+function currentInputType() {
+  var radios = document.getElementsByName("input-type");
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) return radios[i].value;
+  return "c";
+}
+
+function refreshHighlight() {
+  var src = $("code").value;
+  $("hl-code").innerHTML =
+    (currentInputType() === "c" ? highlightC(src) : escapeHtml(src)) + "\n";
+  syncHighlightScroll();
+}
+
+function syncHighlightScroll() {
+  var hl = $("hl"), ta = $("code");
+  hl.scrollTop = ta.scrollTop;
+  hl.scrollLeft = ta.scrollLeft;
+}
+
 /* ---------- examples ---------- */
 
 function loadExampleList() {
@@ -226,6 +294,7 @@ function loadExample() {
       var radios = document.getElementsByName("input-type");
       for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === type);
       $("example-desc").textContent = exampleDescs[id] || "";
+      refreshHighlight();
       setStatus("Loaded example: " + id);
     }
   }).catch(function () { setStatus("Failed to load example."); });
@@ -269,9 +338,7 @@ function runDig() {
   var code = $("code").value.trim();
   if (!code) { alert("Please enter a program or traces (or load an example)."); return; }
 
-  var inputType = "c";
-  var radios = document.getElementsByName("input-type");
-  for (var i = 0; i < radios.length; i++) if (radios[i].checked) inputType = radios[i].value;
+  var inputType = currentInputType();
 
   $("run-btn").disabled = true;
   $("cancel-btn").disabled = false;
@@ -364,6 +431,11 @@ document.addEventListener("DOMContentLoaded", function () {
   $("load-btn").addEventListener("click", loadExample);
   $("run-btn").addEventListener("click", runDig);
   $("cancel-btn").addEventListener("click", cancelJob);
+  $("code").addEventListener("input", refreshHighlight);
+  $("code").addEventListener("scroll", syncHighlightScroll);
+  var radios = document.getElementsByName("input-type");
+  for (var i = 0; i < radios.length; i++) radios[i].addEventListener("change", refreshHighlight);
+  refreshHighlight();
 });
 </script>
 
