@@ -1,5 +1,9 @@
 # DIG
 
+
+## Try out DIG live here: https://roars.dev/dig/
+
+
 **DIG** is an _invariant generation_ tool that discovers program properties at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on _numerical_ invariants and currently supports the following numerical relations:
 - *nonlinear/linear equalities* among arbitrary variables,  e.g.,  `x+y=5`, `x*y=z`, `x*3y^3 + 2*zw + pq + q^3 = 3`
 - *linear inequalities* (e.g., interval and octagonal invariants), e.g., `-4 <= x <= 7,  -2 <= - x - y <= 10`
