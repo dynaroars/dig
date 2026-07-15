@@ -13,7 +13,6 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.parent))
-DIG_MAIN = DIG_ROOT / "src" / "dig.py"
 
 # dig.py options exposed to the web API, mirroring src/dig.py's argparse.
 # File-path and benchmark options (-writeresults, -readsstates, -tmpdir,
@@ -28,6 +27,12 @@ BOOL_OPTS = [
     "nomp", "dosolverstats", "llm", "llm_no_traces",
 ]
 
+# symex_c.py CLI options exposed to the web API (tool == "symex").
+# --gen-harness is excluded (writes a file the web runner never returns).
+SYMEX_INT_OPTS = ["depth", "loop", "k"]
+SYMEX_BOOL_OPTS = ["gen_tests", "no_safety", "check_overflow", "merge"]
+SYMEX_LIST_OPTS = ["prove", "houdini", "assume"]  # ";"-separated exprs
+
 class DIGRunner:
     """Manages sandboxed execution of DIG using Docker (or direct fallback)."""
     
@@ -39,28 +44,40 @@ class DIGRunner:
             
         self.docker_image = os.environ.get("DIG_DOCKER_IMAGE", "dig-sandbox")
 
-    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None) -> Dict[str, Any]:
+    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, tool: str = "dig") -> Dict[str, Any]:
         options = options or {}
         timeout = min(int(options.get("timeout", 60)), 300)
-        
+
         with tempfile.TemporaryDirectory(prefix="dig_web_") as tmpdir:
             tmppath = Path(tmpdir)
             ext = ".c" if input_type == "c" else ".csv"
             input_file = tmppath / f"prog{ext}"
             input_file.write_text(code)
-            
-            cmd_opts = self._build_cmd_opts(options)
+
+            if tool == "symex":
+                cmd_opts = self._build_symex_cmd_opts(options)
+                script = "data/symex_c.py"
+            else:
+                cmd_opts = self._build_cmd_opts(options)
+                script = "dig.py"
 
             start_time = time.time()
-            
+
             if self.use_docker:
-                res = self._run_docker(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled)
+                res = self._run_docker(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled, script=script)
             else:
-                res = self._run_direct(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled)
-                
+                res = self._run_direct(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled, script=script)
+
             runtime = round(time.time() - start_time, 2)
             res["runtime"] = runtime
-            res["locations"] = self._parse_invariants(res.get("raw_output", ""))
+            if tool == "symex":
+                # symex_c exits 1 when a vassert/safety check or proof query
+                # fails; that is a result to display, not an execution error
+                if res.get("status") == "error" and res.get("exit_code") == 1:
+                    res["status"] = "completed"
+                res["locations"] = []
+            else:
+                res["locations"] = self._parse_invariants(res.get("raw_output", ""))
             return res
 
     def _build_cmd_opts(self, options: Dict[str, Any]) -> list:
@@ -77,6 +94,29 @@ class DIGRunner:
                 cmd_opts.append(f"-{name}")
         if options.get("uterms"):
             cmd_opts.extend(["-uterms", str(options["uterms"])])
+        return cmd_opts
+
+    def _build_symex_cmd_opts(self, options: Dict[str, Any]) -> list:
+        """Translate the web options dict into symex_c.py CLI arguments."""
+        cmd_opts = []
+        for name in SYMEX_INT_OPTS:
+            val = options.get(name)
+            if val not in (None, ""):
+                cmd_opts.extend([f"--{name}", str(int(val))])
+        for name in SYMEX_BOOL_OPTS:
+            if options.get(name):
+                cmd_opts.append("--" + name.replace("_", "-"))
+        for name in SYMEX_LIST_OPTS:
+            for expr in str(options.get(name) or "").split(";"):
+                if expr.strip():
+                    cmd_opts.extend([f"--{name}", expr.strip()])
+        if str(options.get("terminates") or "").strip():
+            cmd_opts.extend(["--terminates", str(options["terminates"]).strip()])
+        # check_inv: "LOC EXPR" pairs separated by ";", e.g. "vtrace1 q*y + r == x"
+        for item in str(options.get("check_inv") or "").split(";"):
+            parts = item.strip().split(None, 1)
+            if len(parts) == 2:
+                cmd_opts.extend(["--check-inv", parts[0], parts[1]])
         return cmd_opts
 
     def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
@@ -172,7 +212,7 @@ class DIGRunner:
                 "error": str(e)
             }
 
-    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None) -> Dict[str, Any]:
+    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py") -> Dict[str, Any]:
         container_file = f"/dig/input/{input_file.name}"
         docker_cmd = [
             "docker", "run", "--rm",
@@ -187,14 +227,14 @@ class DIGRunner:
             # coreutils timeout inside the container: killing the local docker
             # client would leave the container running
             "timeout", "--signal=KILL", str(timeout),
-            "/root/miniconda3/bin/python3", "-u", "-O", "/dig/src/dig.py", container_file
+            "/root/miniconda3/bin/python3", "-u", "-O", f"/dig/src/{script}", container_file
         ] + cmd_opts
 
         return self._run_cmd_stream(docker_cmd, timeout + 5, on_output, check_cancelled=check_cancelled)
 
-    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None) -> Dict[str, Any]:
+    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py") -> Dict[str, Any]:
         python_exe = sys.executable
-        cmd = [python_exe, "-u", "-O", str(DIG_MAIN), str(input_file)] + cmd_opts
+        cmd = [python_exe, "-u", "-O", str(DIG_ROOT / "src" / script), str(input_file)] + cmd_opts
         env = os.environ.copy()
         env["PYTHONPATH"] = str(DIG_ROOT / "src") + ":" + env.get("PYTHONPATH", "")
         env["PYTHONUNBUFFERED"] = "1"

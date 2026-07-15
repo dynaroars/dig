@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DIG SymEx: Symbolic Execution for C</title>
+<link rel="stylesheet" type="text/css" href="https://roars.dev/files/org.css">
+<style>
+  :root { color-scheme: light dark; }
+  textarea, input, select, button, tt { font-family: "Courier New", Courier, monospace; }
+  @media (prefers-color-scheme: dark) {
+    textarea, input, select, button {
+      background: #073642;
+      color: #93a1a1;
+      border: 1px solid #586e75;
+    }
+  }
+  pre { overflow-x: auto; }
+
+  #code {
+    width: 100%; height: 30em; margin: 0.4em 0; padding: 6px;
+    border: 1px solid #999; box-sizing: border-box;
+    font-family: "Courier New", Courier, monospace; font-size: 13px; line-height: 1.35;
+    white-space: pre; overflow: auto; tab-size: 4; resize: vertical;
+  }
+  #code::placeholder { color: #999; font-style: italic; }
+  #run-btn { font-size: 1.15em; padding: 0.4em 1.4em; }
+
+  summary { cursor: pointer; }
+  summary h2 { display: inline; }
+  fieldset { margin: 0.6em 0; }
+  table.opts td { padding: 1px 10px 1px 2px; }
+  table.res { border-collapse: collapse; margin: 0.4em 0 1em 0; }
+  table.res td, table.res th { border: 1px solid #666; padding: 2px 8px; text-align: left; vertical-align: top; }
+  table.res td tt { white-space: pre-wrap; word-break: break-word; }
+  .small { font-size: smaller; }
+  .ok { color: #2a2; font-weight: bold; }
+  .bad { color: #c22; font-weight: bold; }
+  .meh { color: #b80; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>DIG SymEx: Symbolic Execution for C</h1>
+<p>
+This page demonstrates <tt>symex_c</tt>, the symbolic execution engine used by
+<a href="index.html">DIG</a>. It explores every path of a C program with
+<a href="https://github.com/Z3Prover/z3">z3</a>, computing per-path symbolic states
+(path condition + variable values at each <tt>vtraceX</tt> point), checking
+<tt>vassert</tt>s and safety properties (division by zero, array bounds, overflow) with
+concrete counterexamples and witness traces, generating path-covering test inputs, and
+proving loop invariants and termination <i>unboundedly</i> via k-induction and ranking functions.
+
+[<a href="https://github.com/dynaroars/dig">GitHub</a>]
+[<a href="https://roars.dev">ROARS Lab</a>]
+</p>
+<hr>
+
+<h2>1. Program input</h2>
+<p>
+<b>Load example:</b>
+<select id="example-select"><option value="">-- select an example --</option></select>
+<span id="example-desc" class="small"></span>
+</p>
+<p class="small">
+Input is a C program with a <tt>mainQ(...)</tt> entry function; annotate with
+<tt>vassume(cond)</tt> for preconditions, <tt>vtraceX(...)</tt> for observation points,
+and <tt>vassert(cond)</tt> for assertions checked per path.
+</p>
+<textarea id="code" spellcheck="false" wrap="off"
+ placeholder="// Load an example above, or paste an annotated C program here."></textarea>
+
+<details>
+<summary><h2>2. Options</h2> <span class="small">(optional &mdash; click to configure the engine; defaults are used otherwise)</span></summary>
+
+<fieldset>
+<legend><b>Exploration parameters</b> <span class="small">(leave blank for defaults)</span></legend>
+<table class="opts">
+<tr>
+  <td><label for="opt-depth"><tt>--depth</tt></label></td><td><input type="number" id="opt-depth" size="5" min="1" placeholder="4"></td>
+  <td>loop unroll depth (default 4)</td>
+</tr>
+<tr>
+  <td><label for="opt-loop"><tt>--loop</tt></label></td><td><input type="number" id="opt-loop" size="5" min="0" placeholder="0"></td>
+  <td>loop index for <tt>--prove</tt>/<tt>--houdini</tt>/<tt>--terminates</tt> (default 0 = first loop)</td>
+</tr>
+<tr>
+  <td><label for="opt-k"><tt>--k</tt></label></td><td><input type="number" id="opt-k" size="5" min="1" placeholder="1"></td>
+  <td>induction depth for <tt>--prove</tt> (k &gt; 1 proves invariants that are not 1-inductive)</td>
+</tr>
+<tr>
+  <td><label for="opt-timeout">timeout (s)</label></td><td><input type="number" id="opt-timeout" size="5" value="120" min="5" max="300"></td>
+  <td>wall-clock limit enforced by the web runner (max 300)</td>
+</tr>
+</table>
+</fieldset>
+
+<fieldset>
+<legend><b>Checks / modes</b></legend>
+<label><input type="checkbox" id="opt-gen_tests"> <tt>--gen-tests</tt> print one concrete <tt>mainQ</tt> input per explored path</label><br>
+<label><input type="checkbox" id="opt-check_overflow"> <tt>--check-overflow</tt> check signed 32-bit overflow (constrains inputs to the int range)</label><br>
+<label><input type="checkbox" id="opt-merge"> <tt>--merge</tt> merge simple if/else diamonds (2<sup>n</sup> paths over n diamonds become 1)</label><br>
+<label><input type="checkbox" id="opt-no_safety"> <tt>--no-safety</tt> disable the automatic division-by-zero / array-bounds checks</label>
+</fieldset>
+
+<fieldset>
+<legend><b>Proof queries</b> <span class="small">(C expressions over program variables; separate multiple entries with <tt>;</tt>)</span></legend>
+<table class="opts">
+<tr>
+  <td><label for="opt-prove"><tt>--prove</tt></label></td>
+  <td><input type="text" id="opt-prove" size="40" placeholder="q*y + r == x"></td>
+  <td>prove each expr holds at the loop head on <i>every</i> iteration (unbounded k-induction)</td>
+</tr>
+<tr>
+  <td><label for="opt-check_inv"><tt>--check-inv</tt></label></td>
+  <td><input type="text" id="opt-check_inv" size="40" placeholder="vtrace1 q*y + r == x"></td>
+  <td>check expr at every record of a vtrace location (bounded); format: <tt>LOC EXPR</tt></td>
+</tr>
+<tr>
+  <td><label for="opt-houdini"><tt>--houdini</tt></label></td>
+  <td><input type="text" id="opt-houdini" size="40" placeholder="q*y + r == x ; r >= 0"></td>
+  <td>candidate invariants (e.g. DIG's output), pruned to the largest mutually inductive subset</td>
+</tr>
+<tr>
+  <td><label for="opt-terminates"><tt>--terminates</tt></label></td>
+  <td><input type="text" id="opt-terminates" size="40" placeholder="r"></td>
+  <td>prove the loop terminates via this integer ranking expression</td>
+</tr>
+<tr>
+  <td><label for="opt-assume"><tt>--assume</tt></label></td>
+  <td><input type="text" id="opt-assume" size="40" placeholder="y >= 1"></td>
+  <td>supporting invariants for <tt>--terminates</tt> (verified inductive first)</td>
+</tr>
+</table>
+</fieldset>
+</details>
+
+<p>
+<button id="run-btn" type="button"><b>Run SymEx</b></button>
+<button id="cancel-btn" type="button" disabled>Cancel</button>
+&nbsp; <b id="status-line">Ready.</b>
+</p>
+<hr>
+
+<h2>3. Results</h2>
+<div id="results"><i>(no results yet)</i></div>
+
+<h2>4. Raw execution output</h2>
+<pre id="log">(waiting for execution output)</pre>
+
+<hr>
+<address>DIG SymEx &middot; <a href="https://roars.dev">ROARS Lab</a> &middot; George Mason University</address>
+
+<script>
+"use strict";
+
+/* Same origin logic as index.html: when hosted on roars.dev (or github.io)
+   API calls go straight to the ngrok tunnel; served locally by Flask, ""
+   keeps them relative. */
+var NGROK_API = "https://density-capillary-thinning.ngrok-free.dev";
+var API_BASE = /roars\.dev$|github\.io$/.test(location.hostname) ? NGROK_API : "";
+
+function apiFetch(path, init) {
+  var url = API_BASE + path;
+  init = init || {};
+  if (url.indexOf("ngrok-free.dev") !== -1 || location.hostname.indexOf("ngrok-free.dev") !== -1) {
+    init.headers = init.headers || {};
+    init.headers["ngrok-skip-browser-warning"] = "69420";
+  }
+  return fetch(url, init);
+}
+
+var activeJobId = null;
+var pollTimer = null;
+var startTime = 0;
+var exampleDescs = {};   // id -> description
+
+/* Per-example option presets, applied when the example is loaded, so each
+   one demonstrates the engine feature it was written for. */
+var PRESETS = {
+  symex_kinduction:   { prove: "q*y + r == x", gen_tests: true },
+  symex_k2induction:  { prove: "x != 1", k: 2 },
+  symex_termination:  { terminates: "r", assume: "y >= 1" },
+  symex_overflow_bad: { check_overflow: true },
+  symex_merge_diamonds: { merge: true },
+  symex_divider_bad:  { gen_tests: true },
+  symex_witness_bad:  { gen_tests: true }
+};
+
+function $(id) { return document.getElementById(id); }
+
+function setStatus(msg) { $("status-line").textContent = msg; }
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ---------- examples ---------- */
+
+function loadExampleList() {
+  apiFetch("/api/examples?tool=symex").then(function (r) { return r.json(); }).then(function (data) {
+    var sel = $("example-select");
+    var groups = {};
+    (data.examples || []).forEach(function (ex) {
+      exampleDescs[ex.id] = ex.description || "";
+      var g = ex.group || "Examples";
+      if (!groups[g]) {
+        groups[g] = document.createElement("optgroup");
+        groups[g].label = g;
+        sel.appendChild(groups[g]);
+      }
+      var opt = document.createElement("option");
+      opt.value = ex.id;
+      opt.textContent = ex.name;
+      groups[g].appendChild(opt);
+    });
+    if (exampleDescs["symex_kinduction"] !== undefined) {
+      sel.value = "symex_kinduction";
+      loadExample();
+    }
+  }).catch(function () {
+    setStatus("Could not load example list (is the backend running?).");
+  });
+}
+
+function resetOptions() {
+  ["opt-depth", "opt-loop", "opt-k", "opt-prove", "opt-check_inv",
+   "opt-houdini", "opt-terminates", "opt-assume"].forEach(function (id) {
+    $(id).value = "";
+  });
+  ["opt-gen_tests", "opt-check_overflow", "opt-merge", "opt-no_safety"].forEach(function (id) {
+    $(id).checked = false;
+  });
+}
+
+function applyPreset(id) {
+  resetOptions();
+  var p = PRESETS[id];
+  if (!p) return;
+  Object.keys(p).forEach(function (name) {
+    var el = $("opt-" + name);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!p[name];
+    else el.value = p[name];
+  });
+}
+
+function loadExample() {
+  var id = $("example-select").value;
+  if (!id) return;
+  apiFetch("/api/example/" + id).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.content) {
+      $("code").value = data.content;
+      $("example-desc").textContent = exampleDescs[id] || "";
+      applyPreset(id);
+      setStatus("Loaded example: " + id +
+                (PRESETS[id] ? " (options preset for this demo — see section 2)" : ""));
+    }
+  }).catch(function () { setStatus("Failed to load example."); });
+}
+
+/* ---------- options ---------- */
+
+function numOpt(id) {
+  var v = $(id).value;
+  return v === "" ? null : Number(v);
+}
+
+function strOpt(id) {
+  var v = $(id).value.trim();
+  return v === "" ? null : v;
+}
+
+function gatherOptions() {
+  var opts = {
+    depth: numOpt("opt-depth"),
+    loop: numOpt("opt-loop"),
+    k: numOpt("opt-k"),
+    timeout: numOpt("opt-timeout") || 120,
+    prove: strOpt("opt-prove"),
+    check_inv: strOpt("opt-check_inv"),
+    houdini: strOpt("opt-houdini"),
+    terminates: strOpt("opt-terminates"),
+    assume: strOpt("opt-assume")
+  };
+  ["gen_tests", "check_overflow", "merge", "no_safety"].forEach(function (name) {
+    if ($("opt-" + name).checked) opts[name] = true;
+  });
+  return opts;
+}
+
+/* ---------- run / poll / cancel ---------- */
+
+function runSymex() {
+  var code = $("code").value.trim();
+  if (!code) { alert("Please enter a C program (or load an example)."); return; }
+
+  $("run-btn").disabled = true;
+  $("cancel-btn").disabled = false;
+  $("results").innerHTML = "<i>(running...)</i>";
+  $("log").textContent = "";
+  startTime = Date.now();
+  setStatus("Submitting job...");
+
+  apiFetch("/api/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, input_type: "c", tool: "symex", options: gatherOptions() })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.job_id) {
+      activeJobId = data.job_id;
+      pollTimer = setInterval(poll, 800);
+    } else {
+      finish("Error: " + (data.error || "failed to start job"));
+    }
+  }).catch(function (e) { finish("Network error: " + e.message); });
+}
+
+function poll() {
+  if (!activeJobId) return;
+  apiFetch("/api/status/" + activeJobId).then(function (r) { return r.json(); }).then(function (data) {
+    if (data.raw_output) {
+      var log = $("log");
+      log.textContent = data.raw_output;
+      log.scrollTop = log.scrollHeight;
+    }
+    var elapsed = Math.floor((Date.now() - startTime) / 1000);
+    if (data.status === "running" || data.status === "queued") {
+      setStatus("Status: " + data.status + " (" + elapsed + "s elapsed)");
+    } else if (data.status === "completed") {
+      renderResults(data.raw_output || "");
+      finish("Completed in " + (data.runtime || elapsed) + "s.");
+    } else if (data.status === "timeout") {
+      $("results").innerHTML = "<b>Execution timed out.</b>";
+      finish("Timed out after " + elapsed + "s.");
+    } else if (data.status === "cancelled") {
+      finish("Cancelled.");
+    } else if (data.status === "error") {
+      $("results").innerHTML = "<b>Execution error.</b> See raw output below.";
+      finish("Error: " + (data.error || "execution failed"));
+    }
+  }).catch(function () { /* transient poll error; keep polling */ });
+}
+
+function cancelJob() {
+  if (!activeJobId) return;
+  apiFetch("/api/cancel/" + activeJobId, { method: "POST" }).then(function () {
+    finish("Cancelled.");
+    $("results").innerHTML = "<i>(cancelled)</i>";
+  });
+}
+
+function finish(msg) {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  activeJobId = null;
+  $("run-btn").disabled = false;
+  $("cancel-btn").disabled = true;
+  setStatus(msg);
+}
+
+/* ---------- results: parse symex_c.py CLI output ---------- */
+
+function parseOutput(text) {
+  var out = { states: [], checks: [], proofs: [], inputs: [], warnings: [] };
+  var lines = text.split("\n");
+  var curState = null, curField = null, lastCheck = null, inTrace = false;
+  var m;
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+
+    // "vtrace1:" starts a symbolic-state block
+    if ((m = line.match(/^(\w+):\s*$/))) {
+      curState = { loc: m[1], pc: "", slocal: "" };
+      out.states.push(curState);
+      curField = null; inTrace = false;
+      continue;
+    }
+    if (curState && (m = line.match(/^\s+pc:\s+(.*)$/))) { curState.pc = m[1]; curField = "pc"; continue; }
+    if (curState && (m = line.match(/^\s+slocal:\s*(.*)$/))) { curState.slocal = m[1]; curField = "slocal"; continue; }
+
+    // witness trace lines attach to the last violated check
+    if (/^\s+witness trace:\s*$/.test(line)) { inTrace = true; continue; }
+    if (inTrace && lastCheck && (m = line.match(/^\s{4,}(\S.*)$/))) { lastCheck.trace.push(m[1]); continue; }
+    inTrace = false;
+
+    // "vassert at f.c:13:9: valid  [cond]  counterexample: {...}"
+    if ((m = line.match(/^([\w-]+) at (\S+): (valid|violated|unknown)\s+\[(.*)\](?:\s+counterexample: (.*))?$/))) {
+      lastCheck = { kind: m[1], coord: m[2], status: m[3], cond: m[4], cex: m[5] || "", trace: [] };
+      out.checks.push(lastCheck);
+      curState = null;
+      continue;
+    }
+
+    // proof-query result lines
+    if ((m = line.match(/^prove (.*): (\S+)(?:\s+counterexample: (.*))?$/))) {
+      out.proofs.push({ query: "prove (k-induction)", expr: m[1], status: m[2], cex: m[3] || "" });
+    } else if ((m = line.match(/^terminates \(rank (.*)\): (\S+)(?:\s+counterexample: (.*))?$/))) {
+      out.proofs.push({ query: "terminates (ranking fn)", expr: m[1], status: m[2], cex: m[3] || "" });
+    } else if ((m = line.match(/^check (.*) at (\w+): (\S+)(?:\s+counterexample: (.*))?$/))) {
+      out.proofs.push({ query: "check at " + m[2] + " (bounded)", expr: m[1], status: m[3], cex: m[4] || "" });
+    } else if ((m = line.match(/^houdini (.*): (kept \(inductive\)|dropped)$/))) {
+      out.proofs.push({ query: "houdini", expr: m[1], status: m[2], cex: "" });
+    } else if ((m = line.match(/^input reaching (\w+): (mainQ\(.*\))$/))) {
+      out.inputs.push({ loc: m[1], call: m[2] });
+    } else if ((m = line.match(/^warning: (.*)$/))) {
+      out.warnings.push(m[1]);
+    } else if (curField && curState && /^\s+\S/.test(line)) {
+      // continuation of a multi-line z3 expression
+      curState[curField] += " " + line.trim();
+    } else {
+      curState = null; curField = null;
+    }
+  }
+  return out;
+}
+
+function statusHtml(s) {
+  var cls = /^(valid|terminates|kept)/.test(s) ? "ok" :
+            /(violated|dropped|invalid|cex)/.test(s) ? "bad" : "meh";
+  return "<span class=\"" + cls + "\">" + escapeHtml(s) + "</span>";
+}
+
+function renderResults(rawOutput) {
+  var r = parseOutput(rawOutput);
+  var html = "";
+
+  if (r.warnings.length) {
+    html += "<p><b>Warnings:</b></p><ul>";
+    r.warnings.forEach(function (w) { html += "<li>" + escapeHtml(w) + "</li>"; });
+    html += "</ul>";
+  }
+
+  if (r.states.length) {
+    html += "<h3>Symbolic states <span class=\"small\">(one row per feasible path reaching each vtrace point)</span></h3>";
+    html += "<table class=\"res\"><tr><th>#</th><th>Location</th><th>Path condition</th><th>Symbolic state</th></tr>";
+    r.states.forEach(function (s, i) {
+      html += "<tr><td>" + (i + 1) + "</td><td><tt>" + escapeHtml(s.loc) + "</tt></td><td><tt>" +
+              escapeHtml(s.pc) + "</tt></td><td><tt>" + escapeHtml(s.slocal) + "</tt></td></tr>";
+    });
+    html += "</table>";
+  }
+
+  if (r.checks.length) {
+    html += "<h3>Assertion &amp; safety checks</h3>";
+    html += "<table class=\"res\"><tr><th>Check</th><th>Location</th><th>Verdict</th><th>Condition</th><th>Counterexample / witness</th></tr>";
+    r.checks.forEach(function (c) {
+      var cex = c.cex ? "<tt>" + escapeHtml(c.cex) + "</tt>" : "";
+      if (c.trace.length) {
+        cex += "<br><span class=\"small\">witness: " +
+               c.trace.map(escapeHtml).join("<br>witness: ") + "</span>";
+      }
+      html += "<tr><td><tt>" + escapeHtml(c.kind) + "</tt></td><td><tt>" + escapeHtml(c.coord) +
+              "</tt></td><td>" + statusHtml(c.status) + "</td><td><tt>" + escapeHtml(c.cond) +
+              "</tt></td><td>" + cex + "</td></tr>";
+    });
+    html += "</table>";
+  }
+
+  if (r.proofs.length) {
+    html += "<h3>Proof queries</h3>";
+    html += "<table class=\"res\"><tr><th>Query</th><th>Expression</th><th>Verdict</th><th>Counterexample</th></tr>";
+    r.proofs.forEach(function (p) {
+      html += "<tr><td>" + escapeHtml(p.query) + "</td><td><tt>" + escapeHtml(p.expr) +
+              "</tt></td><td>" + statusHtml(p.status) + "</td><td><tt>" + escapeHtml(p.cex) + "</tt></td></tr>";
+    });
+    html += "</table>";
+  }
+
+  if (r.inputs.length) {
+    html += "<h3>Generated test inputs <span class=\"small\">(one per explored path)</span></h3>";
+    html += "<table class=\"res\"><tr><th>#</th><th>Reaches</th><th>Input</th></tr>";
+    r.inputs.forEach(function (t, i) {
+      html += "<tr><td>" + (i + 1) + "</td><td><tt>" + escapeHtml(t.loc) +
+              "</tt></td><td><tt>" + escapeHtml(t.call) + "</tt></td></tr>";
+    });
+    html += "</table>";
+  }
+
+  $("results").innerHTML = html ||
+    "<i>Nothing parsed from the output; see raw execution output below.</i>";
+}
+
+/* ---------- init ---------- */
+
+document.addEventListener("DOMContentLoaded", function () {
+  loadExampleList();
+  $("example-select").addEventListener("change", loadExample);
+  $("run-btn").addEventListener("click", runSymex);
+  $("cancel-btn").addEventListener("click", cancelJob);
+});
+</script>
+
+</body>
+</html>

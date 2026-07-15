@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.parent))
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 NLA_DIR = DIG_ROOT / "benchmark" / "c" / "nla"
+SYMEX_DIR = DIG_ROOT / "tests" / "symex_progs"
 CLASSIC_DIR = Path(__file__).resolve().parent / "frontend-classic"
 
 NLA_DESCRIPTIONS = {
@@ -55,6 +56,39 @@ NLA_DESCRIPTIONS = {
     "sqrt1": "Integer square root (octagonal inequalities).",
     "wensley": "Wensley's real division approximation.",
 }
+
+SYMEX_DESCRIPTIONS = {
+    "arrays": "1-D arrays as z3 arrays: reads, writes, {...} initializers.",
+    "cdiv": "C division semantics: / and % truncate toward zero.",
+    "defines": "#define constants and function-like macros via cpp.",
+    "divider_bad": "vassert violation with a concrete counterexample input.",
+    "dowhile": "do-while runs its body at least once; break exits.",
+    "for_continue": "continue in a for loop still runs the increment.",
+    "globals": "Global variables, zero-initialized per C rules.",
+    "inline_funcs": "User-defined helper functions, inlined at call sites.",
+    "isqrt": "isqrt() modeled as a fresh symbol with defining constraints.",
+    "k2induction": "Invariant provable only by 2-induction (try --prove 'x != 1' with k=2).",
+    "kinduction": "Unbounded loop-invariant proof (try --prove 'q*y + r == x').",
+    "merge_diamonds": "Sequential if/else diamonds merged into one state (--merge).",
+    "overflow_bad": "Signed 32-bit overflow found by --check-overflow.",
+    "safety_bounds_bad": "Out-of-bounds array index found by the auto safety check.",
+    "safety_div_bad": "Reachable division by zero found by the auto safety check.",
+    "side_effects": "Side effects in conditions: while (i++ < n), pre/post ++/--.",
+    "structs": "Structs by value: nested fields, typedefs, copies.",
+    "switch": "switch with fallthrough, default, and break.",
+    "termination": "Termination proof via ranking function (--terminates 'r' --assume 'y >= 1').",
+    "ternary": "Ternary operator becomes a z3 If expression.",
+    "truthiness": "C truthiness: integers as conditions mean expr != 0.",
+    "unknown": "unknown()/nondet() as fresh symbolic values.",
+    "unreached": "Reachability warnings for vtrace points no path hits.",
+    "witness_bad": "Violation with a witness trace of branch decisions.",
+}
+
+def _symex_example_files() -> dict[str, Path]:
+    """id -> path for the symex test programs (globbed, so no path traversal)."""
+    if not SYMEX_DIR.is_dir():
+        return {}
+    return {f"symex_{p.stem}": p for p in sorted(SYMEX_DIR.glob("*.c"))}
 
 def _example_files() -> dict[str, Path]:
     """id -> path for every servable example (globbed, so no path traversal)."""
@@ -96,6 +130,7 @@ def _worker(job_id: str):
     code = job["code"]
     input_type = job["input_type"]
     options = job["options"]
+    tool = job.get("tool", "dig")
 
     def on_output(text: str):
         with job_lock:
@@ -108,7 +143,7 @@ def _worker(job_id: str):
             return j and j["status"] == "cancelled"
 
     try:
-        res = runner.run(code=code, input_type=input_type, options=options, on_output=on_output, check_cancelled=check_cancelled)
+        res = runner.run(code=code, input_type=input_type, options=options, on_output=on_output, check_cancelled=check_cancelled, tool=tool)
         with job_lock:
             if job["status"] == "cancelled":
                 return
@@ -141,9 +176,12 @@ def run_job():
     code = data.get("code", "").strip()
     input_type = data.get("input_type", "c").lower()
     options = data.get("options", {})
+    tool = data.get("tool", "dig").lower()
 
     if not code:
         return jsonify({"error": "No code or trace provided"}), 400
+    if tool not in ("dig", "symex"):
+        return jsonify({"error": f"Unknown tool: {tool}"}), 400
 
     job_id = str(uuid.uuid4())[:8]
     job = {
@@ -153,6 +191,7 @@ def run_job():
         "code": code,
         "input_type": input_type,
         "options": options,
+        "tool": tool,
         "result": None,
         "runtime": None,
         "locations": [],
@@ -211,6 +250,18 @@ def cancel(job_id: str):
 @app.route("/api/examples", methods=["GET"])
 def list_examples():
     examples = []
+    if request.args.get("tool", "dig").lower() == "symex":
+        for ex_id, path in _symex_example_files().items():
+            stem = path.stem
+            examples.append({
+                "id": ex_id,
+                "name": stem,
+                "type": "c",
+                "group": "SymEx test programs",
+                "description": SYMEX_DESCRIPTIONS.get(stem, "Symbolic execution test program."),
+                "file": path.name,
+            })
+        return jsonify({"examples": examples})
     for ex_id, path in _example_files().items():
         if ex_id.startswith("nla_"):
             stem = path.stem
@@ -235,7 +286,10 @@ def list_examples():
 
 @app.route("/api/example/<example_id>", methods=["GET"])
 def get_example(example_id: str):
-    file_path = _example_files().get(example_id)
+    if example_id.startswith("symex_"):
+        file_path = _symex_example_files().get(example_id)
+    else:
+        file_path = _example_files().get(example_id)
     if file_path and file_path.exists():
         return jsonify({
             "id": example_id,
@@ -247,6 +301,10 @@ def get_example(example_id: str):
 @app.route("/index.html", methods=["GET"])
 def classic_index():
     return send_from_directory(CLASSIC_DIR, "index.html")
+
+@app.route("/index2.html", methods=["GET"])
+def classic_index2():
+    return send_from_directory(CLASSIC_DIR, "index2.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
