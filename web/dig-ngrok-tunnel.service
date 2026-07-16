@@ -1,0 +1,13 @@
+[Unit]
+Description=Ngrok Tunnel Service for DIG
+After=network.target dig-backend.service
+
+[Service]
+Type=simple
+User=webapp
+ExecStart=/usr/local/bin/ngrok http 5001 --domain=density-capillary-thinning.ngrok-free.dev --config=/home/webapp/ngrok-dig.yml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

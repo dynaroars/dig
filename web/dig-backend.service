@@ -5,9 +5,9 @@ Requires=docker.service
 
 [Service]
 Type=simple
-User=azan
-WorkingDirectory=/home/azan/dig/web
-ExecStart=/home/azan/dig/web/run_server.sh 5001
+User=webapp
+WorkingDirectory=/home/webapp/dig/web
+ExecStart=/home/webapp/dig/web/run_server.sh 5001
 Restart=always
 RestartSec=5
 Environment=PORT=5001
