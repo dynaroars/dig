@@ -1,11 +1,11 @@
 #!/bin/bash
-# Publish web/frontend-classic/*.html to the gh-pages branch,
+# Publish web/*.html to the gh-pages branch,
 # which GitHub Pages serves at https://roars.dev/dig.
 set -e
 cd "$(dirname "$0")/.."
 
 git fetch origin gh-pages
-tree=$(for f in web/frontend-classic/*.html; do
+tree=$(for f in web/*.html; do
     printf '100644 blob %s\t%s\n' "$(git hash-object -w "$f")" "$(basename "$f")"
 done | git mktree)
 
