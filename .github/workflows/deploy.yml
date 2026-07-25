@@ -1,4 +1,4 @@
-name: Deploy backend to taco
+name: Deploy to production
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  deploy:
+  deploy-backend:
     runs-on: ubuntu-latest
     steps:
       - name: Configure SSH
@@ -25,3 +25,19 @@ jobs:
               -o BatchMode=yes \
               -o ConnectTimeout=15 \
               webapp@taco.roars.dev "deploy"
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish frontend-classic to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          ./web/deploy.sh
