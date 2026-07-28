@@ -1,0 +1,43 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch: {}
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.TACO_DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          cat >> ~/.ssh/known_hosts <<'EOF'
+          taco.roars.dev ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDlK6zva+x3QPyW49MqCFV9v4EmhsXUx37JRS1lYd0NP
+          EOF
+
+      - name: Pull latest dev and restart dig-backend
+        run: |
+          ssh -tt -i ~/.ssh/id_deploy \
+              -o StrictHostKeyChecking=yes \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              webapp@taco.roars.dev "deploy"
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish frontend-classic to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          ./web/deploy-frontend.sh
