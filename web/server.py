@@ -19,7 +19,7 @@ DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.paren
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 NLA_DIR = DIG_ROOT / "benchmark" / "c" / "nla"
 SYMEX_DIR = DIG_ROOT / "tests" / "symex_progs"
-CLASSIC_DIR = Path(__file__).resolve().parent / "frontend-classic"
+CLASSIC_DIR = Path(__file__).resolve().parent
 
 NLA_DESCRIPTIONS = {
     "ariths": "Built-in arithmetic functions (addition, multiplication).",

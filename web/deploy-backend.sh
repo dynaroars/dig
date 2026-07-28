@@ -5,8 +5,8 @@
 # passwordlessly for the deploying user via a scoped sudoers NOPASSWD rule
 # (sudo -l shows exactly which commands are allowed).
 #
-# Named deploy-backend.sh (not deploy.sh) to avoid colliding with the
-# existing web/deploy.sh, which publishes frontend-classic to gh-pages.
+# Named deploy-backend.sh to distinguish it from the frontend deploy, which
+# is now handled inline by the "deploy-frontend" job in deploy.yml (gh-pages).
 set -e
 cd "$(dirname "$0")/.."
 git pull origin dev
