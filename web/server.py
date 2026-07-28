@@ -106,7 +106,7 @@ def _example_files() -> dict[str, Path]:
     return files
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": [r"https://.*\.roars\.dev", "https://roars.dev", r"http://localhost:\d+", r"http://127.0.0.1:\d+"]}})
+CORS(app, resources={r"/api/*": {"origins": [r"https://([a-z0-9-]+\.)?roars\.dev$", r"http://localhost:\d+$", r"http://127\.0\.0\.1:\d+$"]}})
 
 jobs: dict[str, dict] = {}
 job_lock = threading.Lock()
