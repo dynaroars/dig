@@ -71,10 +71,16 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp web/*.html _site/
+          cp -r web/examples _site/
+
       - name: Upload static web files
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'web'
+          path: '_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
