@@ -218,7 +218,6 @@ class DIGRunner:
             "docker", "run", "--rm",
             "--network", "none",
             "--memory", "8g",
-            "--cpuset-cpus", "0-7",
             "--pids-limit", "512",
             "-e", "PYTHONUNBUFFERED=1",
             "-v", f"{input_file.resolve()}:{container_file}:ro",

@@ -106,7 +106,7 @@ def _example_files() -> dict[str, Path]:
     return files
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": [r"https://.*\.roars\.dev", "https://roars.dev", r"http://localhost:\d+", r"http://127.0.0.1:\d+"]}})
 
 jobs: dict[str, dict] = {}
 job_lock = threading.Lock()
@@ -308,5 +308,6 @@ def classic_index2():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    print(f"DIG Web Server starting on port {port}...")
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    print(f"DIG Web Server starting on port {port} (debug={debug})...")
+    app.run(host="0.0.0.0", port=port, debug=debug)
