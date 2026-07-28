@@ -5,8 +5,39 @@ on:
     branches: [dev]
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'src/**'
+              - 'web/server.py'
+              - 'web/docker_runner.py'
+              - 'web/run_server.sh'
+              - 'web/requirements.txt'
+              - 'web/Dockerfile*'
+              - 'web/*.service'
+              - 'pyproject.toml'
+            frontend:
+              - 'web/*.html'
+              - 'web/examples/**'
+
   deploy-backend:
+    needs: check-changes
+    if: needs.check-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Configure SSH
@@ -27,17 +58,24 @@ jobs:
               webapp@taco.roars.dev "deploy"
 
   deploy-frontend:
+    needs: check-changes
+    if: needs.check-changes.outputs.frontend == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Publish frontend-classic to gh-pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          ./web/deploy-frontend.sh
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static web files
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'web'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
