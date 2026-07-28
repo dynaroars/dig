@@ -302,9 +302,9 @@ def get_example(example_id: str):
 def classic_index():
     return send_from_directory(CLASSIC_DIR, "index.html")
 
-@app.route("/index2.html", methods=["GET"])
-def classic_index2():
-    return send_from_directory(CLASSIC_DIR, "index2.html")
+@app.route("/symexc.html", methods=["GET"])
+def classic_symexc():
+    return send_from_directory(CLASSIC_DIR, "symexc.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
