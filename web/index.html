@@ -124,16 +124,17 @@ inequalities, congruences, and min/max-plus relations — from program code or e
 </fieldset>
 
 <fieldset>
-<legend><b>Disable / debugging flags</b></legend>
-<label><input type="checkbox" id="opt-noeqts"> <tt>-noeqts</tt> don't compute equality invariants</label><br>
-<label><input type="checkbox" id="opt-noieqs"> <tt>-noieqs</tt> don't compute inequality/octagonal invariants</label><br>
-<label><input type="checkbox" id="opt-nocongruences"> <tt>-nocongruences</tt> don't compute congruence invariants</label><br>
-<label><input type="checkbox" id="opt-noarrays"> <tt>-noarrays</tt> don't compute array relations</label><br>
-<label><input type="checkbox" id="opt-nominmaxplus"> <tt>-nominmaxplus</tt> don't compute min/max-plus invariants</label><br>
+<legend><b>Invariant types</b> <span class="small">(uncheck to exclude a type; builds the <tt>-types</tt> selector — all on by default)</span></legend>
+<label><input type="checkbox" id="type-eqt" checked> equalities <span class="small">(dynamic + static recurrence)</span></label><br>
+<label><input type="checkbox" id="type-ieq" checked> inequalities <span class="small">(octagonal / polynomial)</span></label><br>
+<label><input type="checkbox" id="type-minmax" checked> min/max-plus</label><br>
+<label><input type="checkbox" id="type-congruence" checked> congruences</label><br>
+<label><input type="checkbox" id="type-array" checked> array relations</label>
+</fieldset>
+
+<fieldset>
+<legend><b>Other flags</b></legend>
 <label><input type="checkbox" id="opt-noss"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label><br>
-<label><input type="checkbox" id="opt-noincrdepth"> <tt>-noincrdepth</tt> don't use incremental depth</label><br>
-<label><input type="checkbox" id="opt-nosimplify"> <tt>-nosimplify</tt> don't simplify/remove weaker invariants (debugging)</label><br>
-<label><input type="checkbox" id="opt-nofilter"> <tt>-nofilter</tt> don't filter inequality terms (debugging)</label><br>
 <label><input type="checkbox" id="opt-nomp"> <tt>-nomp</tt> don't use multiprocessing</label><br>
 <label><input type="checkbox" id="opt-dosolverstats"> <tt>-dosolverstats</tt> collect solver statistics</label>
 </fieldset>
@@ -288,12 +289,21 @@ function gatherOptions() {
     timeout: numOpt("opt-timeout") || 120,
     uterms: $("opt-uterms").value.trim() || null
   };
-  ["noeqts", "noieqs", "nocongruences", "noarrays", "nominmaxplus", "noss",
-   "noincrdepth", "nosimplify", "nofilter", "nomp", "dosolverstats",
-   "dosymba", "norecurrencemp", "nollmhoudini",
-   "llm", "llm_no_traces"].forEach(function (name) {
+  ["noss", "nomp", "dosolverstats", "dosymba", "norecurrencemp",
+   "nollmhoudini", "llm", "llm_no_traces"].forEach(function (name) {
     if ($("opt-" + name).checked) opts[name] = true;
   });
+  // invariant types -> -types allowlist; omit it when all are selected (the
+  // default = every type). "equalities" covers both eqt and recurrence.
+  var typeMap = {eqt: ["eqt", "recurrence"], ieq: ["ieq"], minmax: ["minmax"],
+                 congruence: ["congruence"], array: ["array"]};
+  var allTypes = Object.keys(typeMap);
+  var checked = allTypes.filter(function (t) { return $("type-" + t).checked; });
+  if (checked.length && checked.length < allTypes.length) {
+    var names = [];
+    checked.forEach(function (t) { names = names.concat(typeMap[t]); });
+    opts.types = names.join(",");
+  }
   return opts;
 }
 

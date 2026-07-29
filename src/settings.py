@@ -7,6 +7,8 @@ DBG = pdb.set_trace
 TMPDIR = Path("/var/tmp/")
 LOGGER_LEVEL = 3
 DO_MP = True  # use multiprocessing
+# DO_SIMPLIFY / DO_FILTER are always-on constants (their -no… flags were
+# removed); flip them here if you ever need to debug what they drop.
 DO_SIMPLIFY = True  # simplify results, e.g., removing weaker invariants
 DO_FILTER = True  # remove ieqs and min/max terms that unlikely interesting
 DO_SS = True  # use symbolic states to check results
@@ -32,7 +34,6 @@ DO_SYMBA = False
 # the largest jointly/k-inductive subset unboundedly, catching mutually
 # inductive sets the per-candidate bounded check misses. Additive to verify().
 DO_LLM_HOUDINI = True
-DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = None  # write vtraces to csv
 WRITE_SSTATES = None  # write symbolic states to a json file
@@ -120,25 +121,52 @@ class C:
 # the settings attribute it overrides and the CLI flag used to reconstruct it
 # when re-invoking dig.py as a subprocess (benchmark mode).
 
+# -types/-only allowlist: canonical name -> the DO_* setting it enables. When
+# -types is given, every governed type is turned off and only the listed ones
+# back on, replacing the seven -no<type> flags with one positive selector.
+# (The -no<type> flags still work as hidden aliases for back-compat.)
+_TYPE_ALIASES = {
+    "eqt": "DO_EQTS", "eqts": "DO_EQTS", "eq": "DO_EQTS",
+    "ieq": "DO_IEQS", "ieqs": "DO_IEQS", "oct": "DO_IEQS",
+    "minmax": "DO_MINMAXPLUS", "mmp": "DO_MINMAXPLUS", "minmaxplus": "DO_MINMAXPLUS",
+    "congruence": "DO_CONGRUENCES", "cong": "DO_CONGRUENCES", "congruences": "DO_CONGRUENCES",
+    "array": "DO_ARRAYS", "arrays": "DO_ARRAYS",
+    "recurrence": "DO_RECURRENCE", "rec": "DO_RECURRENCE",
+}
+# every type governed by -types (all turned off before the allowlist re-enables)
+_TYPE_SETTINGS = (
+    "DO_EQTS", "DO_IEQS", "DO_MINMAXPLUS",
+    "DO_CONGRUENCES", "DO_ARRAYS", "DO_RECURRENCE",
+)
+
+
+def _parse_types(spec):
+    """Comma/space-separated type spec -> set of DO_* setting names to enable.
+    Raises ValueError on an unknown type name (with the valid names listed)."""
+    names = [t.strip() for t in spec.replace(",", " ").split() if t.strip()]
+    enabled = set()
+    for n in names:
+        setting = _TYPE_ALIASES.get(n.lower())
+        if setting is None:
+            valid = ", ".join(sorted({k for k in _TYPE_ALIASES}))
+            raise ValueError(f"unknown type '{n}' in -types (valid: {valid})")
+        enabled.add(setting)
+    return enabled
+
+
 # store_true flags: when present, force the named DO_* setting to a fixed value.
 # The "no..." flags disable a feature (set False); -dosolverstats enables one.
 _BOOL_FLAGS = (
     # (arg_attr, setting_attr, cli_flag, value_when_present)
-    ("nosimplify", "DO_SIMPLIFY", "-nosimplify", False),
-    ("nofilter", "DO_FILTER", "-nofilter", False),
+    # invariant-type selection is via -types (see _TYPE_SETTINGS); the old
+    # per-type -no<type> flags were removed. -norecurrence maps to a type too
+    # (recurrence), so it lives in -types now, not here.
     ("noss", "DO_SS", "-noss", False),
     ("nomp", "DO_MP", "-nomp", False),
-    ("noeqts", "DO_EQTS", "-noeqts", False),
-    ("noieqs", "DO_IEQS", "-noieqs", False),
-    ("nocongruences", "DO_CONGRUENCES", "-nocongruences", False),
-    ("noarrays", "DO_ARRAYS", "-noarrays", False),
-    ("nominmaxplus", "DO_MINMAXPLUS", "-nominmaxplus", False),
-    ("norecurrence", "DO_RECURRENCE", "-norecurrence", False),
     ("norecurrencemp", "DO_RECURRENCE_MP", "-norecurrencemp", False),
     ("dokapur", "DO_KAPUR", "-dokapur", True),
     ("dosymba", "DO_SYMBA", "-dosymba", True),
     ("nollmhoudini", "DO_LLM_HOUDINI", "-nollmhoudini", False),
-    ("noincrdepth", "DO_INCR_DEPTH", "-noincrdepth", False),
     ("dosolverstats", "DO_SOLVER_STATS", "-dosolverstats", True),
 )
 
@@ -177,6 +205,17 @@ def setup(settings, args):
     import helpers.vcommon
 
     opts = []
+
+    # -types/-only: apply before the -no<type> flags so an explicit -no<type>
+    # (or a hidden alias) can still further disable a type the allowlist enabled.
+    types_spec = getattr(args, "types", None)
+    if types_spec:
+        enabled = _parse_types(types_spec)   # raises ValueError on a bad name
+        if settings:
+            for set_attr in _TYPE_SETTINGS:
+                setattr(settings, set_attr, set_attr in enabled)
+        else:
+            opts.append(f"-types {types_spec}")
 
     for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
         if getattr(args, arg_attr):

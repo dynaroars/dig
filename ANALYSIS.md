@@ -319,38 +319,46 @@ python3 -O dig.py <input> [flags]      # input: prog.c | traces.csv | results_di
 
 ### 4.1 Selecting invariant types
 
-Every type is **on by default**; disable with its `-no…` flag.
+Every type is **on by default**. Pick a subset with the single **`-types`**
+selector (a comma-separated allowlist); everything not listed is turned off.
+
+| Type name (for `-types`) | Invariant type |
+|---|---|
+| `eqt` | equalities (dynamic CEGIR **and** static recurrence) |
+| `ieq` | inequalities (octagonal / polynomial) |
+| `minmax` | min/max-plus |
+| `congruence` | congruences |
+| `array` | nested array relations |
+| `recurrence` | static recurrence equalities (subset of `eqt`'s output) |
+
+```bash
+# only equalities and inequalities:
+python3 -O dig.py ../benchmark/c/nla/cohendiv.c -types eqt,ieq -log 3
+
+# only the static recurrence engine (proved equalities), nothing else:
+python3 -O dig.py ../benchmark/c/nla/ps6.c -types recurrence
+
+# everything (the default — no -types needed):
+python3 -O dig.py ../benchmark/c/nla/cohendiv.c -log 3
+```
+
+The old per-type `-no…` flags (`-noeqts`, `-noieqs`, `-nominmaxplus`,
+`-nocongruences`, `-noarrays`, `-norecurrence`) have been **removed** — `-types`
+is the single way to select invariant types.
+
+Two modifiers and the opt-in engines are separate from `-types`:
 
 | Flag | Effect | Default |
 |---|---|---|
-| `-noeqts` | disable equalities (dynamic CEGIR) | eqts on |
-| `-norecurrence` | disable static recurrence equalities | recurrence on |
 | `-norecurrencemp` | disable the multi-path (branching-loop) recurrence extension (§2.3.1) | multi-path on |
 | `-dokapur` | **enable** the RC-Kapur bounded-degree ideal engine | kapur **off** |
 | `-dosymba` | **enable** SYMBA simultaneous optimization for ieqs/min-max (§2.4.1) | symba **off** |
-| `-noieqs` | disable inequalities (octagonal/polynomial) | ieqs on |
-| `-nominmaxplus` | disable min/max-plus | min-max on |
-| `-nocongruences` | disable congruences | congruences on |
-| `-noarrays` | disable nested array relations | arrays on |
 | `-nollmhoudini` | (`-llm` only) disable the k-induction pass over LLM candidates (§2.7) | houdini on |
 
-`-dokapur` and `-dosymba` are the opt-in engines (all others are on by default).
-`-dokapur` overlaps the recurrence engine on the solvable-loop class; `-dosymba`
-overlaps the default per-term optimizer — both compute the same results a
-different way, so they are enabled only when requested.
-
-Examples:
-
-```bash
-# fast: nonlinear equalities to degree 2 only, no inequalities or min/max
-python3 -O dig.py ../benchmark/c/nla/cohendiv.c -maxdeg 2 -noieqs -nominmax -log 3
-
-# only the static recurrence engine (proved equalities), nothing else
-python3 -O dig.py ../benchmark/c/nla/ps6.c -noeqts -noieqs -nominmax -nocongruences
-
-# everything (slower, most complete)
-python3 -O dig.py ../benchmark/c/nla/cohendiv.c -log 3
-```
+`-dokapur` and `-dosymba` are the opt-in engines. `-dokapur` overlaps the
+recurrence engine on the solvable-loop class; `-dosymba` overlaps the default
+per-term optimizer — both compute the same results a different way, so they are
+enabled only when requested.
 
 ### 4.2 Selecting the mode
 
@@ -389,7 +397,9 @@ is unaffected by `-maxdeg`; it produces the true-degree invariant even when
 | Flag | Effect | Default |
 |---|---|---|
 | `-se_maxdepth N` | loop-unroll depth for symbolic states | 8 |
-| `-noincrdepth` | disable incremental-depth checking/maximizing | incr. on |
+
+(Incremental-depth checking/maximizing is always on; the old `-noincrdepth`
+flag and its non-incremental code path have been removed.)
 
 **User terms**
 
@@ -399,10 +409,12 @@ is unaffected by `-maxdeg`; it produces the true-degree invariant even when
 
 ### 4.4 Optimizations and output control
 
+Invariant simplification (weaker-invariant removal) and inequality-term
+filtering are always on (`DO_SIMPLIFY`/`DO_FILTER` are constants in
+`settings.py`; the old `-nosimplify`/`-nofilter` debug flags were removed).
+
 | Flag | Effect | Default |
 |---|---|---|
-| `-nosimplify` | keep all invariants (skip weaker-invariant removal) | simplify on |
-| `-nofilter` | keep all inequality/min-max terms (skip pruning) | filter on |
 | `-nomp` | disable multiprocessing | MP on |
 | `-dosolverstats` | collect z3 sat/unsat/timeout statistics | off |
 | `-writevtraces F` | write collected traces to CSV `F` | — |
@@ -424,7 +436,7 @@ Three optional engines/optimizations, each independently toggled. All are sound
 ```bash
 # branching loops the single-path engine declines now get PROVED equalities:
 python3 -O dig.py ../benchmark/c/nla/cohendiv.c            # proves q*y + r - x == 0
-python3 -O dig.py ../benchmark/c/nla/fermat1.c -noieqs -nominmaxplus  # 4A+4r-u^2+2u+v^2-2v == 0
+python3 -O dig.py ../benchmark/c/nla/fermat1.c -types eqt  # 4A+4r-u^2+2u+v^2-2v == 0
 # inspect just the recurrence engine on one loop:
 python3 -m infer.recurrence ../benchmark/c/nla/fermat1.c --multipath
 ```
@@ -440,7 +452,7 @@ python3 -m infer.recurrence ../benchmark/c/nla/fermat1.c --multipath
 
 ```bash
 # same octagonal/min-max bounds, computed with one shared solver per location:
-python3 -O dig.py ../benchmark/c/nla/dijkstra.c -noeqts -norecurrence -dosymba
+python3 -O dig.py ../benchmark/c/nla/dijkstra.c -types ieq,minmax -dosymba
 ```
 - **Useful for**: programs with **many variables**, where the default one-solve-
   per-term optimizer dominates runtime (term counts grow quadratically for
@@ -501,15 +513,15 @@ python3 -m data.symex_c ../benchmark/c/nla/geo1.c --prove "x*z - x - y + 1 == 0"
 
 | I want… | Use |
 |---|---|
-| nonlinear equalities, degree ≤ 2, fast | `-maxdeg 2 -noieqs -nominmax` |
-| only **proved** equalities from solvable loops | `-noeqts -noieqs -nominmax -nocongruences` (leaves recurrence on) |
-| octagonal inequalities only | `-noeqts -nominmax -nocongruences -ideg 1 -iterms 2 -icoefs 1` |
+| nonlinear equalities, degree ≤ 2, fast | `-maxdeg 2 -types eqt` |
+| only **proved** equalities from solvable loops | `-types recurrence` |
+| octagonal inequalities only | `-types ieq -ideg 1 -iterms 2 -icoefs 1` |
 | quadratic inequalities | `-ideg 2` |
 | interval bounds only | `-iterms 1` |
 | dynamic analysis (no proofs, no source needed beyond running) | `-noss` |
 | infer over custom terms (e.g. `2^x`) | `-uterms "..."` |
 | reproducible timing/debugging | `-nomp -log 4 -seed 42` |
-| turn off the static recurrence engine | `-norecurrence` |
+| everything except the recurrence engine | `-types eqt,ieq,minmax,congruence,array` |
 | prove equalities for **branching** loops (on by default) | (nothing — `-norecurrencemp` disables it) |
 | use the RC-Kapur ideal engine instead/also | `-dokapur` |
 | faster ieq/min-max bounds on many-variable programs | `-dosymba` |

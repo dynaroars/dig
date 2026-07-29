@@ -31,7 +31,31 @@ if __name__ == "__main__":
         os.execv(sys.executable,
                  getattr(sys, "orig_argv", [sys.executable] + sys.argv))
 
-    aparser = argparse.ArgumentParser("DIG")
+    aparser = argparse.ArgumentParser(
+        "DIG",
+        epilog="invariant types for -types: eqt, ieq, minmax, congruence, "
+               "array, recurrence (e.g. -types eqt,ieq). Omit to infer all.",
+    )
+
+    # argument groups, shown in this order by --help
+    g_sel = aparser.add_argument_group(
+        "invariant selection", "which invariant types to infer (default: all)")
+    g_mode = aparser.add_argument_group("modes")
+    g_tune = aparser.add_argument_group("advanced tuning")
+    g_eng = aparser.add_argument_group("advanced engines")
+    g_io = aparser.add_argument_group("output & serialization")
+    g_bench = aparser.add_argument_group("benchmarking")
+    g_dbg = aparser.add_argument_group("debugging & diagnostics")
+
+    # one positive selector replaces the seven -no<type> flags (which still
+    # work as hidden aliases below, so existing scripts/UI keep functioning)
+    g_sel.add_argument(
+        "--types", "-types", "--only", "-only", type=str, default=None,
+        metavar="T1,T2,...",
+        help="comma-separated invariant types to infer; the rest are turned "
+             "off. Types: eqt, ieq, minmax, congruence, array, recurrence. "
+             "Default: all types.")
+
     ag = aparser.add_argument
     ag(
         "inp",
@@ -53,6 +77,7 @@ if __name__ == "__main__":
 
     ag("--seed", "-seed", type=float, help="use this seed")
 
+    ag = g_mode.add_argument
     ag(
         "--llm",
         "-llm",
@@ -77,12 +102,14 @@ if __name__ == "__main__":
              "(does not run the compiled program)",
     )
 
+    ag = g_tune.add_argument
     ag("--maxdeg", "-maxdeg",
        type=int,
        default=None,
        help="find nonlinear invs up to degree")
 
-    ag("--maxterm", "-maxterm", type=int, default=None, help="autodegree")
+    # -maxterm: internal auto-degree cap, kept functional but hidden from --help
+    ag("--maxterm", "-maxterm", type=int, default=None, help=argparse.SUPPRESS)
 
     ag("--nrandinps", "-nrandinps", type=int, default=None,
        help="number of random inputs (on used with --noss)")
@@ -117,51 +144,17 @@ if __name__ == "__main__":
         help="coefs for ieqs, e.g., 1 means [-1,0,1], i.e., oct",
     )
 
+    ag = g_mode.add_argument
     ag(
         "--noss",
         "-noss",
         action="store_true",
-        help="don't use symbolic states, i.e., just dynamic analysis",
+        help="pure dynamic analysis: no symbolic states, no proofs",
     )
 
-    ag("--noeqts", "-noeqts", action="store_true",
-       help="don't compute eq invariants")
-
-    ag(
-        "--noieqs",
-        "-noieqs",
-        action="store_true",
-        help="don't compute ieq/oct invariants",
-    )
-    ag(
-        "--nocongruences",
-        "-nocongruences",
-        action="store_true",
-        help="don't compute congruence invariants",
-    )
-
-    ag(
-        "--noarrays",
-        "-noarrays",
-        action="store_true",
-        help="don't compute array relations",
-    )
-
-    ag(
-        "--nominmaxplus",
-        "-nominmaxplus",
-        action="store_true",
-        help="don't compute min/max-plus invariants",
-    )
-
-    ag(
-        "--norecurrence",
-        "-norecurrence",
-        action="store_true",
-        help="don't compute static recurrence-based equalities "
-             "(solvable-loop closed forms, proved by k-induction)",
-    )
-
+    # invariant-type selection is via -types (see the "invariant selection"
+    # group above); the old per-type -no<type> flags have been removed.
+    ag = g_sel.add_argument
     ag(
         "--norecurrencemp",
         "-norecurrencemp",
@@ -170,6 +163,7 @@ if __name__ == "__main__":
              "loop bodies (egcd/fermat/prodbin); single-path recurrences only",
     )
 
+    ag = g_eng.add_argument
     ag(
         "--dokapur",
         "-dokapur",
@@ -188,6 +182,7 @@ if __name__ == "__main__":
              "z3-Optimize solve per term",
     )
 
+    ag = g_mode.add_argument
     ag(
         "--nollmhoudini",
         "-nollmhoudini",
@@ -196,27 +191,9 @@ if __name__ == "__main__":
              "the union of LLM candidates",
     )
 
-    ag(
-        "--noincrdepth",
-        "-noincrdepth",
-        action="store_true",
-        help="don't use incremental depth",
-    )
-
-    ag(
-        "--nosimplify",
-        "-nosimplify",
-        action="store_true",
-        help="don't simplify invariants, e.g., don't remove weaker invariants (for debugging)",
-    )
-
-    ag(
-        "--nofilter",
-        "-nofilter",
-        action="store_true",
-        help="don't filter inequality terms (for deubgging)",
-    )
-
+    # NOTE: -noincrdepth/-nosimplify/-nofilter were removed; incremental depth
+    # is always on now, and DO_SIMPLIFY/DO_FILTER are constants in settings.py.
+    ag = g_dbg.add_argument
     ag("--nomp", "-nomp", action="store_true", help="don't use multiprocessing")
 
     ag(
@@ -225,6 +202,8 @@ if __name__ == "__main__":
         action="store_true",
         help="collect solver stats (e.g., how many sat/unsat, etc)",
     )
+
+    ag = g_io.add_argument
     ag(
         "--writeresults",
         "-writeresults",
@@ -264,14 +243,16 @@ if __name__ == "__main__":
         help="tracefile to test",
     )
 
+    ag = g_tune.add_argument
     ag(
-        "-uterms",
         "--uterms",
+        "-uterms",
         type=str,
         default=None,
         help='user-supplied terms (separated by ;), e.g., -uterms "y^2 ; xy+4"',
     )
 
+    ag = g_bench.add_argument
     ag(
         "--benchmark_times",
         "-benchmark_times",
@@ -326,6 +307,14 @@ if __name__ == "__main__":
                     f"{flag} '{val}' is not an existing directory")
 
     _check_paths(args)
+
+    # validate -types up front so a bad name is a clean CLI error (all modes)
+    if args.types:
+        import settings as _settings
+        try:
+            _settings._parse_types(args.types)
+        except ValueError as ex:
+            aparser.error(str(ex))
 
     inp = Path(args.inp)
     if args.benchmark_times:

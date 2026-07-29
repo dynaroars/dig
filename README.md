@@ -73,7 +73,7 @@ root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../examples
 # or on a C program
 
 # FASTER: restrict nonlinear eqts to degree 2 and but don't generate inequalities or minmax invariants and 
-root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -maxdeg 2 -noieqs -nominmax -log 4
+root@931ac8632c7f:/dig/src# time ~/miniconda3/bin/python3 -O dig.py  ../benchmark/c/nla/cohendiv.c -maxdeg 2 -types eqt -log 4
 # If you have some error SARL expected version X but found Y, then edit ~/.sarl and change from X to Y
 
 # SLOWER: but gives everything
@@ -409,11 +409,13 @@ DIG aims to be fully automatic.  However, it also allows the user to control its
 
 By default, DIG automatically to find equalities that can have high degrees (e.g., `x^7`).  This can take time and so we can specify DIG to search for equalities no more than some maximum degree `X` using the option `-maxdeg X`.  This will make DIG runs faster (with the cost of not able to find equalities with higher degrees than `X`). 
 
-#### Disabling Invariants
-By default DIG searches for all supported forms of invariants.  However, we can turn them off using `-noeqts`, `-noieqs` , `-nominmax`, `nocongruences`  
+#### Selecting Invariant Types
+By default DIG searches for all supported forms of invariants. Use `-types` to
+restrict to a subset (a comma-separated allowlist; everything else is turned
+off). Valid types: `eqt`, `ieq`, `minmax`, `congruence`, `array`, `recurrence`.
 
 ```sh
-$ ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3 -maxdeg 2 -noieqs  #find equalities up to degree 2 and do not infer inequalities
+$ ~/miniconda3/bin/python3  -O dig.py  ../tests/cohendiv.c -log 3 -maxdeg 2 -types eqt  #find equalities up to degree 2 only
 ...
 ```
 
@@ -424,7 +426,7 @@ By default, DIG infers octagonal inequalities (i.e., linear inequalities among `
 Below we use a different example `Sqrt1.java` to demonstrate
 
 ```sh
-$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -nocongruences  # find default, octagonal, ieq's.
+$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -types ieq  # find default, octagonal, ieq's.
 ...
 1. 2*a - t + 1 == 0
 2. 4*s - t**2 - 2*t - 1 == 0
@@ -434,7 +436,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 6. -s + t <= 0
 
 
-$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -nocongruences -ideg 2   # find nonlinear octagonal inequalities
+$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -types ieq -ideg 2   # find nonlinear octagonal inequalities
 ...
 1. 2*a - t + 1 == 0
 2. 4*s - t**2 - 2*t - 1 == 0
@@ -444,7 +446,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 6. -n + t <= 2
 7. -s**2 + t**2 <= 0
 
-$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -nocongruences -icoefs 2   # find linear inequalities with coefs in {2,-1,0,1,2}
+$ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -types ieq -icoefs 2   # find linear inequalities with coefs in {2,-1,0,1,2}
 ...
 1. 2*a - t + 1 == 0
 2. 4*s - t**2 - 2*t - 1 == 0
@@ -496,7 +498,7 @@ $ ~/miniconda3/bin/python3  -O dig.py  ../benchmark/c/nla/sqrt1.c -nominmax -noc
 - By default, DIG performs multiple algorithms to find different invariants and its nonlinear equality invariants can have very large degree, all of which contribute to large search space.  To speed up DIG, you have several options
   - Use a computer with many cores.  DIG leverages multiprocessing and can run significantly faster with a modern multicore computer.  As an example, our [lab machine](https://github.com/dynaroars/dynaroars.github.io/wiki/Servers) has 64 cores.  Of course you don't need that many, but the more, the better.
     - Note that DIG does not leverage GPU processing
-  - Tweak its parameters as shown [here](#wrench-tweaking-dig). For example, reducing the number of degree to `d` (`-maxdeg d`) will tell DIG not to search for nonlinear invariants with degree more than `d` or disabling certain types of invariants if you're not intested in them (e.g., `-nominmax` to disable the computation of min/max properties)
+  - Tweak its parameters as shown [here](#wrench-tweaking-dig). For example, reducing the number of degree to `d` (`-maxdeg d`) will tell DIG not to search for nonlinear invariants with degree more than `d` or disabling certain types of invariants if you're not intested in them (e.g., `-types` to select which invariant types to compute (e.g. omit `minmax`))
 
 ---
 </details>

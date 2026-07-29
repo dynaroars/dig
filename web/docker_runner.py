@@ -22,12 +22,12 @@ INT_OPTS = [
     "iupper", "ideg", "iterms", "icoefs", "llm_rounds",
 ]
 BOOL_OPTS = [
-    "noss", "noeqts", "noieqs", "nocongruences", "noarrays",
-    "nominmaxplus", "noincrdepth", "nosimplify", "nofilter",
-    "nomp", "dosolverstats", "llm", "llm_no_traces",
+    "noss", "nomp", "dosolverstats", "llm", "llm_no_traces",
     # advanced algorithm toggles (see ANALYSIS.md)
     "dosymba", "norecurrencemp", "nollmhoudini",
 ]
+# string options passed through verbatim as "-<name> <value>"
+STR_OPTS = ["types"]  # invariant-type allowlist (replaces the -no<type> flags)
 
 # symex_c.py CLI options exposed to the web API (tool == "symex").
 # --gen-harness is excluded (writes a file the web runner never returns).
@@ -94,6 +94,9 @@ class DIGRunner:
         for name in BOOL_OPTS:
             if options.get(name):
                 cmd_opts.append(f"-{name}")
+        for name in STR_OPTS:
+            if options.get(name):
+                cmd_opts.extend([f"-{name}", str(options[name])])
         if options.get("uterms"):
             cmd_opts.extend(["-uterms", str(options["uterms"])])
         return cmd_opts

@@ -205,15 +205,8 @@ class SymStates(dict):
             else:
                 inv_expr = None
 
-        if settings.DO_INCR_DEPTH:
-            cexs, is_succ = self.mcheck_depth(
-                self[loc], inv, inv_expr, inps, ncexs)
-        else:
-            cexs, is_succ, stat = self.mcheck(
-                self.get_symstates_at_depth(
-                    self[loc], depth=None), inv_expr, inps, ncexs
-            )
-
+        cexs, is_succ = self.mcheck_depth(
+            self[loc], inv, inv_expr, inps, ncexs)
         return cexs, is_succ
     
     @beartype
@@ -306,13 +299,7 @@ class SymStates(dict):
         """
         assert z3.is_expr(term_expr), term_expr
 
-        if settings.DO_INCR_DEPTH:
-            v, stat = self.mmaximize_depth(loc, self[loc], term_expr, iupper)
-
-        else:
-            v, stat = self.mmaximize(
-                self.get_symstates_at_depth(self[loc], depth=None), term_expr, iupper
-            )
+        v, stat = self.mmaximize_depth(loc, self[loc], term_expr, iupper)
         return v
 
     @beartype
@@ -331,19 +318,14 @@ class SymStates(dict):
         solver-unknown terms are omitted -- the same accept/reject policy as
         maximize()/_solve_max().
 
-        When DO_INCR_DEPTH is on, the exact max at each unroll depth is computed
-        (shared-model) and a term whose bound keeps changing as the depth grows
-        is dropped, exactly like mmaximize_depth() -- so a depth-sensitive bound
-        (an artifact of bounded unrolling, not a real invariant) is not reported.
-        The shared-model win applies within each depth.
+        The exact max at each unroll depth is computed (shared-model) and a term
+        whose bound keeps changing as the depth grows is dropped, exactly like
+        mmaximize_depth() -- so a depth-sensitive bound (an artifact of bounded
+        unrolling, not a real invariant) is not reported. The shared-model win
+        applies within each depth.
         """
         assert iupper >= 1, iupper
         ssd = self[loc]
-
-        if not settings.DO_INCR_DEPTH:
-            ss = self.get_symstates_at_depth(ssd, depth=None)
-            maxs, _ = self._symba(ss, term_exprs, iupper)
-            return maxs
 
         depths = sorted(ssd.keys())
         n = len(term_exprs)
@@ -536,18 +518,6 @@ class SymStates(dict):
             maxv = None
 
         return maxv, stat
-
-    @beartype
-    @classmethod
-    def mmaximize(cls, ss: z3.ExprRef,
-                  term_expr: z3.ExprRef,
-                  iupper: int) -> tuple[int | None, z3.CheckSatResult]:
-
-        assert iupper >= 1, iupper
-
-        opt = Z3.create_solver(maximize=True)
-        opt.add(ss)
-        return cls._solve_max(opt, term_expr, iupper)
 
     @beartype
     @staticmethod
