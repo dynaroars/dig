@@ -167,6 +167,7 @@ user-supplied terms, separated by <tt>;</tt><br>
 <button id="cancel-btn" type="button" disabled>Cancel</button>
 &nbsp; <b id="status-line">Ready.</b>
 </p>
+<div id="run-plan" style="display:none; margin:0.6em 0; padding:0.6em 0.9em; border-left:3px solid #6a8; background:#f4f8f4; font-size:0.92em;"></div>
 <hr>
 
 <h2>3. Discovered invariants</h2>
@@ -177,6 +178,9 @@ user-supplied terms, separated by <tt>;</tt><br>
 
 <hr>
 <address>DIG &middot; <a href="https://roars.dev">ROARS Lab</a> &middot; George Mason University</address>
+<p class="small" style="text-align:center; margin-top:1em; color:#666;">
+  In memory of <b>Deepak Kapur</b> (1948&ndash;2025), co-creator of DIG.
+</p>
 
 <script>
 "use strict";
@@ -307,6 +311,76 @@ function gatherOptions() {
   return opts;
 }
 
+/* ---------- explain which algorithms will run ---------- */
+
+/* Summarize, from the selected options + input type, the engines DIG will
+   actually run. Purely client-side and best-effort; mirrors alg.py's mode
+   dispatch (symbolic-states vs -noss vs -llm vs trace CSV) and -types. */
+function summarizeAlgorithms(opts, inputType) {
+  var allTypes = ["eqt", "recurrence", "ieq", "minmax", "congruence", "array"];
+  var active = {};
+  if (opts.types) {
+    opts.types.split(",").forEach(function (t) { active[t.trim()] = true; });
+  } else {
+    allTypes.forEach(function (t) { active[t] = true; });
+  }
+
+  var proofs = (inputType === "c" && !opts.noss && !opts.llm); // symbolic states, algebraic engines
+  var symba = !!opts.dosymba;
+
+  var mode, modeDesc;
+  if (inputType === "csv") {
+    mode = "Trace-file mode";
+    modeDesc = "mining invariants directly from the provided traces — no symbolic execution, so results are trace-supported candidates, not proved.";
+  } else if (opts.llm) {
+    mode = "LLM-assisted mode";
+    modeDesc = "an LLM proposes candidate invariants; DIG verifies each one soundly with symbolic states + Z3" +
+               (opts.nollmhoudini ? "" : " plus a k-induction (houdini) pass") +
+               (opts.llm_rounds ? ", over up to " + opts.llm_rounds + " propose/verify rounds" : "") + ".";
+  } else if (opts.noss) {
+    mode = "Pure-dynamic mode (-noss)";
+    modeDesc = "compile and run the program on random inputs and mine traces — no symbolic states, so results are candidates (not proved) and the static/k-induction engines are skipped.";
+  } else {
+    mode = "Symbolic-states mode (default)";
+    modeDesc = "build Z3 symbolic states by symbolic execution; most results are proved.";
+  }
+
+  var items = [];
+  if (opts.llm) {
+    items.push(["LLM proposal", "the model suggests equalities, inequalities, and disjunctive/conditional forms from the source" +
+                (opts.llm_no_traces ? " (no sample traces)" : " and sample traces") + "."]);
+    items.push(["Sound verifier", "symbolic-state check + " + (opts.nollmhoudini ? "per-candidate proof" : "houdini k-induction") +
+                "; disproved candidates are fed back as counterexamples."]);
+  } else {
+    if (active.eqt)
+      items.push(["Equalities (CEGIR)", "fit polynomial-equality templates and solve their null space" +
+                  (proofs ? ", refining with counterexample states from the symbolic-state check" : " from traces") + "."]);
+    if (active.recurrence && proofs)
+      items.push(["Recurrence equalities (static)", "solve solvable-loop recurrences to closed forms and prove them by k-induction" +
+                  (opts.norecurrencemp ? " (single-path only)" : ", incl. multi-path branching loops") + " — no program runs."]);
+    if (active.ieq)
+      items.push(["Inequalities (octagonal/polynomial)", (proofs ? "maximize terms over the symbolic states for exact, proved bounds" : "compute term bounds from trace data") +
+                  (symba && proofs ? ", using SYMBA shared-solver optimization" : "") + "."]);
+    if (active.minmax)
+      items.push(["Min/max-plus disjunctions", (proofs ? "maximize min/max terms over the symbolic states" : "compute min/max bounds from traces") +
+                  (symba && proofs ? " (SYMBA)" : "") + "."]);
+    if (active.congruence)
+      items.push(["Congruences", "detect arithmetic progressions (x ≡ b mod n) in the trace values."]);
+    if (active.array)
+      items.push(["Array relations", "mine nested array index relations like A[i]=B[C[k*i+c]] from traces."]);
+    if (proofs)
+      items.push(["Verifier", "k-induction / houdini prove candidates; each invariant is tagged proved / candidate / unknown."]);
+  }
+
+  var html = "<b>About to run — " + escapeHtml(mode) + ".</b> " + escapeHtml(modeDesc);
+  html += "<ul style='margin:0.4em 0 0 1.2em; padding:0;'>";
+  items.forEach(function (it) {
+    html += "<li><b>" + escapeHtml(it[0]) + "</b> — " + escapeHtml(it[1]) + "</li>";
+  });
+  html += "</ul>";
+  return html;
+}
+
 /* ---------- run / poll / cancel ---------- */
 
 function runDig() {
@@ -314,18 +388,22 @@ function runDig() {
   if (!code) { alert("Please enter a program or traces (or load an example)."); return; }
 
   var inputType = currentInputType();
+  var opts = gatherOptions();
 
   $("run-btn").disabled = true;
   $("cancel-btn").disabled = false;
   $("results").innerHTML = "<i>(running...)</i>";
   $("log").textContent = "";
+  var plan = $("run-plan");
+  plan.innerHTML = summarizeAlgorithms(opts, inputType);
+  plan.style.display = "block";
   startTime = Date.now();
   setStatus("Submitting job...");
 
   apiFetch("/api/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: code, input_type: inputType, options: gatherOptions() })
+    body: JSON.stringify({ code: code, input_type: inputType, options: opts })
   }).then(function (r) { return r.json(); }).then(function (data) {
     if (data.job_id) {
       activeJobId = data.job_id;
