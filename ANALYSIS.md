@@ -159,7 +159,7 @@ On by default; disable with `-norecurrencemp`.
 
 #### 2.3.2 Invariant-ideal equalities — Rodríguez-Carbonell & Kapur (`infer/kapur.py`)
 
-> *In memory of Deepak Kapur (1948–2025), whose work on ideals, Gröbner bases,
+> *In memory of Deepak Kapur (1950–2026), whose work on ideals, Gröbner bases,
 > and quantifier elimination for program reasoning underlies this engine.*
 
 A second **static** equality engine, algorithmically distinct from the

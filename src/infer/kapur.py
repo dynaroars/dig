@@ -1,7 +1,7 @@
 """
 Bounded-degree polynomial invariant generation (Rodriguez-Carbonell & Kapur).
 
-    In memory of Deepak Kapur (1948-2025), whose work on algebraic methods
+    In memory of Deepak Kapur (1950-2026), whose work on algebraic methods
     for program reasoning -- ideals, Groebner bases, and quantifier
     elimination -- is the foundation this module rests on.
 
