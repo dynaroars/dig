@@ -186,6 +186,79 @@ def verify(dig: alg.DigSymStatesC,
     return proved, cexs
 
 
+def verify_houdini(cfile: Path,
+                   candidates: dict[str, list[tuple[z3.BoolRef, str]]],
+                   depth: int = 5) -> dict[str, list[LLMInv]]:
+    """
+    Extra sound verification stage for LLM candidates: run houdini
+    (k-induction) over the *union* of candidates at each loop head and keep the
+    largest jointly-inductive subset. This is stronger than verify()'s
+    per-candidate bounded symbolic-state check in two ways: the proof is
+    unbounded (k-induction, not bounded-depth reachable states), and it proves
+    *mutually* inductive sets -- candidates that fail on their own but hold
+    given the others (the classic reason 1-induction rejects interdependent
+    invariants). Survivors are returned as PROVED LLMInv objects per loc.
+
+    candidates: {loc -> [(z3_pred, label), ...]} (as produced by _parse). Only
+    the candidates at a loop-head vtrace location are used; non-loop locations
+    are left to verify().
+    """
+    from data.symex_c import CSymEx, _find_loops
+    from infer.recurrence import _loop_head_vtrace
+
+    engine = CSymEx(Path(cfile), depth)
+    engine._parse()
+    loops = _find_loops(engine.func_bodies["mainQ"])
+
+    proved: dict[str, list[LLMInv]] = {}
+    for i, node in enumerate(loops):
+        loc = _loop_head_vtrace(node)
+        if loc is None or loc not in candidates:
+            continue
+
+        exprs, id2label, seen = [], {}, set()
+        for zexpr, label in candidates[loc]:
+            try:
+                key = str(z3.simplify(zexpr))
+            except z3.Z3Exception:
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            exprs.append(zexpr)
+            id2label[id(zexpr)] = label
+        if not exprs:
+            continue
+
+        try:
+            kept = engine.houdini(exprs, loop=i)
+        except Exception as ex:
+            mlog.debug(f"llm houdini declined loop {i} ({loc}): {ex}")
+            continue
+
+        for e in kept:
+            inv = LLMInv(e, id2label.get(id(e), str(e)))
+            inv.set_stat(infer.inv.Inv.PROVED)
+            proved.setdefault(loc, []).append(inv)
+    return proved
+
+
+def _format_cexs(cexs: dict) -> str:
+    """
+    Render DIG's counterexample dict as one 'candidate  # false when <state>'
+    line per disproved candidate, so the next LLM round sees *why* each guess
+    failed (the concrete state that breaks it) rather than an opaque dict dump.
+    """
+    lines = []
+    for loc, per_inv in cexs.items():
+        for label, states in per_inv.items():
+            st = states[0] if states else {}
+            state_str = ", ".join(f"{k}={v}" for k, v in st.items())
+            lines.append(f"{label}   # false when {state_str}"
+                         if state_str else f"{label}   # false")
+    return "\n".join(lines)
+
+
 # ─────────────────────────────── LLM backend (pluggable) ─────────────
 
 def propose(c_source: str, trace_sample: str = "", cexs: str = "") -> str:
@@ -260,6 +333,20 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
         mlog.info(f"round {rnd}: LLM proposed {n_cands} candidates")
         t = time.time()
         proved, cexs = verify(dig, candidates)
+        # extra sound pass: k-induction over the union of candidates per loop,
+        # catching mutually-inductive sets the per-candidate check misses. Its
+        # bounded entry states can over-approve on nested loops, so intersect
+        # with verify(): never resurrect a candidate the symbolic-state check
+        # already disproved (a genuine, reachable counterexample).
+        if settings.DO_LLM_HOUDINI:
+            disproved = {loc: set(labels) for loc, labels in cexs.items()}
+            for loc, invs in verify_houdini(cfile, candidates).items():
+                proved.setdefault(loc, [])
+                have = {inv.mystr for inv in proved[loc]}
+                bad = disproved.get(loc, set())
+                proved[loc].extend(
+                    inv for inv in invs
+                    if inv.mystr not in have and inv.mystr not in bad)
         t_verify += time.time() - t
         for loc, invs in proved.items():
             for inv in invs:
@@ -269,7 +356,7 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
         mlog.info(f"round {rnd}: {n_new} proved, {n_cex} disproved")
         if not cexs:
             break
-        cex_text = str(cexs)
+        cex_text = _format_cexs(cexs)
 
     time_d["llm_propose"] = t_llm
     time_d["verify"] = t_verify

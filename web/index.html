@@ -139,6 +139,14 @@ inequalities, congruences, and min/max-plus relations — from program code or e
 </fieldset>
 
 <fieldset>
+<legend><b>Advanced algorithms</b></legend>
+<label><input type="checkbox" id="opt-dosymba"> <tt>-dosymba</tt> SYMBA simultaneous optimization for inequality/min-max bounds
+  <span class="small">(one shared solver for all terms at a location; same bounds, fewer solver calls — useful on programs with many variables)</span></label><br>
+<label><input type="checkbox" id="opt-norecurrencemp"> <tt>-norecurrencemp</tt> disable multi-path recurrence
+  <span class="small">(the multi-path extension proves closed-form equalities for <em>branching</em> loop bodies, e.g. cohendiv/fermat1; on by default)</span></label>
+</fieldset>
+
+<fieldset>
 <legend><b>Terms / LLM</b></legend>
 <label for="opt-uterms"><tt>-uterms</tt></label>
 <input type="text" id="opt-uterms" size="40" placeholder="y^2 ; x*y + 4">
@@ -147,7 +155,9 @@ user-supplied terms, separated by <tt>;</tt><br>
   <span class="small">(server needs <tt>ANTHROPIC_API_KEY</tt>)</span></label><br>
 <label for="opt-llm_rounds"><tt>-llm_rounds</tt></label>
 <input type="number" id="opt-llm_rounds" size="4" min="1" placeholder="3"> max LLM propose/verify rounds<br>
-<label><input type="checkbox" id="opt-llm_no_traces"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label>
+<label><input type="checkbox" id="opt-llm_no_traces"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label><br>
+<label><input type="checkbox" id="opt-nollmhoudini"> <tt>-nollmhoudini</tt> disable the extra k-induction (houdini) pass over LLM candidates
+  <span class="small">(the pass proves mutually-inductive candidate sets unboundedly; on by default in <tt>-llm</tt> mode)</span></label>
 </fieldset>
 </details>
 
@@ -280,6 +290,7 @@ function gatherOptions() {
   };
   ["noeqts", "noieqs", "nocongruences", "noarrays", "nominmaxplus", "noss",
    "noincrdepth", "nosimplify", "nofilter", "nomp", "dosolverstats",
+   "dosymba", "norecurrencemp", "nollmhoudini",
    "llm", "llm_no_traces"].forEach(function (name) {
     if ($("opt-" + name).checked) opts[name] = true;
   });

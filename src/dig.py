@@ -155,6 +155,48 @@ if __name__ == "__main__":
     )
 
     ag(
+        "--norecurrence",
+        "-norecurrence",
+        action="store_true",
+        help="don't compute static recurrence-based equalities "
+             "(solvable-loop closed forms, proved by k-induction)",
+    )
+
+    ag(
+        "--norecurrencemp",
+        "-norecurrencemp",
+        action="store_true",
+        help="don't extend the recurrence engine to branching (multi-path) "
+             "loop bodies (egcd/fermat/prodbin); single-path recurrences only",
+    )
+
+    ag(
+        "--dokapur",
+        "-dokapur",
+        action="store_true",
+        help="also run the RC-Kapur bounded-degree ideal engine (static "
+             "equalities via the reachable-state null space; in memory of "
+             "Deepak Kapur)",
+    )
+
+    ag(
+        "--dosymba",
+        "-dosymba",
+        action="store_true",
+        help="use SYMBA simultaneous optimization for inequality/min-max "
+             "bounds (one shared solver for all terms) instead of one "
+             "z3-Optimize solve per term",
+    )
+
+    ag(
+        "--nollmhoudini",
+        "-nollmhoudini",
+        action="store_true",
+        help="llm mode: don't run the extra k-induction (houdini) pass over "
+             "the union of LLM candidates",
+    )
+
+    ag(
         "--noincrdepth",
         "-noincrdepth",
         action="store_true",

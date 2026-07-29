@@ -26,6 +26,8 @@ import infer.eqt
 import infer.oct
 import infer.mp
 import infer.congruence
+import infer.recurrence
+import infer.kapur
 
 DBG = pdb.set_trace
 
@@ -197,6 +199,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                     dtraces.merge(dtraces_)
 
             dinvs.merge(self._infer_trace_based(dtraces))
+            dinvs.merge(self._infer_recurrence())
+            dinvs.merge(self._infer_kapur())
             dinvs = self.sanitize(dinvs, dtraces)
 
             self.time_d["total"] = time.time() - st
@@ -284,6 +288,88 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             self.time_d[label] = et
 
         return result
+
+    @beartype
+    def _keep_local(self, eqts: list, loc: str) -> list:
+        """Drop static-engine equalities that mention variables not observed at
+        `loc`. A solvable loop can carry locals (e.g. ps2's counter `c`) that
+        are not in the vtrace's argument list; an invariant over them can't be
+        tested against traces (the variable is unbound) and isn't reportable at
+        this location. Branching loops (multi-path) have more such locals, so
+        this guard matters for both the single- and multi-path engines.
+        """
+        allowed = set(self.inv_decls[loc].names)
+        kept = []
+        for eqt in eqts:
+            if {str(s) for s in eqt.inv.free_symbols}.issubset(allowed):
+                kept.append(eqt)
+        return kept
+
+    @beartype
+    def _infer_recurrence(self) -> DInvs:
+        """Static, recurrence-based equalities for solvable loops.
+
+        Reads each loop's transition relation directly (no traces), solves the
+        induced recurrences to closed forms, eliminates the loop counter to
+        polynomial equalities, and proves them by unbounded k-induction. The
+        results are already PROVED, so they complement the dynamic engine and
+        cover cases its degree budget or trace sampling can miss. Loops that
+        are not solvable single-path recurrences are skipped.
+        """
+        result = DInvs()
+        if not settings.DO_RECURRENCE:
+            return result
+
+        st = time.time()
+        try:
+            per_loc = infer.recurrence.gen_all(self.filename)
+        except Exception as ex:
+            mlog.debug(f"recurrence inference failed: {ex}")
+            per_loc = {}
+
+        batch = DInvs()
+        for loc, eqts in per_loc.items():
+            if loc in self.inv_decls and not self.inv_decls[loc].array_only:
+                for eqt in self._keep_local(eqts, loc):
+                    batch.add(loc, eqt)
+        et = time.time() - st
+        if batch.siz:
+            mlog.info(f"got {batch.siz} recurrence eqts in {et:.2f}s")
+            mlog.debug(batch.__str__(print_stat=True, print_first_n=20))
+        self.time_d["recurrence"] = et
+        return batch
+
+    @beartype
+    def _infer_kapur(self) -> DInvs:
+        """Static equalities via the Rodriguez-Carbonell & Kapur bounded-degree
+        invariant-ideal method (opt-in, -dokapur). Complementary to the
+        recurrence engine: it computes the degree-bounded polynomial invariant
+        ideal directly from the reachable-state null space, proving each
+        generator by k-induction. Loops that are not single polynomial maps are
+        skipped.
+        """
+        result = DInvs()
+        if not settings.DO_KAPUR:
+            return result
+
+        st = time.time()
+        try:
+            per_loc = infer.kapur.gen_all(self.filename)
+        except Exception as ex:
+            mlog.debug(f"kapur inference failed: {ex}")
+            per_loc = {}
+
+        batch = DInvs()
+        for loc, eqts in per_loc.items():
+            if loc in self.inv_decls and not self.inv_decls[loc].array_only:
+                for eqt in self._keep_local(eqts, loc):
+                    batch.add(loc, eqt)
+        et = time.time() - st
+        if batch.siz:
+            mlog.info(f"got {batch.siz} kapur eqts in {et:.2f}s")
+            mlog.debug(batch.__str__(print_stat=True, print_first_n=20))
+        self.time_d["kapur"] = et
+        return batch
 
     @beartype
     def get_symbolic_states(self) -> SymStates:

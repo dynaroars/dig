@@ -316,6 +316,150 @@ class SymStates(dict):
         return v
 
     @beartype
+    def maximize_many(self, loc: str, term_exprs: list,
+                      iupper: int) -> dict[int, int]:
+        """
+        SYMBA simultaneous optimization (Li, Albarghouthi, Gurfinkel, Chechik,
+        POPL'14). Maximize *all* `term_exprs` at `loc` together with a single
+        shared SMT solver instead of one z3-Optimize solve per term: every
+        satisfying model updates the lower bound of every objective at once, and
+        an unsat certificate proves the current bounds are the exact maxima.
+        This is the drop-in replacement for calling maximize() once per term.
+
+        Returns {i: exact_max} for terms (by index into `term_exprs`) whose max
+        lies in [-iupper, iupper]. Terms over the cap, non-integer optima, and
+        solver-unknown terms are omitted -- the same accept/reject policy as
+        maximize()/_solve_max().
+
+        When DO_INCR_DEPTH is on, the exact max at each unroll depth is computed
+        (shared-model) and a term whose bound keeps changing as the depth grows
+        is dropped, exactly like mmaximize_depth() -- so a depth-sensitive bound
+        (an artifact of bounded unrolling, not a real invariant) is not reported.
+        The shared-model win applies within each depth.
+        """
+        assert iupper >= 1, iupper
+        ssd = self[loc]
+
+        if not settings.DO_INCR_DEPTH:
+            ss = self.get_symstates_at_depth(ssd, depth=None)
+            maxs, _ = self._symba(ss, term_exprs, iupper)
+            return maxs
+
+        depths = sorted(ssd.keys())
+        n = len(term_exprs)
+        maxv: dict[int, int] = {}          # i -> current best bound
+        changes: dict[int, int] = {i: 0 for i in range(n)}
+        nochanges: dict[int, int] = {i: 0 for i in range(n)}
+        started: set[int] = set()
+        stopped: set[int] = set()          # term hit its own depth stop rule
+
+        for di, d in enumerate(depths):
+            if len(stopped) == n:
+                break
+            ss = self.get_symstates_at_depth(ssd, depth=d)
+            cur, _ = self._symba(ss, term_exprs, iupper,
+                                 skip={i for i in range(n) if i in stopped})
+            for i in range(n):
+                if i in stopped:
+                    continue
+                v = cur.get(i)             # exact max<=iupper at depth<=d, or None
+                # bound is monotone in depth; never let it drop
+                if v is not None and i in maxv and v < maxv[i]:
+                    v = maxv[i]
+                if i not in started:
+                    if v is not None:
+                        maxv[i] = v
+                        started.add(i)
+                    continue
+                if di == 0:
+                    continue
+                old = maxv.get(i)
+                if v != old:
+                    # a change (including going over-cap: v is None) -> unstable
+                    changes[i] += 1
+                    nochanges[i] = 0
+                    if v is None:
+                        stopped.add(i)     # over cap at deeper depth: drop
+                        maxv.pop(i, None)
+                    else:
+                        maxv[i] = v
+                else:
+                    nochanges[i] += 1
+                if (changes[i] > settings.SE_DEPTH_NOCHANGES_MAX
+                        or nochanges[i] > settings.SE_DEPTH_NOCHANGES_MAX):
+                    stopped.add(i)
+
+        return {i: v for i, v in maxv.items()
+                if changes[i] < settings.SE_DEPTH_NOCHANGES_MAX
+                and -iupper <= v <= iupper}
+
+    @beartype
+    def _symba(self, ss: z3.ExprRef, term_exprs: list, iupper: int,
+               skip: set | None = None) -> tuple[dict[int, int], z3.CheckSatResult]:
+        """
+        One SYMBA pass over a fixed formula `ss`: return {i: exact_max} for the
+        terms whose max is in [-iupper, iupper], sharing models across all
+        objectives. `skip` names indices to ignore (already finalized).
+        """
+        skip = skip or set()
+        solver = Z3.create_solver(maximize=False)
+        solver.add(ss)
+        if solver.check() != z3.sat:
+            return {}, z3.unsat
+
+        model = solver.model()
+        bounds: dict[int, int] = {}
+        active: set[int] = set()
+        for i, term in enumerate(term_exprs):
+            if i in skip:
+                continue
+            v = self._model_int(model, term)
+            if v is None:              # non-integer optimum: reject like _solve_max
+                continue
+            bounds[i] = v
+            if v <= iupper:            # keep even if v < -iupper: max may climb up
+                active.add(i)          # v > iupper => max already over cap: reject
+
+        converged: dict[int, int] = {}
+        last = z3.sat
+        while active:
+            # z3 int literals coerce to each term's sort automatically
+            disj = z3.Or([term_exprs[i] > bounds[i] for i in active])
+            last = solver.check(disj)
+            if last == z3.unsat:       # nothing beats these -> exact maxima
+                converged.update({i: bounds[i] for i in active})
+                break
+            if last == z3.unknown:
+                break                  # can't certify the rest; drop them
+            model = solver.model()
+            improved = False
+            for i in list(active):
+                v = self._model_int(model, term_exprs[i])
+                if v is None:
+                    active.discard(i)          # became non-integer, reject
+                    continue
+                if v > bounds[i]:
+                    bounds[i] = v
+                    improved = True
+                if bounds[i] > iupper:
+                    active.discard(i)          # max exceeds cap -> reject
+            if not improved:
+                break                  # avoid spinning on non-integer progress
+
+        return ({i: b for i, b in converged.items() if -iupper <= b <= iupper},
+                last)
+
+    @beartype
+    @staticmethod
+    def _model_int(model: z3.ModelRef, term_expr: z3.ExprRef) -> int | None:
+        """Integer value of term_expr in model, or None if non-integer
+        (rational/real optimum, which the maximize path rejects)."""
+        val = model.eval(term_expr, model_completion=True)
+        if z3.is_int_value(val):
+            return val.as_long()
+        return None
+
+    @beartype
     def mmaximize_depth(self, loc: str, ssd:SymStatesDepth ,
                         term_expr: z3.ExprRef,
                         iupper: int) -> tuple[int | None, z3.CheckSatResult]:

@@ -25,6 +25,8 @@ BOOL_OPTS = [
     "noss", "noeqts", "noieqs", "nocongruences", "noarrays",
     "nominmaxplus", "noincrdepth", "nosimplify", "nofilter",
     "nomp", "dosolverstats", "llm", "llm_no_traces",
+    # advanced algorithm toggles (see ANALYSIS.md)
+    "dosymba", "norecurrencemp", "nollmhoudini",
 ]
 
 # symex_c.py CLI options exposed to the web API (tool == "symex").

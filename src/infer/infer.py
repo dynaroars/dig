@@ -112,20 +112,39 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
         _, ieqs = self.check(ieqs, inps=None)
         ieqs = ieqs.remove_disproved()
-        tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
+        n_terms = sum(len(ieqs[loc]) for loc in ieqs)
         mlog.debug(
-            f"inferring upperbounds for {len(tasks)} terms at {len(locs)} locs")
+            f"inferring upperbounds for {n_terms} terms at {len(locs)} locs")
 
-        # computing convex hull
-        def f(tasks):
-            return [
-                (loc, term, self.symstates.maximize(
-                    loc, self.to_expr(term), self.IUPPER))
-                for loc, term in tasks
-            ]
+        if settings.DO_SYMBA:
+            # SYMBA: maximize every term at a loc together with one shared
+            # solver (each model improves all objectives' bounds at once).
+            tasks = [(loc, [refs[loc][t] for t in ieqs[loc]]) for loc in ieqs]
 
-        wrs = MP.run_mp("optimizing upperbound", tasks, f, settings.DO_MP)
+            def f(tasks):
+                out = []
+                for loc, terms in tasks:
+                    exprs = [self.to_expr(t) for t in terms]
+                    bounds = self.symstates.maximize_many(
+                        loc, exprs, self.IUPPER)
+                    out.extend((loc, terms[i], v) for i, v in bounds.items())
+                return out
+
+            wrs = MP.run_mp(
+                "optimizing upperbound (symba)", tasks, f, settings.DO_MP)
+        else:
+            tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
+
+            # computing convex hull, one z3-Optimize solve per term
+            def f(tasks):
+                return [
+                    (loc, term, self.symstates.maximize(
+                        loc, self.to_expr(term), self.IUPPER))
+                    for loc, term in tasks
+                ]
+
+            wrs = MP.run_mp("optimizing upperbound", tasks, f, settings.DO_MP)
 
         dinvs = infer.inv.DInvs()
         for loc, term, v in wrs:

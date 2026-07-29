@@ -15,6 +15,23 @@ DO_IEQS = True  # support (octagonal) inequalities
 DO_CONGRUENCES = True  # support congruence relations
 DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
+DO_RECURRENCE = True  # static (recurrence-based) equalities for solvable loops
+# Multi-path (CRA-style) extension of the recurrence engine: handle branching
+# loop bodies (egcd/fermat/prodbin) by pooling per-path closed-form candidates
+# and keeping the subset that is jointly inductive over the real loop (houdini).
+# Only fires on loops the single-path engine declines, so it is purely additive.
+DO_RECURRENCE_MP = True
+DO_KAPUR = False  # RC-Kapur bounded-degree ideal equalities (opt-in; -dokapur)
+# SYMBA (Li et al., POPL'14): maximize all inequality/min-max terms at a
+# location simultaneously with one shared SMT solver (each model improves every
+# objective's bound at once) instead of one z3-Optimize solve per term. Same
+# exact bounds, fewer solver calls. Opt-in (-dosymba); overlaps the default
+# per-term optimizer, so off by default like -dokapur.
+DO_SYMBA = False
+# Houdini pass over the union of LLM-proposed candidates (llm mode only): prove
+# the largest jointly/k-inductive subset unboundedly, catching mutually
+# inductive sets the per-candidate bounded check misses. Additive to verify().
+DO_LLM_HOUDINI = True
 DO_INCR_DEPTH = True
 DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = None  # write vtraces to csv
@@ -116,6 +133,11 @@ _BOOL_FLAGS = (
     ("nocongruences", "DO_CONGRUENCES", "-nocongruences", False),
     ("noarrays", "DO_ARRAYS", "-noarrays", False),
     ("nominmaxplus", "DO_MINMAXPLUS", "-nominmaxplus", False),
+    ("norecurrence", "DO_RECURRENCE", "-norecurrence", False),
+    ("norecurrencemp", "DO_RECURRENCE_MP", "-norecurrencemp", False),
+    ("dokapur", "DO_KAPUR", "-dokapur", True),
+    ("dosymba", "DO_SYMBA", "-dosymba", True),
+    ("nollmhoudini", "DO_LLM_HOUDINI", "-nollmhoudini", False),
     ("noincrdepth", "DO_INCR_DEPTH", "-noincrdepth", False),
     ("dosolverstats", "DO_SOLVER_STATS", "-dosolverstats", True),
 )
