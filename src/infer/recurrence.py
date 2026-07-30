@@ -38,6 +38,7 @@ import z3
 from pycparser import c_ast
 
 import settings
+import helpers.vcommon as CM
 
 from data.symex_c import (
     CSymEx,
@@ -47,6 +48,8 @@ from data.symex_c import (
     _find_loops,
     _loop_cond_body,
 )
+
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 # ────────────────────────────────────────────── name normalisation ──
@@ -130,7 +133,7 @@ def _clear_denoms(e: sympy.Expr, gens: list[sympy.Symbol]) -> sympy.Expr:
     """Scale a rational-coefficient polynomial to integer coefficients."""
     poly = sympy.Poly(sympy.expand(e), *gens)
     denoms = [c.q for c in poly.coeffs()]        # rationals -> denominators
-    mult = sympy.ilcm(*denoms) if denoms else 1
+    mult = sympy.ilcm(*denoms, 1)                # ilcm needs >= 2 args
     return sympy.expand(e * mult)
 
 
@@ -252,9 +255,11 @@ class RecurrenceInfer:
     # ───────────────────────────────────── solve the recurrences ──
 
     def solve(self, variables, init, update):
-        """Closed forms {v: g_v(n)} by topological rsolve. Variables whose
-        update equals themselves are loop constants (parameters); they get no
-        recurrence and appear as free sympy symbols."""
+        """Closed forms {v: g_v(n)} by topological rsolve, plus the fresh
+        initial-value symbols introduced (to be eliminated alongside the
+        counter). Variables whose update equals themselves are loop constants
+        (parameters); they get no recurrence and appear as free sympy symbols.
+        """
         # counter symbol must not collide with a program variable literally
         # named n (e.g. cohencu), so pick a fresh name
         ctr = "n"
@@ -266,6 +271,15 @@ class RecurrenceInfer:
         updated = [v for v in variables
                    if sympy.expand(update[v] - S[v]) != 0]
         upd_set = set(updated)
+
+        # An updated variable's symbol in an init value denotes its *initial*
+        # value, not the loop-head value (a loop that updates its own input,
+        # e.g. `while (n > 0) { s += n; n--; }`, hits this). Give those a
+        # fresh symbol so the recurrence doesn't alias v(0) with v(n); the
+        # caller eliminates them like the counter.
+        initsyms = {S[w]: sympy.Symbol(f"_init_{w}") for w in updated
+                    if any(S[w] in init[v].free_symbols for v in variables)}
+        init = {v: init[v].xreplace(initsyms) for v in variables}
 
         # dependency edges v <- w (w != v, w updated) if S[w] occurs in update[v]
         deps = {v: {w for w in upd_set if w != v
@@ -303,11 +317,11 @@ class RecurrenceInfer:
             if sol is None:
                 raise ValueError(f"rsolve failed for {v}")
             closed[v] = sympy.expand(sol)
-        return n, S, updated, closed
+        return n, S, updated, closed, list(initsyms.values())
 
     # ───────────────────────────────────── eliminate the counter ──
 
-    def eliminate(self, n, S, updated, closed):
+    def eliminate(self, n, S, updated, closed, initsyms=()):
         """Polynomial equalities among the program variables.
 
         Pure-polynomial closed forms (ps*, cohencu) are handled directly by
@@ -343,7 +357,7 @@ class RecurrenceInfer:
         closed_r = {v: (closed[v].xreplace(rewrites) if rewrites else closed[v])
                     for v in updated}
 
-        elim = [n] + T_syms                       # variables to project out
+        elim = [n] + T_syms + list(initsyms)      # variables to project out
         # numerators of {v - closed_v}: clears both rational-function
         # denominators (e.g. 1/(z-1)) and any T**-a from negative shifts
         allsyms = set(elim) | {S[v] for v in updated}
@@ -415,9 +429,9 @@ class RecurrenceInfer:
 
     def gen(self, loop: int = 0):
         variables, init, update = self.extract(loop)
-        n, S, updated, closed = self.solve(variables, init, update)
+        n, S, updated, closed, initsyms = self.solve(variables, init, update)
         cands = []
-        for p in self.eliminate(n, S, updated, closed):
+        for p in self.eliminate(n, S, updated, closed, initsyms):
             if p == 0:
                 continue
             # groebner may return rational coefficients (esp. with symbolic
@@ -455,8 +469,9 @@ class RecurrenceInfer:
         cands, seen = [], set()
         for update in updates:
             try:
-                n, S, updated, closed = self.solve(variables, init, update)
-                polys = self.eliminate(n, S, updated, closed)
+                n, S, updated, closed, initsyms = self.solve(
+                    variables, init, update)
+                polys = self.eliminate(n, S, updated, closed, initsyms)
             except (ValueError, NotImplementedError):
                 continue        # this path is not a solvable recurrence
             for p in polys:
@@ -538,12 +553,14 @@ def gen_all(filename: Path, depth: int = 5, multipath: bool | None = None):
         results = None
         try:
             _closed, results = RecurrenceInfer(filename, depth).gen(i)
-        except Exception:
+        except Exception as ex:
+            mlog.debug(f"recurrence declined loop {i} ({loc}): {ex}")
             results = None             # decline: not a solvable single loop
         if results is None and multipath:
             try:
                 results = RecurrenceInfer(filename, depth).gen_multipath(i)
-            except Exception:
+            except Exception as ex:
+                mlog.debug(f"recurrence-mp declined loop {i} ({loc}): {ex}")
                 results = None         # decline: no usable multi-path either
         if not results:
             continue

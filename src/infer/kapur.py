@@ -51,6 +51,9 @@ from pathlib import Path
 import sympy
 import z3
 
+import settings
+import helpers.vcommon as CM
+
 from data.symex_c import CSymEx, _find_loops
 from infer.recurrence import (
     RecurrenceInfer,
@@ -58,6 +61,8 @@ from infer.recurrence import (
     _sympy_to_z3,
     _loop_head_vtrace,
 )
+
+mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 def _monomials(variables: list, deg: int) -> list:
@@ -95,7 +100,6 @@ class KapurInfer:
             raise ValueError("loop has no state change")
 
         allvars = [S[v] for v in variables]
-        psyms = [S[v] for v in params]
 
         # symbolic orbit: s_0 = init, s_{i+1} = tau(s_i); each coordinate is a
         # polynomial in the parameters (kept as indeterminates)
@@ -103,8 +107,17 @@ class KapurInfer:
             sub = {S[w]: state[w] for w in variables}
             return {v: sympy.expand(update[v].xreplace(sub)) for v in variables}
 
-        state = {v: sympy.expand(sympy.sympify(init[v])) for v in variables}
+        # A dynamic variable's symbol inside an init value denotes its
+        # *initial* value, not the loop-head value (a loop that updates its
+        # own input hits this). Rename those to fresh symbols: they are orbit
+        # parameters, alongside the never-updated variables.
+        initsyms = {S[v]: sympy.Symbol(f"_init_{v}") for v in dynamic}
+        state = {v: sympy.expand(sympy.sympify(init[v]).xreplace(initsyms))
+                 for v in variables}
         orbit = [state]
+        psyms = [S[v] for v in params] + sorted(
+            set().union(*[e.free_symbols for e in state.values()])
+            & set(initsyms.values()), key=str)
 
         monos = _monomials(allvars, deg)
         # With no parameters each orbit point gives one linear equation, so we
@@ -187,7 +200,8 @@ def gen_all(filename: Path, depth: int = 5, max_deg: int = 3):
         for deg in range(2, max_deg + 1):
             try:
                 results = KapurInfer(filename, depth).gen(i, deg)
-            except Exception:
+            except Exception as ex:
+                mlog.debug(f"kapur declined loop {i} ({loc}) deg {deg}: {ex}")
                 continue
             proved = [p for p, s in results if s == "valid"]
             if len(proved) > len(best):
