@@ -31,9 +31,13 @@ STR_OPTS = ["types"]  # invariant-type allowlist (replaces the -no<type> flags)
 
 # symex_c.py CLI options exposed to the web API (tool == "symex").
 # --gen-harness is excluded (writes a file the web runner never returns).
-SYMEX_INT_OPTS = ["depth", "loop", "k"]
-SYMEX_BOOL_OPTS = ["gen_tests", "no_safety", "check_overflow", "merge"]
+SYMEX_INT_OPTS = ["depth", "loop", "k", "phases"]
+SYMEX_BOOL_OPTS = ["gen_tests", "no_safety", "check_overflow", "merge",
+                   "nonterm"]
 SYMEX_LIST_OPTS = ["prove", "houdini", "assume"]  # ";"-separated exprs
+# note: "terminates" is NOT a list opt — its value may itself contain ";"
+# (a lexicographic tuple "x ; y") or be the keyword "auto", and is passed
+# through verbatim as one argument below
 
 class DIGRunner:
     """Manages sandboxed execution of DIG using Docker (or direct fallback)."""

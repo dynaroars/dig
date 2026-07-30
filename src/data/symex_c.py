@@ -47,9 +47,17 @@ are not 1-inductive), the sound complement to depth-bounded vassert/check_inv
 — houdini(invs, loop) (largest mutually inductive subset of candidate
 invariants, e.g. DIG's output), prove_termination(rank, loop, assume) —
 unbounded termination proof via a ranking function (bounded below while
-iterating + strict decrease) — and parse_c_expr("q*y + r == x") to build
-invariants from C syntax. CLI: --prove [--k N], --check-inv, --houdini,
---terminates RANK [--assume INV, verified inductive first].
+iterating + strict decrease) — prove_termination_lex(ranks, loop, assume) —
+lexicographic ranking tuples <f1, ..., fn> for loops where no single
+expression decreases on every path — synthesize_ranking(loop, assume) —
+automatic CEGIS synthesis of linear and multiphase (nested, à la Leike &
+Heizmann TACAS'14) ranking functions, no candidate needed —
+prove_nontermination(loop, assume) — a sound divergence proof (exact lasso
+state repetition, or a closed linear recurrent set with a reachable seed)
+witnessed by concrete mainQ inputs — and parse_c_expr("q*y + r == x") to
+build invariants from C syntax. CLI: --prove [--k N], --check-inv,
+--houdini, --terminates RANK | "R1 ; R2" (lexicographic) | auto
+[--phases N] [--assume INV, verified inductive first], --nonterm.
 
 Violated vasserts and safety checks carry a witness trace (the sequence of
 branch decisions with source locations leading to the violation), printed
@@ -222,6 +230,7 @@ class CSymEx:
 
     MAX_STATES = 5000  # hard cap on total active states to prevent explosion
     SOLVER_RLIMIT = 15_000_000  # default; DIG passes settings.SOLVER_RLIMIT
+    MAX_CEGIS_ITERS = 60   # guess/verify rounds per synthesis template
 
     def __init__(self, filename: Path, max_depth: int,
                  solver_rlimit: int | None = None,
@@ -254,8 +263,9 @@ class CSymEx:
         # work-unit cutoff, not wall-clock: a timeout makes path feasibility
         # (and thus the symstates themselves) vary with machine load.
         # rlimit is per-check(), so reuse across push/pop scopes is fine.
+        self.solver_rlimit = solver_rlimit or self.SOLVER_RLIMIT
         self.solver = z3.Solver()
-        self.solver.set("rlimit", solver_rlimit or self.SOLVER_RLIMIT)
+        self.solver.set("rlimit", self.solver_rlimit)
 
         # Populated by _parse():
         self.mainq_params: list[tuple[str, str]] = []   # [(name, type), ...]
@@ -548,31 +558,17 @@ class CSymEx:
         try:
             if not entry_states:
                 return ("unknown", None)
-            cond_node, body, nxt = _loop_cond_body(node)
-            henv = {name: z3.Const(f"_ind_{name}", val.sort())
-                    for name, val in entry_states[0].env.items()}
-            h = SymState(env=dict(henv))
-            for inv in assume:
-                h = h.add_constraint(_subst_env(inv, henv))
-            pre_rank = _subst_env(rank, henv)
-
-            graw, h = self._eval_expr_effects(cond_node, h)
-            h = h.add_constraint(_as_bool(graw))   # loop iterates
-            if not self._feasible(h):
+            henv, h, _guard, post, _exits = self._loop_transition(
+                node, entry_states, assume)
+            if post is None:
                 return ("terminates", None)        # loop can never iterate
+            pre_rank = _subst_env(rank, henv)
 
             r, cex = self._counterexample(h.pc, op_module.ge(pre_rank, 0))
             if r == z3.sat:
                 return ("bound-violated", cex)
             unknown = r == z3.unknown
 
-            self._hypothetical = True
-            try:
-                # paths that break/return leave the loop anyway; the rest
-                # head back to the guard (running a for's `next` first)
-                post = self._after_body(self._exec_compound(body, [h]), nxt)
-            finally:
-                self._hypothetical = False
             for s in post:
                 post_rank = _subst_env(rank, s.env)
                 r, cex = self._counterexample(
@@ -585,6 +581,455 @@ class CSymEx:
             return ("unknown", None) if unknown else ("terminates", None)
         finally:
             self.records, self.assert_results, self.safety_results = saved
+
+    def prove_termination_lex(self, ranks: list[z3.ExprRef], loop: int = 0,
+                              assume: tuple[z3.ExprRef, ...] | list = ()
+                              ) -> tuple[str, dict[str, str] | None]:
+        """
+        Prove the loop-th loop terminates via the LEXICOGRAPHIC ranking
+        tuple `ranks` = <f1, ..., fn> (integer expressions over program
+        variables): every back-to-guard path must, for some component i,
+        keep f1..f{i-1} non-increasing and strictly decrease fi from a
+        non-negative value. Components after i may change arbitrarily —
+        which is exactly what handles loops where no single expression
+        decreases on every path (e.g. one branch steps an outer counter
+        and resets the inner one). `assume` as in prove_termination:
+        verified invariants only.
+
+        Returns ("terminates", None), ("lex-violated", cex) over _ind_*
+        pre-state variables, or ("unknown", None) on solver cutoff.
+        """
+        assert ranks, "empty ranking tuple"
+        node, entry_states = self._loop_target(loop)
+        saved = (self.records, self.assert_results, self.safety_results)
+        self.records, self.assert_results, self.safety_results = [], [], []
+        try:
+            if not entry_states:
+                return ("unknown", None)
+            henv, _h, _guard, post, _exits = self._loop_transition(
+                node, entry_states, assume)
+            if post is None:
+                return ("terminates", None)
+            pre = [_subst_env(r, henv) for r in ranks]
+            unknown = False
+            for s in post:
+                cur = [_subst_env(r, s.env) for r in ranks]
+                opts = []
+                for i in range(len(ranks)):
+                    conds = [op_module.le(cur[j], pre[j]) for j in range(i)]
+                    conds.append(op_module.ge(pre[i], 0))
+                    conds.append(op_module.le(cur[i],
+                                              op_module.sub(pre[i], 1)))
+                    opts.append(z3.And(conds))
+                r, cex = self._counterexample(s.pc, z3.Or(opts))
+                if r == z3.sat:
+                    return ("lex-violated", cex)
+                unknown |= r == z3.unknown
+            return ("unknown", None) if unknown else ("terminates", None)
+        finally:
+            self.records, self.assert_results, self.safety_results = saved
+
+    def synthesize_ranking(self, loop: int = 0,
+                           assume: tuple[z3.ExprRef, ...] | list = (),
+                           max_phases: int = 3,
+                           coef_bounds: tuple[int, ...] = (1, 10)
+                           ) -> tuple[str, list[str] | None]:
+        """
+        Synthesize a ranking function for the loop-th loop automatically —
+        no candidate needed. Tries a plain linear function first (bounded
+        below while iterating + strictly decreasing on every path), then
+        NESTED multiphase templates <f1, ..., fd> up to max_phases (Leike
+        & Heizmann, TACAS'14: f1' <= f1 - 1, fi' <= fi - 1 + f{i-1},
+        fd >= 0), which rank loops whose measure first rises then falls
+        (e.g. x = x + y; y = y - 1).
+
+        Search is CEGIS over integer template coefficients (|c| bounded by
+        each value of coef_bounds in turn, so small/readable functions are
+        preferred): guess coefficients, look for a one-iteration
+        counterexample, instantiate it as a constraint on the
+        coefficients, repeat. The final coefficient set is verified per
+        path with the full universal check, so a "terminates" answer is a
+        real proof. `assume` as in prove_termination: verified invariants
+        only.
+
+        Returns ("terminates", [rank_str, ...]) — one C expression per
+        phase (a single entry means a plain linear ranking function; []
+        means the loop cannot iterate at all) — or ("unknown", None): no
+        template within the bounds ranks the loop. unknown is NOT a
+        non-termination proof (see prove_nontermination for that).
+        """
+        node, entry_states = self._loop_target(loop)
+        saved = (self.records, self.assert_results, self.safety_results)
+        self.records, self.assert_results, self.safety_results = [], [], []
+        try:
+            if not entry_states:
+                return ("unknown", None)
+            henv, _h, _guard, post, _exits = self._loop_transition(
+                node, entry_states, assume)
+            if post is None:
+                return ("terminates", [])
+            names = sorted(n for n, v in henv.items()
+                           if v.sort() == z3.IntSort())
+            if not names:
+                return ("unknown", None)
+            pre_vals = [henv[n] for n in names]
+            paths = [(s.pc, [s.env.get(n, henv[n]) for n in names])
+                     for s in post]
+            for d in range(1, max_phases + 1):
+                for bound in coef_bounds:
+                    found = self._cegis_rank(names, pre_vals, paths, d,
+                                             bound)
+                    if found is not None:
+                        return ("terminates", found)
+            return ("unknown", None)
+        finally:
+            self.records, self.assert_results, self.safety_results = saved
+
+    def _cegis_rank(self, names: list[str], pre_vals: list[z3.ExprRef],
+                    paths: list, d: int, bound: int) -> list[str] | None:
+        """One CEGIS run for a d-phase nested ranking template with
+        coefficients in [-bound, bound]; returns the per-phase C
+        expression strings, or None if no such template exists (or the
+        iteration/rlimit budget ran out)."""
+        cs = [[z3.Int(f"_rc{i}_{j}") for j in range(len(names) + 1)]
+              for i in range(d)]
+        cnames = {c.decl().name() for row in cs for c in row}
+
+        def f(i: int, vals: list[z3.ExprRef]) -> z3.ExprRef:
+            e = cs[i][0]
+            for c, v in zip(cs[i][1:], vals):
+                e = op_module.add(e, op_module.mul(c, v))
+            return e
+
+        # per-path nested-template conditions, symbolic in coeffs AND vars
+        path_conds = []
+        for pc, cur in paths:
+            conds = [op_module.ge(f(d - 1, pre_vals), 0)]
+            for i in range(d):
+                rhs = op_module.sub(f(i, pre_vals), 1)
+                if i > 0:
+                    rhs = op_module.add(rhs, f(i - 1, pre_vals))
+                conds.append(op_module.le(f(i, cur), rhs))
+            allc = z3.And(conds)
+            path_conds.append((pc, allc, _free_consts([*pc, allc],
+                                                      skip=cnames)))
+
+        synth = z3.Solver()
+        synth.set("rlimit", self.solver_rlimit)
+        for row in cs:
+            for c in row:
+                synth.add(op_module.ge(c, -bound), op_module.le(c, bound))
+
+        for _ in range(self.MAX_CEGIS_ITERS):
+            if synth.check() != z3.sat:
+                return None
+            m = synth.model()
+            csub = [(c, m.eval(c, model_completion=True))
+                    for row in cs for c in row]
+            ok = True
+            for pc, conds, uvars in path_conds:
+                self.solver.push()
+                for c in pc:
+                    self.solver.add(c)
+                self.solver.add(z3.Not(z3.substitute(conds, csub)))
+                r = self.solver.check()
+                if r == z3.sat:
+                    cm = self.solver.model()
+                    usub = [(u, cm.eval(u, model_completion=True))
+                            for u in uvars]
+                    self.solver.pop()
+                    # the guessed coeffs fail at this concrete point:
+                    # require future guesses to handle it
+                    synth.add(z3.substitute(conds, usub))
+                    ok = False
+                    continue
+                self.solver.pop()
+                if r == z3.unknown:
+                    return None
+            if ok:
+                return [_lin_str(m, cs[i], names) for i in range(d)]
+        return None
+
+    def prove_nontermination(self, loop: int = 0,
+                             assume: tuple[z3.ExprRef, ...] | list = ()
+                             ) -> tuple[str, dict[str, str] | None]:
+        """
+        Prove the loop-th loop DIVERGES on some concrete input — the
+        complement of prove_termination, whose "unknown" is never a
+        non-termination proof. Two sound engines, tried in order:
+
+          lasso: a reachable loop-head state that one iteration maps
+                 exactly back to itself (every variable, arrays included)
+          recurrent set: a CEGIS-synthesized linear set S (1-2 half-planes
+                 over the loop variables) that contains a reachable state,
+                 implies the guard, is closed under EVERY body path, and
+                 from which no break/return path is feasible
+
+        Both are demonic — they hold for every value of unknown()/nondet()
+        — and reachability of the witness state is established by the
+        bounded entry exploration, so "diverges" carries genuine concrete
+        mainQ inputs in cex. `assume` takes verified invariants (see
+        prove_termination); they soundly weaken the closure obligations
+        because every reachable state satisfies them.
+
+        Caveat (as with prove_inductive's step): nested loops inside the
+        body are explored to max_depth, so bodies whose inner loops need
+        more iterations than that are not fully covered by the
+        recurrent-set closure check.
+
+        Returns ("diverges", cex-inputs) or ("unknown", None) — unknown
+        means no witness was found, NOT that the loop terminates.
+        """
+        node, entry_states = self._loop_target(loop)
+        saved = (self.records, self.assert_results, self.safety_results)
+        self.records, self.assert_results, self.safety_results = [], [], []
+        try:
+            if not entry_states:
+                return ("unknown", None)
+            henv, _h, guard, back, exits = self._loop_transition(
+                node, entry_states, assume)
+            if back is None:
+                return ("unknown", None)   # loop cannot even iterate
+            cond_node, body, nxt = _loop_cond_body(node)
+
+            cex = self._lasso_check(entry_states, cond_node, body, nxt)
+            if cex is not None:
+                return ("diverges", cex)
+
+            cex = self._recurrent_set(henv, guard, back, exits,
+                                      entry_states, cond_node, assume)
+            if cex is not None:
+                return ("diverges", cex)
+            return ("unknown", None)
+        finally:
+            self.records, self.assert_results, self.safety_results = saved
+
+    def _lasso_check(self, entry_states: list[SymState],
+                     cond_node: c_ast.Node, body: c_ast.Compound,
+                     nxt: c_ast.Node | None) -> dict[str, str] | None:
+        """A reachable loop-head state that one iteration maps exactly to
+        itself: solve entry-pc ∧ guard ∧ post == pre per entry path. Paths
+        that introduce fresh symbols (unknown(), recursion cap) are
+        skipped — repetition under a *chosen* fresh value proves nothing.
+        Returns the concrete diverging mainQ inputs, or None."""
+        for st in entry_states:
+            base = _free_const_names([*st.pc, *st.env.values()])
+            self._hypothetical = True
+            try:
+                posts = self._advance_iteration([st], cond_node, body, nxt)
+            finally:
+                self._hypothetical = False
+            for s in posts:
+                eqs = []
+                for name, pre_v in st.env.items():
+                    cur_v = s.env.get(name)
+                    if cur_v is None or cur_v.sort() != pre_v.sort():
+                        eqs = None
+                        break
+                    eqs.append(cur_v == pre_v)
+                if eqs is None:
+                    continue
+                if _free_const_names([*s.pc, *s.env.values()]) - base:
+                    continue   # fresh symbols: not a deterministic cycle
+                self.solver.push()
+                for c in [*s.pc, *eqs]:
+                    self.solver.add(c)
+                r = self.solver.check()
+                cex = None
+                if r == z3.sat:
+                    m = self.solver.model()
+                    cex = {n: str(m.eval(_input_var(n, t),
+                                         model_completion=True))
+                           for n, t in self.mainq_params}
+                self.solver.pop()
+                if cex is not None:
+                    return cex
+        return None
+
+    RECURRENT_CONJUNCTS = (1, 2)   # half-planes in the recurrent-set template
+
+    def _recurrent_set(self, henv: dict[str, z3.ExprRef],
+                       guard: z3.ExprRef, back: list[SymState],
+                       exits: list[SymState],
+                       entry_states: list[SymState],
+                       cond_node: c_ast.Node,
+                       assume) -> dict[str, str] | None:
+        """Synthesize a linear recurrent set for the havoc'd transition;
+        returns the diverging mainQ inputs of a reachable seed inside the
+        verified set, or None."""
+        names = sorted(n for n, v in henv.items()
+                       if v.sort() == z3.IntSort())
+        if not names:
+            return None
+        pre_vals = [henv[n] for n in names]
+        inv_pre = [_subst_env(a, henv) for a in assume]
+
+        seeds = self._loop_head_seeds(entry_states, cond_node, names)
+        if not seeds:
+            return None   # no reachable state can even enter the loop
+
+        back_data = [(s.pc, [s.env.get(n, henv[n]) for n in names])
+                     for s in back]
+        # small coefficient bounds on purpose: real recurrent sets look
+        # like "x >= 1", and large bounds mostly buy a slow proof that no
+        # set exists (terminating loops pay that price on every query)
+        for m in self.RECURRENT_CONJUNCTS:
+            for bound in (1, 4):
+                got = self._cegis_recurrent(names, pre_vals, inv_pre, guard,
+                                            back_data, exits, seeds, m,
+                                            bound)
+                if got is not None:
+                    return got
+        return None
+
+    def _loop_head_seeds(self, entry_states: list[SymState],
+                         cond_node: c_ast.Node, names: list[str],
+                         max_seeds: int = 4
+                         ) -> list[tuple[list, dict[str, str]]]:
+        """Concrete reachable loop-head states that satisfy the guard,
+        each paired with the mainQ inputs reaching it: [(values, inputs)].
+        Seeds anchor recurrent-set synthesis to states that provably
+        occur, making a "diverges" verdict witnessed and sound."""
+        seeds: list[tuple[list, dict[str, str]]] = []
+        for st in entry_states:
+            graw, st2 = self._eval_expr_effects(cond_node, st)
+            self.solver.push()
+            for c in st2.pc:
+                self.solver.add(c)
+            self.solver.add(_as_bool(graw))
+            while len(seeds) < max_seeds and self.solver.check() == z3.sat:
+                m = self.solver.model()
+                vals = [m.eval(st.env[n], model_completion=True)
+                        for n in names]
+                inputs = {n: str(m.eval(_input_var(n, t),
+                                        model_completion=True))
+                          for n, t in self.mainq_params}
+                seeds.append((vals, inputs))
+                # block this exact head state so later seeds differ
+                self.solver.add(z3.Not(z3.And(
+                    [st.env[n] == v for n, v in zip(names, vals)])))
+            self.solver.pop()
+            if len(seeds) >= max_seeds:
+                break
+        return seeds
+
+    def _cegis_recurrent(self, names: list[str],
+                         pre_vals: list[z3.ExprRef],
+                         inv_pre: list[z3.ExprRef], guard: z3.ExprRef,
+                         back_data: list, exits: list[SymState],
+                         seeds: list, m: int,
+                         bound: int) -> dict[str, str] | None:
+        """One CEGIS run for an m-half-plane recurrent set with template
+        coefficients in [-bound, bound]; returns the witness inputs of a
+        seed inside the verified set, or None."""
+        ws = [[z3.Int(f"_ws{i}_{j}") for j in range(len(names) + 1)]
+              for i in range(m)]
+        wnames = {c.decl().name() for row in ws for c in row}
+
+        def S(vals: list) -> z3.ExprRef:
+            cs = []
+            for row in ws:
+                e = row[0]
+                for c, v in zip(row[1:], vals):
+                    e = op_module.add(e, op_module.mul(c, v))
+                cs.append(op_module.ge(e, 0))
+            return z3.And(cs)
+
+        synth = z3.Solver()
+        synth.set("rlimit", self.solver_rlimit)
+        for row in ws:
+            for c in row:
+                synth.add(op_module.ge(c, -bound), op_module.le(c, bound))
+        # at least one reachable, guard-satisfying seed lies in S
+        synth.add(z3.Or([S(vals) for vals, _ in seeds]))
+
+        # (context constraints, membership that must follow | None="must
+        # be infeasible"): S => guard; closure per back path; no escape
+        obligations: list[tuple[list, z3.ExprRef | None]] = [
+            (inv_pre + [z3.Not(guard)], None)]
+        obligations += [(list(pc), S(cur)) for pc, cur in back_data]
+        obligations += [(list(s.pc), None) for s in exits]
+
+        s_pre = S(pre_vals)
+        for _ in range(self.MAX_CEGIS_ITERS):
+            if synth.check() != z3.sat:
+                return None
+            model = synth.model()
+            wsub = [(c, model.eval(c, model_completion=True))
+                    for row in ws for c in row]
+            ok = True
+            for ctx, member in obligations:
+                query = [z3.substitute(s_pre, wsub), *ctx]
+                if member is not None:
+                    query.append(z3.Not(z3.substitute(member, wsub)))
+                self.solver.push()
+                for c in query:
+                    self.solver.add(c)
+                r = self.solver.check()
+                if r == z3.sat:
+                    cm = self.solver.model()
+                    uvars = _free_consts(
+                        [s_pre, *ctx] + ([member] if member is not None
+                                         else []), skip=wnames)
+                    usub = [(u, cm.eval(u, model_completion=True))
+                            for u in uvars]
+                    self.solver.pop()
+                    inst_pre = z3.substitute(s_pre, usub)
+                    if member is None:
+                        synth.add(z3.Not(inst_pre))
+                    else:
+                        synth.add(z3.Or(z3.Not(inst_pre),
+                                        z3.substitute(member, usub)))
+                    ok = False
+                    continue
+                self.solver.pop()
+                if r == z3.unknown:
+                    return None
+            if ok:
+                for vals, inputs in seeds:
+                    if z3.is_true(z3.simplify(z3.substitute(S(vals),
+                                                            wsub))):
+                        return inputs
+                return seeds[0][1]   # unreachable: the seed clause held
+        return None
+
+    def _loop_transition(self, node: c_ast.While | c_ast.For,
+                         entry_states: list[SymState],
+                         assume: tuple[z3.ExprRef, ...] | list = ()
+                         ) -> tuple[dict[str, z3.ExprRef], SymState,
+                                    z3.ExprRef, list[SymState] | None,
+                                    list[SymState]]:
+        """
+        Havoc transition of ONE iteration of loop `node`, shared by the
+        termination/non-termination provers: returns
+        (henv, hstate, guard, back, exits) where henv maps every variable
+        at the loop head to a fresh _ind_* constant, hstate is the havoc
+        state constrained by the `assume` invariants and the guard, guard
+        is the guard's boolean value over the _ind_* pre-state, back holds
+        the body paths that head back to the guard (a for's `next`
+        applied), and exits the break/return paths that leave the loop
+        instead. back is None when the loop cannot iterate at all under
+        `assume`. Callers shield run() results.
+        """
+        cond_node, body, nxt = _loop_cond_body(node)
+        henv = {name: z3.Const(f"_ind_{name}", val.sort())
+                for name, val in entry_states[0].env.items()}
+        h = SymState(env=dict(henv))
+        for inv in assume:
+            h = h.add_constraint(_subst_env(inv, henv))
+        graw, h = self._eval_expr_effects(cond_node, h)
+        guard = _as_bool(graw)
+        h = h.add_constraint(guard)   # loop iterates
+        if not self._feasible(h):
+            return henv, h, guard, None, []
+        self._hypothetical = True
+        try:
+            raw = self._exec_compound(body, [h])
+        finally:
+            self._hypothetical = False
+        back = self._after_body(raw, nxt)
+        exits = [s for s in raw if s.exit in (Exit.BREAK, Exit.RETURN)]
+        return henv, h, guard, back, exits
 
     def _loop_target(self, loop: int
                      ) -> tuple[c_ast.While | c_ast.For, list[SymState]]:
@@ -1882,6 +2327,46 @@ def _subst_env(inv: z3.ExprRef, env: dict[str, z3.ExprRef]) -> z3.ExprRef:
     return z3.substitute(inv, pairs)
 
 
+def _free_consts(exprs, skip: set[str] = frozenset()) -> list[z3.ExprRef]:
+    """Uninterpreted constants appearing in `exprs` (DAG-deduplicated,
+    iterative so deep terms don't hit the recursion limit), minus `skip`.
+    Used by the CEGIS synthesizers to know what to instantiate."""
+    seen: set[int] = set()
+    out: dict[str, z3.ExprRef] = {}
+    stack = list(exprs)
+    while stack:
+        t = stack.pop()
+        i = t.get_id()
+        if i in seen:
+            continue
+        seen.add(i)
+        if z3.is_const(t) and t.decl().kind() == z3.Z3_OP_UNINTERPRETED:
+            if t.decl().name() not in skip:
+                out.setdefault(t.decl().name(), t)
+        else:
+            stack.extend(t.children())
+    return list(out.values())
+
+
+def _free_const_names(exprs) -> set[str]:
+    return {c.decl().name() for c in _free_consts(exprs)}
+
+
+def _lin_str(model: z3.ModelRef, row: list[z3.ExprRef],
+             names: list[str]) -> str:
+    """Human/CLI-readable C expression of one synthesized linear template
+    row [c0, c1, ...] over `names`: e.g. "y + 1", "x - 2*y"."""
+    vals = [model.eval(c, model_completion=True).as_long() for c in row]
+    terms = []
+    for v, n in zip(vals[1:], names):
+        if v == 0:
+            continue
+        terms.append(n if v == 1 else f"-{n}" if v == -1 else f"{v}*{n}")
+    if vals[0] != 0 or not terms:
+        terms.append(str(vals[0]))
+    return " + ".join(terms).replace("+ -", "- ")
+
+
 # ─────────────────────────────────────────────── standalone CLI ─────
 
 def main() -> None:
@@ -1923,11 +2408,19 @@ def main() -> None:
     ap.add_argument("--k", type=int, default=1,
                     help="induction depth for --prove (default 1)")
     ap.add_argument("--terminates", metavar="RANK",
-                    help="prove the loop terminates via this integer "
-                         'ranking expression (e.g. "r")')
+                    help="prove the loop terminates: an integer ranking "
+                         'expression ("r"), a lexicographic tuple '
+                         '("x ; y"), or "auto" to synthesize a linear or '
+                         "multiphase ranking function automatically")
+    ap.add_argument("--phases", type=int, default=3,
+                    help="max phases for --terminates auto (default 3)")
+    ap.add_argument("--nonterm", action="store_true",
+                    help="prove the loop DIVERGES on some concrete input "
+                         "(lasso / recurrent set); exits 1 if proven")
     ap.add_argument("--assume", action="append", metavar="EXPR", default=[],
-                    help="supporting invariant for --terminates; verified "
-                         "inductive first (dropped with a warning if not)")
+                    help="supporting invariant for --terminates/--nonterm; "
+                         "verified inductive first (dropped with a warning "
+                         "if not)")
     args = ap.parse_args()
 
     engine = CSymEx(args.file, args.depth,
@@ -1974,23 +2467,63 @@ def main() -> None:
         print(line)
         violated |= status != "valid"
 
-    if args.terminates:
+    assume_exprs = []
+    if args.assume and (args.terminates or args.nonterm):
         assumes = [(t, engine.parse_c_expr(t)) for t in args.assume]
-        if assumes:
-            kept = {id(e) for e in engine.houdini([e for _, e in assumes],
-                                                  loop=args.loop)}
-            for t, e in assumes:
-                if id(e) not in kept:
-                    print(f"warning: --assume {t} is not inductive; dropped")
-            assumes = [(t, e) for t, e in assumes if id(e) in kept]
-        rank = engine.parse_c_expr(args.terminates, as_bool=False)
-        status, cex = engine.prove_termination(
-            rank, loop=args.loop, assume=[e for _, e in assumes])
-        line = f"terminates (rank {args.terminates}): {status}"
+        kept = {id(e) for e in engine.houdini([e for _, e in assumes],
+                                              loop=args.loop)}
+        for t, e in assumes:
+            if id(e) not in kept:
+                print(f"warning: --assume {t} is not inductive; dropped")
+        assume_exprs = [e for _, e in assumes if id(e) in kept]
+
+    if args.terminates:
+        spec = args.terminates.strip()
+        if spec.lower() == "auto":
+            status, ranks = engine.synthesize_ranking(
+                loop=args.loop, assume=assume_exprs,
+                max_phases=args.phases)
+            if status == "terminates" and ranks:
+                label = ("rank" if len(ranks) == 1
+                         else f"{len(ranks)}-phase rank")
+                print(f"terminates (auto): terminates  "
+                      f"[{label}: {' ; '.join(ranks)}]")
+            elif status == "terminates":
+                print("terminates (auto): terminates  "
+                      "[loop cannot iterate]")
+            else:
+                print(f"terminates (auto): unknown  (no linear rank up "
+                      f"to {args.phases} phases; the loop may still "
+                      f"terminate — or try --nonterm)")
+            violated |= status != "terminates"
+        elif ";" in spec:
+            ranks = [engine.parse_c_expr(t, as_bool=False)
+                     for t in spec.split(";") if t.strip()]
+            status, cex = engine.prove_termination_lex(
+                ranks, loop=args.loop, assume=assume_exprs)
+            line = f"terminates (lex rank {spec}): {status}"
+            if cex:
+                line += f"  counterexample: {cex}"
+            print(line)
+            violated |= status != "terminates"
+        else:
+            rank = engine.parse_c_expr(spec, as_bool=False)
+            status, cex = engine.prove_termination(
+                rank, loop=args.loop, assume=assume_exprs)
+            line = f"terminates (rank {spec}): {status}"
+            if cex:
+                line += f"  counterexample: {cex}"
+            print(line)
+            violated |= status != "terminates"
+
+    if args.nonterm:
+        status, cex = engine.prove_nontermination(loop=args.loop,
+                                                  assume=assume_exprs)
+        line = f"nonterm: {status}"
         if cex:
-            line += f"  counterexample: {cex}"
+            line += f"  diverging input: {cex}"
         print(line)
-        violated |= status != "terminates"
+        violated |= status == "diverges"
 
     for loc, text in args.check_inv:
         status, cex = engine.check_inv(loc, engine.parse_c_expr(text))

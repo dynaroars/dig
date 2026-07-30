@@ -48,7 +48,9 @@ This page demonstrates <tt>symex_c</tt>, the symbolic execution engine used by
 (path condition + variable values at each <tt>vtraceX</tt> point), checking
 <tt>vassert</tt>s and safety properties (division by zero, array bounds, overflow) with
 concrete counterexamples and witness traces, generating path-covering test inputs, and
-proving loop invariants and termination <i>unboundedly</i> via k-induction and ranking functions.
+proving loop invariants and termination <i>unboundedly</i> via k-induction and ranking
+functions &mdash; user-given, lexicographic, or auto-synthesized (linear and multiphase) &mdash;
+plus <i>non-termination</i> proofs with concrete diverging inputs.
 
 [<a href="https://github.com/dynaroars/dig">GitHub</a>]
 [<a href="https://roars.dev">ROARS Lab</a>]
@@ -122,13 +124,21 @@ and <tt>vassert(cond)</tt> for assertions checked per path.
 </tr>
 <tr>
   <td><label for="opt-terminates"><tt>--terminates</tt></label></td>
-  <td><input type="text" id="opt-terminates" size="40" placeholder="r"></td>
-  <td>prove the loop terminates via this integer ranking expression</td>
+  <td><input type="text" id="opt-terminates" size="40" placeholder="r &nbsp;|&nbsp; x ; y &nbsp;|&nbsp; auto"></td>
+  <td>prove the loop terminates: an integer ranking expression, a lexicographic
+      tuple (<tt>x ; y</tt>), or <tt>auto</tt> to synthesize a linear/multiphase
+      ranking function automatically</td>
+</tr>
+<tr>
+  <td><label for="opt-nonterm"><tt>--nonterm</tt></label></td>
+  <td><input type="checkbox" id="opt-nonterm"></td>
+  <td>prove the loop <i>diverges</i> on some concrete input (lasso / recurrent
+      set), printing the diverging input</td>
 </tr>
 <tr>
   <td><label for="opt-assume"><tt>--assume</tt></label></td>
   <td><input type="text" id="opt-assume" size="40" placeholder="y >= 1"></td>
-  <td>supporting invariants for <tt>--terminates</tt> (verified inductive first)</td>
+  <td>supporting invariants for <tt>--terminates</tt>/<tt>--nonterm</tt> (verified inductive first)</td>
 </tr>
 </table>
 </fieldset>
@@ -180,6 +190,9 @@ var PRESETS = {
   symex_kinduction:   { prove: "q*y + r == x", gen_tests: true },
   symex_k2induction:  { prove: "x != 1", k: 2 },
   symex_termination:  { terminates: "r", assume: "y >= 1" },
+  symex_multiphase:   { terminates: "auto" },
+  symex_lexicographic: { terminates: "x ; y" },
+  symex_diverge:      { nonterm: true },
   symex_overflow_bad: { check_overflow: true },
   symex_merge_diamonds: { merge: true },
   symex_divider_bad:  { gen_tests: true },
@@ -227,7 +240,8 @@ function resetOptions() {
    "opt-houdini", "opt-terminates", "opt-assume"].forEach(function (id) {
     $(id).value = "";
   });
-  ["opt-gen_tests", "opt-check_overflow", "opt-merge", "opt-no_safety"].forEach(function (id) {
+  ["opt-gen_tests", "opt-check_overflow", "opt-merge", "opt-no_safety",
+   "opt-nonterm"].forEach(function (id) {
     $(id).checked = false;
   });
 }
@@ -282,7 +296,7 @@ function gatherOptions() {
     terminates: strOpt("opt-terminates"),
     assume: strOpt("opt-assume")
   };
-  ["gen_tests", "check_overflow", "merge", "no_safety"].forEach(function (name) {
+  ["gen_tests", "check_overflow", "merge", "no_safety", "nonterm"].forEach(function (name) {
     if ($("opt-" + name).checked) opts[name] = true;
   });
   return opts;

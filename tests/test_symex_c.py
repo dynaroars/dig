@@ -1514,6 +1514,180 @@ class TestTermination:
         assert "decrease-violated" in bad.stdout   # q >= 0 passes the bound
 
 
+# ─────────────────────────────── lexicographic ranking tuples ───────
+
+class TestLexicographicTermination:
+    # inner counter y counts down; when it hits 0 the outer counter x
+    # steps and y resets to unknown(). No single linear rank exists.
+    NESTED = HEADER + """
+        int mainQ(int x, int y){
+            vassume(y >= 0);
+            while (x > 0 && y >= 0) {
+                if (y > 0) { y = y - 1; }
+                else       { x = x - 1; y = unknown(); }
+            }
+            vtrace1(x, y, x, y);
+            return x;
+        }
+    """
+
+    def engine(self, tmp_path, src=None):
+        f = tmp_path / "prog.c"
+        f.write_text(src or self.NESTED)
+        return CSymEx(f, 1)   # depth-independent, like induction
+
+    def test_lex_tuple_proves(self, tmp_path):
+        eng = self.engine(tmp_path)
+        status, cex = eng.prove_termination_lex([X("x"), X("y")])
+        assert status == "terminates" and cex is None
+
+    def test_wrong_component_order_rejected(self, tmp_path):
+        # <y, x> fails: on the reset path y jumps to unknown() while x
+        # (the later component) is what actually decreases
+        eng = self.engine(tmp_path)
+        status, cex = eng.prove_termination_lex([X("y"), X("x")])
+        assert status == "lex-violated"
+        assert cex and any(k.startswith("_ind_") for k in cex)
+
+    def test_single_component_matches_plain_rank(self, tmp_path):
+        f = tmp_path / "prog.c"
+        f.write_text(TestKInduction.DIVIDER)
+        eng = CSymEx(f, 1)
+        status, _ = eng.prove_termination_lex([X("r")],
+                                              assume=[X("y") >= 1])
+        assert status == "terminates"
+
+    def test_cli_lex_tuple(self):
+        prog = PROGS_DIR / "lexicographic.c"
+        ok = subprocess.run(
+            [sys.executable, str(ENGINE_FILE), str(prog),
+             "--terminates", "x ; y"],
+            capture_output=True, text=True)
+        assert ok.returncode == 0, ok.stdout + ok.stderr
+        assert "terminates (lex rank x ; y): terminates" in ok.stdout
+
+
+# ─────────────────────────────── ranking-function synthesis ─────────
+
+class TestRankSynthesis:
+    def test_linear_rank_found_and_reverifies(self, tmp_path):
+        f = tmp_path / "prog.c"
+        f.write_text(TestKInduction.DIVIDER)
+        eng = CSymEx(f, 1)
+        status, ranks = eng.synthesize_ranking(assume=[X("y") >= 1])
+        assert status == "terminates"
+        assert len(ranks) == 1   # a plain linear rank exists
+        # the synthesized expression is a full proof on its own
+        st2, _ = eng.prove_termination(
+            eng.parse_c_expr(ranks[0], as_bool=False),
+            assume=[X("y") >= 1])
+        assert st2 == "terminates"
+
+    def test_multiphase_needed(self, tmp_path):
+        # x rises while y > 0, then falls: provably no 1-phase linear
+        # rank, but the nested pair <y + 1, x> works
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + """
+            int mainQ(int x, int y){
+                while (x > 0) { x = x + y; y = y - 1; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        eng = CSymEx(f, 1)
+        status, ranks = eng.synthesize_ranking()
+        assert status == "terminates"
+        assert len(ranks) == 2
+
+    def test_nonterminating_loop_stays_unknown(self, tmp_path):
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + """
+            int mainQ(int x, int y){
+                while (x > 0) { x = x + 1; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        eng = CSymEx(f, 1)
+        status, ranks = eng.synthesize_ranking()
+        assert (status, ranks) == ("unknown", None)
+
+    def test_cli_auto(self):
+        prog = PROGS_DIR / "multiphase.c"
+        ok = subprocess.run(
+            [sys.executable, str(ENGINE_FILE), str(prog),
+             "--terminates", "auto"],
+            capture_output=True, text=True)
+        assert ok.returncode == 0, ok.stdout + ok.stderr
+        assert "terminates (auto): terminates" in ok.stdout
+        assert "phase" in ok.stdout   # needed the multiphase template
+
+
+# ─────────────────────────────── non-termination proving ────────────
+
+class TestNontermination:
+    def engine(self, tmp_path, src):
+        f = tmp_path / "prog.c"
+        f.write_text(src)
+        return CSymEx(f, 4)
+
+    def test_recurrent_set_diverges_with_witness(self, tmp_path):
+        eng = self.engine(tmp_path, HEADER + """
+            int mainQ(int x, int y){
+                while (x > 0) { x = x + 1; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        status, cex = eng.prove_nontermination()
+        assert status == "diverges"
+        assert int(cex["x"]) >= 1   # a genuinely diverging input
+
+    def test_lasso_state_repetition(self, tmp_path):
+        # x is rewritten to itself; the state repeats exactly whenever
+        # y == x at entry, an exact concrete cycle
+        eng = self.engine(tmp_path, HEADER + """
+            int mainQ(int x, int y){
+                while (x > 0) { y = x; x = 2*x - x; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        status, cex = eng.prove_nontermination()
+        assert status == "diverges"
+        assert int(cex["x"]) >= 1
+
+    def test_terminating_loop_is_unknown(self, tmp_path):
+        f = tmp_path / "prog.c"
+        f.write_text(TestKInduction.DIVIDER)
+        eng = CSymEx(f, 4)
+        status, cex = eng.prove_nontermination(assume=[X("y") >= 1])
+        assert (status, cex) == ("unknown", None)
+
+    def test_nondet_body_makes_no_false_claim(self, tmp_path):
+        # every iteration rewrites x with unknown(): the loop CAN run
+        # forever, but only if the environment cooperates — a demonic
+        # prover must not claim divergence
+        eng = self.engine(tmp_path, HEADER + """
+            int mainQ(int x, int y){
+                while (x > 0) { x = unknown(); }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        status, cex = eng.prove_nontermination()
+        assert (status, cex) == ("unknown", None)
+
+    def test_cli_nonterm_exits_nonzero(self):
+        prog = PROGS_DIR / "diverge.c"
+        out = subprocess.run(
+            [sys.executable, str(ENGINE_FILE), str(prog), "--nonterm"],
+            capture_output=True, text=True)
+        assert out.returncode == 1   # proven divergence is a finding
+        assert "nonterm: diverges" in out.stdout
+        assert "diverging input" in out.stdout
+
+
 # ───────────────────────────────────────────── witness traces ───────
 
 class TestWitnessTraces:
