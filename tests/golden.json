@@ -440,9 +440,10 @@
   "nla/cohencu": {
     "eqts": [
       "12*y - z**2 + 6*z - 12",
+      "216*x - z**3 + 18*z**2 - 108*z + 216",
       "6*n - z + 6"
     ],
-    "min_invs": 15,
+    "min_invs": 14,
     "status": "ok"
   },
   "nla/cohendiv": {
@@ -525,7 +526,7 @@
     "eqts": [
       "a - r**2 + r - 2*x"
     ],
-    "min_invs": 6,
+    "min_invs": 7,
     "status": "ok"
   },
   "nla/freire2": {
@@ -546,17 +547,14 @@
     "eqts": [
       "x*z - x - y*z + 1"
     ],
-    "min_invs": 7,
+    "min_invs": 10,
     "status": "ok"
   },
   "nla/geo3": {
     "eqts": [
-      "a**2*y*z - a**2 - a*x*z + a*x - 2*a*y*z + 2*a + 2*x*z - 2*x",
-      "a*k*y*z - a*k - 10*a*y*z + 10*a - k*x*z + k*x + 10*x*z - 10*x",
-      "a*y**2*z - 1000000000*a*y*z - a*y + 1000000000*a - x*y*z + x*y + 1000000000*x*z - 1000000000*x",
-      "a*y*z**2 - 10*a*y*z - a*z + 10*a - x*z**2 + 11*x*z - 10*x"
+      "a*y*z - a - x*z + x"
     ],
-    "min_invs": 7,
+    "min_invs": 6,
     "status": "ok"
   },
   "nla/hard": {
