@@ -1,7 +1,7 @@
 # DIG
 
 
-## Try out DIG live here: https://roars.dev/dig/
+## Try out DIG live here: https://dig.roars.dev/
 
 
 **DIG** is an _invariant generation_ tool that discovers program properties at _arbitrary_ program locations (e.g., loop invariants, post conditions). DIG focuses on _numerical_ invariants and currently supports the following numerical relations:
