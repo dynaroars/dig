@@ -87,6 +87,20 @@ root@931ac8632c7f:/dig/src# git pull
 ```
 </details> 
 
+### Running from a local checkout
+
+From the repository root, use the project's virtual-environment interpreter:
+
+```bash
+.venv/bin/python -O src/dig.py examples/traces/cohendiv.csv -log 3
+```
+
+To analyze a C program instead, for example:
+
+```bash
+.venv/bin/python -O src/dig.py examples/cohendiv.c -maxdeg 2 -types eqt -log 4
+```
+
 ### Usage
 
 DIG can generate invariants from a [trace file](#generating-invariants-from-traces) (a plain text semi-colon separated `csv` file consisting of concrete values of variables) or a [program](#generating-invariants-from-a-program) (a C file `.c`).
@@ -555,4 +569,3 @@ Technical information about DIG and projects build upon DIG can be found from th
 ## ACKNOWLEDGEMENTS
 
 * This project is supported in part by NSF grants CCF 1948536, CCF 2200621 and ARO grant W911NF-19-1-0054. It is also supported by gifts from Facebook and Amazon Research Awards.
-
