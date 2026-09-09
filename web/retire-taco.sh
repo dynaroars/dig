@@ -7,6 +7,8 @@
 # Final archive of service definitions/configuration (run after the rollback
 # period):
 #   sudo ./web/retire-taco.sh --finalize
+# If Taco has multiple retired forced deployment keys:
+#   sudo ./web/retire-taco.sh --finalize --all-deploy-keys
 
 set -Eeuo pipefail
 
@@ -19,11 +21,17 @@ readonly PRIME_HEALTH_URL="https://dig.roars.dev/api/health"
 readonly -a DIG_UNITS=("dig-ngrok-tunnel.service" "dig-backend.service")
 
 FINALIZE=false
-case "${1:-}" in
-  "") ;;
-  --finalize) FINALIZE=true ;;
-  *) echo "Usage: sudo $0 [--finalize]" >&2; exit 2 ;;
-esac
+REMOVE_ALL_DEPLOY_KEYS=false
+for argument in "$@"; do
+  case "${argument}" in
+    --finalize) FINALIZE=true ;;
+    --all-deploy-keys) REMOVE_ALL_DEPLOY_KEYS=true ;;
+    *)
+      echo "Usage: sudo $0 [--finalize] [--all-deploy-keys]" >&2
+      exit 2
+      ;;
+  esac
+done
 
 fail() {
   echo "ERROR: $*" >&2
@@ -58,8 +66,13 @@ done
 KEY_MATCH_COUNT=0
 if [[ -f "${AUTHORIZED_KEYS}" ]]; then
   KEY_MATCH_COUNT="$(grep -Ec 'command="[^"]*deploy[^"]*"' "${AUTHORIZED_KEYS}" || true)"
-  [[ "${KEY_MATCH_COUNT}" -le 1 ]] \
-    || fail "Found ${KEY_MATCH_COUNT} forced deploy keys; refusing ambiguous key removal."
+  if [[ "${KEY_MATCH_COUNT}" -gt 1 && "${REMOVE_ALL_DEPLOY_KEYS}" == false ]]; then
+    echo "Matching forced-command entries (public key bodies redacted):" >&2
+    grep -nE 'command="[^"]*deploy[^"]*"' "${AUTHORIZED_KEYS}" \
+      | sed -E 's/(ssh-(rsa|ed25519)|ecdsa-[^ ]+) [A-Za-z0-9+\/=]+/\1 <public-key-redacted>/' \
+      >&2
+    fail "Found ${KEY_MATCH_COUNT} forced deploy keys. Re-run with --all-deploy-keys only if all belong to this retired deployment."
+  fi
 fi
 
 RETIREMENT_ID="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -84,13 +97,13 @@ for unit in "${DIG_UNITS[@]}"; do
 done
 
 echo "[4/6] Revoking the forced DIG deployment key..."
-if [[ "${KEY_MATCH_COUNT}" -eq 1 ]]; then
+if [[ "${KEY_MATCH_COUNT}" -eq 1 || ( "${KEY_MATCH_COUNT}" -gt 1 && "${REMOVE_ALL_DEPLOY_KEYS}" == true ) ]]; then
   KEYS_TMP="$(mktemp)"
   trap 'rm -f -- "${KEYS_TMP:-}"' EXIT
   awk '!/command="[^"]*deploy[^"]*"/' "${AUTHORIZED_KEYS}" > "${KEYS_TMP}"
   install -o "${APP_USER}" -g "${APP_USER}" -m 0600 \
     "${KEYS_TMP}" "${AUTHORIZED_KEYS}"
-  echo "  Removed one forced deployment key; backup saved."
+  echo "  Removed ${KEY_MATCH_COUNT} forced deployment key(s); backup saved."
 else
   echo "  No forced deployment key containing 'deploy' was found."
 fi
