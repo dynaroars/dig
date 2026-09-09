@@ -12,6 +12,21 @@ https://dig.roars.dev
 Complete the checks below before deleting anything from Taco. Commands in the
 Taco sections must be run on Taco, not Prime.
 
+For the reversible Taco shutdown and key revocation described below, the
+scripted path is:
+
+```bash
+sudo -u webapp git -C /home/webapp/dig pull --ff-only origin dev
+sudo /home/webapp/dig/web/retire-taco.sh
+```
+
+After the rollback period, archive the obsolete service definitions and ngrok
+configuration with:
+
+```bash
+sudo /home/webapp/dig/web/retire-taco.sh --finalize
+```
+
 ## 1. Verify Prime before retiring Taco
 
 From any internet-connected machine:
