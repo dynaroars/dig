@@ -27,13 +27,6 @@ configuration with:
 sudo /home/webapp/dig/web/retire-taco.sh --finalize
 ```
 
-If the script reports multiple forced deployment keys, inspect the redacted
-entries it prints. If every match belongs to this retired DIG deployment, run:
-
-```bash
-sudo /home/webapp/dig/web/retire-taco.sh --finalize --all-deploy-keys
-```
-
 ## 1. Verify Prime before retiring Taco
 
 From any internet-connected machine:
