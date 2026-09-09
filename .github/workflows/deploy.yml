@@ -1,87 +1,33 @@
-name: Deploy to production
+name: Validate Prime deployment
 
 on:
   push:
     branches: [dev]
+    paths:
+      - 'src/**'
+      - 'web/**'
+      - 'pyproject.toml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
-  check-changes:
+  validate:
     runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'src/**'
-              - 'web/server.py'
-              - 'web/docker_runner.py'
-              - 'web/run_server.sh'
-              - 'web/requirements.txt'
-              - 'web/Dockerfile*'
-              - 'web/*.service'
-              - 'pyproject.toml'
-            frontend:
-              - 'web/*.html'
-              - 'web/examples/**'
 
-  deploy-backend:
-    needs: check-changes
-    if: needs.check-changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure SSH
+      - name: Check Prime installer syntax
+        run: bash -n web/install-prime.sh
+
+      - name: Compile backend Python
+        run: python -m py_compile web/server.py web/docker_runner.py
+
+      - name: Confirm legacy ngrok endpoint is gone
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.TACO_DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          cat >> ~/.ssh/known_hosts <<'EOF'
-          taco.roars.dev ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDlK6zva+x3QPyW49MqCFV9v4EmhsXUx37JRS1lYd0NP
-          EOF
-
-      - name: Pull latest dev and restart dig-backend
-        run: |
-          ssh -tt -i ~/.ssh/id_deploy \
-              -o StrictHostKeyChecking=yes \
-              -o BatchMode=yes \
-              -o ConnectTimeout=15 \
-              webapp@taco.roars.dev "deploy"
-
-  deploy-frontend:
-    needs: check-changes
-    if: needs.check-changes.outputs.frontend == 'true'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Stage site
-        run: |
-          mkdir -p _site
-          cp web/*.html _site/
-          cp -r web/examples _site/
-
-      - name: Upload static web files
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '_site'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          if grep -R "density-capillary-thinning.ngrok-free.dev" web/index.html web/symexc.html; then
+            echo "Legacy ngrok endpoint is still present" >&2
+            exit 1
+          fi

@@ -49,12 +49,17 @@ class DIGRunner:
             self.use_docker = use_docker
             
         self.docker_image = os.environ.get("DIG_DOCKER_IMAGE", "dig-sandbox")
+        # Docker bind mounts are resolved by the host daemon. A web service may
+        # have a private /tmp namespace, so production can provide an explicit
+        # host-visible state directory without changing tempfile globally.
+        job_dir = os.environ.get("DIG_JOB_DIR")
+        self.job_dir = Path(job_dir).resolve() if job_dir else None
 
     def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, tool: str = "dig") -> Dict[str, Any]:
         options = options or {}
         timeout = min(int(options.get("timeout", 60)), 300)
 
-        with tempfile.TemporaryDirectory(prefix="dig_web_") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix="dig_web_", dir=self.job_dir) as tmpdir:
             tmppath = Path(tmpdir)
             ext = ".c" if input_type == "c" else ".csv"
             input_file = tmppath / f"prog{ext}"

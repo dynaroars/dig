@@ -163,20 +163,12 @@ and <tt>vassert(cond)</tt> for assertions checked per path.
 <script>
 "use strict";
 
-/* Same origin logic as index.html: when hosted on roars.dev (or github.io)
-   API calls go straight to the ngrok tunnel; served locally by Flask, ""
-   keeps them relative. */
-var NGROK_API = "https://density-capillary-thinning.ngrok-free.dev";
-var API_BASE = /roars\.dev$|github\.io$/.test(location.hostname) ? NGROK_API : "";
+/* The production Flask server serves both this page and /api, including when
+   it is reached through Cloudflare Tunnel, so API requests stay same-origin. */
+var API_BASE = "";
 
 function apiFetch(path, init) {
-  var url = API_BASE + path;
-  init = init || {};
-  if (url.indexOf("ngrok-free.dev") !== -1 || location.hostname.indexOf("ngrok-free.dev") !== -1) {
-    init.headers = init.headers || {};
-    init.headers["ngrok-skip-browser-warning"] = "69420";
-  }
-  return fetch(url, init);
+  return fetch(API_BASE + path, init || {});
 }
 
 var activeJobId = null;
