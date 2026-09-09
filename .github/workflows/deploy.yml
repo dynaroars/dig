@@ -25,9 +25,7 @@ jobs:
       - name: Compile backend Python
         run: python -m py_compile web/server.py web/docker_runner.py
 
-      - name: Confirm legacy ngrok endpoint is gone
+      - name: Confirm frontend uses the same-origin API
         run: |
-          if grep -R "density-capillary-thinning.ngrok-free.dev" web/index.html web/symexc.html; then
-            echo "Legacy ngrok endpoint is still present" >&2
-            exit 1
-          fi
+          grep -Fq 'var API_BASE = "";' web/index.html
+          grep -Fq 'var API_BASE = "";' web/symexc.html

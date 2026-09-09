@@ -160,10 +160,6 @@ else
   systemctl enable --now cloudflared.service
 fi
 
-if systemctl list-unit-files dig-ngrok-tunnel.service >/dev/null 2>&1; then
-  systemctl disable --now dig-ngrok-tunnel.service || true
-fi
-
 echo "[9/9] Running health checks..."
 for attempt in {1..20}; do
   if curl --fail --silent http://127.0.0.1:5001/api/health >/dev/null; then
