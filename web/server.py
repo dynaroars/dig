@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.parent))
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 NLA_DIR = DIG_ROOT / "benchmark" / "c" / "nla"
+BENCHMARK_SUITES = {
+    "nla": NLA_DIR,
+    "nla-mosaic": DIG_ROOT / "benchmark" / "c" / "NLA-mosaic",
+    "complexity": DIG_ROOT / "benchmark" / "c" / "complexity",
+    "hola": DIG_ROOT / "benchmark" / "c" / "hola",
+}
 SYMEX_DIR = DIG_ROOT / "tests" / "symex_progs"
 CLASSIC_DIR = Path(__file__).resolve().parent
 
@@ -96,9 +102,9 @@ def _symex_example_files() -> dict[str, Path]:
 def _example_files() -> dict[str, Path]:
     """id -> path for every servable example (globbed, so no path traversal)."""
     files = {}
-    if NLA_DIR.is_dir():
-        for p in sorted(NLA_DIR.glob("*.c")):
-            files[f"nla_{p.stem}"] = p
+    for group, directory in BENCHMARK_SUITES.items():
+        for p in sorted(directory.glob("*.c")):
+            files[f"{group}_{p.stem}"] = p
     for p in sorted(EXAMPLES_DIR.glob("*.csv")):
         files[f"csv_{p.stem}"] = p
     # legacy ids used by the original frontend
@@ -265,24 +271,21 @@ def list_examples():
                 "file": path.name,
             })
         return jsonify({"examples": examples})
-    for ex_id, path in _example_files().items():
-        if ex_id.startswith("nla_"):
+    files = _example_files()
+    for group in BENCHMARK_SUITES:
+        for ex_id, path in files.items():
+            if not ex_id.startswith(f"{group}_"):
+                continue
             stem = path.stem
             examples.append({
                 "id": ex_id,
                 "name": stem,
                 "type": "c",
-                "group": "NLA C benchmarks",
-                "description": NLA_DESCRIPTIONS.get(stem, "NLA benchmark program."),
-                "file": path.name,
-            })
-        elif ex_id.startswith("csv_"):
-            examples.append({
-                "id": ex_id,
-                "name": f"{path.stem} traces",
-                "type": "csv",
-                "group": "CSV traces",
-                "description": f"Execution trace samples for {path.stem}.",
+                "group": group,
+                "description": (
+                    NLA_DESCRIPTIONS.get(stem, "NLA benchmark program.")
+                    if group == "nla" else f"{group} benchmark program."
+                ),
                 "file": path.name,
             })
     return jsonify({"examples": examples})
