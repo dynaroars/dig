@@ -6,6 +6,8 @@ import ast
 import pdb
 import operator
 import functools
+from contextlib import contextmanager
+from contextvars import ContextVar
 import z3
 import helpers.vcommon as CM
 import settings
@@ -25,7 +27,16 @@ z3.set_param("nlsat.seed", 0)
 class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)
-    RLIMIT = settings.SOLVER_RLIMIT
+    _policy = ContextVar("dig_solver_policy", default=None)
+
+    @classmethod
+    @contextmanager
+    def use_policy(cls, policy):
+        token = cls._policy.set(policy)
+        try:
+            yield
+        finally:
+            cls._policy.reset(token)
 
     # names of program variables that are real-valued (float/double). A bare
     # identifier in parse() becomes z3.Real(name) if listed here, else z3.Int,
@@ -101,8 +112,12 @@ class Z3:
 
         solver = z3.Optimize() if maximize else z3.Solver()
         # rlimit = deterministic work-unit cutoff (reproducible under MP
-        # contention), the sole solver bound.
-        solver.set("rlimit", cls.RLIMIT)
+        # contention), with a wall-clock fallback for native arithmetic that
+        # does not return promptly under the work-unit budget.
+        policy = cls._policy.get() or settings.solver_policy()
+        solver.set("rlimit", policy.rlimit)
+        if policy.timeout_ms:
+            solver.set("timeout", policy.timeout_ms)
         return solver
 
     @classmethod

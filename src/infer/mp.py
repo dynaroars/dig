@@ -213,12 +213,17 @@ class Term(NamedTuple):
         assert isinstance(lambda_str, str) and "lambda" in lambda_str
         assert isinstance(trace, dict), trace
 
-        f = eval(lambda_str)
+        f = Term._compile_lambda(lambda_str)
         symbols = f.__code__.co_varnames
         # if trace has more keys than variables in lambda str then remove them
         trace = {s: trace[s] for s in symbols}
         rs = f(**trace)
         return rs
+
+    @staticmethod
+    @functools.cache
+    def _compile_lambda(lambda_str: str):
+        return eval(lambda_str)
 
 
 class MMP(infer.inv.Inv):
@@ -238,6 +243,7 @@ class MMP(infer.inv.Inv):
         self.term = term
         self.is_ieq = is_ieq
 
+    @functools.cache
     def lambdastr(self, use_lambda: bool = False) -> str:
         s = self.term.__str__(use_lambda)
         if self.is_ieq is not None:
@@ -284,6 +290,18 @@ class MMP(infer.inv.Inv):
         assert isinstance(bval, (sympy.logic.boolalg.BooleanTrue,
                           sympy.logic.boolalg.BooleanFalse)), bval
         return bool(bval)
+
+    def weaken_from_traces(self, traces):
+        if not self.is_ieq:
+            return None
+        values = self.term.eval_traces(traces)
+        if not values:
+            return None
+        maximum = max(values)
+        if (not maximum.is_Integer or maximum <= 0
+                or abs(maximum) > settings.IUPPER_MMP):
+            return None
+        return MMP(self.term.mk_le(int(maximum)), stat=self.stat)
 
     @classmethod
     def mp2df_expr(cls, a, b, idx, is_max, is_ieq):
@@ -348,7 +366,9 @@ class Infer(infer.infer._Opt):
     """
     Min-max plus invariants
     """
-    IUPPER = settings.IUPPER_MMP
+    @classmethod
+    def bound_cap(cls):
+        return settings.IUPPER_MMP
 
     def __init__(self, symstates, prog) -> None:
         super().__init__(symstates, prog)

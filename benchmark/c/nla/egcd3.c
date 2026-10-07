@@ -1,3 +1,28 @@
+/*
+ * Purpose: Compute extended GCD with a nested doubling-based quotient/remainder computation.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtraces1: a-x*p-y*r == 0.
+ *   vtraces1: b-x*q-y*s == 0.
+ *   vtraces2: a-x*p-y*r == 0.
+ *   vtraces2: b-x*q-y*s == 0.
+ *   vtraces2: a-k*b-c == 0.
+ *   vtraces3: a-x*p-y*r == 0.
+ *   vtraces3: b-x*q-y*s == 0.
+ *   vtraces3: a-k*b-c == 0.
+ *   vtraces3: v-b*d == 0.
+ *   vtraces4: a-x*p-y*r == 0.
+ *   vtraces4: b-x*q-y*s == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: x >= 1, y >= 1. Determinant changes sign on Euclidean swaps. Inner
+ * doubling preserves v=b*d.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

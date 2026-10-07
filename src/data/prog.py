@@ -64,7 +64,7 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
 
 class Symbs(tuple):
     def __new__(cls, ss):
-        assert ss, ss
+        # mainQ(void) has a legitimate empty input signature.
         assert all(isinstance(s, Symb) for s in ss), ss
         return super().__new__(cls, ss)
 
@@ -120,11 +120,14 @@ class DSymbs(dict):
 
 class Prog:
     @beartype
-    def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs) -> None:
+    def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs,
+                 source: Path | None = None) -> None:
         self.exe_cmd = exe_cmd
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self._cache = {}  # inp -> traces (str)
+        self.execution_outcomes = {}
+        self.source = source
 
     @beartype
     @property
@@ -187,8 +190,16 @@ class Prog:
             # (e.g. an infinite loop); skip it rather than hang forever.
             mlog.warning(
                 f"run timed out after {settings.C.RUN_TIMEOUT}s, no traces: {cmd}")
+            self.execution_outcomes[inp] = "timeout"
+            return []
+        # Assertions, signed-overflow traps, and arithmetic faults can occur
+        # after printf has emitted part of a trace. Reject the whole failed
+        # execution so those partial states cannot pollute fitting/testing.
+        if cp.returncode < 0:
+            self.execution_outcomes[inp] = f"signal:{-cp.returncode}"
             return []
         traces = cp.stdout.splitlines()
+        self.execution_outcomes[inp] = "traces" if traces else f"empty:exit:{cp.returncode}"
         return traces
 
     @beartype
@@ -201,17 +212,23 @@ class Prog:
         tasks = [inp for inp in inps if inp not in self._cache]
 
         def f(tasks):
-            return [(inp, self._get_traces(inp)) for inp in tasks]
+            results = []
+            for inp in tasks:
+                traces = self._get_traces(inp)
+                results.append((inp, traces, self.execution_outcomes.get(inp, "unknown")))
+            return results
 
         wrs = MP.run_mp("get traces", tasks, f, settings.DO_MP)
 
-        for inp, traces in wrs:
+        for inp, traces, outcome in wrs:
             assert inp not in self._cache
             self._cache[inp] = traces
+            self.execution_outcomes[inp] = outcome
 
         return {inp: self._cache[inp] for inp in inps}
 
     def _get_valid_inp_ranges(self):
+
 
         dr = {}  # Inp => range
         di = {}  # Inp => inp
@@ -249,8 +266,13 @@ class Prog:
             # consider some ranges for smaller #'s of inps
             tiny = 0.05
             rinps.extend([(0, int(maxV * tiny))])
+            # Small/high-only sampling misses whole middle regions (e.g.
+            # Knuth's divisor-search paths), leaving spurious polynomial
+            # bases that shallow symbolic execution also cannot refute.
+            rinps.append((int(maxV*0.25), int(maxV*0.75)))
 
         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
+        rinps = list(dict.fromkeys((lo, hi) for lo, hi in rinps if lo < hi))
         rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
         return rinps_i
 
@@ -373,7 +395,3 @@ class C(Src):
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
         subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out
-
-
-
-

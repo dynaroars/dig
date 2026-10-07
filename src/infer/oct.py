@@ -41,13 +41,39 @@ class Oct(infer.inv.Inv):
     def cinvs_category(self) -> str:
         return 'octs'
 
+    def weaken_from_traces(self, traces):
+        values = traces.myeval(self.inv.lhs)
+        if not values:
+            return None
+        maximum = max(values)
+        if (not maximum.is_Integer or abs(maximum) > settings.IUPPER
+                or maximum <= self.inv.rhs):
+            return None
+        # The original symbolic bound implies this weaker bound. Keeping it
+        # preserves useful properties when shallow exploration overstates a
+        # bound that later concrete iterations refute.
+        return Oct(sympy.Le(self.inv.lhs, maximum), stat=self.stat)
+
 
 class Infer(infer.infer._Opt):
 
-    IUPPER = settings.IUPPER
+    @classmethod
+    def bound_cap(cls):
+        return settings.IUPPER
 
     def __init__(self, symstates, prog) -> None:
         super().__init__(symstates, prog)
+
+    def get_terms(self, symbols):
+        from infer.source_hints import polynomial_terms
+        terms = super().get_terms(symbols)
+        if not settings.SOURCE_TEMPLATES:
+            return terms
+        existing = {term.term for term in terms}
+        hints = polynomial_terms(getattr(self.prog, "source", None), symbols,
+                                 settings.MAX_TERM, settings.IDEG)
+        terms.extend(infer.inv.RelTerm(term) for term in sorted(hints - existing, key=str))
+        return terms
 
     @beartype
     @staticmethod

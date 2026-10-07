@@ -1,3 +1,23 @@
+/*
+ * Purpose: Compute extended GCD; obtain each Euclidean quotient by repeated subtraction.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: a-x*p-y*r == 0.
+ *   vtrace1: b-x*q-y*s == 0.
+ *   vtrace2: a-x*p-y*r == 0.
+ *   vtrace2: b-x*q-y*s == 0.
+ *   vtrace2: a-k*b-c == 0.
+ *   vtrace3: a-x*p-y*r == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: x >= 1, y >= 1. Determinant p*s-r*q changes sign each outer iteration;
+ * claiming it always equals +1 would be incorrect.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

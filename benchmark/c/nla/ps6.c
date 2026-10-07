@@ -1,3 +1,18 @@
+/*
+ * Purpose: Accumulate powers of exponent 5: 1^5+...+y^5.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Mathematical background: NIST DLMF 24.4.7, sums of powers. This is background for the
+ * derived equality, not a claim that NIST supplied this C program. https://dlmf.nist.gov/24.4#E7
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: 12*x-2*y**6-6*y**5-5*y**4+y**2 == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: The suffix is one more than the summed power. The polynomial has degree 6. Original
+ * publication for this exact C variant is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

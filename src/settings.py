@@ -1,4 +1,6 @@
 import pdb
+import shlex
+from dataclasses import dataclass, asdict
 from functools import partial
 from pathlib import Path
 
@@ -44,11 +46,48 @@ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
-# Deterministic z3 work-unit budget: the *real* cutoff for solver calls.
-# Unlike wall-clock timeout, rlimit counts solver work, so results are
-# reproducible regardless of CPU contention under multiprocessing.
+# Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.
+# The work budget is independent of CPU contention; timeout fallbacks can
+# affect optional results and are recorded separately in benchmark settings.
 # Calibrated to ~3s of CPU work on a typical core (see create_solver).
 SOLVER_RLIMIT = 15_000_000
+SOLVER_TIMEOUT_MS = 5000  # fallback when native arithmetic exceeds the work budget
+# Optional bound searches and redundancy removal must not consume the whole
+# run budget after equality discovery. Unknown optimization results are
+# omitted; unknown implications retain the original invariant.
+OPT_SOLVER_RLIMIT = 500_000
+OPT_SOLVER_TIMEOUT_MS = 1000  # safety fallback for expensive native NIA operations
+SIMPLIFY_SOLVER_RLIMIT = 100_000
+SIMPLIFY_SOLVER_TIMEOUT_MS = 1000
+FEASIBILITY_SOLVER_RLIMIT = 100_000
+FEASIBILITY_SOLVER_TIMEOUT_MS = 100
+
+
+@dataclass(frozen=True)
+class SolverPolicy:
+    rlimit: int
+    timeout_ms: int
+
+
+def solver_policy(phase="checking"):
+    """Resolve each phase's immutable policy at use time, not import time."""
+    values = {
+        "checking": (SOLVER_RLIMIT, SOLVER_TIMEOUT_MS),
+        "optimization": (OPT_SOLVER_RLIMIT, OPT_SOLVER_TIMEOUT_MS),
+        "simplification": (SIMPLIFY_SOLVER_RLIMIT, SIMPLIFY_SOLVER_TIMEOUT_MS),
+        "feasibility": (FEASIBILITY_SOLVER_RLIMIT, FEASIBILITY_SOLVER_TIMEOUT_MS),
+    }
+    return SolverPolicy(*values[phase])
+
+
+def effective_settings():
+    """Serializable effective configuration for a result, including policies."""
+    result = {name: value for name, value in globals().items()
+              if name.isupper() and not name.startswith("_")
+              and isinstance(value, (str, int, float, bool, type(None)))}
+    result["solver_policies"] = {phase: asdict(solver_policy(phase)) for phase in
+                                 ("checking", "optimization", "simplification", "feasibility")}
+    return result
 EQT_RATE = 1.5
 # Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
 # candidate eqts (e.g. egcd, 8 vars). Bound it; on timeout we fall back to the
@@ -57,10 +96,10 @@ GROEBNER_TIMEOUT = 5  # secs
 UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
 MAX_TERM = 200
 
-TRACE_MAX_VAL = 1_000_000_000
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
 UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
+SOURCE_TEMPLATES = True  # automatic hints; explicit template controls opt out
 
 # Iequalities
 IUPPER = 50  # t <= iupper
@@ -92,7 +131,10 @@ MAINQ_FUN = "mainQ"
 class C:
     GCC_CMD = "gcc"
 
-    COMPILE = "{gcc} {filename} -o {tmpfile}"
+    # Symbolic inference uses mathematical integer arithmetic. Reject native
+    # executions that overflow signed C integers instead of fitting wrapped
+    # values that contradict that arithmetic.
+    COMPILE = "{gcc} -ftrapv {filename} -o {tmpfile}"
     COMPILE = partial(COMPILE.format, gcc=GCC_CMD)
 
     C_RUN = "{exe}"
@@ -170,8 +212,7 @@ _BOOL_FLAGS = (
     ("dosolverstats", "DO_SOLVER_STATS", "-dosolverstats", True),
 )
 
-# String options: applied verbatim when truthy. (Subprocess reconstruction emits
-# the bare flag without its value, matching the original behavior.)
+# String options: apply and serialize the value verbatim, including spaces.
 _STR_FLAGS = (
     # (arg_attr, setting_attr, cli_flag)
     ("writevtraces", "WRITE_VTRACES", "-writevtraces"),
@@ -205,6 +246,9 @@ def setup(settings, args):
     import helpers.vcommon
 
     opts = []
+    if settings:
+        settings.SOURCE_TEMPLATES = not any(
+            getattr(args, name, None) is not None for name in ("ideg", "iterms", "icoefs"))
 
     # -types/-only: apply before the -no<type> flags so an explicit -no<type>
     # (or a hidden alias) can still further disable a type the allowlist enabled.
@@ -215,7 +259,7 @@ def setup(settings, args):
             for set_attr in _TYPE_SETTINGS:
                 setattr(settings, set_attr, set_attr in enabled)
         else:
-            opts.append(f"-types {types_spec}")
+            opts.extend(["-types", types_spec])
 
     for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
         if getattr(args, arg_attr):
@@ -230,39 +274,48 @@ def setup(settings, args):
             if settings:
                 setattr(settings, set_attr, val)
             else:
-                opts.append(flag)
+                opts.extend([flag, str(val)])
 
     for arg_attr, set_attr, flag in _INT_FLAGS:
         val = getattr(args, arg_attr)
-        if val is not None and val >= 1:
+        if val is not None:
+            if val < 1:
+                raise ValueError(f"{flag} must be positive")
             if settings:
                 setattr(settings, set_attr, val)
             else:
-                opts.append(f"{flag} {val}")
+                opts.extend([flag, str(val)])
 
     if args.uterms:
         if settings:
             settings.UTERMS = set(args.uterms.split(';'))
         else:
-            opts.append(f'-uterms "{args.uterms}"')  # not tested
+            opts.extend(["-uterms", args.uterms])
 
     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
         if settings:
             settings.SE_MAX_DEPTH = args.se_maxdepth
         else:
-            opts.append(f"-se_maxdepth {args.se_maxdepth}")
+            opts.extend(["-se_maxdepth", str(args.se_maxdepth)])
+
+    if not settings and getattr(args, "maxdeg", None) is not None:
+        opts.extend(["-maxdeg", str(args.maxdeg)])
+    if not settings:
+        for name in ("writeresults", "test_tracefile"):
+            if value := getattr(args, name, None):
+                opts.extend(["-" + name, str(value)])
 
     if args.tmpdir:
         if settings:
             settings.TMPDIR = Path(args.tmpdir)
             assert settings.TMPDIR.is_dir()
         else:
-            opts.append(f"-tmpdir {args.tmpdir}")
+            opts.extend(["-tmpdir", str(args.tmpdir)])
 
     if settings:
         settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
         mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
         return mlog
     else:
-        opts.append(f"-log_level {args.log_level}")
-        return " ".join(opts)
+        opts.extend(["-log_level", str(args.log_level)])
+        return shlex.join(opts)

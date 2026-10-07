@@ -102,6 +102,13 @@ class Inv(metaclass=abc.ABCMeta):
     def test(self, traces: data.traces.Traces):
         return all(self.test_single_trace(trace) for trace in traces)
 
+    def test_or_weaken(self, traces: data.traces.Traces):
+        if self.test(traces):
+            return self
+        weaken = getattr(self, "weaken_from_traces", None)
+        candidate = weaken(traces) if weaken else None
+        return candidate if candidate is not None and candidate.test(traces) else None
+
     @property
     def is_proved(self) -> bool:
         return self.stat == self.PROVED
@@ -116,12 +123,6 @@ class Inv(metaclass=abc.ABCMeta):
 
     def test_single_trace(self, trace: data.traces.Trace) -> bool:
         assert isinstance(trace, data.traces.Trace), trace
-
-        # temp fix: disable traces that wih extreme large values
-        # (see geo1 e.g., 435848050)
-        if any(abs(x) > settings.TRACE_MAX_VAL for x in trace.vs):
-            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
-            return True
 
         try:
             return bool(self.inv.xreplace(trace.mydict))
@@ -235,16 +236,14 @@ class Invs(set):
         assert self, self
 
         def f(tasks):
-            return [(inv, inv.test(traces)) for inv in tasks]
+            return [inv.test_or_weaken(traces) for inv in tasks]
 
         wrs = MP.run_mp("test", list(self), f, settings.DO_MP)
 
         myinvs = set()
-        for inv, passed in wrs:
-            if passed:
+        for inv in wrs:
+            if inv is not None:
                 myinvs.add(inv)
-            else:
-                mlog.debug(f"remove {inv}")
 
         invs = self.__class__(myinvs)
         return invs
@@ -329,6 +328,10 @@ class CInvs:
         return '\n'.join(lines)
 
     def simplify(self) -> list[Inv]:
+        with Z3.use_policy(settings.solver_policy("simplification")):
+            return self._simplify()
+
+    def _simplify(self) -> list[Inv]:
         eqts = self.eqts
         eqts_largecoefs = self.eqts_largecoefs
         octs = self.octs
@@ -520,16 +523,20 @@ class DInvs(dict):
         assert self.siz, self
 
         st = time()
-        tasks = [loc for loc in self if self[loc]]
+        tasks = [(loc, inv) for loc in self for inv in self[loc]]
 
         def f(tasks):
-            return [(loc, self[loc].test(dtraces[loc])) for loc in tasks]
+            result = []
+            for loc, inv in tasks:
+                candidate = inv.test_or_weaken(dtraces[loc])
+                if candidate is not None:
+                    result.append((loc, candidate))
+            return result
 
         wrs = MP.run_mp("test_dinvs", tasks, f, settings.DO_MP)
         dinvs = DInvs()
-        for loc, invs in wrs:
-            if invs:
-                dinvs[loc] = invs
+        for loc, inv in wrs:
+            dinvs.add(loc, inv)
         Miscs.show_removed("test_dinvs", self.siz, dinvs.siz, time() - st)
         return dinvs
 

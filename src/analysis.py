@@ -2,6 +2,7 @@
 Analyze Dig's results
 """
 import argparse
+import shlex
 from dataclasses import dataclass
 import pdb
 import random
@@ -174,12 +175,20 @@ class AResult(Result):
             vs = set()
             maxdeg = 0
             nterms = 0
+        elif isinstance(inv, infer.inv.FalseInv) or getattr(inv, "inv", None) == 0:
+            vs = set()
+            maxdeg = 0
+            nterms = 0
         else:
-            p = inv.inv
-            vs = p.free_symbols
-            assert p.is_Relational, p
-            maxdeg = Miscs.get_max_deg(p.lhs)
-            nterms = len(p.lhs.args)
+            p = getattr(inv, "inv", inv)
+            if hasattr(p, "is_Relational") and p.is_Relational:
+                vs = p.free_symbols
+                maxdeg = Miscs.get_max_deg(p.lhs)
+                nterms = len(p.lhs.args) or 1
+            else:
+                vs = getattr(p, "free_symbols", set())
+                maxdeg = 1
+                nterms = len(getattr(p, "args", [])) or 1
 
         return vs, maxdeg, nterms
 
@@ -206,26 +215,26 @@ class Results:
         NL = f(r.NL for r in rs)
 
         invtypss = [r.dinvs.typ_ctr for r in rs]
-        invtypss = self.analyze_dicts(invtypss, f, 'invs')
+        invtypss_str, inv_counts = self.analyze_dicts(invtypss, f, 'invs')
 
         check_solvercallss = [r.check_solvercalls_ctr for r in rs]
-        check_solvercallss = self.analyze_dicts(
+        check_solvercallss_str, _ = self.analyze_dicts(
             check_solvercallss, f, '')
 
         check_changedepthss = [r.check_changedepths_ctr for r in rs]
-        check_changedepthss = self.analyze_dicts(
+        check_changedepthss_str, _ = self.analyze_dicts(
             check_changedepthss, f, 'change depths')
 
         check_changevalss = [r.check_changevals_ctr for r in rs]
-        check_changevalss = self.analyze_dicts(
+        check_changevalss_str, _ = self.analyze_dicts(
             check_changevalss, f, 'change vals')
 
         max_solvercallss = [r.max_solvercalls_ctr for r in rs]
-        max_solvercallss = self.analyze_dicts(
+        max_solvercallss_str, _ = self.analyze_dicts(
             max_solvercallss, f, '')
 
         max_changedepthss = [r.max_changedepths_ctr for r in rs]
-        max_changedepthss = self.analyze_dicts(
+        max_changedepthss_str, _ = self.analyze_dicts(
             max_changedepthss, f, 'change depths')
 
         max_changevalss = [r.max_changevals_ctr for r in rs]
@@ -237,15 +246,15 @@ class Results:
         time_s = ', '.join(f"{t} {f(time_d[t]):.1f}s" for t in time_d)
 
         print(f"* prog {self.prog} locs {nlocs}; "
-              f"{invtypss} V {V} T {T} D {D}; NL {NL} ({D}) ;")
+              f"{invtypss_str} V {V} T {T} D {D}; NL {NL} ({D}) ;")
 
         print(f"-> time {time_s}")
 
         if settings.DO_SOLVER_STATS:
             print(
-                f"-> checks {check_solvercallss} {check_changedepthss} {check_changevalss}")
+                f"-> checks {check_solvercallss_str} {check_changedepthss_str} {check_changevalss_str}")
 
-            print(f"-> max {max_solvercallss} {max_changedepthss}")
+            print(f"-> max {max_solvercallss_str} {max_changedepthss_str}")
 
         if nruns > 1:
             print(f"runs {nruns}")
@@ -254,7 +263,20 @@ class Results:
                   f"test {random.randint(0, 100)}")
             # print(rs[0].dinvs.__str__(print_stat=False))
 
-    @ classmethod
+        return {
+            "prog": self.prog,
+            "nruns": nruns,
+            "locs": nlocs,
+            "V": V,
+            "T": T,
+            "D": D,
+            "NL": NL,
+            "inv_counts": inv_counts,
+            "times": {t: f(time_d[t]) for t in time_d},
+            "total_time": f(time_d["total"]) if "total" in time_d else 0.0,
+        }
+
+    @classmethod
     def analyze_dicts(cls, ds, f, label):
         ks = set(k for d in ds for k in d)
         dd = defaultdict(list)
@@ -269,9 +291,11 @@ class Results:
 
         s = []
         sizs = []
+        computed = {}
 
         for k in sorted(dd):
             t = f(dd[k])
+            computed[k] = t
             if isinstance(k, tuple):
                 assert len(k) == 2
                 from_, to_ = k
@@ -281,8 +305,9 @@ class Results:
             s.append((k, k_str, t))
             sizs.append(t)
 
-        s = ', '.join(f"{k_str}: {f(dd[k])}" for k, k_str, t in s)
-        return f"{label} {sum(sizs)} ({s})"
+        s_str = ', '.join(f"{k_str}: {f(dd[k])}" for k, k_str, t in s)
+        res_str = f"{label} {sum(sizs)} ({s_str})" if label else f"({s_str})"
+        return res_str, computed
 
 
 class Benchmark:
@@ -349,22 +374,52 @@ class Benchmark:
             self.toruns = toruns
 
         opts = settings.setup(None, args)
-        self.CMD = (f"timeout {self.TIMEOUT} python3 -O dig.py {opts} "
-                    "{filename} -seed {seed} -tmpdir {tmpdir}")
+        dig_py = Path(__file__).resolve().parent / "dig.py"
+        python_exe = sys.executable
 
         import os
+        import signal
+        import subprocess
+
         for i, (f, bdir, remainruns) in enumerate(self.toruns):
             if not bdir.is_dir():
-                bdir.mkdir()
+                bdir.mkdir(parents=True, exist_ok=True)
 
             for j, seed in enumerate(sorted(remainruns)):
                 mlog.info(f"## file {i+1}/{len(self.toruns)}, run {j+1}/{len(remainruns)}, "
-                          f"seed {seed}, {time.strftime('%c')}: {f}")
+                          f"seed {seed}, {time.strftime('%c')}: {f.name}")
+                cmd = [python_exe, "-u", "-O", str(dig_py)]
+                if opts:
+                    cmd.extend(shlex.split(opts))
+                cmd.extend([str(f.resolve()), "-seed", str(seed), "-tmpdir", str(bdir)])
+
+                env = os.environ.copy()
+                env["PYTHONPATH"] = str(Path(__file__).resolve().parent) + (":" + env["PYTHONPATH"] if "PYTHONPATH" in env else "")
+
                 try:
-                    CMD = self.CMD.format(filename=f, seed=seed, tmpdir=bdir)
-                    os.system(CMD)
+                    p = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        env=env,
+                        start_new_session=True,
+                    )
+                    try:
+                        out, _ = p.communicate(timeout=self.TIMEOUT)
+                        if out:
+                            for line in out.splitlines():
+                                if line.startswith(("* prog", "-> time", "vtrace")):
+                                    mlog.info(line)
+                    except subprocess.TimeoutExpired:
+                        try:
+                            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        p.communicate()
+                        mlog.warning(f"Run timed out after {self.TIMEOUT}s: {f.name} (seed {seed})")
                 except Exception as ex:
-                    mlog.error(f"Something wrong. Exiting!\n{ex}")
+                    mlog.error(f"Something wrong running {f.name} seed {seed}:\n{ex}")
 
         mlog.info(f"benchmark result dir: {self.benchmark_dir}")
 
@@ -375,16 +430,17 @@ class Benchmark:
         runs = set()
         for rd in rundir.iterdir():
             if not rd.is_dir():
-                mlog.warning(f"Unexpected file {rd}")
                 continue
 
             if (rd / Result.resultfile).is_file():
-                # Dig_2_dxmdlf4y
-                runi = int(rd.stem.split('_')[1])
-                runs.add(runi)
+                try:
+                    runi = int(rd.stem.split('_')[1])
+                    runs.add(runi)
+                except (IndexError, ValueError):
+                    pass
             else:
                 mlog.debug(f"deleting incomplete run {rd}")
-                shutil.rmtree(rd)
+                shutil.rmtree(rd, ignore_errors=True)
 
         return runs
 
@@ -431,10 +487,13 @@ class Analysis:
                 if d.is_dir():
                     load2(d)
 
+        summaries = []
         for prog in sorted(results_d):
             results = [AResult(r) for r in results_d[prog] if r.dinvs.siz]
             if not results:
                 mlog.warning(f"no results for {prog}")
                 continue
             stats = Results(prog, results)
-            stats.start(median_low)
+            summary = stats.start(median_low)
+            summaries.append(summary)
+        return summaries

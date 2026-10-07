@@ -360,7 +360,7 @@ class Miscs:
         """
         if (timeout_s <= 0
                 or threading.current_thread() is not threading.main_thread()):
-            return sympy.groebner(ps, *vs)
+            return sympy.groebner(ps, *vs, order="grevlex")
 
         def _handler(signum, frame):
             raise _GroebnerTimeout()
@@ -368,7 +368,7 @@ class Miscs:
         old = signal.signal(signal.SIGALRM, _handler)
         signal.setitimer(signal.ITIMER_REAL, timeout_s)
         try:
-            return sympy.groebner(ps, *vs)
+            return sympy.groebner(ps, *vs, order="grevlex")
         finally:
             signal.setitimer(signal.ITIMER_REAL, 0)
             signal.signal(signal.SIGALRM, old)
@@ -439,106 +439,149 @@ class Miscs:
     @beartype
     @classmethod
     def refine(cls, eqts: list[sympy.Expr | sympy.Rel],
-               do_reduce: bool = True) -> list[sympy.Expr | sympy.Rel]:
+               do_reduce: bool = True,
+               do_filter: bool = False) -> list[sympy.Expr | sympy.Rel]:
 
         if not eqts:
             return eqts
 
         eqts = [cls.elim_denom(s) for s in eqts]
-        eqts = cls.remove_ugly(eqts)
+        if do_filter:
+            eqts = cls.remove_ugly(eqts)
         if do_reduce:
             eqts = cls.reduce_eqts(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
-        eqts = cls.remove_ugly(eqts)
+        if do_filter:
+            eqts = cls.remove_ugly(eqts)
 
         return eqts
 
     @classmethod
     def coef_matrix_rank(cls, eqts: list, uks: list) -> int:
-        """
-        Fast numpy rank of the template coefficient matrix.
-        Returns -1 on any failure so callers can treat it as unknown.
-        """
+        """Exact rank; rational coefficients must never be truncated to int."""
         try:
-            M = np.array(
-                [[int(e.coeff(uk)) for uk in uks] for e in eqts],
-                dtype=np.float64,
-            )
-            return int(np.linalg.matrix_rank(M)) if M.size > 0 else 0
+            rows = cls._coefficient_rows(tuple(eqts), tuple(uks))
+            basis = cls._certified_nullspace(rows)
+            return len(uks) - len(basis)
         except Exception:
             return -1
 
+    @staticmethod
+    @functools.lru_cache(maxsize=8)
+    def _coefficient_rows(expressions: tuple, coefficients: tuple) -> tuple:
+        """Extract a linear template row once instead of rescanning per column."""
+        allowed = {1, *coefficients}
+        rows = []
+        for expression in expressions:
+            mapping = expression.as_coefficients_dict()
+            if set(mapping).issubset(allowed):
+                rows.append(tuple(mapping.get(c, sympy.S.Zero) for c in coefficients))
+            else:
+                # Preserve the general Expr.coeff behavior for unusual callers.
+                rows.append(tuple(expression.coeff(c) for c in coefficients))
+        return tuple(rows)
+
+    @staticmethod
+    @functools.lru_cache(maxsize=8)
+    def _certified_nullspace(rows: tuple) -> tuple:
+        """Select independent rows modulo a prime, then certify the exact kernel.
+
+        Modular pivots certify a rank lower bound. Exact null vectors spanning
+        the complementary dimension and annihilated by *all* rows certify the
+        matching upper bound. No numerical threshold can discard a relation.
+        """
+        from sympy.polys.matrices import DomainMatrix
+        if not rows:
+            return ()
+        n = len(rows[0])
+        prime = 1_000_003  # products fit int64; this is a certificate hint only
+        residues = []
+        for row in rows:
+            values = []
+            for value in row:
+                value = sympy.Rational(value)
+                numerator, denominator = int(value.p), int(value.q)
+                if denominator % prime == 0:
+                    # An unlucky denominator needs no special user setting.
+                    matrix = DomainMatrix.from_Matrix(sympy.Matrix(rows)).convert_to(sympy.QQ)
+                    return tuple(tuple(row) for row in matrix.nullspace(divide_last=True).to_Matrix().tolist())
+                values.append(numerator % prime * pow(denominator % prime, -1, prime) % prime)
+            residues.append(values)
+        matrix = np.array(residues, dtype=np.int64)
+        order = list(range(len(rows)))
+        rank = 0
+        selected = []
+        for column in range(n):
+            candidates = np.flatnonzero(matrix[rank:, column])
+            if not len(candidates):
+                continue
+            pivot = rank + int(candidates[0])
+            matrix[[rank, pivot]] = matrix[[pivot, rank]]
+            order[rank], order[pivot] = order[pivot], order[rank]
+            selected.append(order[rank])
+            matrix[rank] = matrix[rank] * pow(int(matrix[rank, column]), -1, prime) % prime
+            if rank + 1 < len(rows):
+                factors = matrix[rank + 1:, column].copy()
+                matrix[rank + 1:] = (matrix[rank + 1:] - factors[:, None] * matrix[rank]) % prime
+            rank += 1
+            if rank == n:
+                return ()  # full rank modulo p proves full rank over QQ
+            if rank == len(rows):
+                break
+        full = DomainMatrix.from_Matrix(sympy.Matrix(rows)).convert_to(sympy.QQ)
+        if not selected:
+            if full.is_zero_matrix:
+                return tuple(tuple(row) for row in sympy.eye(n).tolist())
+            # Every coefficient vanished modulo the hint prime, not over QQ.
+            return tuple(tuple(row) for row in full.nullspace(divide_last=True).to_Matrix().tolist())
+        independent = DomainMatrix.from_Matrix(sympy.Matrix([rows[i] for i in selected])).convert_to(sympy.QQ)
+        # Numerical support is only a speed hint. Accept its smaller exact
+        # solve if dimension AND all-row residuals certify the full kernel.
+        try:
+            numeric = np.array([[float(value) for value in row] for row in rows], dtype=np.float64)
+            if not np.isfinite(numeric).all():
+                raise ValueError("numeric support hint is outside the float range")
+            scales = np.max(np.abs(numeric), axis=0)
+            numeric = numeric / np.where(scales == 0, 1, scales)
+            _, singular, vectors = np.linalg.svd(numeric, full_matrices=True)
+            tolerance = max(numeric.shape) * np.finfo(np.float64).eps * singular[0]
+            numerical_rank = int(np.sum(singular > tolerance))
+            support = np.abs(vectors[numerical_rank:]).max(axis=0)
+            relevant = [i for i, value in enumerate(support) if value > 1e-7]
+            if relevant and len(relevant) < n:
+                reduced = DomainMatrix.from_Matrix(
+                    sympy.Matrix([[rows[i][j] for j in relevant] for i in selected])
+                ).convert_to(sympy.QQ).nullspace(divide_last=True).to_Matrix()
+                padded = sympy.zeros(reduced.rows, n)
+                for i in range(reduced.rows):
+                    for j, column in enumerate(relevant):
+                        padded[i, column] = reduced[i, j]
+                hint = DomainMatrix.from_Matrix(padded).convert_to(sympy.QQ)
+                if hint.shape[0] == n - rank and (full * hint.transpose()).is_zero_matrix:
+                    return tuple(tuple(row) for row in padded.tolist())
+        except (ValueError, np.linalg.LinAlgError, OverflowError):
+            pass
+        kernel = independent.nullspace(divide_last=True)
+        if kernel.shape[0] != n - rank or not (full * kernel.transpose()).is_zero_matrix:
+            # Prime divided a nonzero minor: resolve using the full exact matrix.
+            kernel = full.nullspace(divide_last=True)
+        return tuple(tuple(row) for row in kernel.to_Matrix().tolist())
+
     @classmethod
     def _null_space_fast(cls, eqts: list, uks: list) -> list | None:
-        """
-        Compute null space of the template coefficient matrix using two passes:
-        1. NumPy SVD (float64) to quickly detect full rank — if the matrix has no
-           null space, return [] immediately without calling sympy at all.
-        2. sympy.Matrix.nullspace() for exact rational null vectors when the rank
-           check indicates a non-trivial null space exists.
-
-        Avoids the overhead of linsolve's FiniteSet / parametric-solution machinery.
-        Returns a list of sympy column vectors, or None to fall back to linsolve.
-
-        The eqts are linear in uks (trace values are integers, so each expression
-        is sum(coef_j * uk_j)). Coefficients may be rationals (e.g. real-valued
-        traces like x = 95/2), so keep them exact for the sympy null space and
-        only float-cast for the numpy rank check.
-        """
+        """Certified modular/exact null space, with linsolve fallback."""
         try:
-            rows = [[expr.coeff(uk) for uk in uks] for expr in eqts]
-            # float-cast for the numpy rank check; a non-numeric coefficient
-            # (template not fully reduced on some trace) means we can't use the
-            # fast path, so fall back to the exact solver.
-            M_np = np.array([[float(c) for c in row] for row in rows],
-                            dtype=np.float64)
-        except (TypeError, AttributeError, ValueError):
+            rows = cls._coefficient_rows(tuple(eqts), tuple(uks))
+            return [sympy.Matrix(vector) for vector in cls._certified_nullspace(rows)]
+        except (TypeError, ValueError, AttributeError):
             return None
-
-        if M_np.size == 0:
-            return None
-        n = len(uks)
-        _, s, Vh = np.linalg.svd(M_np, full_matrices=True)
-        tol = max(M_np.shape) * np.finfo(np.float64).eps * (s[0] if len(s) else 1.0)
-        rank = int(np.sum(s > tol))
-        if rank >= n:
-            return []  # full column rank → trivial null space, skip sympy entirely
-
-        # Trace-guided term reduction: rows of Vh past the rank span the numeric
-        # null space (the invariant coefficient space). A term (column) whose
-        # entry is ~0 in *every* null-space basis vector has coefficient 0 in
-        # every invariant, so drop it. The exact (sound) solve then runs on the
-        # relevant subset only — smaller for high-degree / many-var templates
-        # where invariants use few of the C(n+deg, deg) monomials.
-        null_basis = Vh[rank:]                       # (n - rank) x n
-        support = np.abs(null_basis).max(axis=0)     # per-term max |coef|
-        relevant = [j for j in range(n) if support[j] > 1e-7]
-        if not relevant:
-            return None  # numeric degeneracy; let caller fall back
-
-        if len(relevant) < n:
-            mlog.debug(f"term reduction: {n} -> {len(relevant)} terms")
-
-        # Exact null space via sympy on the reduced columns, then map back to
-        # the full uk space (0 for the dropped, provably-uninvolved terms).
-        M_sym = sympy.Matrix([[row[j] for j in relevant] for row in rows])
-        try:
-            reduced = M_sym.nullspace()
-        except Exception:
-            return None
-        full_vecs = []
-        for rv in reduced:
-            full = sympy.zeros(n, 1)
-            for i, j in enumerate(relevant):
-                full[j] = rv[i]
-            full_vecs.append(full)
-        return full_vecs
 
     @beartype
     @classmethod
     def solve_eqts(cls, eqts: list[sympy.Expr | sympy.Rel],
                    terms: list[Any], uks: list[sympy.Symbol],
-                   do_reduce: bool = True) -> list[sympy.Eq]:
+                   do_reduce: bool = True,
+                   do_refine: bool = True) -> list[sympy.Eq]:
 
         assert eqts, eqts
         assert terms, terms
@@ -578,9 +621,13 @@ class Miscs:
             return []
 
         mlog.debug(f"got {len(eqts_)} eqts after solving")
-        eqts_ = cls.refine(eqts_, do_reduce=do_reduce)
+        if do_refine:
+            eqts_ = cls.refine(eqts_, do_reduce=do_reduce)
         mlog.debug(f"got {len(eqts_)} eqts after refinement")
-        return [sympy.Eq(eqt, 0) for eqt in eqts_]
+        relations = [sympy.Eq(eqt, 0) for eqt in eqts_]
+        # SymPy evaluates 0 == 0 to BooleanTrue, which is not an equality
+        # invariant and has no lhs/rhs (the old Freire seed-3 crash).
+        return [eqt for eqt in relations if isinstance(eqt, sympy.Equality)]
 
     @beartype
     @classmethod

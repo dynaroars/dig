@@ -7,6 +7,7 @@ from beartype import beartype
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
+from helpers.z3utils import Z3
 
 import settings
 
@@ -84,6 +85,10 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @beartype
     def gen(self) -> infer.inv.DInvs:
+        with Z3.use_policy(settings.solver_policy("optimization")):
+            return self._gen()
+
+    def _gen(self) -> infer.inv.DInvs:
         
         locs = self.inv_decls.keys()
 
@@ -102,7 +107,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
                    f"terms at {len(locs)} locs")
 
         refs = {
-            loc: {self.inv_cls(t.mk_le(self.IUPPER)): t for t in terms}
+            loc: {self.inv_cls(t.mk_le(self.bound_cap())): t for t in terms}
             for loc, terms in zip(locs, termss)
         }
         ieqs = infer.inv.DInvs()
@@ -127,7 +132,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
                 for loc, terms in tasks:
                     exprs = [self.to_expr(t) for t in terms]
                     bounds = self.symstates.maximize_many(
-                        loc, exprs, self.IUPPER)
+                        loc, exprs, self.bound_cap())
                     out.extend((loc, terms[i], v) for i, v in bounds.items())
                 return out
 
@@ -140,7 +145,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
             def f(tasks):
                 return [
                     (loc, term, self.symstates.maximize(
-                        loc, self.to_expr(term), self.IUPPER))
+                        loc, self.to_expr(term), self.bound_cap()))
                     for loc, term in tasks
                 ]
 
@@ -155,6 +160,10 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
             dinvs.setdefault(loc, infer.inv.Invs()).add(inv)
 
         return dinvs
+
+    @classmethod
+    def bound_cap(cls):
+        raise NotImplementedError
 
     @beartype
     def get_terms(self,
@@ -201,7 +210,7 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         """
         Compute convex hulls from traces
         """
-        maxV = cls.IUPPER
+        maxV = cls.bound_cap()
         minV = -maxV
 
         tasks = cls.my_get_terms(symbols.symbolic)

@@ -66,14 +66,20 @@ class Infer(infer.infer._Infer):
 
     @beartype
     def gen(self, deg: int,
-            deg_hints: dict[str, int] | None = None
+            deg_hints: dict[str, int] | None = None,
+            complete: bool = False,
+            initial_traces: data.traces.DTraces | None = None,
+            ceilings: dict[str, int] | None = None
             ) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
         assert deg >= 1, deg
 
         locs = self.prog.locs
         inps = data.traces.Inps()
         dtraces = data.traces.DTraces.mk(locs)
+        if initial_traces:
+            dtraces.merge(initial_traces)
         deg_hints = deg_hints or {}
+        ceilings = ceilings or {loc: deg for loc in locs}
 
         # Ascending degrees with per-loc early stop (traces accumulate across
         # attempts). Always include 2 (cheap warm-up + common case) and the
@@ -82,29 +88,33 @@ class Infer(infer.infer._Infer):
         # and stop *below* the ceiling (e.g. ps6 at 6 instead of 7) without
         # losing anything: the ceiling pass still runs for any loc the estimate
         # under-shoots (e.g. geo3's degree-4 eqts).
-        degrees = {2, deg}
+        degrees = {min(2, deg), *ceilings.values()}
         for loc in locs:
             est = deg_hints.get(loc)
             if est is not None:
-                degrees.add(max(2, min(est, deg)))
+                degrees.add(min(deg, max(2, est)))
         degrees = sorted(degrees)
 
         dinvs = infer.inv.DInvs()
+        attempted = {loc: set() for loc in locs}
         for cur_deg in degrees:
             # Only process locs that haven't yielded invariants yet
-            remaining = [loc for loc in locs if not dinvs.get(loc)]
+            remaining = [loc for loc in locs if (complete or not dinvs.get(loc))
+                         and min(cur_deg, ceilings[loc]) not in attempted[loc]]
             if not remaining:
                 break
 
             tasks = [
-                (loc, self._get_init_traces(loc, cur_deg, dtraces, inps, settings.EQT_RATE))
+                (loc, self._get_init_traces(loc, min(cur_deg, ceilings[loc]), dtraces, inps, settings.EQT_RATE))
                 for loc in remaining
             ]
+            for loc in remaining:
+                attempted[loc].add(min(cur_deg, ceilings[loc]))
             tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
 
             def f(tasks):
                 return [
-                    (loc, self._infer(loc, template, uks, exprs))
+                    (loc, self._infer(loc, template, uks, exprs, dtraces[loc]))
                     for loc, (template, uks, exprs) in tasks
                 ]
 
@@ -113,7 +123,7 @@ class Infer(infer.infer._Infer):
                 mlog.debug(f"{loc}: got {len(eqts)} eqts at deg {cur_deg}")
                 if eqts:
                     mlog.debug("\n".join(map(str, eqts)))
-                dinvs[loc] = infer.inv.Invs(eqts)
+                dinvs.setdefault(loc, infer.inv.Invs()).update(eqts)
 
         return dinvs, dtraces
 
@@ -166,9 +176,10 @@ class Infer(infer.infer._Infer):
                 if loc not in cexs:
                     mlog.debug(
                         f"{loc}: cannot find new inps (currently has {len(inps)} inps)")
-                    return
+                    return exprs or None
 
-                new_inps = inps.merge(cexs, self.inp_decls.names)
+                new_inps = inps.merge(cexs, self.inp_decls.names,
+                                      model_ss=tuple(map(str, self.symstates.inp_exprs)))
                 new_traces = self.get_traces(new_inps, traces)
 
                 # cannot find new traces (new inps do not produce new traces)
@@ -178,7 +189,7 @@ class Infer(infer.infer._Infer):
                         f"(new inps {len(new_inps)}, "
                         f"curr traces {len(traces[loc]) if loc in traces else 0})"
                     )
-                    return
+                    return exprs or None
 
             self._add_exprs(template, n_eqts_needed, new_traces[loc], exprs)
 
@@ -226,7 +237,8 @@ class Infer(infer.infer._Infer):
     def _infer(self, loc: str, 
                ts: list[int | sympy.core.symbol.Symbol | sympy.core.power.Pow | sympy.core.mul.Mul], 
                uks: list[sympy.core.symbol.Symbol], 
-               exprs: set[sympy.Expr]) -> set:
+               exprs: set[sympy.Expr],
+               sampled_traces: data.traces.Traces | None = None) -> set:
         
         assert loc, loc
         assert len(ts) == len(uks), (ts, uks)
@@ -240,6 +252,8 @@ class Infer(infer.infer._Infer):
 
         curIter = 0
         prev_rank = -1
+        ordered_traces = sorted(sampled_traces, key=str) if sampled_traces else []
+        diverse_rows = None
 
         while True:
             curIter += 1
@@ -252,7 +266,47 @@ class Infer(infer.infer._Infer):
             prev_rank = curr_rank
 
             mlog.debug(f"{loc}, iter {curIter} infer using {len(exprs)} exprs")
-            new_eqts = Miscs.solve_eqts(exprs, ts, uks)
+            # Keep the full fitting basis until concrete refinement is done:
+            # coefficient-size filtering can otherwise discard every basis
+            # vector before enough samples expose a small genuine relation.
+            new_eqts = Miscs.solve_eqts(exprs, ts, uks, do_refine=False)
+
+            # A small fitting subset can describe only initial/early states.
+            # Bounded symbolic checking may accept those spurious equations;
+            # dropping them only during final sanitization can also lose the
+            # genuine relation hidden by their reduced polynomial basis.
+            # Feed concrete counterexamples from all collected traces back
+            # into fitting before accepting any candidate.
+            if sampled_traces:
+                counterexample_rows = set()
+                for eqt in new_eqts:
+                    for trace in ordered_traces:
+                        if eqt.lhs.xreplace(trace.mydict) != 0:
+                            counterexample_rows.add(template.xreplace(trace.mydict))
+                            break
+                if counterexample_rows:
+                    if diverse_rows is None:
+                        count = min(len(ordered_traces), max(32, 2*len(uks)))
+                        indices = {i*(len(ordered_traces)-1)//max(1, count-1)
+                                   for i in range(count)}
+                        diverse_rows = {template.xreplace(ordered_traces[i].mydict)
+                                        for i in indices}
+                    # Refuting one early-state equation often exposes a whole
+                    # underdetermined basis. Add a spread of existing states
+                    # now instead of performing dozens of one-row solves.
+                    counterexample_rows.update(diverse_rows)
+                    new_rows = counterexample_rows - set(exprs)
+                    if not new_rows:
+                        break
+                    exprs.extend(sorted(new_rows, key=str))
+                    # These rows contradict the exact candidate space, even
+                    # if the floating-point rank heuristic misses the change.
+                    prev_rank = -1
+                    continue
+
+            new_eqts = [sympy.Eq(p, 0) for p in
+                        Miscs.refine([eqt.lhs for eqt in new_eqts], do_filter=False)]
+            new_eqts = [eqt for eqt in new_eqts if isinstance(eqt, sympy.Equality)]
             unchecks = [eqt for eqt in new_eqts if eqt not in cache]
 
             if not unchecks:

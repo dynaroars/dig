@@ -302,3 +302,5 @@ and an analysis budget, with a degree override available. Numeric input,
 bound, sample-sizing, and template-policy details become automatic or expert
 configuration. This is a proposed direction, not a claim that those parameters
 have already been safely eliminated.
+
+Follow-up: [limited parameter trials and implementation decisions](PARAMETER_TRIALS.md).

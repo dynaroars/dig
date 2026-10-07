@@ -1,3 +1,22 @@
+/*
+ * Purpose: Compute a binary quotient using a power-of-two multiplier and a scaled divisor.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: q == 0.
+ *   vtrace1: r-A == 0.
+ *   vtrace1: d-B*p == 0.
+ *   vtrace2: A-q*B-r == 0.
+ *   vtrace2: d-B*p == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Intended domain: A >= 0, B >= 1; only B >= 1 is encoded. Original publication for this
+ * exact C variant is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

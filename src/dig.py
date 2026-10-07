@@ -279,6 +279,13 @@ if __name__ == "__main__":
 
     args = aparser.parse_args()
 
+    for name in ("maxdeg", "maxterm", "nrandinps", "inpMaxV", "se_maxdepth",
+                 "iupper", "ideg", "iterms", "icoefs", "llm_rounds", "benchmark_times"):
+        value = getattr(args, name, None)
+        if value is not None and value < 1:
+            aparser.error(f"--{name} must be positive")
+
+
     # Validate every path-taking flag up front (before any work, and not via
     # asserts that -O strips) so bad paths fail fast with a clear message.
     def _check_paths(args):

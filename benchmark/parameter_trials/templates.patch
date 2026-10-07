@@ -1,0 +1,336 @@
+--- a/src/alg.py
++++ b/src/alg.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ import abc
++import json
+ from collections.abc import Callable
+ from enum import StrEnum
+ import pdb
+@@ -121,13 +122,15 @@
+         )
+         self.tmpdir_del = self.tmpdir / "delete_me"
+         self.tmpdir_del.mkdir()
++        (self.tmpdir / "settings.json").write_text(
++            json.dumps(settings.effective_settings(), indent=2) + "\n")
+ 
+         self.mysrc = self.mysrc_cls(self.filename, self.tmpdir_del)
+         self.inp_decls = self.mysrc.inp_decls
+         self.inv_decls = self.mysrc.inv_decls
+ 
+         self.prog = data.prog.Prog(
+-            self.exe_cmd, self.inp_decls, self.inv_decls)
++            self.exe_cmd, self.inp_decls, self.inv_decls, source=self.filename)
+ 
+         if not settings.DO_SS:  # use traces from running the program on random inputs
+             rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
+--- a/src/data/prog.py
++++ b/src/data/prog.py
+@@ -120,11 +120,13 @@
+ 
+ class Prog:
+     @beartype
+-    def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs) -> None:
++    def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs,
++                 source: Path | None = None) -> None:
+         self.exe_cmd = exe_cmd
+         self.inp_decls = inp_decls
+         self.inv_decls = inv_decls
+         self._cache = {}  # inp -> traces (str)
++        self.source = source
+ 
+     @beartype
+     @property
+@@ -218,6 +220,9 @@
+ 
+     def _get_valid_inp_ranges(self):
+ 
++        if settings.INPUT_SAMPLING == "auto" and not settings.INP_MAX_V_EXPLICIT:
++            return self._get_auto_inp_ranges()
++
+         dr = {}  # Inp => range
+         di = {}  # Inp => inp
+         inp_ranges = self._get_inp_ranges(len(self.inp_decls))
+@@ -239,6 +244,45 @@
+                 mlog.debug(f"inp range {dr[my_inp]} invalid")
+ 
+         return valid_ranges, valid_inps
++
++    def _get_auto_inp_ranges(self):
++        """Bootstrap signed small/source values without Cartesian range probes.
++
++        Ranges remain sampling proposals even if an individual execution fails;
++        an empty trace is not a proof that a whole region is infeasible.
++        """
++        n = len(self.inp_decls)
++        constants = {0, 1, -1, 2, 8, 16}
++        if self.source is not None:
++            from data.symex_c import _preprocess
++            from pycparser import c_ast, c_parser
++            class Constants(c_ast.NodeVisitor):
++                def visit_Constant(self, node):
++                    if node.type == "int":
++                        try:
++                            value = int(node.value, 0)
++                        except ValueError:
++                            return
++                        if abs(value) <= 256:
++                            constants.add(value)
++            try:
++                tree = c_parser.CParser().parse(_preprocess(self.source.read_text()))
++                for node in tree.ext:
++                    if isinstance(node, c_ast.FuncDef) and node.decl.name == settings.MAINQ_FUN:
++                        Constants().visit(node.body)
++            except Exception:
++                pass  # source constants are optional hints
++        seeds = {tuple([value] * n) for value in sorted(constants)}
++        for i in range(n):
++            seed = [1] * n
++            seed[i] = -1
++            seeds.add(tuple(seed))
++        ranges = {tuple([(0, scale)] * n) for scale in (16, 64, 256)}
++        seed_inputs = data.traces.Inps(data.traces.Inp(self.inp_decls.names, seed)
++                                      for seed in sorted(seeds))
++        traces = self._get_traces_mp(seed_inputs)
++        successful = {inp.vs for inp, lines in traces.items() if lines}
++        return ranges, successful
+ 
+     @classmethod
+     def _get_inp_from_range(cls, inp_range):
+@@ -260,6 +304,7 @@
+             rinps.append((int(maxV*0.25), int(maxV*0.75)))
+ 
+         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
++        rinps = list(dict.fromkeys((lo, hi) for lo, hi in rinps if lo < hi))
+         rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
+         return rinps_i
+ 
+@@ -382,4 +427,3 @@
+         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
+         subprocess.run(shlex.split(cmd), check=True)
+         assert out.is_file(), out
+-
+--- a/src/infer/oct.py
++++ b/src/infer/oct.py
+@@ -61,6 +61,14 @@
+ 
+     def __init__(self, symstates, prog) -> None:
+         super().__init__(symstates, prog)
++
++    def get_terms(self, symbols):
++        from infer.source_hints import polynomial_terms
++        terms = super().get_terms(symbols)
++        existing = {term.term for term in terms}
++        hints = polynomial_terms(getattr(self.prog, "source", None), symbols, settings.MAX_TERM)
++        terms.extend(infer.inv.RelTerm(term) for term in sorted(hints - existing, key=str))
++        return terms
+ 
+     @beartype
+     @staticmethod
+--- /dev/null
++++ b/src/infer/source_hints.py
+@@ -0,0 +1,80 @@
++"""Polynomial candidate hints from actual C guards and additive updates."""
++from functools import lru_cache
++from pathlib import Path
++
++import sympy
++from pycparser import c_ast, c_parser
++
++
++def expression(node):
++    if isinstance(node, c_ast.ID):
++        return sympy.Symbol(node.name)
++    if isinstance(node, c_ast.Constant) and node.type == "int":
++        return sympy.Integer(int(node.value, 0))
++    if isinstance(node, c_ast.UnaryOp) and node.op in ("+", "-"):
++        value = expression(node.expr)
++        return value if node.op == "+" else -value
++    if isinstance(node, c_ast.BinaryOp) and node.op in ("+", "-", "*"):
++        left, right = expression(node.left), expression(node.right)
++        return {"+": lambda: left + right, "-": lambda: left - right,
++                "*": lambda: left * right}[node.op]()
++    raise ValueError("not a supported polynomial expression")
++
++
++@lru_cache(maxsize=16)
++def _candidates(text):
++    from data.symex_c import _preprocess
++    guards, updates = set(), set()
++    class Visitor(c_ast.NodeVisitor):
++        def visit_BinaryOp(self, node):
++            if node.op in ("<", "<=", ">", ">=", "==", "!="):
++                try:
++                    guards.add(sympy.expand(expression(node.left) - expression(node.right)))
++                except (ValueError, TypeError):
++                    pass
++            self.generic_visit(node)
++
++        def visit_Assignment(self, node):
++            try:
++                left, right = expression(node.lvalue), expression(node.rvalue)
++                delta = right - left if node.op == "=" else right if node.op == "+=" else -right
++                if node.op in ("=", "+=", "-=") and left not in delta.free_symbols:
++                    updates.add((left, sympy.expand(delta)))
++            except (ValueError, TypeError):
++                pass
++            self.generic_visit(node)
++
++    tree = c_parser.CParser().parse(_preprocess(text))
++    for node in tree.ext:
++        if isinstance(node, c_ast.FuncDef) and node.decl.name == "mainQ":
++            Visitor().visit(node.body)
++    result = set(guards)
++    for guard in guards:
++        for variable, delta in updates:
++            if variable in guard.free_symbols:
++                result.update((sympy.expand(guard + delta), sympy.expand(guard - delta)))
++    # Constants change a bound, not the expression being bounded. Avoid
++    # checking dozens of shifted versions of the same objective.
++    canonical = set()
++    for term in result:
++        if term.free_symbols:
++            term = sympy.expand(term - term.xreplace({s: 0 for s in term.free_symbols}))
++            _, primitive = sympy.Poly(term, *sorted(term.free_symbols, key=str)).primitive()
++            canonical.add(primitive.as_expr())
++    return frozenset(canonical)
++
++
++def polynomial_terms(source: Path | None, symbols, budget):
++    if source is None:
++        return set()
++    try:
++        candidates = _candidates(source.read_text())
++    except (ValueError, TypeError, OSError):
++        return set()
++    allowed = set(symbols)
++    selected = []
++    for term in sorted(candidates, key=lambda p: (sympy.count_ops(p), str(p))):
++        if term.free_symbols.issubset(allowed) and len(term.free_symbols) <= 3:
++            if sympy.Poly(term, *symbols).total_degree() <= 2:
++                selected.append(term)
++    return {sign * term for term in selected[:budget // 2] for sign in (-1, 1)}
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -1,4 +1,6 @@
+ import pdb
++import shlex
++from dataclasses import dataclass, asdict
+ from functools import partial
+ from pathlib import Path
+ 
+@@ -42,6 +44,8 @@
+ 
+ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
+ INP_MAX_V = 300
++INPUT_SAMPLING = "legacy"  # explicit -inpMaxV retains the legacy range policy
++INP_MAX_V_EXPLICIT = False
+ SE_DEPTH_NOCHANGES_MAX = 3
+ SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
+ # Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.
+@@ -57,6 +61,35 @@
+ OPT_SOLVER_TIMEOUT_MS = 1000  # safety fallback for expensive native NIA operations
+ SIMPLIFY_SOLVER_RLIMIT = 100_000
+ SIMPLIFY_SOLVER_TIMEOUT_MS = 1000
++FEASIBILITY_SOLVER_RLIMIT = 100_000
++FEASIBILITY_SOLVER_TIMEOUT_MS = 100
++
++
++@dataclass(frozen=True)
++class SolverPolicy:
++    rlimit: int
++    timeout_ms: int
++
++
++def solver_policy(phase="checking"):
++    """Resolve each phase's immutable policy at use time, not import time."""
++    values = {
++        "checking": (SOLVER_RLIMIT, SOLVER_TIMEOUT_MS),
++        "optimization": (OPT_SOLVER_RLIMIT, OPT_SOLVER_TIMEOUT_MS),
++        "simplification": (SIMPLIFY_SOLVER_RLIMIT, SIMPLIFY_SOLVER_TIMEOUT_MS),
++        "feasibility": (FEASIBILITY_SOLVER_RLIMIT, FEASIBILITY_SOLVER_TIMEOUT_MS),
++    }
++    return SolverPolicy(*values[phase])
++
++
++def effective_settings():
++    """Serializable effective configuration for a result, including policies."""
++    result = {name: value for name, value in globals().items()
++              if name.isupper() and not name.startswith("_")
++              and isinstance(value, (str, int, float, bool, type(None)))}
++    result["solver_policies"] = {phase: asdict(solver_policy(phase)) for phase in
++                                 ("checking", "optimization", "simplification", "feasibility")}
++    return result
+ EQT_RATE = 1.5
+ # Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
+ # candidate eqts (e.g. egcd, 8 vars). Bound it; on timeout we fall back to the
+@@ -226,7 +259,7 @@
+             for set_attr in _TYPE_SETTINGS:
+                 setattr(settings, set_attr, set_attr in enabled)
+         else:
+-            opts.append(f"-types {types_spec}")
++            opts.extend(["-types", types_spec])
+ 
+     for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
+         if getattr(args, arg_attr):
+@@ -241,39 +274,52 @@
+             if settings:
+                 setattr(settings, set_attr, val)
+             else:
+-                opts.append(flag)
++                opts.extend([flag, str(val)])
+ 
+     for arg_attr, set_attr, flag in _INT_FLAGS:
+         val = getattr(args, arg_attr)
+-        if val is not None and val >= 1:
++        if val is not None:
++            if val < 1:
++                raise ValueError(f"{flag} must be positive")
+             if settings:
+                 setattr(settings, set_attr, val)
++                if arg_attr == "inpMaxV":
++                    settings.INP_MAX_V_EXPLICIT = True
+             else:
+-                opts.append(f"{flag} {val}")
++                opts.extend([flag, str(val)])
+ 
+     if args.uterms:
+         if settings:
+             settings.UTERMS = set(args.uterms.split(';'))
+         else:
+-            opts.append(f'-uterms "{args.uterms}"')  # not tested
++            opts.extend(["-uterms", args.uterms])
+ 
+     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
+         if settings:
+             settings.SE_MAX_DEPTH = args.se_maxdepth
+         else:
+-            opts.append(f"-se_maxdepth {args.se_maxdepth}")
++            opts.extend(["-se_maxdepth", str(args.se_maxdepth)])
++
++    if not settings and getattr(args, "maxdeg", None) is not None:
++        opts.extend(["-maxdeg", str(args.maxdeg)])
++    if not settings:
++        for name in ("writeresults", "test_tracefile"):
++            if value := getattr(args, name, None):
++                opts.extend(["-" + name, str(value)])
+ 
+     if args.tmpdir:
+         if settings:
+             settings.TMPDIR = Path(args.tmpdir)
+             assert settings.TMPDIR.is_dir()
+         else:
+-            opts.append(f"-tmpdir {args.tmpdir}")
++            opts.extend(["-tmpdir", str(args.tmpdir)])
+ 
+     if settings:
+         settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
+         mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
+         return mlog
+     else:
+-        opts.append(f"-log_level {args.log_level}")
+-        return " ".join(opts)
++        opts.extend(["-log_level", str(args.log_level)])
++        return shlex.join(opts)
++
++AUTO_BOUNDS = False

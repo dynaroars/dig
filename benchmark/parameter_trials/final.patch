@@ -1,0 +1,881 @@
+--- a/src/alg.py
++++ b/src/alg.py
+@@ -1,5 +1,7 @@
+ from __future__ import annotations
+ import abc
++import json
++from collections import Counter
+ from collections.abc import Callable
+ from enum import StrEnum
+ import pdb
+@@ -121,13 +123,15 @@
+         )
+         self.tmpdir_del = self.tmpdir / "delete_me"
+         self.tmpdir_del.mkdir()
++        (self.tmpdir / "settings.json").write_text(
++            json.dumps(settings.effective_settings(), indent=2) + "\n")
+ 
+         self.mysrc = self.mysrc_cls(self.filename, self.tmpdir_del)
+         self.inp_decls = self.mysrc.inp_decls
+         self.inv_decls = self.mysrc.inv_decls
+ 
+         self.prog = data.prog.Prog(
+-            self.exe_cmd, self.inp_decls, self.inv_decls)
++            self.exe_cmd, self.inp_decls, self.inv_decls, source=self.filename)
+ 
+         if not settings.DO_SS:  # use traces from running the program on random inputs
+             rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
+@@ -236,6 +240,11 @@
+             self.time_d,
+         )
+         result.save(self.tmpdir)
++        (self.tmpdir / "evidence.json").write_text(json.dumps({
++            "symbolic_exploration": self.symstates.exploration_info,
++            "concrete_execution_outcomes": dict(Counter(self.prog.execution_outcomes.values())),
++            "numerical_checks": "bounded symbolic states and collected traces",
++        }, indent=2) + "\n")
+         Analysis(self.tmpdir).start()  # output stats
+ 
+         # Clean up scratch compilation/trace artifacts
+@@ -265,9 +274,13 @@
+ 
+     @beartype
+     def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
++        ceilings = {loc: Miscs.get_auto_deg(maxdeg, len(symbols), settings.MAX_TERM)
++                    for loc, symbols in self.inv_decls.items()}
++        initial_traces = data.traces.DTraces.parse(
++            [line for lines in self.prog._cache.values() for line in lines], self.inv_decls)
+         dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog).gen(
+-            self.get_auto_deg(maxdeg), getattr(self, "_deg_hints", {}),
+-            complete=maxdeg is not None)
++            max(ceilings.values()), getattr(self, "_deg_hints", {}),
++            complete=maxdeg is not None, initial_traces=initial_traces, ceilings=ceilings)
+         return dinvs, dtraces
+ 
+     def _infer_ieqs(self) -> tuple[DInvs, None]:
+@@ -532,11 +545,10 @@
+         return self._mk_tasks(settings.DO_ARRAYS, _g,  _f)
+ 
+     def _eqts_tasks(self, maxdeg: int | None) -> list:
+-        autodeg = self.get_auto_deg(maxdeg)
+-
+         def _f(l):
+             return infer.eqt.Infer.gen_from_traces(
+-                autodeg, self.dtraces[l], self.inv_decls[l])
++                Miscs.get_auto_deg(maxdeg, len(self.inv_decls[l]), settings.MAX_TERM),
++                self.dtraces[l], self.inv_decls[l])
+ 
+         def _g(l):
+             return not self.inv_decls[l].array_only
+--- a/src/analysis.py
++++ b/src/analysis.py
+@@ -2,6 +2,7 @@
+ Analyze Dig's results
+ """
+ import argparse
++import shlex
+ from dataclasses import dataclass
+ import pdb
+ import random
+@@ -389,7 +390,7 @@
+                           f"seed {seed}, {time.strftime('%c')}: {f.name}")
+                 cmd = [python_exe, "-u", "-O", str(dig_py)]
+                 if opts:
+-                    cmd.extend(opts.split())
++                    cmd.extend(shlex.split(opts))
+                 cmd.extend([str(f.resolve()), "-seed", str(seed), "-tmpdir", str(bdir)])
+ 
+                 env = os.environ.copy()
+--- a/src/data/prog.py
++++ b/src/data/prog.py
+@@ -120,11 +120,14 @@
+ 
+ class Prog:
+     @beartype
+-    def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs) -> None:
++    def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs,
++                 source: Path | None = None) -> None:
+         self.exe_cmd = exe_cmd
+         self.inp_decls = inp_decls
+         self.inv_decls = inv_decls
+         self._cache = {}  # inp -> traces (str)
++        self.execution_outcomes = {}
++        self.source = source
+ 
+     @beartype
+     @property
+@@ -187,13 +190,16 @@
+             # (e.g. an infinite loop); skip it rather than hang forever.
+             mlog.warning(
+                 f"run timed out after {settings.C.RUN_TIMEOUT}s, no traces: {cmd}")
++            self.execution_outcomes[inp] = "timeout"
+             return []
+         # Assertions, signed-overflow traps, and arithmetic faults can occur
+         # after printf has emitted part of a trace. Reject the whole failed
+         # execution so those partial states cannot pollute fitting/testing.
+         if cp.returncode < 0:
++            self.execution_outcomes[inp] = f"signal:{-cp.returncode}"
+             return []
+         traces = cp.stdout.splitlines()
++        self.execution_outcomes[inp] = "traces" if traces else f"empty:exit:{cp.returncode}"
+         return traces
+ 
+     @beartype
+@@ -206,17 +212,23 @@
+         tasks = [inp for inp in inps if inp not in self._cache]
+ 
+         def f(tasks):
+-            return [(inp, self._get_traces(inp)) for inp in tasks]
++            results = []
++            for inp in tasks:
++                traces = self._get_traces(inp)
++                results.append((inp, traces, self.execution_outcomes.get(inp, "unknown")))
++            return results
+ 
+         wrs = MP.run_mp("get traces", tasks, f, settings.DO_MP)
+ 
+-        for inp, traces in wrs:
++        for inp, traces, outcome in wrs:
+             assert inp not in self._cache
+             self._cache[inp] = traces
++            self.execution_outcomes[inp] = outcome
+ 
+         return {inp: self._cache[inp] for inp in inps}
+ 
+     def _get_valid_inp_ranges(self):
++
+ 
+         dr = {}  # Inp => range
+         di = {}  # Inp => inp
+@@ -260,6 +272,7 @@
+             rinps.append((int(maxV*0.25), int(maxV*0.75)))
+ 
+         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
++        rinps = list(dict.fromkeys((lo, hi) for lo, hi in rinps if lo < hi))
+         rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
+         return rinps_i
+ 
+@@ -382,4 +395,3 @@
+         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
+         subprocess.run(shlex.split(cmd), check=True)
+         assert out.is_file(), out
+-
+--- a/src/data/symstates.py
++++ b/src/data/symstates.py
+@@ -92,6 +92,7 @@
+ 
+         self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
+         self.solver_stats_ = []  # periodically save solver_stats results here
++        self.exploration_info = {}
+ 
+         super().__init__()
+ 
+@@ -112,6 +113,7 @@
+         self.inp_exprs = [z3.Const(symstatesmaker.input_prefix+s.name, s.expr.sort())
+                           for s in self.inp_decls]
+         ss = symstatesmaker.compute()
++        self.exploration_info = getattr(symstatesmaker, "exploration_info", {})
+         for loc in ss:
+             self[loc] = SymStatesDepth(ss[loc])
+ 
+@@ -130,6 +132,7 @@
+         data = {
+             "inps": inps,
+             "input_symbols": list(map(str, self.inp_exprs)),
++            "exploration": self.exploration_info,
+             "ss": ss
+         }
+         jdata = json.dumps(data)
+@@ -143,6 +146,7 @@
+         assert sstatesfile.is_file(), sstatesfile
+         
+         data = json.loads(sstatesfile.read_text())
++        self.exploration_info = data.get("exploration", {})
+         ss = data["ss"]
+ 
+         for loc in ss:
+@@ -691,6 +695,7 @@
+         self.funname = funname
+         self.tmpdir = tmpdir
+         self.ninps = ninps
++        self.exploration_info = {}
+ 
+     @property
+     def maxdepth(self) -> int:
+@@ -826,6 +831,8 @@
+             engine = CSymEx(self.filename, depth,
+                             solver_rlimit=settings.SOLVER_RLIMIT)
+             results = engine.run()
++            self.exploration_info[depth] = {"truncated": engine._incomplete,
++                                            "records": len(results)}
+         except Exception as ex:
+             mlog.error(f"python symex failed at depth {depth}: {ex}")
+             return None
+--- a/src/helpers/miscs.py
++++ b/src/helpers/miscs.py
+@@ -440,7 +440,7 @@
+     @classmethod
+     def refine(cls, eqts: list[sympy.Expr | sympy.Rel],
+                do_reduce: bool = True,
+-               do_filter: bool = True) -> list[sympy.Expr | sympy.Rel]:
++               do_filter: bool = False) -> list[sympy.Expr | sympy.Rel]:
+ 
+         if not eqts:
+             return eqts
+@@ -458,84 +458,123 @@
+ 
+     @classmethod
+     def coef_matrix_rank(cls, eqts: list, uks: list) -> int:
+-        """
+-        Fast numpy rank of the template coefficient matrix.
+-        Returns -1 on any failure so callers can treat it as unknown.
+-        """
++        """Exact rank; rational coefficients must never be truncated to int."""
+         try:
+-            M = np.array(
+-                [[int(e.coeff(uk)) for uk in uks] for e in eqts],
+-                dtype=np.float64,
+-            )
+-            return int(np.linalg.matrix_rank(M)) if M.size > 0 else 0
++            rows = cls._coefficient_rows(tuple(eqts), tuple(uks))
++            basis = cls._certified_nullspace(rows)
++            return len(uks) - len(basis)
+         except Exception:
+             return -1
+ 
++    @staticmethod
++    @functools.lru_cache(maxsize=8)
++    def _coefficient_rows(expressions: tuple, coefficients: tuple) -> tuple:
++        """Extract a linear template row once instead of rescanning per column."""
++        allowed = {1, *coefficients}
++        rows = []
++        for expression in expressions:
++            mapping = expression.as_coefficients_dict()
++            if set(mapping).issubset(allowed):
++                rows.append(tuple(mapping.get(c, sympy.S.Zero) for c in coefficients))
++            else:
++                # Preserve the general Expr.coeff behavior for unusual callers.
++                rows.append(tuple(expression.coeff(c) for c in coefficients))
++        return tuple(rows)
++
++    @staticmethod
++    @functools.lru_cache(maxsize=8)
++    def _certified_nullspace(rows: tuple) -> tuple:
++        """Select independent rows modulo a prime, then certify the exact kernel.
++
++        Modular pivots certify a rank lower bound. Exact null vectors spanning
++        the complementary dimension and annihilated by *all* rows certify the
++        matching upper bound. No numerical threshold can discard a relation.
++        """
++        from sympy.polys.matrices import DomainMatrix
++        if not rows:
++            return ()
++        n = len(rows[0])
++        prime = 1_000_003  # products fit int64; this is a certificate hint only
++        residues = []
++        for row in rows:
++            values = []
++            for value in row:
++                value = sympy.Rational(value)
++                numerator, denominator = int(value.p), int(value.q)
++                if denominator % prime == 0:
++                    # An unlucky denominator needs no special user setting.
++                    matrix = DomainMatrix.from_Matrix(sympy.Matrix(rows)).convert_to(sympy.QQ)
++                    return tuple(tuple(row) for row in matrix.nullspace(divide_last=True).to_Matrix().tolist())
++                values.append(numerator % prime * pow(denominator % prime, -1, prime) % prime)
++            residues.append(values)
++        matrix = np.array(residues, dtype=np.int64)
++        order = list(range(len(rows)))
++        rank = 0
++        selected = []
++        for column in range(n):
++            candidates = np.flatnonzero(matrix[rank:, column])
++            if not len(candidates):
++                continue
++            pivot = rank + int(candidates[0])
++            matrix[[rank, pivot]] = matrix[[pivot, rank]]
++            order[rank], order[pivot] = order[pivot], order[rank]
++            selected.append(order[rank])
++            matrix[rank] = matrix[rank] * pow(int(matrix[rank, column]), -1, prime) % prime
++            if rank + 1 < len(rows):
++                factors = matrix[rank + 1:, column].copy()
++                matrix[rank + 1:] = (matrix[rank + 1:] - factors[:, None] * matrix[rank]) % prime
++            rank += 1
++            if rank == n:
++                return ()  # full rank modulo p proves full rank over QQ
++            if rank == len(rows):
++                break
++        full = DomainMatrix.from_Matrix(sympy.Matrix(rows)).convert_to(sympy.QQ)
++        if not selected:
++            if full.is_zero_matrix:
++                return tuple(tuple(row) for row in sympy.eye(n).tolist())
++            # Every coefficient vanished modulo the hint prime, not over QQ.
++            return tuple(tuple(row) for row in full.nullspace(divide_last=True).to_Matrix().tolist())
++        independent = DomainMatrix.from_Matrix(sympy.Matrix([rows[i] for i in selected])).convert_to(sympy.QQ)
++        # Numerical support is only a speed hint. Accept its smaller exact
++        # solve if dimension AND all-row residuals certify the full kernel.
++        try:
++            numeric = np.array([[float(value) for value in row] for row in rows], dtype=np.float64)
++            if not np.isfinite(numeric).all():
++                raise ValueError("numeric support hint is outside the float range")
++            scales = np.max(np.abs(numeric), axis=0)
++            numeric = numeric / np.where(scales == 0, 1, scales)
++            _, singular, vectors = np.linalg.svd(numeric, full_matrices=True)
++            tolerance = max(numeric.shape) * np.finfo(np.float64).eps * singular[0]
++            numerical_rank = int(np.sum(singular > tolerance))
++            support = np.abs(vectors[numerical_rank:]).max(axis=0)
++            relevant = [i for i, value in enumerate(support) if value > 1e-7]
++            if relevant and len(relevant) < n:
++                reduced = DomainMatrix.from_Matrix(
++                    sympy.Matrix([[rows[i][j] for j in relevant] for i in selected])
++                ).convert_to(sympy.QQ).nullspace(divide_last=True).to_Matrix()
++                padded = sympy.zeros(reduced.rows, n)
++                for i in range(reduced.rows):
++                    for j, column in enumerate(relevant):
++                        padded[i, column] = reduced[i, j]
++                hint = DomainMatrix.from_Matrix(padded).convert_to(sympy.QQ)
++                if hint.shape[0] == n - rank and (full * hint.transpose()).is_zero_matrix:
++                    return tuple(tuple(row) for row in padded.tolist())
++        except (ValueError, np.linalg.LinAlgError, OverflowError):
++            pass
++        kernel = independent.nullspace(divide_last=True)
++        if kernel.shape[0] != n - rank or not (full * kernel.transpose()).is_zero_matrix:
++            # Prime divided a nonzero minor: resolve using the full exact matrix.
++            kernel = full.nullspace(divide_last=True)
++        return tuple(tuple(row) for row in kernel.to_Matrix().tolist())
++
+     @classmethod
+     def _null_space_fast(cls, eqts: list, uks: list) -> list | None:
+-        """
+-        Compute null space of the template coefficient matrix using two passes:
+-        1. NumPy SVD (float64) to quickly detect full rank — if the matrix has no
+-           null space, return [] immediately without calling sympy at all.
+-        2. sympy.Matrix.nullspace() for exact rational null vectors when the rank
+-           check indicates a non-trivial null space exists.
+-
+-        Avoids the overhead of linsolve's FiniteSet / parametric-solution machinery.
+-        Returns a list of sympy column vectors, or None to fall back to linsolve.
+-
+-        The eqts are linear in uks (trace values are integers, so each expression
+-        is sum(coef_j * uk_j)). Coefficients may be rationals (e.g. real-valued
+-        traces like x = 95/2), so keep them exact for the sympy null space and
+-        only float-cast for the numpy rank check.
+-        """
++        """Certified modular/exact null space, with linsolve fallback."""
+         try:
+-            rows = [[expr.coeff(uk) for uk in uks] for expr in eqts]
+-            # float-cast for the numpy rank check; a non-numeric coefficient
+-            # (template not fully reduced on some trace) means we can't use the
+-            # fast path, so fall back to the exact solver.
+-            M_np = np.array([[float(c) for c in row] for row in rows],
+-                            dtype=np.float64)
+-        except (TypeError, AttributeError, ValueError):
++            rows = cls._coefficient_rows(tuple(eqts), tuple(uks))
++            return [sympy.Matrix(vector) for vector in cls._certified_nullspace(rows)]
++        except (TypeError, ValueError, AttributeError):
+             return None
+-
+-        if M_np.size == 0:
+-            return None
+-        n = len(uks)
+-        _, s, Vh = np.linalg.svd(M_np, full_matrices=True)
+-        tol = max(M_np.shape) * np.finfo(np.float64).eps * (s[0] if len(s) else 1.0)
+-        rank = int(np.sum(s > tol))
+-        if rank >= n:
+-            return []  # full column rank → trivial null space, skip sympy entirely
+-
+-        # Trace-guided term reduction: rows of Vh past the rank span the numeric
+-        # null space (the invariant coefficient space). A term (column) whose
+-        # entry is ~0 in *every* null-space basis vector has coefficient 0 in
+-        # every invariant, so drop it. The exact (sound) solve then runs on the
+-        # relevant subset only — smaller for high-degree / many-var templates
+-        # where invariants use few of the C(n+deg, deg) monomials.
+-        null_basis = Vh[rank:]                       # (n - rank) x n
+-        support = np.abs(null_basis).max(axis=0)     # per-term max |coef|
+-        relevant = [j for j in range(n) if support[j] > 1e-7]
+-        if not relevant:
+-            return None  # numeric degeneracy; let caller fall back
+-
+-        if len(relevant) < n:
+-            mlog.debug(f"term reduction: {n} -> {len(relevant)} terms")
+-
+-        # Exact null space via sympy on the reduced columns, then map back to
+-        # the full uk space (0 for the dropped, provably-uninvolved terms).
+-        M_sym = sympy.Matrix([[row[j] for j in relevant] for row in rows])
+-        try:
+-            reduced = M_sym.nullspace()
+-        except Exception:
+-            return None
+-        full_vecs = []
+-        for rv in reduced:
+-            full = sympy.zeros(n, 1)
+-            for i, j in enumerate(relevant):
+-                full[j] = rv[i]
+-            full_vecs.append(full)
+-        return full_vecs
+ 
+     @beartype
+     @classmethod
+--- a/src/helpers/z3utils.py
++++ b/src/helpers/z3utils.py
+@@ -6,6 +6,8 @@
+ import pdb
+ import operator
+ import functools
++from contextlib import contextmanager
++from contextvars import ContextVar
+ import z3
+ import helpers.vcommon as CM
+ import settings
+@@ -25,8 +27,16 @@
+ class Z3:
+     zTrue = z3.BoolVal(True)
+     zFalse = z3.BoolVal(False)
+-    RLIMIT = settings.SOLVER_RLIMIT
+-    TIMEOUT_MS = settings.SOLVER_TIMEOUT_MS
++    _policy = ContextVar("dig_solver_policy", default=None)
++
++    @classmethod
++    @contextmanager
++    def use_policy(cls, policy):
++        token = cls._policy.set(policy)
++        try:
++            yield
++        finally:
++            cls._policy.reset(token)
+ 
+     # names of program variables that are real-valued (float/double). A bare
+     # identifier in parse() becomes z3.Real(name) if listed here, else z3.Int,
+@@ -104,9 +114,10 @@
+         # rlimit = deterministic work-unit cutoff (reproducible under MP
+         # contention), with a wall-clock fallback for native arithmetic that
+         # does not return promptly under the work-unit budget.
+-        solver.set("rlimit", cls.RLIMIT)
+-        if cls.TIMEOUT_MS:
+-            solver.set("timeout", cls.TIMEOUT_MS)
++        policy = cls._policy.get() or settings.solver_policy()
++        solver.set("rlimit", policy.rlimit)
++        if policy.timeout_ms:
++            solver.set("timeout", policy.timeout_ms)
+         return solver
+ 
+     @classmethod
+--- a/src/infer/eqt.py
++++ b/src/infer/eqt.py
+@@ -67,14 +67,19 @@
+     @beartype
+     def gen(self, deg: int,
+             deg_hints: dict[str, int] | None = None,
+-            complete: bool = False
++            complete: bool = False,
++            initial_traces: data.traces.DTraces | None = None,
++            ceilings: dict[str, int] | None = None
+             ) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
+         assert deg >= 1, deg
+ 
+         locs = self.prog.locs
+         inps = data.traces.Inps()
+         dtraces = data.traces.DTraces.mk(locs)
++        if initial_traces:
++            dtraces.merge(initial_traces)
+         deg_hints = deg_hints or {}
++        ceilings = ceilings or {loc: deg for loc in locs}
+ 
+         # Ascending degrees with per-loc early stop (traces accumulate across
+         # attempts). Always include 2 (cheap warm-up + common case) and the
+@@ -83,7 +88,7 @@
+         # and stop *below* the ceiling (e.g. ps6 at 6 instead of 7) without
+         # losing anything: the ceiling pass still runs for any loc the estimate
+         # under-shoots (e.g. geo3's degree-4 eqts).
+-        degrees = {min(2, deg), deg}
++        degrees = {min(2, deg), *ceilings.values()}
+         for loc in locs:
+             est = deg_hints.get(loc)
+             if est is not None:
+@@ -91,16 +96,20 @@
+         degrees = sorted(degrees)
+ 
+         dinvs = infer.inv.DInvs()
++        attempted = {loc: set() for loc in locs}
+         for cur_deg in degrees:
+             # Only process locs that haven't yielded invariants yet
+-            remaining = [loc for loc in locs if complete or not dinvs.get(loc)]
++            remaining = [loc for loc in locs if (complete or not dinvs.get(loc))
++                         and min(cur_deg, ceilings[loc]) not in attempted[loc]]
+             if not remaining:
+                 break
+ 
+             tasks = [
+-                (loc, self._get_init_traces(loc, cur_deg, dtraces, inps, settings.EQT_RATE))
++                (loc, self._get_init_traces(loc, min(cur_deg, ceilings[loc]), dtraces, inps, settings.EQT_RATE))
+                 for loc in remaining
+             ]
++            for loc in remaining:
++                attempted[loc].add(min(cur_deg, ceilings[loc]))
+             tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
+ 
+             def f(tasks):
+--- a/src/infer/infer.py
++++ b/src/infer/infer.py
+@@ -85,15 +85,8 @@
+ 
+     @beartype
+     def gen(self) -> infer.inv.DInvs:
+-        previous_limit = Z3.RLIMIT
+-        previous_timeout = Z3.TIMEOUT_MS
+-        Z3.RLIMIT = settings.OPT_SOLVER_RLIMIT
+-        Z3.TIMEOUT_MS = settings.OPT_SOLVER_TIMEOUT_MS
+-        try:
++        with Z3.use_policy(settings.solver_policy("optimization")):
+             return self._gen()
+-        finally:
+-            Z3.RLIMIT = previous_limit
+-            Z3.TIMEOUT_MS = previous_timeout
+ 
+     def _gen(self) -> infer.inv.DInvs:
+         
+@@ -114,7 +107,7 @@
+                    f"terms at {len(locs)} locs")
+ 
+         refs = {
+-            loc: {self.inv_cls(t.mk_le(self.IUPPER)): t for t in terms}
++            loc: {self.inv_cls(t.mk_le(self.bound_cap())): t for t in terms}
+             for loc, terms in zip(locs, termss)
+         }
+         ieqs = infer.inv.DInvs()
+@@ -139,7 +132,7 @@
+                 for loc, terms in tasks:
+                     exprs = [self.to_expr(t) for t in terms]
+                     bounds = self.symstates.maximize_many(
+-                        loc, exprs, self.IUPPER)
++                        loc, exprs, self.bound_cap())
+                     out.extend((loc, terms[i], v) for i, v in bounds.items())
+                 return out
+ 
+@@ -152,7 +145,7 @@
+             def f(tasks):
+                 return [
+                     (loc, term, self.symstates.maximize(
+-                        loc, self.to_expr(term), self.IUPPER))
++                        loc, self.to_expr(term), self.bound_cap()))
+                     for loc, term in tasks
+                 ]
+ 
+@@ -167,6 +160,10 @@
+             dinvs.setdefault(loc, infer.inv.Invs()).add(inv)
+ 
+         return dinvs
++
++    @classmethod
++    def bound_cap(cls):
++        raise NotImplementedError
+ 
+     @beartype
+     def get_terms(self,
+@@ -213,7 +210,7 @@
+         """
+         Compute convex hulls from traces
+         """
+-        maxV = cls.IUPPER
++        maxV = cls.bound_cap()
+         minV = -maxV
+ 
+         tasks = cls.my_get_terms(symbols.symbolic)
+--- a/src/infer/inv.py
++++ b/src/infer/inv.py
+@@ -123,12 +123,6 @@
+ 
+     def test_single_trace(self, trace: data.traces.Trace) -> bool:
+         assert isinstance(trace, data.traces.Trace), trace
+-
+-        # temp fix: disable traces that wih extreme large values
+-        # (see geo1 e.g., 435848050)
+-        if any(abs(x) > settings.TRACE_MAX_VAL for x in trace.vs):
+-            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
+-            return True
+ 
+         try:
+             return bool(self.inv.xreplace(trace.mydict))
+@@ -334,15 +328,8 @@
+         return '\n'.join(lines)
+ 
+     def simplify(self) -> list[Inv]:
+-        previous_limit = Z3.RLIMIT
+-        previous_timeout = Z3.TIMEOUT_MS
+-        Z3.RLIMIT = settings.SIMPLIFY_SOLVER_RLIMIT
+-        Z3.TIMEOUT_MS = settings.SIMPLIFY_SOLVER_TIMEOUT_MS
+-        try:
++        with Z3.use_policy(settings.solver_policy("simplification")):
+             return self._simplify()
+-        finally:
+-            Z3.RLIMIT = previous_limit
+-            Z3.TIMEOUT_MS = previous_timeout
+ 
+     def _simplify(self) -> list[Inv]:
+         eqts = self.eqts
+--- a/src/infer/mp.py
++++ b/src/infer/mp.py
+@@ -366,7 +366,9 @@
+     """
+     Min-max plus invariants
+     """
+-    IUPPER = settings.IUPPER_MMP
++    @classmethod
++    def bound_cap(cls):
++        return settings.IUPPER_MMP
+ 
+     def __init__(self, symstates, prog) -> None:
+         super().__init__(symstates, prog)
+--- a/src/infer/oct.py
++++ b/src/infer/oct.py
+@@ -57,10 +57,23 @@
+ 
+ class Infer(infer.infer._Opt):
+ 
+-    IUPPER = settings.IUPPER
++    @classmethod
++    def bound_cap(cls):
++        return settings.IUPPER
+ 
+     def __init__(self, symstates, prog) -> None:
+         super().__init__(symstates, prog)
++
++    def get_terms(self, symbols):
++        from infer.source_hints import polynomial_terms
++        terms = super().get_terms(symbols)
++        if not settings.SOURCE_TEMPLATES:
++            return terms
++        existing = {term.term for term in terms}
++        hints = polynomial_terms(getattr(self.prog, "source", None), symbols,
++                                 settings.MAX_TERM, settings.IDEG)
++        terms.extend(infer.inv.RelTerm(term) for term in sorted(hints - existing, key=str))
++        return terms
+ 
+     @beartype
+     @staticmethod
+--- a/src/infer/source_hints.py
++++ b/src/infer/source_hints.py
+@@ -0,0 +1,80 @@
++"""Polynomial candidate hints from actual C guards and additive updates."""
++from functools import lru_cache
++from pathlib import Path
++
++import sympy
++from pycparser import c_ast, c_parser
++
++
++def expression(node):
++    if isinstance(node, c_ast.ID):
++        return sympy.Symbol(node.name)
++    if isinstance(node, c_ast.Constant) and node.type == "int":
++        return sympy.Integer(int(node.value, 0))
++    if isinstance(node, c_ast.UnaryOp) and node.op in ("+", "-"):
++        value = expression(node.expr)
++        return value if node.op == "+" else -value
++    if isinstance(node, c_ast.BinaryOp) and node.op in ("+", "-", "*"):
++        left, right = expression(node.left), expression(node.right)
++        return {"+": lambda: left + right, "-": lambda: left - right,
++                "*": lambda: left * right}[node.op]()
++    raise ValueError("not a supported polynomial expression")
++
++
++@lru_cache(maxsize=16)
++def _candidates(text):
++    from data.symex_c import _preprocess
++    guards, updates = set(), set()
++    class Visitor(c_ast.NodeVisitor):
++        def visit_BinaryOp(self, node):
++            if node.op in ("<", "<=", ">", ">=", "==", "!="):
++                try:
++                    guards.add(sympy.expand(expression(node.left) - expression(node.right)))
++                except (ValueError, TypeError):
++                    pass
++            self.generic_visit(node)
++
++        def visit_Assignment(self, node):
++            try:
++                left, right = expression(node.lvalue), expression(node.rvalue)
++                delta = right - left if node.op == "=" else right if node.op == "+=" else -right
++                if node.op in ("=", "+=", "-=") and left not in delta.free_symbols:
++                    updates.add((left, sympy.expand(delta)))
++            except (ValueError, TypeError):
++                pass
++            self.generic_visit(node)
++
++    tree = c_parser.CParser().parse(_preprocess(text))
++    for node in tree.ext:
++        if isinstance(node, c_ast.FuncDef) and node.decl.name == "mainQ":
++            Visitor().visit(node.body)
++    result = set(guards)
++    for guard in guards:
++        for variable, delta in updates:
++            if variable in guard.free_symbols:
++                result.update((sympy.expand(guard + delta), sympy.expand(guard - delta)))
++    # Constants change a bound, not the expression being bounded. Avoid
++    # checking dozens of shifted versions of the same objective.
++    canonical = set()
++    for term in result:
++        if term.free_symbols:
++            term = sympy.expand(term - term.xreplace({s: 0 for s in term.free_symbols}))
++            _, primitive = sympy.Poly(term, *sorted(term.free_symbols, key=str)).primitive()
++            canonical.add(primitive.as_expr())
++    return frozenset(canonical)
++
++
++def polynomial_terms(source: Path | None, symbols, budget, degree=1):
++    if source is None:
++        return set()
++    try:
++        candidates = _candidates(source.read_text())
++    except (ValueError, TypeError, OSError):
++        return set()
++    allowed = set(symbols)
++    selected = []
++    for term in sorted(candidates, key=lambda p: (sympy.count_ops(p), str(p))):
++        if term.free_symbols.issubset(allowed) and len(term.free_symbols) <= 3:
++            if sympy.Poly(term, *symbols).total_degree() <= degree:
++                selected.append(term)
++    return {sign * term for term in selected[:budget // 2] for sign in (-1, 1)}
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -1,4 +1,6 @@
+ import pdb
++import shlex
++from dataclasses import dataclass, asdict
+ from functools import partial
+ from pathlib import Path
+ 
+@@ -57,6 +59,35 @@
+ OPT_SOLVER_TIMEOUT_MS = 1000  # safety fallback for expensive native NIA operations
+ SIMPLIFY_SOLVER_RLIMIT = 100_000
+ SIMPLIFY_SOLVER_TIMEOUT_MS = 1000
++FEASIBILITY_SOLVER_RLIMIT = 100_000
++FEASIBILITY_SOLVER_TIMEOUT_MS = 100
++
++
++@dataclass(frozen=True)
++class SolverPolicy:
++    rlimit: int
++    timeout_ms: int
++
++
++def solver_policy(phase="checking"):
++    """Resolve each phase's immutable policy at use time, not import time."""
++    values = {
++        "checking": (SOLVER_RLIMIT, SOLVER_TIMEOUT_MS),
++        "optimization": (OPT_SOLVER_RLIMIT, OPT_SOLVER_TIMEOUT_MS),
++        "simplification": (SIMPLIFY_SOLVER_RLIMIT, SIMPLIFY_SOLVER_TIMEOUT_MS),
++        "feasibility": (FEASIBILITY_SOLVER_RLIMIT, FEASIBILITY_SOLVER_TIMEOUT_MS),
++    }
++    return SolverPolicy(*values[phase])
++
++
++def effective_settings():
++    """Serializable effective configuration for a result, including policies."""
++    result = {name: value for name, value in globals().items()
++              if name.isupper() and not name.startswith("_")
++              and isinstance(value, (str, int, float, bool, type(None)))}
++    result["solver_policies"] = {phase: asdict(solver_policy(phase)) for phase in
++                                 ("checking", "optimization", "simplification", "feasibility")}
++    return result
+ EQT_RATE = 1.5
+ # Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
+ # candidate eqts (e.g. egcd, 8 vars). Bound it; on timeout we fall back to the
+@@ -65,10 +96,10 @@
+ UGLY_FACTOR = 20  # remove equalities that have lots of terms and "large" coefficients
+ MAX_TERM = 200
+ 
+-TRACE_MAX_VAL = 1_000_000_000
+ TRACE_MULTIPLIER = 5
+ INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
+ UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
++SOURCE_TEMPLATES = True  # automatic hints; explicit template controls opt out
+ 
+ # Iequalities
+ IUPPER = 50  # t <= iupper
+@@ -181,8 +212,7 @@
+     ("dosolverstats", "DO_SOLVER_STATS", "-dosolverstats", True),
+ )
+ 
+-# String options: applied verbatim when truthy. (Subprocess reconstruction emits
+-# the bare flag without its value, matching the original behavior.)
++# String options: apply and serialize the value verbatim, including spaces.
+ _STR_FLAGS = (
+     # (arg_attr, setting_attr, cli_flag)
+     ("writevtraces", "WRITE_VTRACES", "-writevtraces"),
+@@ -216,6 +246,9 @@
+     import helpers.vcommon
+ 
+     opts = []
++    if settings:
++        settings.SOURCE_TEMPLATES = not any(
++            getattr(args, name, None) is not None for name in ("ideg", "iterms", "icoefs"))
+ 
+     # -types/-only: apply before the -no<type> flags so an explicit -no<type>
+     # (or a hidden alias) can still further disable a type the allowlist enabled.
+@@ -226,7 +259,7 @@
+             for set_attr in _TYPE_SETTINGS:
+                 setattr(settings, set_attr, set_attr in enabled)
+         else:
+-            opts.append(f"-types {types_spec}")
++            opts.extend(["-types", types_spec])
+ 
+     for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
+         if getattr(args, arg_attr):
+@@ -241,39 +274,48 @@
+             if settings:
+                 setattr(settings, set_attr, val)
+             else:
+-                opts.append(flag)
++                opts.extend([flag, str(val)])
+ 
+     for arg_attr, set_attr, flag in _INT_FLAGS:
+         val = getattr(args, arg_attr)
+-        if val is not None and val >= 1:
++        if val is not None:
++            if val < 1:
++                raise ValueError(f"{flag} must be positive")
+             if settings:
+                 setattr(settings, set_attr, val)
+             else:
+-                opts.append(f"{flag} {val}")
++                opts.extend([flag, str(val)])
+ 
+     if args.uterms:
+         if settings:
+             settings.UTERMS = set(args.uterms.split(';'))
+         else:
+-            opts.append(f'-uterms "{args.uterms}"')  # not tested
++            opts.extend(["-uterms", args.uterms])
+ 
+     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
+         if settings:
+             settings.SE_MAX_DEPTH = args.se_maxdepth
+         else:
+-            opts.append(f"-se_maxdepth {args.se_maxdepth}")
++            opts.extend(["-se_maxdepth", str(args.se_maxdepth)])
++
++    if not settings and getattr(args, "maxdeg", None) is not None:
++        opts.extend(["-maxdeg", str(args.maxdeg)])
++    if not settings:
++        for name in ("writeresults", "test_tracefile"):
++            if value := getattr(args, name, None):
++                opts.extend(["-" + name, str(value)])
+ 
+     if args.tmpdir:
+         if settings:
+             settings.TMPDIR = Path(args.tmpdir)
+             assert settings.TMPDIR.is_dir()
+         else:
+-            opts.append(f"-tmpdir {args.tmpdir}")
++            opts.extend(["-tmpdir", str(args.tmpdir)])
+ 
+     if settings:
+         settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
+         mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
+         return mlog
+     else:
+-        opts.append(f"-log_level {args.log_level}")
+-        return " ".join(opts)
++        opts.extend(["-log_level", str(args.log_level)])
++        return shlex.join(opts)

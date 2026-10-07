@@ -1,0 +1,428 @@
+--- a/src/helpers/z3utils.py
++++ b/src/helpers/z3utils.py
+@@ -6,6 +6,8 @@
+ import pdb
+ import operator
+ import functools
++from contextlib import contextmanager
++from contextvars import ContextVar
+ import z3
+ import helpers.vcommon as CM
+ import settings
+@@ -25,8 +27,16 @@
+ class Z3:
+     zTrue = z3.BoolVal(True)
+     zFalse = z3.BoolVal(False)
+-    RLIMIT = settings.SOLVER_RLIMIT
+-    TIMEOUT_MS = settings.SOLVER_TIMEOUT_MS
++    _policy = ContextVar("dig_solver_policy", default=None)
++
++    @classmethod
++    @contextmanager
++    def use_policy(cls, policy):
++        token = cls._policy.set(policy)
++        try:
++            yield
++        finally:
++            cls._policy.reset(token)
+ 
+     # names of program variables that are real-valued (float/double). A bare
+     # identifier in parse() becomes z3.Real(name) if listed here, else z3.Int,
+@@ -104,9 +114,10 @@
+         # rlimit = deterministic work-unit cutoff (reproducible under MP
+         # contention), with a wall-clock fallback for native arithmetic that
+         # does not return promptly under the work-unit budget.
+-        solver.set("rlimit", cls.RLIMIT)
+-        if cls.TIMEOUT_MS:
+-            solver.set("timeout", cls.TIMEOUT_MS)
++        policy = cls._policy.get() or settings.solver_policy()
++        solver.set("rlimit", policy.rlimit)
++        if policy.timeout_ms:
++            solver.set("timeout", policy.timeout_ms)
+         return solver
+ 
+     @classmethod
+--- a/src/infer/infer.py
++++ b/src/infer/infer.py
+@@ -85,19 +85,12 @@
+ 
+     @beartype
+     def gen(self) -> infer.inv.DInvs:
+-        previous_limit = Z3.RLIMIT
+-        previous_timeout = Z3.TIMEOUT_MS
+-        Z3.RLIMIT = settings.OPT_SOLVER_RLIMIT
+-        Z3.TIMEOUT_MS = settings.OPT_SOLVER_TIMEOUT_MS
+-        try:
++        with Z3.use_policy(settings.solver_policy("optimization")):
+             return self._gen()
+-        finally:
+-            Z3.RLIMIT = previous_limit
+-            Z3.TIMEOUT_MS = previous_timeout
+ 
+     def _gen(self) -> infer.inv.DInvs:
+         
+-        locs = self.inv_decls.keys()
++        locs = list(self.inv_decls)
+ 
+         def _terms(loc):
+             return self.inv_decls[loc].symbolic
+@@ -113,8 +106,21 @@
+         mlog.debug(f"checking upperbounds for {sum(map(len, termss))} "
+                    f"terms at {len(locs)} locs")
+ 
++        sampled = data.traces.DTraces.parse(
++            [line for lines in self.prog._cache.values() for line in lines], self.inv_decls
++        ) if settings.AUTO_BOUNDS else {}
++        caps = {}
++        for loc, terms in zip(locs, termss):
++            for term in terms:
++                cap = self.bound_cap()
++                if sampled.get(loc):
++                    values = term.eval_traces(sampled[loc])
++                    if values and max(values).is_Integer:
++                        cap = max(cap, abs(int(max(values))))
++                caps[loc, term] = cap
++
+         refs = {
+-            loc: {self.inv_cls(t.mk_le(self.IUPPER)): t for t in terms}
++            loc: {self.inv_cls(t.mk_le(caps[loc, t])): t for t in terms}
+             for loc, terms in zip(locs, termss)
+         }
+         ieqs = infer.inv.DInvs()
+@@ -139,7 +145,7 @@
+                 for loc, terms in tasks:
+                     exprs = [self.to_expr(t) for t in terms]
+                     bounds = self.symstates.maximize_many(
+-                        loc, exprs, self.IUPPER)
++                        loc, exprs, max((caps[loc, term] for term in terms), default=self.bound_cap()))
+                     out.extend((loc, terms[i], v) for i, v in bounds.items())
+                 return out
+ 
+@@ -152,7 +158,7 @@
+             def f(tasks):
+                 return [
+                     (loc, term, self.symstates.maximize(
+-                        loc, self.to_expr(term), self.IUPPER))
++                        loc, self.to_expr(term), caps[loc, term]))
+                     for loc, term in tasks
+                 ]
+ 
+@@ -167,6 +173,10 @@
+             dinvs.setdefault(loc, infer.inv.Invs()).add(inv)
+ 
+         return dinvs
++
++    @classmethod
++    def bound_cap(cls):
++        return cls.IUPPER
+ 
+     @beartype
+     def get_terms(self,
+@@ -213,7 +223,7 @@
+         """
+         Compute convex hulls from traces
+         """
+-        maxV = cls.IUPPER
++        maxV = cls.bound_cap()
+         minV = -maxV
+ 
+         tasks = cls.my_get_terms(symbols.symbolic)
+@@ -227,7 +237,7 @@
+ 
+         ps: list[infer.inv.Inv] = []
+         for term, upperbound in wrs:
+-            if minV <= upperbound <= maxV:
++            if settings.AUTO_BOUNDS or minV <= upperbound <= maxV:
+                 p = cls.inv_cls(term.mk_le(upperbound))
+                 ps.append(p)
+         return ps
+--- a/src/infer/inv.py
++++ b/src/infer/inv.py
+@@ -123,12 +123,6 @@
+ 
+     def test_single_trace(self, trace: data.traces.Trace) -> bool:
+         assert isinstance(trace, data.traces.Trace), trace
+-
+-        # temp fix: disable traces that wih extreme large values
+-        # (see geo1 e.g., 435848050)
+-        if any(abs(x) > settings.TRACE_MAX_VAL for x in trace.vs):
+-            mlog.debug(f"{self}: skip trace with large val: {trace.vs}")
+-            return True
+ 
+         try:
+             return bool(self.inv.xreplace(trace.mydict))
+@@ -334,15 +328,8 @@
+         return '\n'.join(lines)
+ 
+     def simplify(self) -> list[Inv]:
+-        previous_limit = Z3.RLIMIT
+-        previous_timeout = Z3.TIMEOUT_MS
+-        Z3.RLIMIT = settings.SIMPLIFY_SOLVER_RLIMIT
+-        Z3.TIMEOUT_MS = settings.SIMPLIFY_SOLVER_TIMEOUT_MS
+-        try:
++        with Z3.use_policy(settings.solver_policy("simplification")):
+             return self._simplify()
+-        finally:
+-            Z3.RLIMIT = previous_limit
+-            Z3.TIMEOUT_MS = previous_timeout
+ 
+     def _simplify(self) -> list[Inv]:
+         eqts = self.eqts
+--- a/src/infer/mp.py
++++ b/src/infer/mp.py
+@@ -299,7 +299,7 @@
+             return None
+         maximum = max(values)
+         if (not maximum.is_Integer or maximum <= 0
+-                or abs(maximum) > settings.IUPPER_MMP):
++                or (not settings.AUTO_BOUNDS and abs(maximum) > settings.IUPPER_MMP)):
+             return None
+         return MMP(self.term.mk_le(int(maximum)), stat=self.stat)
+ 
+@@ -368,6 +368,10 @@
+     """
+     IUPPER = settings.IUPPER_MMP
+ 
++    @classmethod
++    def bound_cap(cls):
++        return settings.IUPPER_MMP
++
+     def __init__(self, symstates, prog) -> None:
+         super().__init__(symstates, prog)
+ 
+--- a/src/infer/oct.py
++++ b/src/infer/oct.py
+@@ -46,7 +46,7 @@
+         if not values:
+             return None
+         maximum = max(values)
+-        if (not maximum.is_Integer or abs(maximum) > settings.IUPPER
++        if (not maximum.is_Integer or (not settings.AUTO_BOUNDS and abs(maximum) > settings.IUPPER)
+                 or maximum <= self.inv.rhs):
+             return None
+         # The original symbolic bound implies this weaker bound. Keeping it
+@@ -59,8 +59,20 @@
+ 
+     IUPPER = settings.IUPPER
+ 
++    @classmethod
++    def bound_cap(cls):
++        return settings.IUPPER
++
+     def __init__(self, symstates, prog) -> None:
+         super().__init__(symstates, prog)
++
++    def get_terms(self, symbols):
++        from infer.source_hints import polynomial_terms
++        terms = super().get_terms(symbols)
++        existing = {term.term for term in terms}
++        hints = polynomial_terms(getattr(self.prog, "source", None), symbols, settings.MAX_TERM)
++        terms.extend(infer.inv.RelTerm(term) for term in sorted(hints - existing, key=str))
++        return terms
+ 
+     @beartype
+     @staticmethod
+--- /dev/null
++++ b/src/infer/source_hints.py
+@@ -0,0 +1,71 @@
++"""Polynomial candidate hints from actual C guards and additive updates."""
++from functools import lru_cache
++from pathlib import Path
++
++import sympy
++from pycparser import c_ast, c_parser
++
++
++def expression(node):
++    if isinstance(node, c_ast.ID):
++        return sympy.Symbol(node.name)
++    if isinstance(node, c_ast.Constant) and node.type == "int":
++        return sympy.Integer(int(node.value, 0))
++    if isinstance(node, c_ast.UnaryOp) and node.op in ("+", "-"):
++        value = expression(node.expr)
++        return value if node.op == "+" else -value
++    if isinstance(node, c_ast.BinaryOp) and node.op in ("+", "-", "*"):
++        left, right = expression(node.left), expression(node.right)
++        return {"+": lambda: left + right, "-": lambda: left - right,
++                "*": lambda: left * right}[node.op]()
++    raise ValueError("not a supported polynomial expression")
++
++
++@lru_cache(maxsize=16)
++def _candidates(text):
++    from data.symex_c import _preprocess
++    guards, updates = set(), set()
++    class Visitor(c_ast.NodeVisitor):
++        def visit_BinaryOp(self, node):
++            if node.op in ("<", "<=", ">", ">=", "==", "!="):
++                try:
++                    guards.add(sympy.expand(expression(node.left) - expression(node.right)))
++                except (ValueError, TypeError):
++                    pass
++            self.generic_visit(node)
++
++        def visit_Assignment(self, node):
++            try:
++                left, right = expression(node.lvalue), expression(node.rvalue)
++                delta = right - left if node.op == "=" else right if node.op == "+=" else -right
++                if node.op in ("=", "+=", "-=") and left not in delta.free_symbols:
++                    updates.add(sympy.expand(delta))
++            except (ValueError, TypeError):
++                pass
++            self.generic_visit(node)
++
++    tree = c_parser.CParser().parse(_preprocess(text))
++    for node in tree.ext:
++        if isinstance(node, c_ast.FuncDef) and node.decl.name == "mainQ":
++            Visitor().visit(node.body)
++    result = set(guards)
++    for guard in guards:
++        for delta in updates:
++            result.update((sympy.expand(guard + delta), sympy.expand(guard - delta)))
++    return frozenset(term for term in result if term.free_symbols)
++
++
++def polynomial_terms(source: Path | None, symbols, budget):
++    if source is None:
++        return set()
++    try:
++        candidates = _candidates(source.read_text())
++    except (ValueError, TypeError, OSError):
++        return set()
++    allowed = set(symbols)
++    selected = []
++    for term in sorted(candidates, key=lambda p: (sympy.count_ops(p), str(p))):
++        if term.free_symbols.issubset(allowed) and len(term.free_symbols) <= 3:
++            if sympy.Poly(term, *symbols).total_degree() <= 2:
++                selected.append(term)
++    return {sign * term for term in selected[:budget // 2] for sign in (-1, 1)}
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -1,4 +1,6 @@
+ import pdb
++import shlex
++from dataclasses import dataclass, asdict
+ from functools import partial
+ from pathlib import Path
+ 
+@@ -42,6 +44,8 @@
+ 
+ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
+ INP_MAX_V = 300
++INPUT_SAMPLING = "legacy"  # explicit -inpMaxV retains the legacy range policy
++INP_MAX_V_EXPLICIT = False
+ SE_DEPTH_NOCHANGES_MAX = 3
+ SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
+ # Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.
+@@ -57,6 +61,35 @@
+ OPT_SOLVER_TIMEOUT_MS = 1000  # safety fallback for expensive native NIA operations
+ SIMPLIFY_SOLVER_RLIMIT = 100_000
+ SIMPLIFY_SOLVER_TIMEOUT_MS = 1000
++FEASIBILITY_SOLVER_RLIMIT = 100_000
++FEASIBILITY_SOLVER_TIMEOUT_MS = 100
++
++
++@dataclass(frozen=True)
++class SolverPolicy:
++    rlimit: int
++    timeout_ms: int
++
++
++def solver_policy(phase="checking"):
++    """Resolve each phase's immutable policy at use time, not import time."""
++    values = {
++        "checking": (SOLVER_RLIMIT, SOLVER_TIMEOUT_MS),
++        "optimization": (OPT_SOLVER_RLIMIT, OPT_SOLVER_TIMEOUT_MS),
++        "simplification": (SIMPLIFY_SOLVER_RLIMIT, SIMPLIFY_SOLVER_TIMEOUT_MS),
++        "feasibility": (FEASIBILITY_SOLVER_RLIMIT, FEASIBILITY_SOLVER_TIMEOUT_MS),
++    }
++    return SolverPolicy(*values[phase])
++
++
++def effective_settings():
++    """Serializable effective configuration for a result, including policies."""
++    result = {name: value for name, value in globals().items()
++              if name.isupper() and not name.startswith("_")
++              and isinstance(value, (str, int, float, bool, type(None)))}
++    result["solver_policies"] = {phase: asdict(solver_policy(phase)) for phase in
++                                 ("checking", "optimization", "simplification", "feasibility")}
++    return result
+ EQT_RATE = 1.5
+ # Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
+ # candidate eqts (e.g. egcd, 8 vars). Bound it; on timeout we fall back to the
+@@ -73,6 +106,7 @@
+ # Iequalities
+ IUPPER = 50  # t <= iupper
+ IUPPER_MMP = 1  # for min/max ieqs
++AUTO_BOUNDS = True  # observed magnitudes seed certified searches
+ # Cap on the # of operands inside a min/max-plus term, i.e. max(y1,..,yk).
+ # Term generation is O(n*2^n) in the # of vars; without a cap, programs with
+ # many vars (e.g. egcd, 8 vars) explode into thousands of mostly-spurious terms
+@@ -226,7 +260,7 @@
+             for set_attr in _TYPE_SETTINGS:
+                 setattr(settings, set_attr, set_attr in enabled)
+         else:
+-            opts.append(f"-types {types_spec}")
++            opts.extend(["-types", types_spec])
+ 
+     for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
+         if getattr(args, arg_attr):
+@@ -241,39 +275,50 @@
+             if settings:
+                 setattr(settings, set_attr, val)
+             else:
+-                opts.append(flag)
++                opts.extend([flag, str(val)])
+ 
+     for arg_attr, set_attr, flag in _INT_FLAGS:
+         val = getattr(args, arg_attr)
+-        if val is not None and val >= 1:
++        if val is not None:
++            if val < 1:
++                raise ValueError(f"{flag} must be positive")
+             if settings:
+                 setattr(settings, set_attr, val)
++                if arg_attr == "inpMaxV":
++                    settings.INP_MAX_V_EXPLICIT = True
+             else:
+-                opts.append(f"{flag} {val}")
++                opts.extend([flag, str(val)])
+ 
+     if args.uterms:
+         if settings:
+             settings.UTERMS = set(args.uterms.split(';'))
+         else:
+-            opts.append(f'-uterms "{args.uterms}"')  # not tested
++            opts.extend(["-uterms", args.uterms])
+ 
+     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
+         if settings:
+             settings.SE_MAX_DEPTH = args.se_maxdepth
+         else:
+-            opts.append(f"-se_maxdepth {args.se_maxdepth}")
++            opts.extend(["-se_maxdepth", str(args.se_maxdepth)])
++
++    if not settings and getattr(args, "maxdeg", None) is not None:
++        opts.extend(["-maxdeg", str(args.maxdeg)])
++    if not settings:
++        for name in ("writeresults", "test_tracefile"):
++            if value := getattr(args, name, None):
++                opts.extend(["-" + name, str(value)])
+ 
+     if args.tmpdir:
+         if settings:
+             settings.TMPDIR = Path(args.tmpdir)
+             assert settings.TMPDIR.is_dir()
+         else:
+-            opts.append(f"-tmpdir {args.tmpdir}")
++            opts.extend(["-tmpdir", str(args.tmpdir)])
+ 
+     if settings:
+         settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
+         mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
+         return mlog
+     else:
+-        opts.append(f"-log_level {args.log_level}")
+-        return " ".join(opts)
++        opts.extend(["-log_level", str(args.log_level)])
++        return shlex.join(opts)

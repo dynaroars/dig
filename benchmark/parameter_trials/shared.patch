@@ -1,0 +1,70 @@
+--- a/src/alg.py
++++ b/src/alg.py
+@@ -265,9 +265,11 @@
+ 
+     @beartype
+     def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
++        initial_traces = data.traces.DTraces.parse(
++            [line for lines in self.prog._cache.values() for line in lines], self.inv_decls)
+         dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog).gen(
+             self.get_auto_deg(maxdeg), getattr(self, "_deg_hints", {}),
+-            complete=maxdeg is not None)
++            complete=maxdeg is not None, initial_traces=initial_traces)
+         return dinvs, dtraces
+ 
+     def _infer_ieqs(self) -> tuple[DInvs, None]:
+--- a/src/infer/eqt.py
++++ b/src/infer/eqt.py
+@@ -67,14 +67,19 @@
+     @beartype
+     def gen(self, deg: int,
+             deg_hints: dict[str, int] | None = None,
+-            complete: bool = False
++            complete: bool = False,
++            initial_traces: data.traces.DTraces | None = None,
++            ceilings: dict[str, int] | None = None
+             ) -> tuple[infer.inv.DInvs, data.traces.DTraces]:
+         assert deg >= 1, deg
+ 
+         locs = self.prog.locs
+         inps = data.traces.Inps()
+         dtraces = data.traces.DTraces.mk(locs)
++        if initial_traces:
++            dtraces.merge(initial_traces)
+         deg_hints = deg_hints or {}
++        ceilings = ceilings or {loc: deg for loc in locs}
+ 
+         # Ascending degrees with per-loc early stop (traces accumulate across
+         # attempts). Always include 2 (cheap warm-up + common case) and the
+@@ -83,7 +88,7 @@
+         # and stop *below* the ceiling (e.g. ps6 at 6 instead of 7) without
+         # losing anything: the ceiling pass still runs for any loc the estimate
+         # under-shoots (e.g. geo3's degree-4 eqts).
+-        degrees = {min(2, deg), deg}
++        degrees = {min(2, deg), *ceilings.values()}
+         for loc in locs:
+             est = deg_hints.get(loc)
+             if est is not None:
+@@ -91,16 +96,20 @@
+         degrees = sorted(degrees)
+ 
+         dinvs = infer.inv.DInvs()
++        attempted = {loc: set() for loc in locs}
+         for cur_deg in degrees:
+             # Only process locs that haven't yielded invariants yet
+-            remaining = [loc for loc in locs if complete or not dinvs.get(loc)]
++            remaining = [loc for loc in locs if (complete or not dinvs.get(loc))
++                         and min(cur_deg, ceilings[loc]) not in attempted[loc]]
+             if not remaining:
+                 break
+ 
+             tasks = [
+-                (loc, self._get_init_traces(loc, cur_deg, dtraces, inps, settings.EQT_RATE))
++                (loc, self._get_init_traces(loc, min(cur_deg, ceilings[loc]), dtraces, inps, settings.EQT_RATE))
+                 for loc in remaining
+             ]
++            for loc in remaining:
++                attempted[loc].add(min(cur_deg, ceilings[loc]))
+             tasks = [(loc, tcs) for loc, tcs in tasks if tcs]
+ 
+             def f(tasks):

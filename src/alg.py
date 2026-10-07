@@ -1,5 +1,7 @@
 from __future__ import annotations
 import abc
+import json
+from collections import Counter
 from collections.abc import Callable
 from enum import StrEnum
 import pdb
@@ -115,19 +117,21 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         assert settings.TMPDIR.is_dir()
 
-        prefix = hash(self.seed)
+        seed_str = str(int(self.seed)) if isinstance(self.seed, (int, float)) and float(self.seed).is_integer() else str(hash(self.seed))
         self.tmpdir = Path(
-            tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"dig_{prefix}_")
+            tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"Dig_{seed_str}_")
         )
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
+        (self.tmpdir / "settings.json").write_text(
+            json.dumps(settings.effective_settings(), indent=2) + "\n")
 
         self.mysrc = self.mysrc_cls(self.filename, self.tmpdir_del)
         self.inp_decls = self.mysrc.inp_decls
         self.inv_decls = self.mysrc.inv_decls
 
         self.prog = data.prog.Prog(
-            self.exe_cmd, self.inp_decls, self.inv_decls)
+            self.exe_cmd, self.inp_decls, self.inv_decls, source=self.filename)
 
         if not settings.DO_SS:  # use traces from running the program on random inputs
             rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
@@ -187,7 +191,11 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 rs = [_f() for _f in tasks]
                 return rs
 
-            wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
+            # Run domains sequentially so their candidate/term workers can
+            # use the full internal pool. Forking domains as daemon workers
+            # forces every nested pool to run serially, leaving hundreds of
+            # nonlinear min/max queries on a single worker.
+            wrs = f(tasks)
 
             dinvs = DInvs()
             dtraces = DTraces.mk(self.locs)
@@ -232,8 +240,20 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             self.time_d,
         )
         result.save(self.tmpdir)
+        (self.tmpdir / "evidence.json").write_text(json.dumps({
+            "symbolic_exploration": self.symstates.exploration_info,
+            "concrete_execution_outcomes": dict(Counter(self.prog.execution_outcomes.values())),
+            "numerical_checks": "bounded symbolic states and collected traces",
+        }, indent=2) + "\n")
         Analysis(self.tmpdir).start()  # output stats
-        shutil.rmtree(self.tmpdir)
+
+        # Clean up scratch compilation/trace artifacts
+        if hasattr(self, "tmpdir_del") and self.tmpdir_del.exists():
+            shutil.rmtree(self.tmpdir_del, ignore_errors=True)
+
+        # If using default system temporary dir (not a user-provided -tmpdir), clean up self.tmpdir
+        if Path(tempfile.gettempdir()).resolve() == settings.TMPDIR.resolve():
+            shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     @beartype
     def _infer(self, typ: str, _get_invs: Callable) -> tuple:
@@ -254,8 +274,13 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
     @beartype
     def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
+        ceilings = {loc: Miscs.get_auto_deg(maxdeg, len(symbols), settings.MAX_TERM)
+                    for loc, symbols in self.inv_decls.items()}
+        initial_traces = data.traces.DTraces.parse(
+            [line for lines in self.prog._cache.values() for line in lines], self.inv_decls)
         dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog).gen(
-            self.get_auto_deg(maxdeg), getattr(self, "_deg_hints", {}))
+            max(ceilings.values()), getattr(self, "_deg_hints", {}),
+            complete=maxdeg is not None, initial_traces=initial_traces, ceilings=ceilings)
         return dinvs, dtraces
 
     def _infer_ieqs(self) -> tuple[DInvs, None]:
@@ -520,11 +545,10 @@ class DigTraces(Dig):
         return self._mk_tasks(settings.DO_ARRAYS, _g,  _f)
 
     def _eqts_tasks(self, maxdeg: int | None) -> list:
-        autodeg = self.get_auto_deg(maxdeg)
-
         def _f(l):
             return infer.eqt.Infer.gen_from_traces(
-                autodeg, self.dtraces[l], self.inv_decls[l])
+                Miscs.get_auto_deg(maxdeg, len(self.inv_decls[l]), settings.MAX_TERM),
+                self.dtraces[l], self.inv_decls[l])
 
         def _g(l):
             return not self.inv_decls[l].array_only

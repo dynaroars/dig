@@ -167,6 +167,7 @@ class SymState:
     env: dict[str, z3.ExprRef] = field(default_factory=dict)
     pc: list[z3.ExprRef] = field(default_factory=list)
     loop_depth: int = 0
+    concrete_steps: int = 0
     exit: Exit = Exit.NORMAL
     ret: z3.ExprRef | None = None   # return value (used by call inlining)
     trace: tuple[str, ...] = ()     # witness: branch decisions on this path
@@ -175,7 +176,10 @@ class SymState:
         return replace(self, trace=self.trace + (event,))
 
     def add_constraint(self, cond: z3.ExprRef) -> SymState:
-        return replace(self, pc=self.pc + [z3.simplify(cond)])
+        s = z3.simplify(cond)
+        if z3.is_true(s):
+            return self
+        return replace(self, pc=self.pc + [s])
 
     def set_var(self, name: str, val: z3.ExprRef) -> SymState:
         return replace(self, env={**self.env, name: z3.simplify(val)})
@@ -185,6 +189,9 @@ class SymState:
 
     def inc_loop(self) -> SymState:
         return replace(self, loop_depth=self.loop_depth + 1)
+
+    def inc_concrete_step(self) -> SymState:
+        return replace(self, concrete_steps=self.concrete_steps + 1)
 
     def reset_exit(self) -> SymState:
         return replace(self, exit=Exit.NORMAL)
@@ -229,7 +236,10 @@ class CSymEx:
     """
 
     MAX_STATES = 5000  # hard cap on total active states to prevent explosion
+    MAX_CONCRETE_STEPS = 50_000  # safety cap for deterministic concrete loop steps
     SOLVER_RLIMIT = 15_000_000  # default; DIG passes settings.SOLVER_RLIMIT
+    FEASIBILITY_RLIMIT = 100_000  # unknown paths are retained conservatively
+    FEASIBILITY_TIMEOUT_MS = 100  # native NIA may run past its work-unit budget
     MAX_CEGIS_ITERS = 60   # guess/verify rounds per synthesis template
 
     def __init__(self, filename: Path, max_depth: int,
@@ -255,13 +265,13 @@ class CSymEx:
         self._cur_coord = ""          # coord of the statement being executed
         self._capture_node = None     # used by prove_inductive()
         self._captured: list[SymState] = []
+        self._incomplete: bool = False  # set when path/loop/recursion depth caps truncate exploration
         # side effects (i++/--i) collected while evaluating one expression,
         # applied to the state by _eval_expr_effects afterwards
         self._pending_effects: list[tuple[str, int]] = []
 
-        # Solver for feasibility (reused with push/pop). Deterministic
-        # work-unit cutoff, not wall-clock: a timeout makes path feasibility
-        # (and thus the symstates themselves) vary with machine load.
+        # Solver reused with push/pop. Feasibility uses a smaller work budget
+        # and safety timeout; unknown paths remain in the exploration.
         # rlimit is per-check(), so reuse across push/pop scopes is fine.
         self.solver_rlimit = solver_rlimit or self.SOLVER_RLIMIT
         self.solver = z3.Solver()
@@ -420,8 +430,9 @@ class CSymEx:
         saved = (self.records, self.assert_results, self.safety_results)
         self.records, self.assert_results, self.safety_results = [], [], []
         try:
+            self._incomplete = False
             entry = self._states_reaching(node)
-            if not entry:
+            if not entry or self._incomplete:
                 return []
             cands = [c for c in invs if all(
                 self._counterexample(st.pc, _subst_env(c, st.env))[0]
@@ -441,11 +452,16 @@ class CSymEx:
                 if not self._feasible(hstate):
                     break   # loop can't iterate under the candidates
                 self._hypothetical = True
+                self._incomplete = False
                 try:
                     post = self._after_body(
                         self._exec_compound(body, [hstate]), nxt)
                 finally:
                     self._hypothetical = False
+                if not post or self._incomplete:
+                    # If no post-state survived or path exploration was truncated (depth cap),
+                    # step verification cannot be established soundly.
+                    return []
                 kept = []
                 for c in cands:
                     if all(self._counterexample(
@@ -483,14 +499,15 @@ class CSymEx:
         unreachable — strengthen inv or raise k, as usual with k-induction.
         """
         assert k >= 1, k
+        self._incomplete = False
         node, entry_states = self._loop_target(loop)
 
         # don't pollute run() results while re-executing
         saved = (self.records, self.assert_results, self.safety_results)
         self.records, self.assert_results, self.safety_results = [], [], []
         try:
-            if not entry_states:
-                return ("unknown", None)   # loop head unreachable
+            if not entry_states or self._incomplete:
+                return ("unknown", None)   # loop head unreachable or entry exploration truncated
             cond_node, body, nxt = _loop_cond_body(node)
             unknown = False
 
@@ -505,8 +522,11 @@ class CSymEx:
                     if r == z3.unknown:
                         unknown = True
                 if head < k - 1:
+                    self._incomplete = False
                     states = self._advance_iteration(states, cond_node,
                                                      body, nxt)
+                    if not states or self._incomplete:
+                        return ("unknown", None)
 
             # step: havoc; k heads assumed to satisfy inv, prove head k
             # (vassert in the body is a no-op here — see _hypothetical)
@@ -518,8 +538,11 @@ class CSymEx:
                 for _ in range(k):
                     states = [st.add_constraint(_subst_env(inv, st.env))
                               for st in states]
+                    self._incomplete = False
                     states = self._advance_iteration(states, cond_node,
                                                      body, nxt)
+                    if not states or self._incomplete:
+                        return ("unknown", None)
             finally:
                 self._hypothetical = False
             for st in states:
@@ -556,10 +579,12 @@ class CSymEx:
         saved = (self.records, self.assert_results, self.safety_results)
         self.records, self.assert_results, self.safety_results = [], [], []
         try:
-            if not entry_states:
+            if not entry_states or self._incomplete:
                 return ("unknown", None)
             henv, h, _guard, post, _exits = self._loop_transition(
                 node, entry_states, assume)
+            if self._incomplete:
+                return ("unknown", None)
             if post is None:
                 return ("terminates", None)        # loop can never iterate
             pre_rank = _subst_env(rank, henv)
@@ -604,10 +629,12 @@ class CSymEx:
         saved = (self.records, self.assert_results, self.safety_results)
         self.records, self.assert_results, self.safety_results = [], [], []
         try:
-            if not entry_states:
+            if not entry_states or self._incomplete:
                 return ("unknown", None)
             henv, _h, _guard, post, _exits = self._loop_transition(
                 node, entry_states, assume)
+            if self._incomplete:
+                return ("unknown", None)
             if post is None:
                 return ("terminates", None)
             pre = [_subst_env(r, henv) for r in ranks]
@@ -662,10 +689,12 @@ class CSymEx:
         saved = (self.records, self.assert_results, self.safety_results)
         self.records, self.assert_results, self.safety_results = [], [], []
         try:
-            if not entry_states:
+            if not entry_states or self._incomplete:
                 return ("unknown", None)
             henv, _h, _guard, post, _exits = self._loop_transition(
                 node, entry_states, assume)
+            if self._incomplete:
+                return ("unknown", None)
             if post is None:
                 return ("terminates", [])
             names = sorted(n for n, v in henv.items()
@@ -784,10 +813,12 @@ class CSymEx:
         saved = (self.records, self.assert_results, self.safety_results)
         self.records, self.assert_results, self.safety_results = [], [], []
         try:
-            if not entry_states:
+            if not entry_states or self._incomplete:
                 return ("unknown", None)
             henv, _h, guard, back, exits = self._loop_transition(
                 node, entry_states, assume)
+            if self._incomplete:
+                return ("unknown", None)
             if back is None:
                 return ("unknown", None)   # loop cannot even iterate
             cond_node, body, nxt = _loop_cond_body(node)
@@ -815,10 +846,13 @@ class CSymEx:
         for st in entry_states:
             base = _free_const_names([*st.pc, *st.env.values()])
             self._hypothetical = True
+            self._incomplete = False
             try:
                 posts = self._advance_iteration([st], cond_node, body, nxt)
             finally:
                 self._hypothetical = False
+            if self._incomplete:
+                continue
             for s in posts:
                 eqs = []
                 for name, pre_v in st.env.items():
@@ -1023,6 +1057,7 @@ class CSymEx:
         if not self._feasible(h):
             return henv, h, guard, None, []
         self._hypothetical = True
+        self._incomplete = False
         try:
             raw = self._exec_compound(body, [h])
         finally:
@@ -1077,6 +1112,7 @@ class CSymEx:
         """Symbolic states at first arrival at `node` (paths stop there)."""
         self._captured = []
         self._capture_node = node
+        self._incomplete = False
         try:
             self._exec_compound(self.func_bodies["mainQ"],
                                 [self._make_init_state()])
@@ -1357,6 +1393,7 @@ class CSymEx:
                 or fname.startswith("vtrace")):
             return None
         if self._inline_depth >= self.MAX_INLINE_DEPTH:
+            self._incomplete = True
             return [(z3.Int(self._fresh_name(fname)), state)]
 
         env = dict(state.env)
@@ -1701,7 +1738,8 @@ class CSymEx:
                     _iter: int = 0,
                     next_stmt: c_ast.Node | None = None) -> list[SymState]:
         """
-        Unroll the while loop up to max_depth total iterations.
+        Unroll the while loop up to max_depth total iterations for symbolic branches,
+        and up to MAX_CONCRETE_STEPS for deterministic concrete loops.
         Each unique state tracks its own loop_depth so paths share depth budgets.
         next_stmt is a for-loop's increment: it runs before every re-test of
         the guard, including after `continue` (C semantics).
@@ -1714,60 +1752,30 @@ class CSymEx:
                                stmt=c_ast.Compound(block_items=[node.stmt]),
                                coord=node.coord)
 
-        # Hard cap to prevent explosion
-        if len(states) > self.MAX_STATES:
-            states = states[:self.MAX_STATES]
-
-        result: list[SymState] = []       # states that exited the loop
-        continuing: list[SymState] = []   # states that re-enter
-
+        result: list[SymState] = []
+        worklist = list(states)
         cond_is_true = _is_const_true(node.cond)
+        concrete_counters = _guard_counters(node.cond, node.stmt, next_stmt)
 
-        for state in states:
-            if state.loop_depth >= self.max_depth:
-                # Depth exhausted: treat loop as terminated
-                if not cond_is_true:
-                    raw, state = self._eval_expr_effects(node.cond, state)
-                    exit_s = state.add_constraint(
-                        z3.Not(_as_bool(raw))).with_trace(
-                        f"{node.coord} loop-exit (depth cap)")
-                    if self._feasible(exit_s):
-                        result.append(exit_s)
-                # else: while(1) at max depth — dead path, discard
-                continue
+        while worklist:
+            if len(worklist) > self.MAX_STATES:
+                self._incomplete = True
+                worklist = worklist[:self.MAX_STATES]
 
-            if cond_is_true:
-                # while(1): only break exits
-                body_states = self._exec_compound(
-                    node.stmt,
-                    [state.inc_loop().with_trace(
-                        f"{node.coord} loop-iter {state.loop_depth + 1}")])
-                for s in body_states:
-                    if s.exit == Exit.BREAK:
-                        result.append(s.reset_exit())
-                    elif s.exit == Exit.CONTINUE:
-                        continuing.append(s.reset_exit())
-                    elif s.exit == Exit.NORMAL:
-                        continuing.append(s)
-                    else:  # RETURN
-                        result.append(s)
-            else:
-                # the condition is fully evaluated whether the loop is
-                # entered or exited, so its side effects apply to both
-                raw, state = self._eval_expr_effects(node.cond, state)
-                cond = _as_bool(raw)
+            current_states = worklist
+            worklist = []
+            continuing: list[SymState] = []
 
-                # Exit branch (condition false)
-                exit_s = state.add_constraint(z3.Not(cond)).with_trace(
-                    f"{node.coord} loop-exit ({_short(cond)})")
-                if self._feasible(exit_s):
-                    result.append(exit_s)
-
-                # Enter branch (condition true)
-                enter_s = state.add_constraint(cond).inc_loop().with_trace(
-                    f"{node.coord} loop-iter {state.loop_depth + 1}")
-                if self._feasible(enter_s):
-                    body_states = self._exec_compound(node.stmt, [enter_s])
+            for state in current_states:
+                if cond_is_true:
+                    if state.loop_depth >= self.max_depth:
+                        self._incomplete = True
+                        continue
+                    # while(1): only break exits
+                    body_states = self._exec_compound(
+                        node.stmt,
+                        [state.inc_loop().with_trace(
+                            f"{node.coord} loop-iter {state.loop_depth + 1}")])
                     for s in body_states:
                         if s.exit == Exit.BREAK:
                             result.append(s.reset_exit())
@@ -1775,16 +1783,101 @@ class CSymEx:
                             continuing.append(s.reset_exit())
                         elif s.exit == Exit.NORMAL:
                             continuing.append(s)
-                        else:
+                        else:  # RETURN
                             result.append(s)
+                else:
+                    # the condition is fully evaluated whether the loop is
+                    # entered or exited, so its side effects apply to both
+                    raw, state = self._eval_expr_effects(node.cond, state)
+                    cond = _as_bool(raw)
+                    s_cond = z3.simplify(cond)
 
-        # for-loop increment: runs on every path headed back to the guard
-        # (normal fall-through and `continue` alike, never break/return)
-        if next_stmt is not None and continuing:
-            continuing = self._exec_stmt(next_stmt, continuing)
+                    # At the symbolic cutoff, a guard already implied by the
+                    # path condition introduces no new symbolic choice. Let
+                    # deterministic tails (e.g. a fixed 100-step loop after
+                    # exiting a symbolic loop) reach their postcondition.
+                    if (state.loop_depth >= self.max_depth
+                            and not z3.is_true(s_cond)
+                            and not z3.is_false(s_cond)
+                            and any(z3.is_int_value(state.env.get(name, z3.Int(name)))
+                                    for name in concrete_counters)
+                            and self._entailed(state, cond)):
+                        s_cond = z3.BoolVal(True)
 
-        # Recurse for states re-entering the loop
-        result.extend(self._exec_while(node, continuing, _iter + 1, next_stmt))
+                    if z3.is_true(s_cond):
+                        # Purely concrete True condition: no branch forking
+                        if state.concrete_steps >= self.MAX_CONCRETE_STEPS:
+                            self._incomplete = True
+                            continue
+                        enter_s = state.inc_concrete_step().with_trace(
+                            f"{node.coord} loop-iter")
+                        body_states = self._exec_compound(node.stmt, [enter_s])
+                        # A concrete guard does not imply a concrete body.
+                        # Charge branching iterations to the symbolic budget
+                        # so a symbolic if inside while(x < 100) cannot evade
+                        # the depth cap for thousands of iterations.
+                        if len(body_states) > 1:
+                            if state.loop_depth >= self.max_depth:
+                                self._incomplete = True
+                                continue
+                            body_states = [
+                                s.inc_loop() if s.loop_depth == state.loop_depth else s
+                                for s in body_states
+                            ]
+                        for s in body_states:
+                            if s.exit == Exit.BREAK:
+                                result.append(s.reset_exit())
+                            elif s.exit == Exit.CONTINUE:
+                                continuing.append(s.reset_exit())
+                            elif s.exit == Exit.NORMAL:
+                                continuing.append(s)
+                            else:  # RETURN
+                                result.append(s)
+                    elif z3.is_false(s_cond):
+                        # Purely concrete False condition: exit immediately
+                        exit_s = state.with_trace(
+                            f"{node.coord} loop-exit (cond false)")
+                        result.append(exit_s)
+                    else:
+                        # Symbolic condition
+                        if state.loop_depth >= self.max_depth:
+                            # Depth exhausted: treat loop as terminated
+                            self._incomplete = True
+                            exit_s = state.add_constraint(
+                                z3.Not(cond)).with_trace(
+                                f"{node.coord} loop-exit (depth cap)")
+                            if self._feasible(exit_s):
+                                result.append(exit_s)
+                            continue
+
+                        # Exit branch (condition false)
+                        exit_s = state.add_constraint(z3.Not(cond)).with_trace(
+                            f"{node.coord} loop-exit ({_short(cond)})")
+                        if self._feasible(exit_s):
+                            result.append(exit_s)
+
+                        # Enter branch (condition true)
+                        enter_s = state.add_constraint(cond).inc_loop().with_trace(
+                            f"{node.coord} loop-iter {state.loop_depth + 1}")
+                        if self._feasible(enter_s):
+                            body_states = self._exec_compound(node.stmt, [enter_s])
+                            for s in body_states:
+                                if s.exit == Exit.BREAK:
+                                    result.append(s.reset_exit())
+                                elif s.exit == Exit.CONTINUE:
+                                    continuing.append(s.reset_exit())
+                                elif s.exit == Exit.NORMAL:
+                                    continuing.append(s)
+                                else:
+                                    result.append(s)
+
+            # for-loop increment: runs on every path headed back to the guard
+            # (normal fall-through and `continue` alike, never break/return)
+            if next_stmt is not None and continuing:
+                continuing = self._exec_stmt(next_stmt, continuing)
+
+            worklist = continuing
+
         return result
 
     def _exec_dowhile(self,
@@ -2143,6 +2236,12 @@ class CSymEx:
 
     def _c_int_mod(self, a: z3.ExprRef, b: z3.ExprRef,
                    state: SymState) -> z3.ExprRef:
+        if self._entailed(state, b != 0):
+            # Share the same quotient expression as C division. This exact
+            # remainder identity makes polynomial invariants involving both
+            # / and % simplify algebraically instead of requiring a hard
+            # nonlinear divisibility proof (notably Knuth's initialization).
+            return a - b*self._c_int_div(a, b, state)
         if self._entailed(state, z3.And(a >= 0, b > 0)):
             return a % b
         # C remainder = euclid remainder shifted into the dividend's sign
@@ -2200,21 +2299,32 @@ class CSymEx:
     def _entailed(self, state: SymState, claim: z3.ExprRef) -> bool:
         """pc ⇒ claim, conservatively (unknown counts as not entailed)."""
         self.solver.push()
-        for c in state.pc:
-            self.solver.add(c)
-        self.solver.add(z3.Not(claim))
-        result = self.solver.check()
-        self.solver.pop()
+        try:
+            self.solver.set(rlimit=min(self.solver_rlimit, self.FEASIBILITY_RLIMIT),
+                            timeout=self.FEASIBILITY_TIMEOUT_MS)
+            for c in state.pc:
+                self.solver.add(c)
+            self.solver.add(z3.Not(claim))
+            result = self.solver.check()
+        finally:
+            self.solver.pop()
+            self.solver.set(rlimit=self.solver_rlimit, timeout=0)
         return result == z3.unsat
 
     def _feasible(self, state: SymState) -> bool:
         if not state.pc:
             return True
         self.solver.push()
-        for c in state.pc:
-            self.solver.add(c)
-        result = self.solver.check()
-        self.solver.pop()
+        try:
+            self.solver.set(rlimit=min(self.solver_rlimit, self.FEASIBILITY_RLIMIT))
+            self.solver.set(timeout=self.FEASIBILITY_TIMEOUT_MS)
+            for c in state.pc:
+                self.solver.add(c)
+            result = self.solver.check()
+        finally:
+            self.solver.pop()
+            self.solver.set(rlimit=self.solver_rlimit)
+            self.solver.set(timeout=0)
         # If unknown (timeout), be optimistic and keep the path
         return result != z3.unsat
 
@@ -2289,6 +2399,36 @@ def _preprocess(src: str) -> str:
 
 def _is_const_true(node: c_ast.Node) -> bool:
     return isinstance(node, c_ast.Constant) and node.value == "1"
+
+
+def _guard_counters(cond, body, next_stmt=None) -> set[str]:
+    """Updated scalar counters compared with literal bounds in a guard."""
+    bounded, updated = set(), set()
+
+    class Bounds(c_ast.NodeVisitor):
+        def visit_BinaryOp(self, n):
+            if n.op in ("<", "<=", ">", ">="):
+                for var, bound in ((n.left, n.right), (n.right, n.left)):
+                    if isinstance(var, c_ast.ID) and isinstance(bound, c_ast.Constant):
+                        bounded.add(var.name)
+            self.generic_visit(n)
+
+    class Updates(c_ast.NodeVisitor):
+        def visit_Assignment(self, n):
+            if isinstance(n.lvalue, c_ast.ID):
+                updated.add(n.lvalue.name)
+            self.generic_visit(n)
+
+        def visit_UnaryOp(self, n):
+            if n.op in ("++", "--", "p++", "p--") and isinstance(n.expr, c_ast.ID):
+                updated.add(n.expr.name)
+            self.generic_visit(n)
+
+    Bounds().visit(cond)
+    Updates().visit(body)
+    if next_stmt is not None:
+        Updates().visit(next_stmt)
+    return bounded & updated
 
 
 def _find_loops(body: c_ast.Node) -> list[c_ast.Node]:
