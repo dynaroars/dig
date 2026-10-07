@@ -1,0 +1,220 @@
+{
+  "depth": {
+    "explicit": 91,
+    "values": {
+      "4": 89,
+      "6": 1,
+      "12": 1
+    }
+  },
+  "maxdeg": {
+    "explicit": 91,
+    "values": {
+      "2": 39,
+      "3": 11,
+      "1": 37,
+      "4": 2,
+      "5": 1,
+      "6": 1
+    }
+  },
+  "inpMaxV": {
+    "explicit": 2,
+    "values": {
+      "default": 89,
+      "30": 2
+    }
+  },
+  "ideg": {
+    "explicit": 0,
+    "values": {
+      "default": 91
+    }
+  },
+  "iterms": {
+    "explicit": 1,
+    "values": {
+      "default": 90,
+      "3": 1
+    }
+  },
+  "icoefs": {
+    "explicit": 0,
+    "values": {
+      "default": 91
+    }
+  },
+  "nondefault_input_or_template": {
+    "hola/24.dig": {
+      "inpMaxV": 30
+    },
+    "nla/sqrt1": {
+      "iterms": 3
+    },
+    "hola/34.dig": {
+      "inpMaxV": 30
+    }
+  },
+  "rational_rank": {
+    "heuristic": 1,
+    "exact": 2
+  },
+  "scaled_nullspace": {
+    "fast_count": 0,
+    "exact_count": 1
+  },
+  "large_trace": {
+    "value": "1000000001",
+    "x_equals_zero_test": true
+  },
+  "auto_degree_by_nvars": {
+    "1": 7,
+    "2": 7,
+    "3": 7,
+    "4": 5,
+    "6": 3,
+    "8": 3,
+    "12": 2,
+    "20": 1
+  },
+  "input_ranges_1": {
+    "ranges": [
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ]
+    ],
+    "empty": true,
+    "negative_support": false
+  },
+  "input_ranges_10": {
+    "ranges": [
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      [
+        [
+          9,
+          10
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          2,
+          7
+        ]
+      ]
+    ],
+    "empty": true,
+    "negative_support": false
+  },
+  "input_ranges_20": {
+    "ranges": [
+      [
+        [
+          0,
+          2
+        ]
+      ],
+      [
+        [
+          18,
+          20
+        ]
+      ],
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      [
+        [
+          5,
+          15
+        ]
+      ]
+    ],
+    "empty": false,
+    "negative_support": false
+  },
+  "input_ranges_300": {
+    "ranges": [
+      [
+        [
+          0,
+          30
+        ]
+      ],
+      [
+        [
+          270,
+          300
+        ]
+      ],
+      [
+        [
+          0,
+          15
+        ]
+      ],
+      [
+        [
+          75,
+          225
+        ]
+      ]
+    ],
+    "empty": false,
+    "negative_support": false
+  },
+  "benchmark_reconstructed_options": "-log_level 3",
+  "benchmark_preserves_maxdeg": false,
+  "bound_cap_50": {
+    "value": null,
+    "status": "sat"
+  },
+  "bound_cap_100": {
+    "value": 100,
+    "status": "sat"
+  },
+  "late_iupper_mutation": {
+    "setting": 100,
+    "inference_class": 50
+  },
+  "term_counts_8_variables": {
+    "iterms=2,icoefs=1": 128,
+    "iterms=3,icoefs=1": 576,
+    "iterms=2,icoefs=2": 480
+  },
+  "scope": "Direct-function probes and fixture inspection; no DIG benchmark invocation. Stopping-policy changes excluded at user request."
+}
