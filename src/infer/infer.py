@@ -7,6 +7,7 @@ from beartype import beartype
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
+from helpers.z3utils import Z3
 
 import settings
 
@@ -84,6 +85,17 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
 
     @beartype
     def gen(self) -> infer.inv.DInvs:
+        previous_limit = Z3.RLIMIT
+        previous_timeout = Z3.TIMEOUT_MS
+        Z3.RLIMIT = settings.OPT_SOLVER_RLIMIT
+        Z3.TIMEOUT_MS = settings.OPT_SOLVER_TIMEOUT_MS
+        try:
+            return self._gen()
+        finally:
+            Z3.RLIMIT = previous_limit
+            Z3.TIMEOUT_MS = previous_timeout
+
+    def _gen(self) -> infer.inv.DInvs:
         
         locs = self.inv_decls.keys()
 

@@ -91,13 +91,14 @@ class PrintTypeVisitor(c_ast.NodeVisitor):
     def visit_FuncDef(self, node:c_ast.Node) -> None:
         
         if node.decl.name.startswith(self.vtrace) or node.decl.name == self.mainQ:
-            nts = [(p.name , p.type.type.names[0]) for p in node.decl.type.args.params]
-            nts = '; '.join(("I " if t == "int" else "D ") + n for n,t in nts)
-            self.typ_info.append(f"{node.decl.name}; {nts}")
+            params = node.decl.type.args.params if (node.decl.type.args and node.decl.type.args.params) else []
+            nts = [(p.name, p.type.type.names[0]) for p in params if p.name is not None]
+            nts_str = '; '.join(("I " if t == "int" else "D ") + n for n, t in nts)
+            self.typ_info.append(f"{node.decl.name}; {nts_str}")
 
         if node.decl.name == self.mainQ:
-            self.mainQ_params = [(p.name , p.type.type.names[0])
-                                 for p in node.decl.type.args.params]
+            params = node.decl.type.args.params if (node.decl.type.args and node.decl.type.args.params) else []
+            self.mainQ_params = [(p.name, p.type.type.names[0]) for p in params if p.name is not None]
 
 
 @beartype
@@ -121,8 +122,11 @@ def instrument(filename: Path, tracefile: Path) -> list[str]:
         else:
             src.append(l)
 
-    if all(x for x in includes if "assert.h" not in x):
-        includes.append("#include <assert.h>")
+    # Instrumentation adds printf/assert calls even when the input program
+    # itself does not use these headers.
+    for header in ("stdio.h", "assert.h"):
+        if not any(header in include for include in includes):
+            includes.append(f"#include <{header}>")
 
     src = '\n'.join(src)
     parser = c_parser.CParser()

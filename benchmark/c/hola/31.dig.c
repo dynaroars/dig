@@ -2,7 +2,8 @@
 #include <stdlib.h>
 
 void vassume(int b){}
-void vtrace(int i, int j, int y){}
+void vtrace1(int j){}
+void vtrace2(int n, int j, int i){}
 
 void mainQ(int m, int n, int u1) {
   vassume(m + 1 < n);
@@ -15,7 +16,7 @@ void mainQ(int m, int n, int u1) {
 
       if (u1) {
         //%%%traces: int j
-        vtrace(j, i, n);
+        vtrace1(j);
         //assert(j >= 0);
         j++;
         k = 0;
@@ -24,14 +25,12 @@ void mainQ(int m, int n, int u1) {
         }
       } else {
         //%%%traces: int n, int j, int i
-        vtrace(j, i, n);
+        vtrace2(n, j, i);
         //assert(n + j + 5 > i);
         j += 2;
       }
     }
   }
-  //%%%traces: int n, int j, int i
-  vtrace(j, i, n);
 }
 
 void main(int argc, char *argv[]) {

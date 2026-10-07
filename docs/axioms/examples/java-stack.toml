@@ -1,0 +1,66 @@
+schema_version = 1
+language = "java"
+
+[target]
+classpath = ["target/classes"]
+
+[[types]]
+id = "stack"
+java_class = "java.util.Stack"
+generator = "builtin:stack-v1"
+snapshot = "builtin:collection-v1"
+opaque = true
+finite_values = [[], [0], [1, 2], [1, 1]]
+
+[[types]]
+id = "item"
+java_class = "java.lang.Integer"
+finite_values = [-2, -1, 0, 1, 2]
+
+[[operations]]
+id = "push"
+display_name = "push"
+binding = "java.util.Stack#push(java.lang.Object)"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = ["item"]
+return_type = "item"
+mutates = [0]
+cost = 1
+
+[[operations]]
+id = "pop"
+display_name = "pop"
+binding = "java.util.Stack#pop()"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = []
+return_type = "item"
+mutates = [0]
+exception_policy = "common_domain"
+cost = 1
+
+[[operations]]
+id = "peek"
+display_name = "peek"
+binding = "java.util.Stack#peek()"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = []
+return_type = "item"
+mutates = []
+pure = true
+cost = 1
+
+[limits]
+max_call_cost = 2
+variables_per_type = 1
+max_terms_per_type = 1000
+max_candidates = 10000
+discovery_tests = 10
+validation_tests = 10
+minimum_valid_samples = 5
+case_timeout_ms = 1000
+batch_timeout_ms = 30000
+worker_memory_mib = 512
+output_limit_bytes = 65536

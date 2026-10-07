@@ -2226,3 +2226,22 @@ class TestOutputContract:
         f.write_text(HEADER + "int mainQ(int x, int y){ vtrace1(x,y,x,y); return 0; }")
         eng = CSymEx(f, 3, solver_rlimit=1_000)
         assert eng.run()  # tiny rlimit: unknown feasibility keeps paths (optimistic)
+
+    def test_concrete_loop_unrolls_to_completion(self, tmp_path):
+        _, res = symex(tmp_path, """
+            int mainQ(void){
+                int i = 0;
+                int c = 0;
+                while (i < 100) {
+                    c = c + 2;
+                    i = i + 1;
+                }
+                vtrace1(c, i, c, i);
+                return 0;
+            }
+        """, depth=4)
+        assert len(res) == 1
+        loc, pc, slocal = res[0]
+        assert loc == "vtrace1"
+        assert implied(pc, slocal, X("a") == 200)
+        assert implied(pc, slocal, X("b") == 100)

@@ -26,6 +26,7 @@ class Z3:
     zTrue = z3.BoolVal(True)
     zFalse = z3.BoolVal(False)
     RLIMIT = settings.SOLVER_RLIMIT
+    TIMEOUT_MS = settings.SOLVER_TIMEOUT_MS
 
     # names of program variables that are real-valued (float/double). A bare
     # identifier in parse() becomes z3.Real(name) if listed here, else z3.Int,
@@ -101,8 +102,11 @@ class Z3:
 
         solver = z3.Optimize() if maximize else z3.Solver()
         # rlimit = deterministic work-unit cutoff (reproducible under MP
-        # contention), the sole solver bound.
+        # contention), with a wall-clock fallback for native arithmetic that
+        # does not return promptly under the work-unit budget.
         solver.set("rlimit", cls.RLIMIT)
+        if cls.TIMEOUT_MS:
+            solver.set("timeout", cls.TIMEOUT_MS)
         return solver
 
     @classmethod

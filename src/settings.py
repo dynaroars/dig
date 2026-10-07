@@ -44,11 +44,19 @@ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
-# Deterministic z3 work-unit budget: the *real* cutoff for solver calls.
-# Unlike wall-clock timeout, rlimit counts solver work, so results are
-# reproducible regardless of CPU contention under multiprocessing.
+# Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.
+# The work budget is independent of CPU contention; timeout fallbacks can
+# affect optional results and are recorded separately in benchmark settings.
 # Calibrated to ~3s of CPU work on a typical core (see create_solver).
 SOLVER_RLIMIT = 15_000_000
+SOLVER_TIMEOUT_MS = 5000  # fallback when native arithmetic exceeds the work budget
+# Optional bound searches and redundancy removal must not consume the whole
+# run budget after equality discovery. Unknown optimization results are
+# omitted; unknown implications retain the original invariant.
+OPT_SOLVER_RLIMIT = 500_000
+OPT_SOLVER_TIMEOUT_MS = 1000  # safety fallback for expensive native NIA operations
+SIMPLIFY_SOLVER_RLIMIT = 100_000
+SIMPLIFY_SOLVER_TIMEOUT_MS = 1000
 EQT_RATE = 1.5
 # Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
 # candidate eqts (e.g. egcd, 8 vars). Bound it; on timeout we fall back to the
@@ -92,7 +100,10 @@ MAINQ_FUN = "mainQ"
 class C:
     GCC_CMD = "gcc"
 
-    COMPILE = "{gcc} {filename} -o {tmpfile}"
+    # Symbolic inference uses mathematical integer arithmetic. Reject native
+    # executions that overflow signed C integers instead of fitting wrapped
+    # values that contradict that arithmetic.
+    COMPILE = "{gcc} -ftrapv {filename} -o {tmpfile}"
     COMPILE = partial(COMPILE.format, gcc=GCC_CMD)
 
     C_RUN = "{exe}"

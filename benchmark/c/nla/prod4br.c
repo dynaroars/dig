@@ -1,3 +1,18 @@
+/*
+ * Purpose: Multiply two positive integers using four parity cases, halving, and a scale factor.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: q+a*b*p-x*y == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: x >= 1, y >= 1. Degree-3 loop relation. Exit a=0 or b=0 gives q=x*y.
+ * Original publication for this exact C variant is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

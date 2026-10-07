@@ -1,3 +1,20 @@
+/*
+ * Purpose: Compute LCM with one subtraction branch per iteration and a doubled coefficient
+ * identity.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Rodriguez-Carbonell and Kapur, ISSAC 2004, section 6: lcm2; reference [7] is E. W.
+ * Dijkstra, A Discipline of Programming (1976).
+ * https://www.cs.unm.edu/~kapur/mypapers/issac04enric.pdf
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: x*u+y*v-2*a*b == 0.
+ *   vtrace2: x*u+y*v-2*a*b == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: a >= 1, b >= 1. At exit x=y=gcd(a,b) and (u+v)/2=lcm(a,b).
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

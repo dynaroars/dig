@@ -41,6 +41,19 @@ class Oct(infer.inv.Inv):
     def cinvs_category(self) -> str:
         return 'octs'
 
+    def weaken_from_traces(self, traces):
+        values = traces.myeval(self.inv.lhs)
+        if not values:
+            return None
+        maximum = max(values)
+        if (not maximum.is_Integer or abs(maximum) > settings.IUPPER
+                or maximum <= self.inv.rhs):
+            return None
+        # The original symbolic bound implies this weaker bound. Keeping it
+        # preserves useful properties when shallow exploration overstates a
+        # bound that later concrete iterations refute.
+        return Oct(sympy.Le(self.inv.lhs, maximum), stat=self.stat)
+
 
 class Infer(infer.infer._Opt):
 

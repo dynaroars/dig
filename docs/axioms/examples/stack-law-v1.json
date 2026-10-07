@@ -1,0 +1,21 @@
+{
+  "lhs": {
+    "kind": "call",
+    "operation_id": "pop",
+    "projection": {"kind": "return"},
+    "type_id": "item",
+    "children": [
+      {
+        "kind": "call",
+        "operation_id": "push",
+        "projection": {"kind": "post_state", "input_index": 0},
+        "type_id": "stack",
+        "children": [
+          {"kind": "variable", "type_id": "stack", "index": 0},
+          {"kind": "variable", "type_id": "item", "index": 0}
+        ]
+      }
+    ]
+  },
+  "rhs": {"kind": "variable", "type_id": "item", "index": 0}
+}

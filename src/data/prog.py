@@ -64,7 +64,7 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
 
 class Symbs(tuple):
     def __new__(cls, ss):
-        assert ss, ss
+        # mainQ(void) has a legitimate empty input signature.
         assert all(isinstance(s, Symb) for s in ss), ss
         return super().__new__(cls, ss)
 
@@ -188,6 +188,11 @@ class Prog:
             mlog.warning(
                 f"run timed out after {settings.C.RUN_TIMEOUT}s, no traces: {cmd}")
             return []
+        # Assertions, signed-overflow traps, and arithmetic faults can occur
+        # after printf has emitted part of a trace. Reject the whole failed
+        # execution so those partial states cannot pollute fitting/testing.
+        if cp.returncode < 0:
+            return []
         traces = cp.stdout.splitlines()
         return traces
 
@@ -249,6 +254,10 @@ class Prog:
             # consider some ranges for smaller #'s of inps
             tiny = 0.05
             rinps.extend([(0, int(maxV * tiny))])
+            # Small/high-only sampling misses whole middle regions (e.g.
+            # Knuth's divisor-search paths), leaving spurious polynomial
+            # bases that shallow symbolic execution also cannot refute.
+            rinps.append((int(maxV*0.25), int(maxV*0.75)))
 
         # [((0, 30), (0, 30)), ((0, 30), (270, 300)), ...]
         rinps_i = itertools.product(*itertools.repeat(rinps, n_inps))
@@ -373,7 +382,4 @@ class C(Src):
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)
         subprocess.run(shlex.split(cmd), check=True)
         assert out.is_file(), out
-
-
-
 

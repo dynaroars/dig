@@ -1,3 +1,18 @@
+/*
+ * Purpose: Accumulate 1+z+...+z^(c-1), while tracking y=z^(c-1).
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: 1+x*z-x-z*y == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: 0 <= z <= 10 and 1 <= k <= 10. Original publication for this exact C
+ * variant is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

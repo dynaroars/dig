@@ -360,7 +360,7 @@ class Miscs:
         """
         if (timeout_s <= 0
                 or threading.current_thread() is not threading.main_thread()):
-            return sympy.groebner(ps, *vs)
+            return sympy.groebner(ps, *vs, order="grevlex")
 
         def _handler(signum, frame):
             raise _GroebnerTimeout()
@@ -368,7 +368,7 @@ class Miscs:
         old = signal.signal(signal.SIGALRM, _handler)
         signal.setitimer(signal.ITIMER_REAL, timeout_s)
         try:
-            return sympy.groebner(ps, *vs)
+            return sympy.groebner(ps, *vs, order="grevlex")
         finally:
             signal.setitimer(signal.ITIMER_REAL, 0)
             signal.signal(signal.SIGALRM, old)
@@ -439,17 +439,20 @@ class Miscs:
     @beartype
     @classmethod
     def refine(cls, eqts: list[sympy.Expr | sympy.Rel],
-               do_reduce: bool = True) -> list[sympy.Expr | sympy.Rel]:
+               do_reduce: bool = True,
+               do_filter: bool = True) -> list[sympy.Expr | sympy.Rel]:
 
         if not eqts:
             return eqts
 
         eqts = [cls.elim_denom(s) for s in eqts]
-        eqts = cls.remove_ugly(eqts)
+        if do_filter:
+            eqts = cls.remove_ugly(eqts)
         if do_reduce:
             eqts = cls.reduce_eqts(eqts)
         eqts = [cls.elim_denom(s) for s in eqts]
-        eqts = cls.remove_ugly(eqts)
+        if do_filter:
+            eqts = cls.remove_ugly(eqts)
 
         return eqts
 
@@ -538,7 +541,8 @@ class Miscs:
     @classmethod
     def solve_eqts(cls, eqts: list[sympy.Expr | sympy.Rel],
                    terms: list[Any], uks: list[sympy.Symbol],
-                   do_reduce: bool = True) -> list[sympy.Eq]:
+                   do_reduce: bool = True,
+                   do_refine: bool = True) -> list[sympy.Eq]:
 
         assert eqts, eqts
         assert terms, terms
@@ -578,9 +582,13 @@ class Miscs:
             return []
 
         mlog.debug(f"got {len(eqts_)} eqts after solving")
-        eqts_ = cls.refine(eqts_, do_reduce=do_reduce)
+        if do_refine:
+            eqts_ = cls.refine(eqts_, do_reduce=do_reduce)
         mlog.debug(f"got {len(eqts_)} eqts after refinement")
-        return [sympy.Eq(eqt, 0) for eqt in eqts_]
+        relations = [sympy.Eq(eqt, 0) for eqt in eqts_]
+        # SymPy evaluates 0 == 0 to BooleanTrue, which is not an equality
+        # invariant and has no lhs/rhs (the old Freire seed-3 crash).
+        return [eqt for eqt in relations if isinstance(eqt, sympy.Equality)]
 
     @beartype
     @classmethod

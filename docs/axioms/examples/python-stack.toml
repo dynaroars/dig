@@ -1,0 +1,53 @@
+schema_version = 1
+language = "python"
+
+[target]
+module_roots = ["../../../examples/axioms"]
+
+[[types]]
+id = "stack"
+python_type = "python_stack:Stack"
+from_recipe = "python_stack:stack_from_recipe"
+snapshot = "python_stack:stack_snapshot"
+opaque = true
+finite_values = [[], [0], [1, 2], [1, 1]]
+
+[[types]]
+id = "item"
+python_type = "builtins:int"
+finite_values = [-2, -1, 0, 1, 2]
+
+[[operations]]
+id = "push"
+binding = "python_stack:Stack.push"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = ["item"]
+return_type = "item"
+mutates = [0]
+
+[[operations]]
+id = "pop"
+binding = "python_stack:Stack.pop"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = []
+return_type = "item"
+mutates = [0]
+
+[[operations]]
+id = "peek"
+binding = "python_stack:Stack.peek"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = []
+return_type = "item"
+mutates = []
+pure = true
+
+[limits]
+max_call_cost = 2
+variables_per_type = 1
+discovery_tests = 10
+validation_tests = 10
+minimum_valid_samples = 5

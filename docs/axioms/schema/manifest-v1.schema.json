@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynaroars.github.io/dig/schemas/axioms/manifest-v1.schema.json",
+  "title": "DIG algebraic axiom manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "language", "target", "types", "operations"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "language": {"enum": ["python", "java", "rust"]},
+    "target": {"$ref": "#/$defs/target"},
+    "types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/typeDeclaration"}
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/operationDeclaration"}
+    },
+    "limits": {"$ref": "#/$defs/limits"},
+    "extensions": {"$ref": "#/$defs/extensions"}
+  },
+  "$defs": {
+    "stableId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$",
+      "maxLength": 128
+    },
+    "binding": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module_roots": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "classpath": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "jar": {"type": "string", "minLength": 1},
+        "manifest_path": {"type": "string", "minLength": 1},
+        "package": {"type": "string", "minLength": 1},
+        "features": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      },
+      "anyOf": [
+        {"required": ["module_roots"]},
+        {"required": ["classpath"]},
+        {"required": ["jar"]},
+        {"required": ["manifest_path"]}
+      ]
+    },
+    "typeDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {"$ref": "#/$defs/stableId"},
+        "python_type": {"$ref": "#/$defs/binding"},
+        "java_class": {"$ref": "#/$defs/binding"},
+        "rust_type": {"$ref": "#/$defs/binding"},
+        "generator": {"$ref": "#/$defs/binding"},
+        "from_recipe": {"$ref": "#/$defs/binding"},
+        "snapshot": {"$ref": "#/$defs/binding"},
+        "comparator": {"$ref": "#/$defs/binding"},
+        "adapter": {"$ref": "#/$defs/binding"},
+        "finite_values": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/encodedValue"}
+        },
+        "opaque": {"type": "boolean", "default": false},
+        "extensions": {"$ref": "#/$defs/extensions"}
+      },
+      "oneOf": [
+        {"required": ["python_type"]},
+        {"required": ["java_class"]},
+        {"required": ["rust_type"]}
+      ]
+    },
+    "operationDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "binding", "kind", "parameter_types", "return_type", "mutates"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/stableId"},
+        "display_name": {"type": "string", "minLength": 1},
+        "binding": {"$ref": "#/$defs/binding"},
+        "kind": {
+          "enum": ["constructor", "instance_method", "static_method", "class_method", "function"]
+        },
+        "receiver_type": {"$ref": "#/$defs/stableId"},
+        "parameter_types": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/stableId"}
+        },
+        "parameter_modes": {
+          "type": "array",
+          "items": {"enum": ["owned", "shared_borrow", "mutable_borrow"]}
+        },
+        "receiver_mode": {"enum": ["owned", "shared_borrow", "mutable_borrow"]},
+        "return_type": {
+          "oneOf": [{"$ref": "#/$defs/stableId"}, {"type": "null"}]
+        },
+        "mutates": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 0},
+          "uniqueItems": true
+        },
+        "pure": {"type": "boolean", "default": false},
+        "commutative": {"type": "boolean", "default": false},
+        "exception_policy": {
+          "enum": ["common_domain", "same_exception"],
+          "default": "common_domain"
+        },
+        "precondition": {"$ref": "#/$defs/binding"},
+        "cost": {"type": "integer", "minimum": 1, "default": 1},
+        "extensions": {"$ref": "#/$defs/extensions"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "instance_method"}}},
+          "then": {"required": ["receiver_type"]}
+        },
+        {
+          "if": {"properties": {"pure": {"const": true}}, "required": ["pure"]},
+          "then": {"properties": {"mutates": {"maxItems": 0}}}
+        }
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_call_cost": {"type": "integer", "minimum": 1, "default": 3},
+        "variables_per_type": {"type": "integer", "minimum": 1, "default": 2},
+        "max_terms_per_type": {"type": "integer", "minimum": 1, "default": 1000},
+        "max_candidates": {"type": "integer", "minimum": 1, "default": 10000},
+        "discovery_tests": {"type": "integer", "minimum": 1, "default": 100},
+        "validation_tests": {"type": "integer", "minimum": 1, "default": 1000},
+        "minimum_valid_samples": {"type": "integer", "minimum": 1, "default": 20},
+        "case_timeout_ms": {"type": "integer", "minimum": 1, "default": 1000},
+        "batch_timeout_ms": {"type": "integer", "minimum": 1, "default": 30000},
+        "worker_memory_mib": {"type": "integer", "minimum": 16, "default": 512},
+        "output_limit_bytes": {"type": "integer", "minimum": 0, "default": 65536}
+      }
+    },
+    "encodedValue": {
+      "type": ["null", "boolean", "integer", "number", "string", "array", "object"]
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  }
+}

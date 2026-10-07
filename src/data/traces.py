@@ -352,7 +352,7 @@ class Inp(SymbsVals):
 
 
 class Inps(SymbsValsSet):
-    def merge(self, ds, ss) -> Inps:
+    def merge(self, ds, ss, model_ss=None) -> Inps:
         """
         ds can be
         1. cexs = {loc:{inv: {'x': val, 'y': val}}}
@@ -369,7 +369,7 @@ class Inps(SymbsValsSet):
                 for inv in d[loc]:
                     for d_ in d[loc][inv]:
                         try:
-                            inp = tuple(d_[s] for s in ss)
+                            inp = tuple(d_[s] for s in (model_ss if model_ss is not None else ss))
                             inps.append(inp)
                         except KeyError:
                             # happens when the cex does not contain inp var

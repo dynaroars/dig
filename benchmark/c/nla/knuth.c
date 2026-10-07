@@ -1,3 +1,24 @@
+/*
+ * Purpose: Search increasing trial divisors using updated remainders and four conditional branches.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: d**2*q-2*q*d-4*r*d+4*k*d+8*r-8*n == 0.
+ *   vtrace1: k*t-t**2 == 0.
+ *   vtrace1: (d-a)*(k-t) == 0.
+ *   vtrace2: d**2*q-2*q*d-4*r*d+4*k*d+8*r-8*n == 0.
+ *   vtrace2: k*t-t**2 == 0.
+ *   vtrace2: (d-a)*(k-t) == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: The code attributes the algorithm to Knuth. Use n >= 0, a > 2 for the divisor-search
+ * interpretation; only a > 2 is enforced. The helper computes floor(sqrt(n)). Exact book section
+ * for this C implementation has not been established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 void vassume(int b){}

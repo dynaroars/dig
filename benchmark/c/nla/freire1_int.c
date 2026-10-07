@@ -1,3 +1,18 @@
+/*
+ * Purpose: Integer-only adaptation of the successive-subtraction square-root algorithm.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Adaptation of P. Freire, SQRT, Part I. The even-radicand restriction is specific to
+ * this file. https://www.pedrofreire.com/sqrt/sqrt1.en.html
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: 2*x+r**2-r-a == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: The input is x, and a is initialized to 2*x, so the represented radicand is even. Root
+ * interpretation assumes input x >= 0.
+ */
 /* Algorithm for finding the closest integer to square root,
  * more details, see : http://www.pedrofreire.com/sqrt/sqrt1.en.html 
 

@@ -1,3 +1,19 @@
+/*
+ * Purpose: Accumulate powers of exponent 3: 1^3+...+y^3.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Mathematical background: NIST DLMF 24.4.7, sums of powers. This is background for the
+ * derived equality, not a claim that NIST supplied this C program. https://dlmf.nist.gov/24.4#E7
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: 4*x-y**4-2*y**3-y**2 == 0.
+ *   vtrace2: 4*x-y**4-2*y**3-y**2 == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: The suffix is one more than the summed power. The polynomial has degree 4. Original
+ * publication for this exact C variant is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

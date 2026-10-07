@@ -1,3 +1,19 @@
+/*
+ * Purpose: Compute floor(sqrt(n)) by adding successive odd numbers to form squares.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Related recurrence and invariants: Rodriguez-Carbonell and Kapur, ISSAC 2004, section
+ * 5.1, Example 3. https://www.cs.unm.edu/~kapur/mypapers/issac04enric.pdf
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: t-2*a-1 == 0.
+ *   vtrace1: s-(a+1)**2 == 0.
+ *   vtrace1: a*a <= n.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: n >= 0. At exit s>n, giving a^2 <= n < (a+1)^2.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -20,6 +20,11 @@ DIG's numerical relations (in particular, nonlinear relations) have been used in
 - *array analysis*, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 - **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
 
+DIG is also gaining an API axiom analysis for typed Python and Java APIs. The current
+developer preview supports isolated finite-recipe discovery, held-out validation,
+replayable counterexamples, and explicitly scoped finite-domain verification. See the
+[API axiom guide](docs/axioms/README.md).
+
 
 <!-- <details> -->
 

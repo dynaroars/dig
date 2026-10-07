@@ -1,3 +1,19 @@
+/*
+ * Purpose: Compute floor(sqrt(n)) by increasing r until its next square exceeds n.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: r*r <= n.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: 0 <= n <= 100. At the final trace also n < (r+1)^2; that strict
+ * inequality is not an invariant of all earlier traces. Original attribution for this exact C
+ * variant is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

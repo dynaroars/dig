@@ -1,3 +1,20 @@
+/*
+ * Purpose: Compute LCM while subtracting a GCD pair and accumulating complementary coefficients.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Related family: Rodriguez-Carbonell and Kapur, ISSAC 2004, section 6 lists lcm2 and
+ * cites E. W. Dijkstra, A Discipline of Programming (1976). Exact lcm1 C provenance is not
+ * established. https://www.cs.unm.edu/~kapur/mypapers/issac04enric.pdf
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: x*u+y*v-a*b == 0.
+ *   vtrace2: x*u+y*v-a*b == 0.
+ *   vtrace3: x*u+y*v-a*b == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: a >= 1, b >= 1. At exit x=y=gcd(a,b) and u+v=lcm(a,b).
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

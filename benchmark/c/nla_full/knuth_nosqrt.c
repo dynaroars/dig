@@ -1,3 +1,22 @@
+/*
+ * Purpose: Search increasing trial divisors using updated remainders and four conditional branches.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   internal_loop: d**2*q-2*q*d-4*r*d+4*k*d+8*r-8*n == 0.
+ *   internal_loop: k*t-t**2 == 0.
+ *   internal_loop: (d-a)*(k-t) == 0.
+ *   internal_loop: n-s**2 == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: This variant sets n=s*s and has no active vtrace calls, despite unused trace
+ * declarations. The listed relations concern internal loop state; DIG has no observation points
+ * in this file. Exact publication lineage is not established.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

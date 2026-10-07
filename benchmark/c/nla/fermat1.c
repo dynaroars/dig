@@ -1,3 +1,23 @@
+/*
+ * Purpose: Search for a difference-of-squares factorization using two nested residual-adjustment
+ * loops.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Related family: Rodriguez-Carbonell and Kapur, ISSAC 2004, section 6 lists fermat2 and
+ * cites D. M. Bressoud, Factorization and Primality Testing (1989). Exact fermat1 C provenance is
+ * not established. https://www.cs.unm.edu/~kapur/mypapers/issac04enric.pdf
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtraces1: 4*(A+r)-u**2+v**2+2*u-2*v == 0.
+ *   vtraces2: 4*(A+r)-u**2+v**2+2*u-2*v == 0.
+ *   vtraces3: 4*(A+r)-u**2+v**2+2*u-2*v == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Intended domain: positive odd A and positive initial R near sqrt(A). The file enforces
+ * odd A and (R-1)^2 < A; other bounds are commented out. u and v stay odd. At r=0,
+ * 4*A=(u-v)*(u+v-2).
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

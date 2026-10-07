@@ -7,7 +7,7 @@ void vtrace1(int flag, int j){}
 void mainQ(int flag, int a) {
     int b = 0;
     int j = 0;
-    for (b = 0; b < 5; ++b) {
+    for (b = 0; b < 100; ++b) {
 	if (flag != 0) j = j + 1;
     }
 

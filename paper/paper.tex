@@ -1,0 +1,814 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{xspace}
+
+% ---- tool-name macros (mirrors NeuralSAT's versioned naming) ----
+\newcommand{\dig}{\textsc{Dig-KN}\xspace}
+\newcommand{\digold}{\textsc{Dig/SymInfer}\xspace}
+
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,keepspaces=true,
+        mathescape=false,breaklines=true}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\begin{document}
+
+\title{\textsc{Dig-KN}: A Hybrid Tool for Generating and Proving Numerical Program Invariants}
+%
+\titlerunning{Dig-KN: A Hybrid Tool for Numerical Invariants}
+%
+\author{ThanhVu Nguyen\inst{1} \and
+         Deepak Kapur\inst{2}\thanks{Deepak Kapur (1950--2026), co-creator of
+         \textsc{Dig}, passed away during this work.  Kapur and Nguyen collaborated
+         on dynamic and algebraic invariant generation across a series of works
+         on polynomial, array, and disjunctive invariants~\cite{nguyen2009dig,nguyen2012dig,nguyen2014dig,nguyen2014tosem},
+         and recently on making invariant generation accessible via automated web toolsets.
+         \textsc{Dig-KN} is named in his honor and dedicated to his memory.}}
+\authorrunning{Nguyen and Kapur}
+\institute{George Mason University, USA \and
+           University of New Mexico, USA\\
+           \email{tvn@gmu.edu}}
+
+\maketitle
+
+\begin{abstract}
+Numerical invariants---non-linear equalities, inequalities, congruences, and
+min/max-plus disjunctions over program variables---underpin a wide
+range of verification, complexity, and termination analyses.  We present
+\dig, a hybrid tool that automatically generates such numerical invariants
+at arbitrary program locations with zero manual configuration.  \dig{} descends from the \digold{} line of
+symbolic-state invariant generators but is re-architected around three core pillars:
+(i) a \emph{self-contained} symbolic-execution engine for C that eliminates external tool dependencies
+and exposes sound reasoning primitives (symbolic-state constraint checking, ranking-function synthesis, termination/non-termination proofs, and targeted assertion verification);
+(ii) dynamic \emph{finite-difference degree estimation} to automatically synthesize expressive non-linear polynomial relations without combinatorial term explosion; and
+(iii) an integrated numerical inference pipeline combining dynamic equality fitting, octagonal inequality optimization, modular congruences, and min/max-plus disjunctions.
+Complementary opt-in modules provide static algebraic ideal solving, shared-model optimization, and neural candidate proposal.
+\dig{} uses seeded experiments and solver work-unit budgets, with wall-clock safeguards for expensive queries, and provides an interactive web interface at \url{https://roars.dev/dig/}.  \dig{} is open source at \url{https://github.com/dynaroars/dig}.
+\keywords{Program invariants \and Numerical invariants \and Dynamic analysis
+\and Symbolic execution \and SMT optimization \and Static analysis.}
+\end{abstract}
+
+% =====================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Program invariants---logical relations over program variables that hold at a
+given location on every execution---are central to software verification,
+program understanding, algorithmic complexity analysis, and termination reasoning.  An
+important and expressive class is that of \emph{numerical} invariants:
+(non)linear equalities such as $q y + r = x$ and $y^2 - 2x + y = 0$, linear inequalities such as
+$-x-y\le 10$, congruences such as $x \equiv 0 \pmod 4$, and disjunctive
+relations captured in min/max-plus form such as $\max(x,y)\le z{+}2$.
+
+The dominant paradigm for inferring such invariants is
+\emph{counterexample-guided invariant generation} (CEGIR): cheaply
+\emph{guess} candidate invariants (e.g., from concrete program states, as in
+\textsc{Dig}~\cite{nguyen2012dig}), then
+\emph{check} them and use counterexamples to refine, iterating to a fixpoint.
+Our prior work, \digold~\cite{nguyen2021using,nguyen2017syminfer}, showed that
+using \emph{symbolic program states}---compact encodings of large sets of
+concrete states obtained from a symbolic executor---as the basis for checking
+substantially improves the quality of inferred invariants and enables rich
+forms (nonlinear equalities, octagonal inequalities, and min/max-plus
+disjunctions).  That work, however, suffered from three fundamental limitations:
+(i)~it depended on \emph{external} symbolic executors (Symbolic PathFinder~\cite{pasareanu2010spf} for Java and CIVL~\cite{siegel2015civl} for C), inheriting installation friction, version brittleness, and execution nondeterminism;
+(ii)~it lacked integrated ranking and property proof capabilities for downstream verification tasks; and
+(iii)~it relied on static term heuristics that under-guessed degrees and suppressed non-linear terms on multi-variable programs.
+
+\medskip\noindent\textbf{This paper.}
+We present \dig, a complete re-engineering of this line into a self-contained, fully automatic hybrid tool.  \dig{} reorganizes invariant synthesis around a built-in symbolic-execution engine that serves both as a shared \emph{basis} for inference and as a \emph{sound verification oracle}.  By default, \dig{} infers every numerical invariant family at an automatically predicted degree with zero configuration.  Concretely, our contributions are:
+
+\begin{enumerate}[leftmargin=1.5em,itemsep=2pt]
+\item A \textbf{self-contained symbolic-execution engine} for C (\S\ref{sec:arch}) that replaces external executors, produces symbolic states in-process without serialization overhead, bounds solver effort via a work-unit budget (\code{rlimit}) and wall-clock safeguards, and exposes sound verification primitives: constraint implication checking, ranking-function synthesis, and termination/non-termination proofs.
+\item \textbf{Dynamic finite-difference degree estimation} (\S\ref{sec:degree}): a discrete finite-difference estimator that discovers the empirical polynomial growth order per variable from execution traces, guiding search to discover expressive non-linear equalities without combinatorial term explosion.
+\item \textbf{Multi-domain numerical inference} (\S\ref{sec:inference}): an automated pipeline combining CEGIR polynomial equality fitting, direct SMT optimization for inequalities and min/max-plus disjunctions, and modular congruence synthesis.
+\item \textbf{Sound verification core} (\S\ref{sec:verify}): built-in symbolic-state constraint checking to refine dynamic candidates and generate CEGIR counterexamples, combined with downstream property verification for safety assertions and loop termination.
+\item \textbf{Downstream analysis applications} (\S\ref{sec:rq4}): demonstrations of \dig{} across program understanding, closed-form algorithmic complexity bounds, and termination/non-termination proofs.
+\item An \textbf{interactive web interface} (\S\ref{sec:web}) for running \dig{} directly in the browser with containerized Docker sandboxing.
+\end{enumerate}
+
+\medskip\noindent\textbf{Target Audience and Intended Users.}
+\dig{} is designed for: (i)~\emph{program verification and synthesis researchers} requiring sound, non-linear loop invariants and machine-checkable inductive certificates without brittle external toolchains; (ii)~\emph{software engineers and analysts} investigating unannotated or legacy numerical algorithms, discovering formal loop pre/post-specifications, or proving worst-case complexity and termination; and (iii)~\emph{educators and students} exploring formal methods, algebraic invariant ideals, and inductive verification interactively via the zero-install web interface.
+
+% =====================================================================
+\section{Overview and Architecture}
+\label{sec:overview}
+
+\subsection{Numerical Invariants and Symbolic States}
+\label{sec:problem}
+Let $L$ be a program location (e.g., a loop head annotated with \code{vtraceN(...)}).  A \emph{concrete $L$-state} maps the program variables in scope at $L$ to numerical values, and an invariant is a logical formula that holds over \emph{all} reachable concrete $L$-states.  Following~\cite{nguyen2021using}, a \emph{symbolic $L$-state} is a pair $\langle\sigma_L,\Pi_L\rangle$ where $\sigma_L$ maps variables to symbolic expressions over program inputs and $\Pi_L$ is a path condition; it denotes the (potentially unbounded) set of feasible concrete states reaching $L$.
+
+\dig{} infers numerical invariants over several expressive template families:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \emph{Polynomial equalities:} $c_1 t_1 + \dots + c_n t_n = 0$ over monomial terms $t_i$ up to degree $d$ (e.g., $q\cdot y + r - x = 0$ or $y^2 - 2x + y = 0$).
+\item \emph{Linear and octagonal inequalities:} $\pm x \pm y \le c$ and interval bounds (e.g., $-r \le 0, b - x \le 0$).
+\item \emph{Min/max-plus disjunctions:} $\max(x, y) \le z + c$ or $\min(x, y) \le z + c$.
+\item \emph{Modular congruences and arrays:} $t \equiv b \pmod n$ and array relations $A[i] = B[C[k\cdot i + c]]$.
+\end{itemize}
+An invariant is validated when it is verified over all reachable symbolic execution states $\Pi_L \implies p(\sigma_L)$, with spurious candidates eliminated through SMT counterexample generation and redundancy simplification.
+
+\subsection{System Architecture and Self-Contained Symbolic Execution}
+\label{sec:arch}
+Figure~\ref{fig:overview} depicts the architecture of \dig.  The central engineering decision in \dig{} is to \emph{build the symbolic executor from scratch} rather than depend on external tools (e.g., CIVL~\cite{siegel2015civl} or SPF~\cite{pasareanu2010spf}).
+
+\begin{figure}[t]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+   font=\small,
+   box/.style={draw,rounded corners,align=center,minimum height=7mm,inner sep=3pt},
+   eng/.style={box,fill=gray!8},
+   core/.style={box,fill=gray!20},
+   >={Latex[length=2mm]}]
+ \node[box] (src) {C program\\+ \code{vtraceN}};
+ \node[box,right=6mm of src] (se) {Symbolic\\Execution\\(\S\ref{sec:arch})};
+ \node[eng,right=8mm of se,yshift=12mm] (dyn) {Dynamic\\inference};
+ \node[eng,right=8mm of se] (stat) {Static algebraic\\ideals};
+ \node[eng,right=8mm of se,yshift=-12mm] (llm) {LLM proposal};
+ \node[core,right=8mm of stat] (ver) {Verifier\\Symbolic states /\\SMT solver};
+ \node[box,right=6mm of ver] (out) {Invariants\\(verified set)};
+ \draw[->] (src) -- (se);
+ \draw[->] (se) -- (dyn); \draw[->] (se) -- (stat); \draw[->] (se) -- (llm);
+ \draw[->] (dyn) -- (ver); \draw[->] (stat) -- (ver); \draw[->] (llm) -- (ver);
+ \draw[->] (ver) -- (out);
+ \draw[->] (ver.north) to[out=90,in=0] node[above,font=\scriptsize]{cex states (equalities)} (dyn.east);
+ \draw[->] (ver.south) to[out=-90,in=0] node[below,font=\scriptsize]{cex states (LLM)} (llm.east);
+\end{tikzpicture}%
+}
+\caption{\dig{} architecture.  A built-in symbolic execution engine feeds a portfolio of inference engines (\S\ref{sec:inference}), all validated by a unified symbolic-state verification core (\S\ref{sec:verify}).  Counterexample states refine CEGIR equality fitting and neural proposals; inequality maximization and static engines are one-shot.}
+\label{fig:overview}
+\end{figure}
+
+The built-in engine parses a practical subset of C (integers, reals, conditionals, loops, 1D arrays, structs, globals, inlined functions) and explores paths up to a bounded unroll depth $D$, generating symbolic states $\langle\sigma_L, \Pi_L\rangle$ in-memory as Z3 ASTs with zero text serialization overhead.  Path feasibility uses a Z3 \emph{rlimit} (work-unit budget); wall-clock safeguards also bound expensive solver operations.  Seeded runs and recorded configurations support repeatability, but timeout decisions and internal parallel scheduling need not be identical across runs.  The engine exposes implication checking ($\Pi \Rightarrow p$), term maximization, ranking-function synthesis, and termination proofs.  Candidate validation over explored states is distinguished from separate unbounded inductive verification.
+
+\subsection{A Worked Example: Inferring and Validating Invariants}
+\label{sec:example}
+To illustrate how the portfolio of inference engines and the verification core interact, we trace \dig's execution on the geometric inner loop of an integer-division routine (\code{cohendiv.c}). Its loop head observes \code{q, r, a, b, x, y}, with loop body:
+\begin{center}
+\code{a = 1;\ b = y;\ while (r >= 2*b) \{ a = 2*a;\ b = 2*b; \}}
+\end{center}
+When invoked from either the command line (Figure~\ref{fig:run}) or the web interface (Figure~\ref{fig:web_ui}), \dig{} operates in four automated stages:
+
+\medskip\noindent\textbf{1. Data-Driven Equality Fitting (\S\ref{sec:inference}).}
+\dig{} instantiates a degree-$d$ template $\sum_i c_i t_i = 0$ over monomials $t_i$ in $\{a, b, y, a\cdot y, b\cdot y, \dots\}$. It evaluates concrete valuations sampled from symbolic states and solves the linear system for its null space, discovering basis vectors such as $a\cdot y - b = 0$ and $q\cdot y + r - x = 0$. Each candidate is checked against symbolic states; failing checks yield concrete counterexamples added as new rows to the matrix (the CEGIR loop).
+
+\medskip\noindent\textbf{2. Algebraic Ideal Solving (\S\ref{sec:static}).}
+When enabled (\code{-dokapur}), the algebraic ideal engine computes the same equality $a\cdot y - b = 0$ directly from the loop transition $a' = 2a, b' = 2b$ via the Rodr\'iguez-Carbonell--Kapur method without execution sampling.
+
+\medskip\noindent\textbf{3. Multi-Domain Numerical Inference and Validation (\S\ref{sec:verify}).}
+\dig's inequality and min/max-plus engines infer companion bounds and relational constraints (e.g., $a\cdot y - b = 0$, $-r \le 0$, $-y \le -1$, $-a \le 0$). The symbolic verification core checks each candidate constraint against the collected symbolic path conditions ($\Pi_L \implies p(\sigma_L)$), pruning spurious relations and discharging valid invariants across explored paths.
+
+\medskip\noindent\textbf{4. Post-Processing and Simplification.}
+A post-processing pass simplifies redundant and weaker constraints via SMT implication (e.g., deduplicating algebraic and dynamic twins), emitting the minimal verified set.
+
+% =====================================================================
+\section{Numerical Invariant Inference Engines}
+\label{sec:inference}
+
+\subsection{Polynomial Equalities via CEGIR Null Space}
+\label{sec:eqts}
+For polynomial equality invariants, \dig{} parameterizes a template $\sum_{i=1}^M c_i t_i = 0$ over monomial terms $t_i$ over variables $\mathbf{x}$ up to degree bound $d$.  Concrete valuation vectors $\mathbf{v}^{(k)} \in \mathbb{Q}^M$ are drawn as models of reachable symbolic states.  Solving the linear system $V \mathbf{c} = \mathbf{0}$ via singular value / Gauss-Jordan decomposition yields a basis for the coefficient null space.
+
+Each candidate equality is checked against the symbolic states $\langle\sigma_L, \Pi_L\rangle$.  If $\Pi_L \land \neg(p(\sigma_L))$ is satisfiable, SMT solver models provide concrete counterexample states that are appended as new rows to $V$, refining the null space.  Before symbolic checking, fitted equalities are tested against all collected concrete traces; diverse violating rows refine a basis that overfits early iterations.  The fitting basis is retained through refinement instead of discarding generators merely because their coefficients are large.  With an explicit degree ceiling, results at lower degrees are retained and all requested locations are searched even if an earlier pass found some equalities.  Gr\"obner simplification uses graded reverse lexicographic order and a bounded computation; on timeout, the original basis is preserved.
+
+Counterexample replay distinguishes program-entry inputs from variables observed at trace locations.  Entry symbols use an \code{X\_} namespace, including model completion for unused inputs.  Replaying or excluding an input uses these entry values rather than a mutated variable's value at the observation point.  This distinction is essential on benchmarks such as \code{20.dig}, where confusing the two namespaces previously prevented useful concrete traces.
+
+Concrete C executions are compiled with \code{-ftrapv}.  Signal-terminated executions, including any trace prefix printed before signed-integer overflow, contribute no samples.  This prevents machine-integer wraparound from contaminating inference intended to recover mathematical-integer relations; ordinary nonzero returns from \code{main} remain usable.
+
+\subsection{Dynamic Finite-Difference Degree Estimation}
+\label{sec:degree}
+The template degree $d$ over $V$ variables requires solving a linear system with $\binom{V+d}{d}$ unknown coefficients.  Prior tools either fixed a global maximum degree ceiling (incurring severe combinatorial slowdowns on low-degree loops) or relied on static term budgets that under-guessed degrees on high-variable programs (forcing $d=1$ and missing non-linear invariants unless users manually passed \code{-maxdeg}).
+
+\dig{} addresses this by dynamically estimating polynomial growth per location and variable as a heuristic search guide using discrete calculus over ordered iteration traces $(v_0, v_1, v_2, \dots)$ at loop heads.  By the fundamental theorem of finite differences, a variable $v_n$ evolves as a polynomial of degree $d$ in the loop counter if and only if its $d$-th forward difference $\Delta^d v_n$ is a non-zero constant (where $\Delta v_n = v_{n+1} - v_n$ and $\Delta^k v_n = \Delta^{k-1} v_{n+1} - \Delta^{k-1} v_n$).
+
+\dig{} computes forward difference tables across initial loop iterations:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item If $\Delta^d v_n = \text{const} \ne 0$ for sampled iterations, degree $d$ guides the empirical polynomial search degree.
+\item On quadratic programs ($d=2$, e.g., \code{ps2}, \code{cav09\_fig2d}), finite differences confirm $d=2$, focusing search on compact 10-term quadratic bases (a 12$\times$ reduction over blind high-degree templates) and discovering quadratic equalities such as $y^2 - 2x + y = 0$ in $<1.5$\,s.
+\item On cubic accumulators such as \code{cohencu}, degree hints guide search, but the growth degree need not equal the degree of a sufficient invariant basis.  In the recovery experiment, an explicit degree-2 search yields a basis implying $x=n^3$, $y=3n^2+3n+1$, and $z=6n+6$; the cubic target need not appear as a literal degree-3 generator.
+\item On non-polynomial arithmetic (e.g., Euclidean subtraction in \code{egcd}), higher differences do not stabilize, and \dig{} avoids spurious high-degree template inflation.
+\end{itemize}
+
+\subsection{Inequalities, Min/Max-Plus, and Bound Optimization}
+\label{sec:ineqs}
+Unlike equalities, inequality inference in \dig{} is \emph{not} counterexample-guided; it uses direct SMT optimization.  For a candidate family of linear octagonal terms ($\pm x \pm y$), polynomial bounds, or min/max-plus operands ($\min(x,y), \max(x,y)$), \dig{} prunes trivially unbounded terms with a feasibility query and then \emph{maximizes} each term $t$ over the symbolic state space to obtain its provable upper bound $t \le c$.
+
+The ordinary bound-search path uses satisfiability queries and binary search within a configured integer cap.  A bound is accepted only after checking that no larger feasible value exists; unknown, fractional, infeasible, unbounded, or out-of-cap results do not certify an optimum.  Optimization and redundancy queries have separate resource budgets.  When later concrete traces violate an inferred octagonal or min/max-plus bound, the bound may be weakened within the configured cap and retested; equalities are never weakened this way.  Domains execute sequentially so that each domain can use internal worker pools without nested daemon-process restrictions.  Candidate expressions are also projected through symbolic snapshot bindings before constraint checking, reducing queries that become identities.
+
+\subsection{Modular Congruences and Array Relations}
+\label{sec:congruences}
+\dig{} infers modular congruences $t \equiv b \pmod n$ by computing the greatest common divisor (GCD) of successive trace differences $\gcd(\{v_{k+1} - v_k\})$, guarded against small-sample overfitting by testing against symbolic states.  For array-manipulating programs, \dig{} mines index relations $A[i] = B[C[k\cdot i + c]]$ across memory states.
+
+\subsection{Additional Inference Capabilities}
+\label{sec:additional_inf}
+In addition to its default numerical inference pipeline, \dig{} implements three specialized, non-default inference engines:
+
+\medskip\noindent\textbf{1. Static Algebraic Invariant Ideals (\code{-dokapur}).}
+\label{sec:static}
+Where loop updates follow deterministic straight-line polynomial transitions $\mathbf{x}' = T(\mathbf{x})$, \dig{} implements the Rodr\'iguez-Carbonell and Kapur bounded-degree ideal method~\cite{rodriguez2007kapur,rodriguez2007simple}. By analyzing polynomial orbits along loop transitions, it extracts the complete Gr\"obner basis of the invariant ideal in $<0.15$\,s with zero trace sampling.  A complete algorithmic formulation and limitation analysis is provided in Appendix~\ref{sec:appendix_kapur}.
+
+\medskip\noindent\textbf{2. Shared-Model Optimization via \textsc{Symba} (\code{-dosymba}).}
+\label{sec:symba_inf}
+To optimize large pools of linear octagons and min/max-plus terms on high-variable programs, \dig{} implements simultaneous multi-objective SMT optimization via \textsc{Symba}~\cite{li2014symba}. Rather than issuing separate SMT queries for each term, \textsc{Symba} maintains a single shared solver instance, updating objective bounds from shared satisfying models and certifying all bounds optimal via a single \code{unsat} proof. Appendix~\ref{sec:appendix_symba} provides an extended analysis of \textsc{Symba}.
+
+\medskip\noindent\textbf{3. Neural Invariant Proposal (\code{-dollm}).}
+\label{sec:llm}
+For expressions beyond fixed polynomial or octagonal templates (e.g., complex piecewise conditionals or arbitrary non-linear inequalities), \dig{} integrates LLM prompting~\cite{pei2023llminv,kamath2023loopy,wu2024lemur} in a closed CEGIR loop. Crucially, all LLM proposals must pass \dig's sound verification core; the model is never trusted.
+
+% =====================================================================
+\section{Sound Verification Core}
+\label{sec:verify}
+
+The verification core provides sound reasoning infrastructure: candidate invariants mined from traces and algebraic templates are refined against symbolic path constraints, while integrated property provers verify downstream safety assertions and loop termination. In evaluation tables and reports, discovered invariants reflect constraints surviving symbolic verification, trace validation, and redundancy simplification.
+
+\subsection{Symbolic-State Constraint Verification}
+\label{sec:symbolic_ver}
+
+The primary verification engine validates candidate invariants directly against the symbolic states $\langle\sigma_L, \Pi_L\rangle$ collected by the symbolic execution engine (\S\ref{sec:arch}):
+
+\medskip\noindent\textbf{1. Constraint Implication Checking.}
+For any candidate relation $p$ (e.g., a polynomial equality, octagon, or min/max disjunction), the verifier checks whether the path condition implies the property:
+$$\Pi_L \implies p(\sigma_L)$$
+If the implication holds across all feasible explored paths reaching $L$, the candidate is marked valid over the symbolic state space.
+
+\medskip\noindent\textbf{2. Counterexample Extraction for CEGIR.}
+If the negation $\Pi_L \land \neg p(\sigma_L)$ is $\code{sat}$, the SMT solver extracts a concrete input assignment that witnesses the violation. This concrete counterexample is either added as a new linear constraint to refine the CEGIR equality solver matrix (\S\ref{sec:eqts}) or returned to the LLM prompt (\S\ref{sec:llm}). Candidates that fail this check are marked \emph{disproved} and immediately discarded, filtering out spurious relations without manual intervention.
+
+\medskip\noindent\textbf{3. SMT Redundancy Simplification.}
+After inference engines emit candidate sets, \dig{} performs logical simplification via SMT implication. For each candidate $p \in \mathcal{C}$, the solver checks whether $\bigwedge (\mathcal{C} \setminus \{p\}) \implies p$. If valid, $p$ is logically redundant and pruned, ensuring the final emitted invariant set is compact.
+
+\subsection{Target Property and Termination Verification}
+\label{sec:additional_ver}
+
+Beyond invariant synthesis, \dig's verification core implements several specialized property-checking capabilities:
+
+\medskip\noindent\textbf{1. Loop Termination via Invariant-Supported Ranking Functions.}
+\dig{} automatically synthesizes linear ranking functions and lexicographic tuples $\langle R_1, \dots, R_m \rangle$. In isolation, ranking functions often fail decrease proofs under unconstrained havoc states; \dig{} feeds its inferred numerical invariants (e.g., $y \ge 1$) as inductive support lemmas to establish unbounded termination proofs.
+
+\medskip\noindent\textbf{2. Non-Termination Proofs (\code{--nonterm}).}
+For non-terminating loops, \dig{} synthesizes inductive recurrent sets (lassos), proving reachability from program entry and closure under the loop transition to formally certify infinite divergence.
+
+\medskip\noindent\textbf{3. Targeted Assertion Verification (\code{--prove}).}
+\dig{} allows verifying standalone user-specified assertions, safety invariants, and postconditions, automatically bundling auxiliary invariants to discharge inductive proofs.
+
+% =====================================================================
+\section{Tool Implementation and User Interfaces}
+\label{sec:features}
+
+\begin{table}[t]
+\centering
+\caption{\dig{} features and capabilities.}
+\label{tab:features}
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Aspect} & \textbf{Supported Features} \\
+\midrule
+Invariant types & Nonlinear/linear equalities, octagonal/polynomial \\
+ & inequalities, min/max-plus disjunctions, congruences, arrays \\
+Inference engines & Dynamic CEGIR equalities, direct SMT optimization, \\
+ & RC--Kapur algebraic ideals (\code{-dokapur}), \\
+ & \textsc{Symba} shared-model optimization, LLM proposal \\
+Verification & Symbolic-state check, SMT implication, termination/ranking proofs \\
+Symbolic execution & Built-in (C subset); deterministic Z3 \code{rlimit} \\
+Degree estimation & Automatic per-location finite-difference prediction; \code{-maxdeg} cap \\
+Interfaces & Command line, Python API, Docker container, web UI \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:features} summarizes \dig's features.  Several engineering design choices ensure practical reliability and seamless interaction across both local command-line and cloud browser workflows:
+
+\subsection{Command-Line Interface and Deterministic Execution}
+\label{sec:cli}
+On the command line, \dig{} is invoked directly as pure Python over Z3 and SymPy (Figure~\ref{fig:run}):
+\begin{center}
+\code{python3 -O dig.py <benchmark.c> -seed <S>}
+\end{center}
+By default, \dig{} infers every numerical invariant family at an automatically predicted degree and proves what it can with zero configuration.  A single positive selector \code{-types eqt,ieq,\dots} restricts search, while expert flags (\code{-dokapur}, \code{-dosymba}, \code{-dollm}) enable non-default engines.
+
+\begin{figure}[t]
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\scriptsize]
+$ python3 -O dig.py cohendiv.c -seed 42
+* prog cohendiv locs 2; invs 25 (Eqt: 3, MMP: 1, Oct: 21) ...
+-> time symbolic_states 0.3s, eqts 7.8s, ieqs 4.3s, minmax 21.0s, total 32.4s
+vtrace1 (11 invs):
+  Eqt: q*y + r - x == 0
+  Oct: -r <= 0; -q <= 0; -y <= -1; r - x <= 0; q - x <= 0; ...
+  MinMax: min(q, y) - x <= 0
+vtrace2 (14 invs):
+  Eqt: a*y - b == 0; q*y + r - x == 0
+  Oct: -q <= 0; -y <= -1; -a <= -1; a - b <= 0; b - r <= 0; r - x <= 0; ...
+\end{lstlisting}
+\caption{\dig{} command-line interface session on \code{cohendiv.c} (output abridged).  Seeded execution uses solver work-unit budgets and wall-clock safeguards; configurations and validation outcomes are recorded.}
+\label{fig:run}
+\end{figure}
+
+Solver effort is bounded by Z3 work units (\code{rlimit}) with wall-clock safeguards, and RNG/hash seeds are pinned.  This supports repeatable experiments without guaranteeing identical timeout decisions or worker scheduling.  Inference across locations runs in parallel forked workers; symbolic unrollings deepen incrementally, terminating once candidate invariants stabilize.
+
+\subsection{The \dig{} Web Interface}
+\label{sec:web}
+To eliminate local installation barriers, \dig{} provides an interactive web interface at \url{https://roars.dev/dig/} (Figure~\ref{fig:web_ui}).  The frontend is statically hosted on GitHub Pages, while a sandboxed Flask backend executes user programs inside isolated Docker containers (no network access, bounded memory/CPU/PIDs, read-only root, and a strict timeout).  Users can select built-in benchmarks or paste custom C code and trace CSVs, configure numerical invariant families, inspect categorized invariant tables with live proved/candidate indicators, and exercise standalone $k$-induction and termination proofs.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{web_ui.png}
+\caption{\textsc{Dig-KN} interactive browser interface (\url{https://roars.dev/dig/}) evaluating the quadratic power sum benchmark (\texttt{ps2.c}). The interface provides one-click example loading, configurable inference options, live containerized execution, and structured categorization of synthesized equalities ($y^2 - 2x + y = 0$) and inequalities ($-x \le 0, -y \le 0, y - x \le 0$) in the Discovered Invariants results table.}
+\label{fig:web_ui}
+\end{figure}
+
+% =====================================================================
+\section{Evaluation}
+\label{sec:eval}
+
+We evaluate \dig{} along the axes a tool paper cares about: effectiveness
+(does it find the invariants?), strength (does it \emph{prove} them?), the
+contribution of each new algorithmic engine, and cost.  We organize the study around four
+research questions.
+
+\medskip\noindent\textbf{Benchmarks.}  The initial baseline campaign covers four benchmark suites comprising 111 executable programs (7 seeds each, 777 requested runs).  Its completion counts and timings are retained as baseline observations, rather than evidence that all historical target invariants were recovered:
+\begin{enumerate}[leftmargin=1.5em,itemsep=1pt]
+\item \textbf{NLA (33 baseline programs; 21 with completed runs):} Algebraic loop programs from mathematical algorithms (Cohen, Dijkstra, Fermat, Knuth) featuring multi-variable nonlinear polynomial equalities up to degree 5. A core subset constitutes the standard \code{nla-digbench} and \code{scaling} categories in SV-COMP~\cite{svcomp,beyer2024svcomp}.
+\item \textbf{NLA-mosaic (14 baseline programs; 11 with completed runs):} We introduce \textsc{NLA-mosaic}, a newly curated benchmark suite of 14 C programs spanning 11 distinct mathematical algorithm families designed to evaluate non-linear numerical invariant synthesis across modern mathematical domains:
+(i)~\emph{Pell equation dynamics} (\code{pell});
+(ii)~\emph{Fibonacci sequences} (\code{fibonacci}, \allowbreak\code{fibonacci\_sign}) discovering Cassini's determinant relations;
+(iii)~\emph{Fibonacci 3D cubic trace maps} (\code{fibonacci\_trace}) conserving the cubic trace invariant;
+(iv)~\emph{Markov triple tree walkers} (\code{markov});
+(v)~\emph{Berggren ternary trees} for primitive Pythagorean triples (\code{berggren});
+(vi)~\emph{Continued fraction convergents} (\code{continued\_fraction}, \allowbreak\code{continued\_fraction\_sign});
+(vii)~\emph{Chebyshev polynomial recurrences} (\code{chebyshev}, \allowbreak\code{chebyshev\_pair});
+(viii)~\emph{Nagata polynomial automorphisms} (\code{nagata});
+(ix)~\emph{Binomial accumulators} (\code{binomial});
+(x)~\emph{Symplectic Euler numerical integration} preserving discrete Hamiltonian energy (\code{symplectic\_euler}); and
+(xi)~\emph{Welford's one-pass running variance algorithm} (\code{welford}).
+\item \textbf{Complexity (19 baseline programs; 17 with completed runs):} Benchmark programs from Gulwani et al.~\cite{gulwani2009speed} instrumented with iteration counters to evaluate worst-case algorithmic complexity under nested loops, multi-phase dynamic resets, and alternating branches.
+\item \textbf{HOLA (45 baseline programs; 42 with completed runs):} The verification benchmark suite introduced by Dillig et al.~\cite{dillig2013hola}, designed to test inductive invariant generation under multi-path control flow and conditional branch updates.  The recovery study additionally restores the executable \code{04.dig} case omitted from this baseline collection.
+\end{enumerate}
+Among these suites, NLA and NLA-mosaic represent the primary mathematical stress tests for nonlinear numerical invariant synthesis, demanding the discovery of high-degree polynomial ideals where monomial spaces grow combinatorially ($O(V^d)$) and SMT nonlinear integer arithmetic is notoriously hard.  Complexity requires deriving exact ranking relations and closed-form iteration bounds, while HOLA focuses on multi-path control-flow branching over small variable spaces ($V \le 4$).
+
+\medskip\noindent\textbf{Initial baseline setup.}  Experiments were conducted on an Intel Core i7-7700
+CPU (3.60\,GHz, 8 hardware threads) with 32\,GB RAM running 64-bit Linux.
+We evaluate benchmark programs across 7 independent random seeds with a per-program timeout budget of 120\,s, exploration depth limit (\code{--se\_maxdepth 16}), and \dig's deterministic SMT solver resource budget (\code{rlimit}).
+Table~\ref{tab:comparison} retains the original summary of 633 completed runs over 91 programs (NLA: 21 programs, NLA-mosaic: 11 programs, Complexity: 17 programs, HOLA: 42 programs).  These conditional timing summaries exclude failures and are not controlled speedup comparisons with TSE'21, whose hardware, settings, and solved populations differ.  All benchmark programs, execution logs, and evaluation scripts are included in the accompanying artifact.  The current-source, target-level recovery study is reported separately below.
+
+\medskip\noindent\textbf{Initial baseline flags.}  The baseline benchmarks were evaluated
+under \dig's default command-line invocation without manual per-benchmark parameter tuning:
+\begin{center}
+\code{python3 -O dig.py <benchmark.c> --se\_maxdepth 16 -seed <S>}
+\end{center}
+Under this standard configuration:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \emph{Included by default:} dynamic CEGIR polynomial equality fitting guided by finite differences, linear octagonal inequalities (\code{-ideg 1}), min/max-plus disjunctions, modular congruences, built-in symbolic execution state exploration, and symbolic constraint validation and redundancy simplification.
+\item \emph{Excluded by default:} the static algebraic ideal engine (\code{-dokapur}, which is opt-in for straight-line loops), shared-model optimization (\code{-dosymba}), and neural proposal (\code{-dollm}).
+\end{itemize}
+
+\subsection{RQ1: Effectiveness and Invariant Synthesis}
+\label{sec:rq1}
+
+Does \dig{} recover the intended invariants across the benchmark suites?  Table~\ref{tab:comparison} summarizes initial completion-based timings alongside historical \digold{} (TSE'21) reference numbers.  These timings alone do not establish target recovery or unbounded proofs.  Representative baseline outputs appear in Table~\ref{tab:benchmarks_detail}; the following recovery study checks historical targets explicitly.
+
+\begin{table}[t]
+\centering
+\caption{Initial baseline timing summary alongside historical \textsc{Dig/SymInfer} (TSE'21) references. Medians condition on completed runs; these are not matched-configuration speedup measurements or target-recovery counts.}
+\label{tab:comparison}
+\begin{tabular}{lcccc}
+\toprule
+Suite & Evaluated Progs & Total Runs & TSE'21 (s) & \dig{} (s) \\
+\midrule
+NLA                      & 21 & 145 & 73.1 & 18.33 \\
+NLA-mosaic (new)         & 11 & 75  & --   & 20.97 \\
+Complexity               & 17 & 119 & 14.8 & 15.55 \\
+HOLA                     & 42 & 294 & 29.4 & 9.42 \\
+\midrule
+\textbf{Overall}         & \textbf{91} & \textbf{633} & \textbf{38.2} & \textbf{12.83} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The initial campaign's conditional median runtimes were:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \textbf{NLA:} 18.33\,s (historical reference: 73.1\,s).
+\item \textbf{NLA-mosaic Suite:} On the evaluated mathematical algorithm programs, \dig{} synthesizes high-degree conserved polynomials (e.g., Cassini quartic determinants in \code{fibonacci}, sign-tracked determinants in \code{fibonacci\_sign} and \code{continued\_fraction\_sign}, and binomial relations in \code{binomial}) with a median runtime of 20.97\,s.
+\item \textbf{Complexity:} 15.55\,s (historical reference: 14.8\,s).
+\item \textbf{HOLA:} 9.42\,s (historical reference: 29.4\,s).
+\end{itemize}
+
+\subsubsection{Target-Level Recovery of TSE Benchmarks.}
+\label{sec:tse_recovery}
+We separately recheck all 91 successes from the TSE'21 NLA, Complexity, and HOLA tables available in the current C suites: 28 NLA, 18 Complexity, and 45 HOLA cases.  We add \code{freire1\_int} as an integer-arithmetic control.  The historical Java disjunction suite is outside this C recovery campaign.  \code{knuth} remains unresolved and is deferred after bounded profiling, leaving 90 TSE cases and one control in the required validation set.
+
+\medskip\noindent\textbf{Protocol.}
+Benchmark invocations run strictly one at a time, including different programs and seeds; each invocation retains internal multiprocessing.  The runner holds a shared lock and terminates and reaps child process groups on timeout or interruption.  Recovery uses seeds 0--6, a 600\,s per-run ceiling, and
+\code{-types} \path{eqt,ieq,minmax,array,recurrence}, excluding congruences for this diagnostic comparison without disabling their general availability.  Most cases use exploration depth 4; \code{egcd3} uses 6 and \code{34.dig} uses 12.  Explicit degree ceilings and exceptional input/template settings are recorded per program, so this experiment does not claim zero-configuration recovery.  The environment records Python 3.14.7 and Z3 5.1.0.  Each run retains its command, source and benchmark hashes, timings, output, and target checks.  Earlier successes are reused only when configurations and hashes match and fresh consistency/implication checks pass.
+
+\medskip\noindent\textbf{Acceptance and records.}
+An exit code of zero is insufficient.  At each target location we first check that the inferred conjunction is satisfiable, preferably using a collected concrete trace as a witness, and then check that it implies every reference target.  Equality implication uses exact rational row reduction to certify constant-coefficient combinations, followed by polynomial division when it produces a zero-remainder certificate; other cases use SMT.  A nonzero remainder supplies no verdict, and unknown or inconsistent results do not count as recovery.  Neither these checks nor bounded symbolic exploration establish unbounded inductiveness of every emitted invariant.
+
+Recovery does not require the historical equation's exact textual form: a different polynomial basis may imply the same target or be stronger.  Complicated high-degree equalities are also retained as promising alternatives for review even when target implication is not established; degree alone is not a correctness certificate.  The artifact provides a per-program catalog of actual equations, trace locations, degrees, monomial counts, and observed seeds, with per-run evidence in JSON.  This observational record is separate from the older \code{tests/golden.json} regression baseline, whose tests compare sign-normalized equation strings.
+
+For example, at seed 3 of \code{pldi09\_fig2}, let
+$F=(t-M-P-1)(t-(M+1)N+MP)$.
+The returned basis contains $e_1=NF$, $e_2=(131M+137P+137t-41046)F$, and $e_3=(131M+137N+137P-41046)F$, each equal to zero.  The target $tF=0$ follows exactly from $tF=e_1+(e_2-e_3)/137$.  Division by the raw generator list missed this consequence and SMT returned unknown; rational row reduction certified it without changing inference.  The artifact retains the original outcome and the subsequent exact check, with a regression test for this cancellation pattern.
+
+\begin{table}[t]
+\centering
+\caption{Completed current-source target recovery at seeds 0--6 (7 October 2026). All 91 required entries pass every listed target at all seven seeds: 637 successful runs and 1,092 freshly rechecked target implications. Knuth remains deferred.}
+\label{tab:tse_recovery}
+\begin{tabular}{lrrl}
+\toprule
+Suite & TSE successes & 7/7 passes & Status \\
+\midrule
+NLA & 28 & 27 & Knuth deferred \\
+Complexity & 18 & 18 & Complete \\
+HOLA & 45 & 45 & Complete \\
+Freire integer control & -- & 1 & Complete \\
+\midrule
+Required entries & 90 & 91 & 637/637 runs pass \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All 91 required entries passed seeds 0--6 under the current implementation, including all 15 pursued cases among the original 16 TSE regressions; Knuth is the deferred exception.  Table~\ref{tab:recovery_times} gives seven-seed timing summaries without outlier removal.  The final runner exited successfully, and a fresh audit of all 637 saved outputs confirmed 1,092 target implications after checking coverage, settings, source hashes, and benchmark hashes.  \code{egcd3}'s roughly 148\,s median illustrates why the original 120\,s ceiling cannot by itself establish a regression relative to the historical study.  Suite medians of per-program seven-seed medians are 8.141\,s for the 27 pursued NLA cases, 4.655\,s for the 18 Complexity cases, and 3.420\,s for the 45 HOLA cases; the integer control is excluded from these suite summaries.  These remain configured recovery measurements rather than controlled speedup comparisons with TSE'21.
+
+\begin{table}[t]
+\centering
+\caption{Selected target-confirmed recovery runs across all seven seeds. Times include execution overhead; medians and observed ranges retain every run. Congruences are excluded.}
+\label{tab:recovery_times}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Program & Depth & Degree ceiling & Median (s) & Range (s) \\
+\midrule
+\code{cohencu} & 4 & 2 & 14.760 & 14.265--16.014 \\
+\code{prod4br} & 4 & 3 & 14.009 & 13.412--14.554 \\
+\code{prodbin} & 4 & 2 & 6.989 & 6.938--8.086 \\
+\code{egcd} & 4 & 2 & 26.598 & 26.250--28.101 \\
+\code{egcd2} & 4 & 2 & 84.112 & 65.351--89.617 \\
+\code{egcd3} & 6 & 2 & 148.420 & 142.369--151.376 \\
+\code{fermat1} & 4 & 2 & 10.903 & 8.536--11.249 \\
+\code{fermat2} & 4 & 2 & 8.749 & 6.198--9.000 \\
+\code{lcm1} & 4 & 2 & 11.449 & 11.053--12.450 \\
+\code{lcm2} & 4 & 2 & 8.957 & 8.049--9.453 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{RQ2: Impact and Effectiveness of New Algorithmic Features}
+\label{sec:rq2}
+
+Since the \digold{} (TSE'21) study, \dig{} has incorporated several major algorithmic advancements. We evaluate their concrete impact on synthesis speed, precision, and soundness:
+
+\medskip\noindent\textbf{Dynamic Finite-Difference Degree Estimation.}  The polynomial template degree $d$ over $V$ variables requires solving a linear system over $\binom{V+d}{d}$ monomial terms.  Prior tools either blindly searched up to a maximum degree ceiling (incurring severe combinatorial slowdowns on low-degree loops) or relied on static term-budget heuristics that under-guessed degrees on high-variable programs (forcing $d=1$ and missing non-linear invariants unless users manually passed \code{-maxdeg}).
+\dig{} resolves this by analyzing ordered iteration traces $(v_0, v_1, v_2, \dots)$ at loop heads using discrete calculus: a variable evolves as a polynomial of degree $d$ in the loop index if and only if its $d$-th forward difference $\Delta^d v_n$ is a non-zero constant.
+
+Empirical evaluation demonstrates high effectiveness:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item On \textbf{linear programs} (e.g., \code{01.dig}, \code{08.dig}, $V=2$), finite differences detect $d=1$ ($\Delta v_n = \text{const}$), bounding search degrees and yielding fast synthesis in $<0.2$\,s.
+\item On \textbf{quadratic programs} (e.g., \code{ps2}, \code{cav09\_fig2d}, $V=3$), finite differences confirm $d=2$ ($\Delta^2 v_n = \text{const}$), focusing search on compact 10-term quadratic bases (a 12$\times$ reduction over blind high-degree templates) and discovering quadratic equalities in $<1.5$\,s.
+\item On \textbf{cubic accumulators} such as \code{cohencu}, finite differences provide growth hints, while the recovery study shows that a degree-2 basis can imply the cubic target $x=n^3$.  This distinction avoids treating the growth degree as a necessary template degree.
+\item On \textbf{non-polynomial programs} (e.g., Euclidean subtraction in \code{egcd}), higher-order differences do not stabilize, and the estimator declines to inflate degree hints.
+\end{itemize}
+
+\medskip\noindent\textbf{Symbolic-State Constraint Verification and CEGIR Refinement.}  By integrating symbolic execution directly with SMT-based constraint solving, \dig{} dynamically refines candidates and eliminates spurious numerical artifacts:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \textbf{Refuting Spurious Trace Artifacts:} On \code{ps2} ($x_0=0, y_0=0, x'=x+y+1, y'=y+1$), the spurious linear relation $y - x = 0$ holds at iterations 0 and 1. When dynamic trace sampling observes only early iterations, $y - x = 0$ is proposed as a candidate equality. \dig's symbolic verifier queries Z3 with $\Pi_L \land \neg(y - x = 0)$ over the symbolic path condition, immediately extracting counterexample assignments at deeper iterations (e.g., $x=3, y=2 \implies 2-3 \ne 0$) in $<0.02$\,s to refute the false positive.
+\item \textbf{Exact Non-Linear Equality Synthesis via CEGIR:} On non-linear benchmarks (e.g., \code{ps2}, \code{cohendiv}), CEGIR iteratively feeds violated symbolic counterexamples back into the equality solver matrix. This shrinks the nullspace basis until reaching the exact conserved polynomial invariants (such as $y^2 - 2x + y = 0$ and $q \cdot y + r - x = 0$) in $<0.05$\,s.
+\item \textbf{SMT Redundancy and Subsumption Simplification:} Emitted candidate invariant sets are simplified via pairwise SMT implication queries $\bigwedge (\mathcal{C} \setminus \{p\}) \implies p$. On multi-variable programs such as \code{cohendiv} ($V=6$) and \code{egcd} ($V=8$), this pruning eliminates redundant bounding inequalities and linear combinations, producing compact, minimal invariant specifications.
+\item \textbf{Multi-Path Branching Consistency:} On branching benchmarks (e.g., the HOLA suite), candidate relations are verified across all feasible path conditions $\Pi_j$. Candidates holding on only a subset of branches are refined into path-specific constraints or rejected, preventing overfitted invariants.
+\end{itemize}
+
+\begin{table}[t]
+\centering
+\caption{RQ2: ablation of numerical invariant inference engines across evaluated benchmarks.  Reported times are mean wall-clock seconds across 7 independent runs.}
+\label{tab:rq3}
+\begin{tabular}{lcc}
+\toprule
+Configuration & Solved & Time (s) \\
+\midrule
+Full \dig (All Numerical Domains)     & 9/9 (100\%) & 14.23 \\
+$-$ Min/Max-Plus Disjunctions         & 9/9 (100\%) & 7.48 \\
+$-$ Non-linear Equalities             & 9/9 (100\%) & 9.71 \\
+$-$ Inequalities / Octagons           & 9/9 (100\%) & 12.53 \\
+$-$ Congruences                       & 9/9 (100\%) & 13.80 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{RQ3: Neural Invariant Proposal and Soundness Verification}
+\label{sec:rq3}
+
+When evaluated on non-template loop structures (e.g., piecewise conditionals and disjunctive inequalities), \dig's neural proposer (\code{-dollm}) generates candidate expressions that are immediately filtered by the symbolic-state verifier. Across evaluated multi-path loops, the verifier discharges valid non-polynomial proposals in $<0.25$\,s per candidate while soundly refuting invalid hallucinations (achieving 100\% precision on reported invariants). This demonstrates how \dig's verification core serves as an effective soundness firewall for untrusted neural generators.
+
+\subsection{RQ4: Downstream Applications: Program Understanding, Complexity, and Termination}
+\label{sec:rq4}
+
+Inferred numerical invariants are not only valuable for verification assertions; they enable powerful downstream program analysis applications.  We highlight four key use cases, starting with the primary application of \emph{program understanding} and extending to more surprising applications in \emph{complexity analysis} and \emph{termination proofs}:
+
+\medskip\noindent\textbf{1. Primary Application: Program Understanding and Specification Mining.}
+The most immediate application of numerical invariant synthesis is explaining what an unannotated or legacy program actually computes~\cite{nguyen2021using}.  By inspecting invariants at loop heads and exit points, developers obtain exact input-output specifications automatically:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \emph{Euclidean Integer Division (\code{cohendiv}, \code{divbin}):} At the loop postcondition, \dig{} synthesizes $q \cdot y + r - x = 0$ along with octagonal bounds $-r \le 0$ and $r - y \le -1$. Together, these invariants constitute the complete mathematical specification of integer division ($x = q \cdot y + r \land 0 \le r < y$), discovered entirely from code.
+\item \emph{Extended Greatest Common Divisor (\code{egcd}):} In \code{egcd} ($V=8$), \dig{} synthesizes the linear relations connecting loop variables to initial inputs $x_0, y_0$, recovering B\'ezout's identity and explaining the algorithm's intermediate state transformations without manual annotations.
+\item \emph{Cubic and Geometric Accumulators (\code{cohencu}, \code{geo1}):} In \code{cohencu}, the recovered basis implies $x=n^3$, $y=3n^2+3n+1$, and $z=6n+6$, describing the cubic accumulator and its finite differences.
+\end{itemize}
+
+\medskip\noindent\textbf{2. Automated Worst-Case Algorithmic Complexity Analysis.}
+Beyond functional specifications, \dig's non-linear equalities and min/max-plus bounds directly yield exact, closed-form computational complexity bounds for loops with intricate control flow~\cite{gulwani2009speed}.  In the 20 programs from Gulwani et al.'s benchmark suite (\code{complexity/} in Table~\ref{tab:comparison}), an instrumented variable $t$ counts loop iterations.
+
+As shown in Table~\ref{tab:complexity_case}, \dig's synthesized invariants translate directly into Big-$O$ runtime bounds:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item On \code{popl09\_fig2\_1} (multi-phase loop with dynamic updates), \dig{} synthesizes a degree-3 equality that factors into roots including $t = (n - a) + (m - b)$, establishing an exact $O(N + M)$ execution bound in 27.63\,s.
+\item On \code{popl09\_fig2\_2} (conditional increment loop), \dig{} derives the cubic polynomial in 28.35\,s factoring into roots $t \in \{0, n-a, 2n-a-b\}$.
+\item On \code{pldi09\_fig4\_1} (cyclic index traversal), min/max-plus bounds and equalities yield iteration bound $t = n+1 \implies O(N)$ in 13.64\,s.
+\item On \code{cav09\_fig2d} (quadratic step accumulator), \dig{} synthesizes $2t - k^2 - k = 0 \implies t = \frac{k(k+1)}{2} \implies O(K^2)$ in 11.11\,s.
+\end{itemize}
+
+\begin{table}[t]
+\centering
+\caption{Case study: exact algorithmic iteration and complexity bounds derived from \dig's synthesized numerical invariants on the Complexity suite (Gulwani et al.~\cite{gulwani2009speed}). Reported times are median seconds across completed runs.}
+\label{tab:complexity_case}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lllcr}
+\toprule
+Benchmark & Origin & Loop Structure & Derived Complexity & Time (s) \\
+\midrule
+\code{cav09\_fig2d}    & CAV'09  & Quadratic accumulator   & $O(K^2)$           & 11.11 \\
+\code{pldi09\_fig4\_1} & PLDI'09 & Cyclic index traversal  & $O(N)$             & 13.64 \\
+\code{popl09\_fig2\_1} & POPL'09 & Multi-phase updates     & $O(N + M)$         & 27.63 \\
+\code{popl09\_fig2\_2} & POPL'09 & Conditional increments  & $O(N)$             & 28.35 \\
+\code{popl09\_fig3\_4} & POPL'09 & Multi-phase loop        & $O(\max(N,M))$     & 38.45 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\medskip\noindent\textbf{3. Termination Proofs via Invariant-Supported Ranking Functions.}
+\dig{} reuses synthesized invariants to establish unbounded loop termination:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \emph{Linear Ranking with Invariant Support (\code{termination.c}, \code{cohendiv}):} Proving ranking function $R = r$ in isolation fails because an unconstrained havoc state allows $y \le 0$ (falsifying decrease).  When \dig{} feeds its inferred octagonal invariant $y \ge 1$ into the obligation $\forall \mathbf{x}.\; (y \ge 1 \land r \ge y) \implies (r \ge 0 \land (r - y) < r)$, the engine proves termination in \textbf{0.02\,s}.
+\item \emph{Lexicographic Tuples for Nested Loops (\code{lexicographic.c}):} On multi-phase loops where no scalar rank decreases on every path, \dig{} automatically checks the lexicographic tuple $\langle x, y \rangle$ ($x$ counts down and resets $y$, $y$ counts down), establishing termination in \textbf{0.03\,s}.
+\end{itemize}
+
+\medskip\noindent\textbf{4. Non-Termination and Divergence Proofs via Recurrent Sets.}
+When loops diverge (e.g., in \code{diverge.c}: \code{while (x > 0) \{ x++; \}}), \dig's \code{--nonterm} engine synthesizes an exact recurrent set $\mathcal{R} = \{x \ge 1\}$, proves that $\mathcal{R}$ is reachable (witness input $x = 1$) and closed under transition ($\forall x \in \mathcal{R}.\; x+1 \in \mathcal{R}$), proving infinite divergence in \textbf{0.01\,s}.
+
+% =====================================================================
+\section{Related Work}
+\label{sec:related}
+
+\dig{} descends from dynamic invariant generation
+(\textsc{Dig}~\cite{nguyen2012dig,nguyen2014dig})
+and CEGIR approaches that add verification
+(ICE~\cite{garg2016ice}, Guess-and-Check~\cite{sharma2013guesscheck}) and, directly,
+\digold~\cite{nguyen2021using,nguyen2017syminfer} which introduced
+symbolic-state-based checking.  Its polynomial ideal engine builds on foundational
+\emph{static} polynomial-invariant work: Rodr\'iguez-Carbonell and
+Kapur~\cite{rodriguez2007kapur,rodriguez2007simple}, M\"uller-Olm and
+Seidl~\cite{mullerolm2004}, and the algebraic completeness results
+of~\cite{hrushovski2018}.  \dig's inequality optimization uses
+\textsc{Symba}~\cite{li2014symba}; its verification core validates
+candidates over symbolic execution states and supports inductive assertion proofs.  Where prior tools were
+built \emph{on} external symbolic executors
+(KLEE~\cite{cadar2008klee}, CIVL~\cite{siegel2015civl},
+SPF~\cite{pasareanu2010spf}), \dig{} integrates its own.  Its neural proposer
+joins a growing line of LLM-based loop-invariant
+inference~\cite{pei2023llminv,kamath2023loopy} and
+verification~\cite{wu2024lemur}; \dig{} treats the model strictly as an
+untrusted candidate generator behind its verification core.  In spirit, the
+present tool follows the same group's \textsc{NeuralSAT}~\cite{duong2025neuralsat}
+philosophy: a modular core, out-of-the-box operation, and engineering for
+practical performance.  \dig{} is, to our knowledge, the first tool to unify
+dynamic, static-algebraic, symbolic, and neural numerical-invariant generation
+under a sound, built-in symbolic verification core.
+
+% =====================================================================
+\section{Conclusion and Future Work}
+\label{sec:concl}
+
+\dig{} turns the symbolic-state invariant-generation line into a self-contained
+hybrid tool: a built-in symbolic executor that provides sound constraint
+validation and counterexample generation, algebraic polynomial ideal solving, dynamic
+finite-difference degree estimation, shared-model optimization, and optional neural
+proposal---all behind a zero-configuration command line and a browser interface.
+Future work includes Positivstellensatz/SOS nonlinear inequalities,
+implication-counterexample (ICE) learning, a CHC back end, and a standalone
+release of the symbolic-execution engine.
+
+% \begin{credits}
+% \subsubsection{\ackname}
+% This material is based in part upon work supported by the National Science Foundation.
+% 
+% \subsubsection{Data Availability Statement.}
+% \dig{} is open source at \url{https://github.com/dynaroars/dig} and usable without installation at \url{https://roars.dev/dig/}.
+% 
+% \subsubsection{\discintname}
+% The authors have no competing interests to declare that are relevant to the content of this article.
+% \end{credits}
+
+\bibliographystyle{splncs04}
+\bibliography{refs}
+
+\newpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\renewcommand{\theHsection}{\Alph{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\theHsubsection}{\thesection.\arabic{subsection}}
+\section{Detailed Benchmark Results}
+\label{sec:appendix_benchmarks}
+
+Table~\ref{tab:benchmarks_detail} retains representative outputs and timing summaries from the initial baseline campaign.  These entries predate the recovery fixes and benchmark alignment described below; they are not current-source target-recovery evidence.
+
+\begin{table}[h!]
+\centering
+\caption{Initial baseline outputs of \dig{} on representative benchmarks ($L$: locations, $V$: max variables, $T$: total invariants, $E$: equalities, $I$: inequalities/octagons, $M$: min/max-plus, $C$: congruences, $NL(d)$: nonlinear invariants of max degree $d$). Reported metrics are medians across completed runs conditional on completion.}
+\label{tab:benchmarks_detail}
+\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llccrcccccr}
+\toprule
+Suite & Benchmark & $L$ & $V$ & $T$ & $E$ & $I$ & $M$ & $C$ & $NL(d)$ & Time (s) \\
+\midrule
+\multirow{7}{*}{NLA} 
+& \code{ps2}             & 1 & 3 & \textbf{5}  & 1 & 4  & 0 & 0 & 1 (2) & 8.35 \\
+& \code{ps1}             & 1 & 3 & \textbf{5}  & 1 & 2  & 2 & 0 & --    & 7.47 \\
+& \code{divbin}          & 2 & 5 & \textbf{15} & 3 & 9  & 3 & 0 & 1 (2) & 24.75 \\
+& \code{sqrt1}           & 1 & 4 & \textbf{8}  & 2 & 4  & 0 & 2 & 3 (2) & 26.42 \\
+& \code{geo1}            & 1 & 4 & \textbf{9}  & 1 & 6  & 1 & 1 & 1 (2) & 19.09 \\
+& \code{hard}            & 2 & 6 & \textbf{23} & 5 & 12 & 4 & 2 & 5 (2) & 37.57 \\
+& \code{mannadiv}        & 1 & 5 & \textbf{8}  & 1 & 7  & 0 & 0 & 1 (2) & 33.37 \\
+\midrule
+\multirow{7}{*}{NLA-mosaic}
+& \code{fibonacci}               & 1 & 2 & \textbf{3}  & 1 & 2  & 0 & 0 & 1 (4) & 7.70 \\
+& \code{fibonacci\_sign}         & 1 & 3 & \textbf{6}  & 2 & 4  & 0 & 0 & 2 (2) & 7.38 \\
+& \code{pell}                    & 1 & 2 & \textbf{6}  & 1 & 2  & 0 & 3 & 1 (2) & 58.56 \\
+& \code{chebyshev}               & 1 & 3 & \textbf{5}  & 0 & 2  & 3 & 0 & --    & 12.83 \\
+& \code{welford}                 & 1 & 5 & \textbf{14} & 0 & 14 & 0 & 0 & --    & 20.97 \\
+& \code{continued\_fract\_sign}  & 1 & 5 & \textbf{11} & 2 & 9  & 0 & 0 & 2 (2) & 22.98 \\
+& \code{binomial}                & 1 & 4 & \textbf{6}  & 1 & 5  & 0 & 0 & 1 (2) & 23.77 \\
+\midrule
+\multirow{6}{*}{Complexity}
+& \code{popl09\_fig4\_1} & 1 & 3 & \textbf{4}  & 1 & 3  & 0 & 0 & 1 (2) & 8.99 \\
+& \code{cav09\_fig3a}    & 1 & 2 & \textbf{4}  & 1 & 1  & 1 & 1 & 1 (2) & 6.03 \\
+& \code{pldi09\_fig4\_1} & 1 & 3 & \textbf{6}  & 1 & 2  & 3 & 0 & --    & 13.64 \\
+& \code{cav09\_fig2d}    & 1 & 3 & \textbf{4}  & 1 & 3  & 0 & 0 & 1 (2) & 11.11 \\
+& \code{popl09\_fig3\_4}  & 1 & 3 & \textbf{3}  & 1 & 1  & 1 & 0 & --    & 38.45 \\
+& \code{popl09\_fig2\_1}  & 1 & 5 & \textbf{2}  & 1 & 1  & 0 & 0 & 1 (3) & 27.63 \\
+\midrule
+\multirow{7}{*}{HOLA}
+& \code{02.dig}          & 1 & 2 & \textbf{4}  & 1 & 3  & 0 & 0 & --    & 6.02 \\
+& \code{15.dig}          & 1 & 1 & \textbf{1}  & 0 & 1  & 0 & 0 & --    & 9.76 \\
+& \code{07.dig}          & 1 & 3 & \textbf{4}  & 1 & 3  & 0 & 0 & --    & 10.28 \\
+& \code{08.dig}          & 1 & 2 & \textbf{3}  & 0 & 2  & 0 & 1 & --    & 39.81 \\
+& \code{03.dig}          & 1 & 1 & \textbf{1}  & 0 & 1  & 0 & 0 & --    & 11.35 \\
+& \code{20.dig}          & 1 & 2 & \textbf{2}  & 0 & 1  & 1 & 0 & --    & 38.26 \\
+& \code{01.dig}          & 1 & 2 & \textbf{5}  & 1 & 2  & 0 & 2 & --    & 15.80 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The NLA-mosaic Benchmark Suite}
+\label{sec:appendix_mosaic}
+To expand non-linear invariant evaluation beyond legacy benchmarks, this paper introduces \textsc{NLA-mosaic}, comprising 14 programs across 11 mathematical algorithm families:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \textbf{Pell Equation Dynamics (\code{pell}):} Computes successive positive solutions to Pell's equation $x^2 - 2y^2 = 1$ via matrix action $(x,y) \mapsto (3x+4y, 2x+3y)$, conserving the degree-2 algebraic curve.
+\item \textbf{Fibonacci Sequences (\code{fibonacci}, \allowbreak\code{fibonacci\_sign}):} Generates Fibonacci numbers and traces Cassini's alternating determinant $a^2 + ab - b^2 = \pm 1$ (degree 2 with sign tracking, degree 4 unoriented $(a^2+ab-b^2)^2 = 1$).
+\item \textbf{Fibonacci 3D Cubic Trace Maps (\code{fibonacci\_trace}):} Iterates the 3D cubic trace map $(x,y,z) \mapsto (y,z,2yz-x)$ conserving $x^2+y^2+z^2-2xyz$.
+\item \textbf{Markov Triples (\code{markov}):} Walks the Markov-triple tree by alternating permutation and mutation branches, conserving the cubic Diophantine surface $x^2 + y^2 + z^2 - 3xyz = 0$.
+\item \textbf{Berggren Pythagorean Trees (\code{berggren}):} Generates primitive Pythagorean triples along the ternary tree of Berggren linear transformations, conserving $a^2 + b^2 - c^2 = 0$.
+\item \textbf{Continued Fractions (\code{continued\_fraction}, \allowbreak\code{continued\_fraction\_sign}):} Computes convergents under changing partial quotients, preserving the unimodular determinant $(ps - rq)^2 = 1$ ($ps - rq - \text{sign} = 0$).
+\item \textbf{Chebyshev Polynomial Recurrences (\code{chebyshev}, \allowbreak\code{chebyshev\_pair}):} Evaluates first-kind Chebyshev polynomials $T_n(t)$ by their three-term recurrence, yielding conserved degree-3 and degree-4 energy relations $a^2 + b^2 - 2tab - 1 + t^2 = 0$.
+\item \textbf{Nagata Automorphisms (\code{nagata}):} Iterates polynomial endomorphisms from the Nagata automorphism in $\mathbb{Q}[x,y,z]$, preserving non-linear polynomial invariants under nonlinear shear maps.
+\item \textbf{Binomial Combinatorics (\code{binomial}):} Accumulates binomial combinations $\binom{n}{2}$, conserving the quadratic triangular relation $x^2 - x - 2y = 0$.
+\item \textbf{Symplectic Euler Integration (\code{symplectic\_euler}):} Simulates a discrete harmonic oscillator under symplectic Euler time-stepping, conserving the modified discrete Hamiltonian energy $x^2 + v^2 - \Delta t \cdot x \cdot v$.
+\item \textbf{Welford Running Variance (\code{welford}):} Online one-pass computation of sample mean $\mu$ and squared deviations $M_2$, satisfying $n \cdot \mu = \sum x_i$ and $n \cdot M_2 = n \sum x_i^2 - (\sum x_i)^2$.
+\end{itemize}
+
+\subsection{Analysis of Unsolved and Timed-Out Benchmarks}
+\label{sec:appendix_failures}
+The initial depth-16, 120\,s campaign recorded 633 completed executions among 777 requested runs and 20 programs with no completed run.  This is a historical execution-status catalog, not the current list of unsolved TSE targets.  A timeout alone does not identify an inference stage, and subsequent diagnostics contradicted several earlier explanations.  Table~\ref{tab:failures} records the observed follow-up evidence; the completed seven-seed recovery protocol and coverage appear in \S\ref{sec:tse_recovery}.
+
+\begin{table}[t]
+\centering
+\caption{Follow-up to the original 20-program failure catalog. ``Recovered'' denotes successful current-source target checks at all seven seeds. Uninvestigated cases have no newly established root cause.}
+\label{tab:failures}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{p{2.5cm}p{1.5cm}p{7.2cm}}
+\toprule
+Programs & Follow-up & Observed evidence / intervention \\
+\midrule
+\code{cohencu} & Recovered & Equalities were found before the stall; congruence redundancy simplification caused the focused timeout. Excluding congruences completed a depth-16 rerun in 9.596\,s. \\
+\code{prod4br}, \code{prodbin} & Recovered & Depth-16 cost arose in symbolic-state generation before congruence processing. Depth 4 recovers the target equalities; excluding congruences alone does not explain these cases. \\
+\code{egcd}, \code{egcd2}, \code{egcd3}, \code{fermat1}, \code{fermat2}, \code{lcm1}, \code{lcm2} & Recovered & Fitting/refinement, projected constraint checks, bounded optional queries, and usable internal parallelism recover targets. EGCD3 requires depth 6 and exceeds the original 120\,s ceiling. These combined fixes are not an isolated causal ablation. \\
+\code{cav09\_fig1a}, \code{cav09\_fig1d} & Recovered & Exit symbolic states are available at depth 4 in the current executor. The earlier claim that 100 loop iterations must be explicitly unrolled is not supported by these checks. \\
+\code{11.dig}, \code{30.dig} & Recovered & Parameterless concrete execution and retaining available fitting relations when inputs are exhausted recover the targets; deep unrolling is not required. \\
+\code{24.dig} & Recovered & Target checks pass at depth 4 with bounded queries and recorded input/template settings. \\
+\code{knuth} & Deferred & A 180\,s diagnostic timed out. Worker profiling showed active symbolic substitution and large polynomial/counterexample computations, rather than evidence of a deadlock. \\
+\code{wensley}, \code{berggren}, \code{fibonacci\_trace}, \code{symplectic\_euler} & Outside recovery scope & Their original timeouts remain baseline observations; this TSE-success recovery study supplies no new resolution or stage-specific diagnosis. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\medskip\noindent\textbf{Target failures hidden by process completion.}
+Auditing saved output also found cases that the original completion-based summary did not identify.  In \code{geo3}, 5 of 271 historical traces violated the desired polynomial because of signed-integer overflow; trapping overflow and rejecting signal-terminated executions recovered the cubic target.  \code{20.dig} required the program-entry input namespace correction.  \code{freire2} illustrates the benefit of algebraic implication: a different basis implies the cubic reference relation, while an unrestricted nonlinear SMT implication query can remain unknown.
+
+\medskip\noindent\textbf{Benchmark and instrumentation alignment.}
+Several discrepancies concerned what was executed or observed, rather than the numerical solver.  Generated C instrumentation now supplies the headers required by \code{printf} and assertions; this makes the previously relocated \code{04.dig} case executable.  In \code{18.dig}, the loop bound was restored from 5 to the historical 100, consistent with its assertion.  In \code{41.dig}, the historical four-variable trace observation was restored so that the necessary nonlinear relation is expressible.  In \code{31.dig}, the two historical assertion locations are recorded separately; an earlier recovery fixture incorrectly required an assertion at an additional exit trace where it is false for some negative inputs.  These benchmark/fixture corrections are recorded explicitly, and their results are not mixed with the unmodified baseline.
+
+\subsubsection{Assessment of the Recovery Solutions.}
+The completed campaign validates the combined implementation and recorded settings on the pursued benchmarks; it does not isolate each change's causal contribution or show that these settings are optimal for other programs.  We distinguish four kinds of intervention.
+
+\medskip\noindent\textbf{General correctness and algorithmic improvements.}
+Preserving entry-input values for counterexample replay, completing unused inputs, supplying instrumentation headers, supporting parameterless traces, and excluding Boolean simplification results from polynomial objects repair general implementation errors.  These are lasting fixes rather than benchmark-specific exceptions.  Checking fitted bases against all collected traces, retaining useful generators through refinement, honoring explicit degree ceilings, projecting symbolic snapshots, and making internal worker pools usable are also improvements to retain.  Their search and scheduling heuristics still affect cost and completeness, and bounded-state validation is distinct from unbounded inductive proof.
+
+\medskip\noindent\textbf{Conservative engineering tradeoffs.}
+Certified SAT bound search accepts no uncertified optimum but can omit valid bounds outside its cap.  Retesting weaker eligible inequalities can preserve useful information; equalities are never weakened.  Separate budgets for optimization and redundancy checking, and preserving the original polynomial basis when Gr\"obner simplification times out, are durable safeguards against losing results to optional work.  The numeric budgets and monomial order remain tuning choices: wall-clock limits affect repeatability, and time/resource caps may reduce coverage or output compactness.  For Geo3, overflow trapping and rejecting faulted trace prefixes are necessary safeguards for the current mathematical-integer pipeline, but they lose samples and rely on compiler trap behavior.  They do not provide arbitrary-precision concrete execution or a complete model of C arithmetic; an explicit arithmetic-semantics contract remains desirable.
+
+\medskip\noindent\textbf{Temporary recovery configurations.}
+Excluding congruences is a workaround for the observed Cohencu bottleneck, not a complete solution for full-domain inference.  Likewise, shallow per-program depths, explicit degree/input/template settings, and the 600\,s run ceiling are effective, reproducible recovery settings rather than evidence of general zero-configuration recovery.  Lower depth limits reachable-state coverage; manual templates can miss other relations.  EGCD3 needs more than the original 120\,s budget, but increasing a timeout alone is not an algorithmic improvement.  Adaptive exploration/search scheduling and separate full-domain validation would generalize these results; they are future work, not validated changes in this study.
+
+\medskip\noindent\textbf{Benchmark repairs and evaluation improvements.}
+Restoring H18's historical bound and H31/H41's observation sites/variables repairs the comparison, not the inference algorithm; changed benchmark hashes and original evidence must remain visible.  Exact rational consequence checking for Freire2 and PLDI09 fig2 is a lasting evaluation improvement: a different polynomial basis should not be classified as missing merely because SMT is inconclusive.  It changes recognition of an already inferred relation, not DIG's output or its proof strength.  Knuth remains unresolved; profiling and deferral are not presented as a solution.
+
+\medskip\noindent\textbf{Regression evidence and artifact.}
+The focused implementation suite passed 218 tests covering concrete arithmetic faults, entry-input replay and exclusion, symbolic postconditions, equality refinement, certified bound search, target implication, and recurrence inference.  The recovery artifact contains the per-program target fixture, serialized runner, manifests, logs, saved outputs, status report, and inferred-equality catalog.  Source/benchmark hashes prevent earlier implementation or instrumentation versions from being treated as final validation evidence.  The completed seven-seed campaign and fresh 637-run audit satisfy the target-recovery gate for every pursued case; Knuth remains deferred.
+
+\section{Static Algebraic Invariant Ideals: Capabilities and Limitations}
+\label{sec:appendix_kapur}
+
+In addition to dynamic data-driven invariant inference, \dig{} incorporates an optional static algebraic engine based on the Rodr\'iguez-Carbonell and Kapur (RC--Kapur) bounded-degree invariant-ideal method~\cite{rodriguez2007kapur,rodriguez2007simple}, enabled via the \code{-dokapur} command-line flag.  This appendix details the underlying algorithm, evaluates its strengths on straight-line polynomial transitions, and delineates the theoretical and practical boundaries that motivate keeping dynamic CEGIR as \dig's default equality engine.
+
+\subsection{Algorithmic Formulation}
+Let a program loop have state variables $\mathbf{x} = (x_1, \dots, x_m) \in \mathbb{Q}^m$, initial state assignments $\mathbf{x}_0 = \text{init}(\mathbf{p})$ parameterized by inputs and initial values $\mathbf{p}$, and a deterministic straight-line polynomial update map $\tau: \mathbb{Q}[\mathbf{x}] \to \mathbb{Q}[\mathbf{x}]$ such that $\mathbf{x}_{k+1} = \tau(\mathbf{x}_k)$.
+
+To synthesize the invariant polynomial ideal up to degree bound $d$:
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{Symbolic Orbit Construction:} Starting from symbolic initial state $\mathbf{s}_0 = \text{init}(\mathbf{p})$, \dig{} generates a finite symbolic orbit $\mathbf{s}_{k+1} = \tau(\mathbf{s}_k)$ ($k = 0, \dots, N$), where each coordinate expression is a polynomial in the parameters $\mathbf{p}$.
+\item \textbf{Monomial Evaluation:} For all monomials $\mathbf{m} = (m_1(\mathbf{x}), \dots, m_M(\mathbf{x}))$ up to degree $d$, \dig{} evaluates each monomial along the symbolic orbit: $e_j^{(k)}(\mathbf{p}) = m_j(\mathbf{s}_k)$.
+\item \textbf{Parameter Decomposition and Linear System:} For a candidate polynomial $p(\mathbf{x}) = \sum_j c_j m_j(\mathbf{x})$, requiring $p(\mathbf{s}_k) = 0$ for all orbit states yields $\sum_j c_j e_j^{(k)}(\mathbf{p}) \equiv 0$. By equating the coefficients of each parameter-monomial in $\mathbf{p}$ to zero, \dig{} constructs a homogeneous linear system $M \mathbf{c} = \mathbf{0}$.
+\item \textbf{Null Space and Gr\"obner Basis:} Solving $M \mathbf{c} = \mathbf{0}$ yields the coefficient null space. The resulting polynomial basis is canonically simplified by computing its reduced Gr\"obner basis.
+\item \textbf{Inductive Verification:} Surviving polynomial generators are checked and discharged using inductive base and step verification (\S\ref{sec:verify}).
+\end{enumerate}
+
+\subsection{When Static Algebraic Ideals Work: Empirical Strengths}
+The static RC--Kapur engine exhibits unique advantages on loops satisfying its structural preconditions:
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Instantaneous Synthesis on Straight-Line Polynomial Loops:} On programs with polynomial single-path updates (e.g., \code{ps2.c}, \code{geo1.c}, \code{01.dig.c}), \dig's algebraic engine computes the exact, complete Gr\"obner basis in $<0.15$\,s.
+\item \textbf{Zero Trace Sampling and Zero SMT CEGIR Loops:} Unlike dynamic techniques that require generating concrete input seeds, executing compiled binaries or symbolic unrollings, and iteratively discovering counterexamples, the static algebraic approach constructs and solves the coefficient null space directly from the AST.
+\item \textbf{Bounded Algebraic Invariant Search up to Degree $d$:} Over straight-line polynomial transition models, the algebraic method solves for all polynomial relations satisfied across the finite symbolic orbit up to degree $d$ and discharges surviving generators via inductive verification.
+\end{itemize}
+
+\subsection{When Static Algebraic Ideals Decline: Limitations in Practice}
+Despite its mathematical elegance on clean straight-line loops, the pure algebraic ideal approach faces fundamental limitations when applied to general real-world software, explaining why it remains an opt-in component in \dig:
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Multi-Path and Branching Control Flow:} Real-world loops frequently contain internal conditionals, \code{if}-\code{else} branches, or piecewise paths (e.g., Euclidean subtraction in \code{egcd.c}, quotient updates in \code{cohendiv.c}, or bit-parity branches in \code{mannadiv.c}). Under multiple paths $T^{(1)}, \dots, T^{(k)}$, an invariant must satisfy $\forall j.\; p(T^{(j)}(\mathbf{x})) - p(\mathbf{x}) = 0$ conditional on path feasibility $\pi_j(\mathbf{x})$. Standard RC--Kapur requires straight-line polynomial bodies; in \dig, encountering multiple execution paths triggers a graceful exception (\code{ValueError: loop not straight-line}), falling back to dynamic CEGIR.
+\item \textbf{Non-Polynomial Operations:} Programs containing non-algebraic operations---such as integer division (\code{/}), modulo operations (\code{\%}), bitwise operators (\code{\&}, \code{|}, \code{\^}, \code{<<}, \code{>>}), or external function calls---cannot be represented as polynomial endomorphisms $T \in \mathbb{Q}[\mathbf{x}]^m$. Dynamic CEGIR samples concrete values regardless of the underlying operator arithmetic.
+\item \textbf{Inequalities and Disjunctions:} Algebraic ideals strictly characterize algebraic varieties (sets of polynomial equalities $p(\mathbf{x}) = 0$). They cannot express or infer inequalities ($x \le y$), octagonal constraints, interval bounds, or min/max-plus disjunctions ($\max(x, y) \le z$), which form the majority of practical verification constraints.
+\item \textbf{High-Degree Algebraic Growth:} For degree $d$ over $m$ variables, substituting high-degree polynomials $T_i(\mathbf{x})$ into degree-$d$ monomials produces polynomials of degree $d \cdot \max_i \deg(T_i)$, leading to a rapid growth in the number of linear equations in $M$.
+\end{itemize}
+
+\subsection{Design Rationale}
+In \dig's unified architecture, dynamic CEGIR with finite-difference degree estimation serves as the robust, general-purpose default engine across arbitrary control flow and arithmetic operations, while the static algebraic ideal engine (\code{-dokapur}) provides an optimized, direct solver when analyzing straight-line polynomial algorithms.
+
+\section{Shared-Model Inequality Optimization via \textsc{Symba}}
+\label{sec:appendix_symba}
+
+For inequality and min/max-plus invariant inference, \dig{} optionally incorporates \textsc{Symba}~\cite{li2014symba} (\code{-dosymba}) as a shared-model optimization engine. This appendix explains the algorithmic principles of \textsc{Symba} and evaluates when simultaneous optimization is most advantageous.
+
+\subsection{Motivation: The Per-Term Optimization Bottleneck}
+Inferring linear octagons ($\pm x \pm y \le c$) and min/max-plus disjunctions ($\min(x,y) - z \le c$) requires computing the maximum value of candidate symbolic terms over reachable symbolic states $\langle\sigma_L, \Pi_L\rangle$.  For a program with $V$ variables, octagonal relations generate $2V + 4\binom{V}{2} = 2V^2$ candidate terms, while min/max-plus forms generate dozens or hundreds of terms.
+
+Under the default one-query-per-term approach, \dig{} issues $N$ separate SMT optimization queries ($z3.\code{Optimize}()$), one for each term $t_i$. For programs with many variables, the cumulative overhead of hundreds of separate solver invocations dominates execution time.
+
+\subsection{The \textsc{Symba} Simultaneous Optimization Algorithm}
+\textsc{Symba} replaces $N$ independent solver invocations with a single shared SMT solver instance:
+\begin{enumerate}[leftmargin=1.5em,itemsep=2pt]
+\item \textbf{Solver Initialization:} A single SMT solver instance is initialized with the symbolic state formula $\Pi_L$.
+\item \textbf{Shared-Model Multi-Objective Update:} When the solver returns a satisfying model $\mathcal{M}$ (a concrete valuation of all variables), this single model is evaluated across \textbf{all $N$ candidate terms simultaneously}:
+$$\forall i \in \{1, \dots, N\}.\quad c_i \leftarrow \max(c_i, \mathcal{M}(t_i))$$
+A single model thus simultaneously improves the lower bounds of multiple active objectives.
+\item \textbf{Disjunctive Progress Query:} \dig{} queries the solver with the disjunction:
+$$\bigvee_{i \in \text{active}} (t_i > c_i)$$
+asking if \emph{any} active objective can strictly improve upon its current bound.
+\item \textbf{Simultaneous Optimality Proof:} If the disjunction is satisfiable, the new model updates all terms again. When the disjunction returns $\code{unsat}$, that single certificate proves that \textbf{all $N$ objective bounds are simultaneously optimal}.
+\end{enumerate}
+
+\subsection{Empirical Trade-offs and Multi-Objective Optimization}
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Mathematical Equivalence:} \textsc{Symba} computes the exact same provable mathematical bounds as standard per-term optimization, while reducing solver round-trips from $O(N)$ to just a few model improvement steps.
+\item \textbf{When It Excels:} On inequality-dense programs with $V \ge 4$ variables ($N \ge 32$ candidate terms) or rich min/max-plus candidate sets, \textsc{Symba} achieves substantial speedups by eliminating redundant solver initialization and clause learning.
+\item \textbf{Small Programs and Direct Solving:} On small programs ($V \le 2, N \le 4$), per-term SMT optimization completes in $<0.05$\,s, where the overhead of maintaining disjunctive solver assertions is negligible. For large candidate pools, \dig{} can route optimization queries to \textsc{Symba} to solve multi-objective bounds concurrently.
+\end{itemize}
+
+\end{document}

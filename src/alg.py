@@ -115,9 +115,9 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         assert settings.TMPDIR.is_dir()
 
-        prefix = hash(self.seed)
+        seed_str = str(int(self.seed)) if isinstance(self.seed, (int, float)) and float(self.seed).is_integer() else str(hash(self.seed))
         self.tmpdir = Path(
-            tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"dig_{prefix}_")
+            tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"Dig_{seed_str}_")
         )
         self.tmpdir_del = self.tmpdir / "delete_me"
         self.tmpdir_del.mkdir()
@@ -187,7 +187,11 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 rs = [_f() for _f in tasks]
                 return rs
 
-            wrs = MP.run_mp("symbolic inference", tasks, f, settings.DO_MP)
+            # Run domains sequentially so their candidate/term workers can
+            # use the full internal pool. Forking domains as daemon workers
+            # forces every nested pool to run serially, leaving hundreds of
+            # nonlinear min/max queries on a single worker.
+            wrs = f(tasks)
 
             dinvs = DInvs()
             dtraces = DTraces.mk(self.locs)
@@ -233,7 +237,14 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         )
         result.save(self.tmpdir)
         Analysis(self.tmpdir).start()  # output stats
-        shutil.rmtree(self.tmpdir)
+
+        # Clean up scratch compilation/trace artifacts
+        if hasattr(self, "tmpdir_del") and self.tmpdir_del.exists():
+            shutil.rmtree(self.tmpdir_del, ignore_errors=True)
+
+        # If using default system temporary dir (not a user-provided -tmpdir), clean up self.tmpdir
+        if Path(tempfile.gettempdir()).resolve() == settings.TMPDIR.resolve():
+            shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     @beartype
     def _infer(self, typ: str, _get_invs: Callable) -> tuple:
@@ -255,7 +266,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
     @beartype
     def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
         dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog).gen(
-            self.get_auto_deg(maxdeg), getattr(self, "_deg_hints", {}))
+            self.get_auto_deg(maxdeg), getattr(self, "_deg_hints", {}),
+            complete=maxdeg is not None)
         return dinvs, dtraces
 
     def _infer_ieqs(self) -> tuple[DInvs, None]:
