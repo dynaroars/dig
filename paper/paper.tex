@@ -86,29 +86,26 @@ Complementary opt-in modules provide static algebraic ideal solving, shared-mode
 
 Program invariants---logical relations over program variables that hold at a
 given location on every execution---are central to software verification,
-program understanding, algorithmic complexity analysis, and termination reasoning\tvn[citations, see TSE paper].  An
-important and expressive class is that of \emph{numerical} invariants:
+program understanding and reasoning\tvn{citations, see TSE paper}.
+An important class of program invariants is \emph{numerical invariants}, which capture relations over numerical program variables: 
 (non)linear equalities such as $q y + r = x$ and $y^2 - 2x + y = 0$, linear inequalities such as
 $-x-y\le 10$, congruences such as $x \equiv 0 \pmod 4$, and disjunctive
 relations captured in min/max-plus form such as $\max(x,y)\le z{+}2$.
 
-The dominant paradigm for inferring such invariants is
+The major paradigm for inferring such invariants is
 \emph{counterexample-guided invariant generation} (CEGIR): cheaply
-\emph{guess} candidate invariants (e.g., from concrete program states, as in
-\textsc{Dig}~\cite{nguyen2012dig}), then
+\emph{guess} candidate invariants (e.g., from concrete program states or traces, then
 \emph{check} them and use counterexamples to refine, iterating to a fixpoint.
 Our prior work, \digold~\cite{nguyen2021using,nguyen2017syminfer}, showed that
 using \emph{symbolic program states}---compact encodings of large sets of
 concrete states obtained from a symbolic executor---as the basis for checking
 substantially improves the quality of inferred invariants and enables rich
 forms (nonlinear equalities, octagonal inequalities, and min/max-plus
-disjunctions).  That work, however, suffered from three fundamental limitations:
-(i)~it depended on \emph{external} symbolic executors (Symbolic PathFinder~\cite{pasareanu2010spf} for Java and CIVL~\cite{siegel2015civl} for C), inheriting installation friction, version brittleness, and execution nondeterminism;
-(ii)~it lacked integrated ranking and property proof capabilities for downstream verification tasks; and
-(iii)~it relied on static term heuristics that under-guessed degrees and suppressed non-linear terms on multi-variable programs.
+disjunctions).
+That work, however, suffered from three fundamental limitations:
+(i) it lacks of a way to infer polynomial growth degrees from traces, forcing users to either manually specify a degree ceiling or accept a combinatorial explosion of terms in high-degree templates; (ii) it is essentially a command-line tool that depends on external symbolic executors and SMT solvers, which are brittle to install and configure; and (iii) it does not guarantee soundness of the inferred invariants as the symbolic executor may not explore all feasible states.
 
-\medskip\noindent\textbf{This paper.}
-We present \tool{}, a complete re-engineering of this line into a self-contained, fully automatic hybrid tool.  \tool{} reorganizes invariant synthesis around a built-in symbolic-execution engine that serves both as a shared \emph{basis} for inference and as a \emph{sound verification oracle}.  By default, \tool{} infers every numerical invariant family at an automatically predicted degree with zero configuration.  Concretely, our contributions are:
+This paper presents \tool{}, a complete re-engineering of the \digold{} line into a self-contained, fully automatic hybrid tool.  \tool{} reorganizes invariant synthesis around a built-in symbolic-execution engine that serves both as a shared \emph{basis} for inference and as a \emph{sound verification oracle}.  By default, \tool{} infers every numerical invariant family at an automatically predicted degree with zero configuration.  Concretely, our contributions are:
 
 \begin{enumerate}[leftmargin=1.5em,itemsep=2pt]
 \item A \textbf{self-contained symbolic-execution engine} for C (\S\ref{sec:arch}) that replaces external executors, produces symbolic states in-process without serialization overhead, bounds solver effort via a work-unit budget (\code{rlimit}) and wall-clock safeguards, and exposes sound verification primitives: constraint implication checking, ranking-function synthesis, and termination/non-termination proofs.
