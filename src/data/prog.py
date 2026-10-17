@@ -140,6 +140,31 @@ def _precondition_of(text: str, filename: str) -> tuple:
         return None, False
 
 
+@lru_cache(maxsize=16)
+def _nontermination_of(text: str, filename: str) -> tuple:
+    """
+    (loop index, witness inputs) for a loop of mainQ that provably diverges,
+    else (None, None). Cached, and only ever consulted once a run has actually
+    exhausted its time budget, so programs that terminate pay nothing. A
+    (None, None) result means no witness was found, not that the program
+    terminates.
+    """
+    del text  # only part of the cache key, so an edited source re-checks
+    if not settings.NONTERM_PROOF_DEPTH:
+        return None, None
+    try:
+        from data.symex_c import CSymEx
+        # the proof explores from the loop head itself, so run() is not needed;
+        # the shallow depth and the feasibility work budget keep it quick
+        engine = CSymEx(Path(filename), settings.NONTERM_PROOF_DEPTH,
+                        solver_rlimit=settings.FEASIBILITY_SOLVER_RLIMIT)
+        status, cex, loop = engine.prove_any_nontermination()
+        return (loop, cex) if status == "diverges" else (None, None)
+    except Exception as ex:
+        mlog.debug(f"no nontermination proof for '{filename}': {ex}")
+        return None, None
+
+
 class Prog:
     @beartype
     def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs,
@@ -152,6 +177,7 @@ class Prog:
         self.source = source
         # blocked in later calls, so asking again yields new values
         self._solver_found = set()
+        self._reported_timeouts = set()
 
     @beartype
     @property
@@ -258,6 +284,62 @@ class Prog:
                     mlog.debug(f"cannot read '{self.source}': {ex}")
             return self._precondition
 
+    @property
+    def nontermination(self) -> tuple:
+        """
+        (loop index, witness inputs) for a provably diverging loop of mainQ,
+        else (None, None) — which says nothing about termination.
+        """
+        try:
+            return self._nontermination
+        except AttributeError:
+            self._nontermination = (None, None)
+            if self.source is not None:
+                try:
+                    self._nontermination = _nontermination_of(
+                        self.source.read_text(), str(self.source))
+                except OSError as ex:
+                    mlog.debug(f"cannot read '{self.source}': {ex}")
+            return self._nontermination
+
+    def _report_nontermination(self) -> None:
+        """
+        Tell the user about inputs the program did not finish on. Their traces
+        are already discarded, so without this the run looks merely unlucky.
+        Each input is reported once, and the proof is only attempted when a
+        run has actually timed out.
+        """
+        timed_out = sorted(inp.vs for inp, outcome
+                           in self.execution_outcomes.items()
+                           if outcome == "timeout")
+        fresh = [inp for inp in timed_out if inp not in self._reported_timeouts]
+        if not fresh:
+            return
+        self._reported_timeouts.update(fresh)
+
+        src = self.source.name if self.source else "?"
+        names = self.inp_decls.names
+
+        def show(inp):
+            return "(" + ", ".join(f"{n}={v}" for n, v in zip(names, inp)) + ")"
+
+        shown = ", ".join(map(show, fresh[:settings.NONTERM_REPORT_MAX]))
+        if len(fresh) > settings.NONTERM_REPORT_MAX:
+            shown += f", ... (+{len(fresh) - settings.NONTERM_REPORT_MAX} more)"
+        loop, witness = self.nontermination
+        if loop is not None:
+            cex = "(" + ", ".join(f"{n}={v}" for n, v in witness.items()) + ")"
+            mlog.error(
+                f"{src}: loop #{loop} does not terminate -- proved to diverge "
+                f"on input {cex}. {len(timed_out)} input(s) hit the "
+                f"{settings.C.RUN_TIMEOUT}s run budget and contribute no "
+                f"traces: {shown}")
+        else:
+            mlog.warning(
+                f"{src}: {len(fresh)} input(s) did not finish within "
+                f"{settings.C.RUN_TIMEOUT}s and contribute no traces ({shown}); "
+                f"the program may not terminate on them")
+
     def _admits(self, inp: tuple):
         """
         Three-valued test of a candidate against the precondition:
@@ -305,7 +387,7 @@ class Prog:
         except subprocess.TimeoutExpired:
             # the program did not terminate within the budget on this input
             # (e.g. an infinite loop); skip it rather than hang forever.
-            mlog.warning(
+            mlog.debug(
                 f"run timed out after {settings.C.RUN_TIMEOUT}s, no traces: {cmd}")
             self.execution_outcomes[inp] = "timeout"
             return []
@@ -342,6 +424,7 @@ class Prog:
             self._cache[inp] = traces
             self.execution_outcomes[inp] = outcome
 
+        self._report_nontermination()
         return {inp: self._cache[inp] for inp in inps}
 
     def _get_valid_inp_ranges(self):

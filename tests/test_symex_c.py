@@ -1771,6 +1771,34 @@ class TestNontermination:
         assert status == "diverges"
         assert int(cex["x"]) >= 1   # a genuinely diverging input
 
+    def test_prove_any_nontermination_finds_the_diverging_loop(self, tmp_path):
+        # the first loop terminates, so the search must go on to the second
+        f = tmp_path / "two_loops.c"
+        f.write_text(HEADER + """
+            int mainQ(int x, int y){
+                int c = 0;
+                while (c < 2) { c = c + 1; }
+                while (x > 0) { y = 1 - y; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        eng = CSymEx(f, 8)
+        status, cex, loop = eng.prove_any_nontermination()
+        assert status == "diverges"
+        assert loop == 1          # the second loop is the diverging one
+        assert int(cex["x"]) >= 1
+
+    def test_prove_any_nontermination_unknown_when_all_loops_terminate(self, tmp_path):
+        eng = self.engine(tmp_path, HEADER + """
+            int mainQ(int x, int y){
+                while (y < x) { y = y + 1; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        assert eng.prove_any_nontermination() == ("unknown", None, None)
+
     def test_lasso_state_repetition(self, tmp_path):
         # x is rewritten to itself; the state repeats exactly whenever
         # y == x at entry, an exact concrete cycle

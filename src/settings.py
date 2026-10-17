@@ -50,6 +50,12 @@ INP_MAX_V = 300
 INP_ATTEMPT_FACTOR = 10     # max range draws per requested input
 INP_PROBE_REDRAWS = 8       # re-draws before a sampling window is ruled out
 INP_SOLVER_CALL_SLACK = 8   # solver calls allowed beyond 2 per requested input
+# Reporting inputs the program never finishes on (see data/prog.py). The
+# divergence proof is attempted at most once per source and only after a run
+# has actually hit C.RUN_TIMEOUT; this depth (0 disables the proof, leaving the
+# plain report) keeps it to roughly a second on the benchmarks.
+NONTERM_REPORT_MAX = 3      # how many such inputs to name
+NONTERM_PROOF_DEPTH = 4     # symbolic depth for the divergence proof
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
 # Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.

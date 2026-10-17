@@ -487,6 +487,21 @@ class CSymEx:
             return None, complete
         return (conds[0] if len(conds) == 1 else z3.And(conds)), complete
 
+    def prove_any_nontermination(self) -> tuple[str, dict[str, str] | None, int | None]:
+        """
+        The first loop of mainQ this engine can prove diverges, as (status,
+        witness inputs, loop index). ("unknown", None, None) means no witness
+        was found — never that the program terminates (see
+        prove_nontermination for what the two proof engines cover).
+        """
+        if not self.func_bodies:
+            self._parse()
+        for i in range(len(_find_loops(self.func_bodies["mainQ"]))):
+            status, cex = self.prove_nontermination(loop=i)
+            if status == "diverges":
+                return status, cex, i
+        return "unknown", None, None
+
     def parse_c_expr(self, text: str, as_bool: bool = True) -> z3.ExprRef:
         """
         Parse a C expression string (e.g. "q*y + r == x") into a z3
