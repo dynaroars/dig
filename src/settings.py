@@ -44,6 +44,12 @@ BENCHMARK_TIMEOUT = 15 * 60  # mins
 
 N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
+# Caps for precondition-guided input generation (see data/prog.py). Both
+# phases are hard-capped, so generation terminates and stays deterministic for
+# a given seed; a program without a usable precondition reaches neither.
+INP_ATTEMPT_FACTOR = 10     # max range draws per requested input
+INP_PROBE_REDRAWS = 8       # re-draws before a sampling window is ruled out
+INP_SOLVER_CALL_SLACK = 8   # solver calls allowed beyond 2 per requested input
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
 # Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.
