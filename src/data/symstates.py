@@ -696,6 +696,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         self.tmpdir = tmpdir
         self.ninps = ninps
         self.exploration_info = {}
+        self.assert_violations = {}   # coord -> result, so each is reported once
 
     @property
     def maxdepth(self) -> int:
@@ -728,6 +729,7 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
                        f" Or try increasing maxdepth using --se_maxdepth N (current N={maxd})")
             sys.exit(0)
 
+        self.report_assert_violations()
         symstates = self.merge(wrs, self.pc_cls)
         for loc in symstates:
             for depth in symstates[loc]:
@@ -739,6 +741,22 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_symstates(self, depth: int) -> None | list:
         pass
+
+    def report_assert_violations(self) -> None:
+        """
+        Report vassert checks the symbolic run found violated. The verdicts
+        come from the exploration that builds the symbolic states, so this
+        costs nothing; "valid" is bounded by its depth and "unknown" is
+        inconclusive, hence violations only.
+        """
+        for coord in sorted(self.assert_violations):
+            result = self.assert_violations[coord]
+            inputs = ", ".join(
+                f"{name[len(self.input_prefix):]}={value}"
+                for name, value in sorted((result.cex or {}).items())
+                if name.startswith(self.input_prefix))
+            mlog.error(f"{self.filename.name}: vassert at {coord} is violated"
+                       + (f" on input ({inputs})" if inputs else ""))
 
     @beartype
     @classmethod
@@ -833,6 +851,9 @@ class SymStatesMakerC(SymStatesMaker):
             results = engine.run()
             self.exploration_info[depth] = {"truncated": engine._incomplete,
                                             "records": len(results)}
+            for result in engine.assert_results:
+                if result.status == "violated":
+                    self.assert_violations.setdefault(result.coord, result)
         except Exception as ex:
             mlog.error(f"python symex failed at depth {depth}: {ex}")
             return None

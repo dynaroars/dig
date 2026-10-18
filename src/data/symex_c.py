@@ -2486,8 +2486,11 @@ def _strip_comments(src: str) -> str:
 
 
 def _strip_includes(src: str) -> str:
-    """Remove #include lines so pycparser doesn't need system headers."""
-    lines = [l for l in src.splitlines() if not l.strip().startswith("#include")]
+    """Blank out #include lines so pycparser doesn't need system headers.
+    Blanked, not removed, so later lines keep their numbers and a finding's
+    coord names the real source line."""
+    lines = ["" if l.strip().startswith("#include") else l
+             for l in src.splitlines()]
     return "\n".join(lines)
 
 

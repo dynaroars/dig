@@ -718,6 +718,28 @@ class TestTruthiness:
 
 # ───────────────────────────────────────────────────── vassert ──────
 
+class TestSourceCoords:
+    def test_coords_survive_stripped_includes(self, tmp_path):
+        """#includes are blanked, not removed, so a finding's coord names the
+        line the reader sees in the file."""
+        f = tmp_path / "coords.c"
+        text = ("#include <stdio.h>\n"
+                "#include <stdlib.h>\n"
+                + HEADER +
+                "int mainQ(int x){\n"
+                "    vassert(x > 0);\n"
+                "    vtrace1(x, x, x, x);\n"
+                "    return x;\n"
+                "}\n")
+        f.write_text(text)
+        expected = next(i for i, line in enumerate(text.splitlines(), 1)
+                        if "vassert" in line and "void" not in line)
+        eng = CSymEx(f, 4)
+        eng.run()
+        assert eng.assert_results
+        assert eng.assert_results[0].coord.endswith(f"coords.c:{expected}:5")
+
+
 class TestVassert:
     def test_valid_assert(self, tmp_path):
         eng, _ = symex(tmp_path, """
