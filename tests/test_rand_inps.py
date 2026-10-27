@@ -9,6 +9,8 @@ import random
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from data.prog import C, Prog
@@ -17,6 +19,15 @@ import settings
 
 
 _builds = itertools.count()
+
+
+@pytest.fixture(autouse=True)
+def stable_execution(monkeypatch):
+    """These tests assert on exact input sets, and a probe that looks invalid
+    makes its sampling window look dead. Keep execution out of the way: no
+    forking, and a run budget transient load cannot exhaust."""
+    monkeypatch.setattr(settings, "DO_MP", False)
+    monkeypatch.setattr(settings.C, "RUN_TIMEOUT", 20)
 
 
 def build(tmp_path, body, inputs="int x", with_source=True, name="inp"):
@@ -78,7 +89,6 @@ def test_narrow_precondition_delivers_feasible_inputs(tmp_path):
 
 def test_violating_candidates_are_never_executed(tmp_path, monkeypatch):
     """Inadmissible candidates must not cost a process execution."""
-    monkeypatch.setattr(settings, "DO_MP", False)   # count in this process
     prog = build(tmp_path, "vassume(x >= 0); vassume(x <= 10);")
     executed = []
     original = Prog._get_traces
@@ -417,7 +427,6 @@ def test_precondition_does_not_shrink_the_probe_sample(tmp_path, monkeypatch):
     surviving ones -- otherwise the bootstrap trace set shrinks with the
     number of admissible windows, which cost geo2 two true invariants and
     admitted a spurious congruence."""
-    monkeypatch.setattr(settings, "DO_MP", False)
     # of the four windows (0,30) (270,300) (0,15) (75,225) only the last is
     # admissible, but its feasible set is wide
     prog = build(tmp_path, "vassume(x >= 75); vassume(x <= 225);", name="shrink")
