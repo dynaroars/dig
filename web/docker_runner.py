@@ -235,8 +235,9 @@ class DIGRunner:
             "--cpuset-cpus", "0-7",
             "--pids-limit", "512",
             "-e", "PYTHONUNBUFFERED=1",
-            "-v", f"{input_file.resolve()}:{container_file}:ro",
-            "-v", f"{DIG_ROOT.resolve()}/src:/dig/src:ro",
+            # ",z" relabels the mounts for SELinux hosts; it is a no-op elsewhere
+            "-v", f"{input_file.resolve()}:{container_file}:ro,z",
+            "-v", f"{DIG_ROOT.resolve()}/src:/dig/src:ro,z",
             self.docker_image,
             # coreutils timeout inside the container: killing the local docker
             # client would leave the container running

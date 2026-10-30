@@ -19,8 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check Prime installer syntax
-        run: bash -n web/install-prime.sh
+      - name: Check deploy script syntax
+        run: bash -n web/deploy.sh
 
       - name: Compile backend Python
         run: python -m py_compile web/server.py web/docker_runner.py

@@ -1,0 +1,11 @@
+# Build context for web/Dockerfile.sandbox (src/ is also bind-mounted at runtime)
+.git
+.venv
+venv
+**/__pycache__
+**/*.pyc
+core.*
+benchmark/results
+benchmark/parameter_trials
+paper
+rust/**/target
