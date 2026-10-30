@@ -7,6 +7,7 @@ import tempfile
 import subprocess
 import select
 import logging
+import tomllib
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -35,6 +36,14 @@ SYMEX_INT_OPTS = ["depth", "loop", "k", "phases"]
 SYMEX_BOOL_OPTS = ["gen_tests", "no_safety", "check_overflow", "merge",
                    "nonterm"]
 SYMEX_LIST_OPTS = ["prove", "houdini", "assume"]  # ";"-separated exprs
+AXIOM_INT_OPTS = {
+    "max_call_cost": (1, 3),
+    "variables_per_type": (1, 2),
+    "max_terms_per_type": (1, 1000),
+    "discovery_tests": (1, 100),
+    "validation_tests": (1, 1000),
+    "minimum_valid_samples": (1, 1000),
+}
 # note: "terminates" is NOT a list opt — its value may itself contain ";"
 # (a lexicographic tuple "x ; y") or be the keyword "auto", and is passed
 # through verbatim as one argument below
@@ -61,23 +70,30 @@ class DIGRunner:
 
         with tempfile.TemporaryDirectory(prefix="dig_web_", dir=self.job_dir) as tmpdir:
             tmppath = Path(tmpdir)
-            ext = ".c" if input_type == "c" else ".csv"
+            ext = {"c": ".c", "csv": ".csv", "toml": ".toml"}.get(input_type, ".txt")
             input_file = tmppath / f"prog{ext}"
             input_file.write_text(code)
 
             if tool == "symex":
                 cmd_opts = self._build_symex_cmd_opts(options)
                 script = "data/symex_c.py"
+                input_flag = None
+            elif tool == "axioms":
+                self._validate_hosted_axiom_manifest(code)
+                cmd_opts = self._build_axiom_cmd_opts(options)
+                script = "dig.py"
+                input_flag = "--axioms"
             else:
                 cmd_opts = self._build_cmd_opts(options)
                 script = "dig.py"
+                input_flag = None
 
             start_time = time.time()
 
             if self.use_docker:
-                res = self._run_docker(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled, script=script)
+                res = self._run_docker(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled, script=script, input_flag=input_flag)
             else:
-                res = self._run_direct(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled, script=script)
+                res = self._run_direct(input_file, cmd_opts, timeout, on_output, check_cancelled=check_cancelled, script=script, input_flag=input_flag)
 
             runtime = round(time.time() - start_time, 2)
             res["runtime"] = runtime
@@ -87,6 +103,14 @@ class DIGRunner:
                 if res.get("status") == "error" and res.get("exit_code") == 1:
                     res["status"] = "completed"
                 res["locations"] = []
+            elif tool == "axioms":
+                res["locations"] = []
+                if res.get("status") == "completed":
+                    try:
+                        res["axiom_result"] = json.loads(res.get("raw_output", ""))
+                    except json.JSONDecodeError as exc:
+                        res["status"] = "error"
+                        res["error"] = f"Axiom worker did not return valid JSON: {exc}"
             else:
                 res["locations"] = self._parse_invariants(res.get("raw_output", ""))
             return res
@@ -132,6 +156,46 @@ class DIGRunner:
             if len(parts) == 2:
                 cmd_opts.extend(["--check-inv", parts[0], parts[1]])
         return cmd_opts
+
+    def _build_axiom_cmd_opts(self, options: Dict[str, Any]) -> list:
+        cmd_opts = ["--json-output", "-"]
+        if options.get("seed") not in (None, ""):
+            cmd_opts.extend(["--seed", str(int(float(options["seed"])))])
+        for name, (minimum, maximum) in AXIOM_INT_OPTS.items():
+            value = options.get(name)
+            if value in (None, ""):
+                continue
+            value = int(value)
+            if not minimum <= value <= maximum:
+                raise ValueError(f"{name} must be between {minimum} and {maximum}")
+            cmd_opts.extend(["--" + name.replace("_", "-"), str(value)])
+        verifier = options.get("verifier", "none")
+        if verifier not in ("none", "finite"):
+            raise ValueError("hosted axiom verifier must be 'none' or 'finite'")
+        cmd_opts.extend(["--verifier", verifier])
+        return cmd_opts
+
+    @staticmethod
+    def _validate_hosted_axiom_manifest(code: str) -> None:
+        try:
+            manifest = tomllib.loads(code)
+        except tomllib.TOMLDecodeError as exc:
+            raise ValueError(f"invalid axiom TOML: {exc}") from exc
+        if manifest.get("language") != "python":
+            raise ValueError("hosted axiom mode currently permits Python fixtures only")
+        target = manifest.get("target", {})
+        if target.get("module_roots") != ["/dig/src"]:
+            raise ValueError("hosted axiom module_roots must be exactly ['/dig/src']")
+        prefix = "axioms.fixtures:"
+        for index, declaration in enumerate(manifest.get("types", [])):
+            for field in ("generator", "from_recipe", "snapshot", "comparator", "adapter"):
+                binding = declaration.get(field)
+                if binding and not binding.startswith(prefix):
+                    raise ValueError(f"types[{index}].{field} is not an installed adapter")
+        for index, operation in enumerate(manifest.get("operations", [])):
+            binding = operation.get("binding", "")
+            if not binding.startswith(prefix):
+                raise ValueError(f"operations[{index}].binding is not an installed API")
 
     def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
         try:
@@ -226,7 +290,7 @@ class DIGRunner:
                 "error": str(e)
             }
 
-    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py") -> Dict[str, Any]:
+    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py", input_flag: Optional[str] = None) -> Dict[str, Any]:
         container_file = f"/dig/input/{input_file.name}"
         docker_cmd = [
             "docker", "run", "--rm",
@@ -242,14 +306,16 @@ class DIGRunner:
             # coreutils timeout inside the container: killing the local docker
             # client would leave the container running
             "timeout", "--signal=KILL", str(timeout),
-            "/root/miniconda3/bin/python3", "-u", "-O", f"/dig/src/{script}", container_file
-        ] + cmd_opts
+            "/root/miniconda3/bin/python3", "-u", "-O", f"/dig/src/{script}",
+        ] + ([input_flag, container_file] if input_flag else [container_file]) + cmd_opts
 
         return self._run_cmd_stream(docker_cmd, timeout + 5, on_output, check_cancelled=check_cancelled)
 
-    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py") -> Dict[str, Any]:
+    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py", input_flag: Optional[str] = None) -> Dict[str, Any]:
         python_exe = sys.executable
-        cmd = [python_exe, "-u", "-O", str(DIG_ROOT / "src" / script), str(input_file)] + cmd_opts
+        cmd = [python_exe, "-u", "-O", str(DIG_ROOT / "src" / script)]
+        cmd += [input_flag, str(input_file)] if input_flag else [str(input_file)]
+        cmd += cmd_opts
         env = os.environ.copy()
         env["PYTHONPATH"] = str(DIG_ROOT / "src") + ":" + env.get("PYTHONPATH", "")
         env["PYTHONUNBUFFERED"] = "1"

@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynaroars.github.io/dig/schemas/axioms/result-v1.schema.json",
+  "title": "DIG algebraic axiom run result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "analysis_kind", "run_id", "language", "target_fingerprint",
+    "seeds", "limits", "findings", "diagnostics"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "analysis_kind": {"const": "axioms"},
+    "run_id": {"type": "string", "minLength": 1},
+    "language": {"enum": ["python", "java", "rust"]},
+    "target_fingerprint": {"$ref": "#/$defs/digest"},
+    "seeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "discovery", "validation", "shrinking", "mutation"],
+      "properties": {
+        "root": {"type": "integer", "minimum": 0},
+        "discovery": {"type": "integer", "minimum": 0},
+        "validation": {"type": "integer", "minimum": 0},
+        "shrinking": {"type": "integer", "minimum": 0},
+        "mutation": {"type": "integer", "minimum": 0}
+      }
+    },
+    "limits": {"type": "object"},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "extensions": {"type": "object"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "term": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "type_id", "index"],
+          "properties": {
+            "kind": {"const": "variable"},
+            "type_id": {"type": "string"},
+            "index": {"type": "integer", "minimum": 0}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "type_id", "value"],
+          "properties": {
+            "kind": {"const": "constant"},
+            "type_id": {"type": "string"},
+            "value": true
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "operation_id", "projection", "type_id", "children"],
+          "properties": {
+            "kind": {"const": "call"},
+            "operation_id": {"type": "string"},
+            "projection": {"$ref": "#/$defs/projection"},
+            "type_id": {"type": "string"},
+            "children": {"type": "array", "items": {"$ref": "#/$defs/term"}}
+          }
+        }
+      ]
+    },
+    "projection": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {"kind": {"const": "return"}}
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "input_index"],
+          "properties": {
+            "kind": {"const": "post_state"},
+            "input_index": {"type": "integer", "minimum": 0}
+          }
+        }
+      ]
+    },
+    "equation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["lhs", "rhs"],
+      "properties": {
+        "lhs": {"$ref": "#/$defs/term"},
+        "rhs": {"$ref": "#/$defs/term"}
+      }
+    },
+    "counts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["valid", "invalid_domain", "exceptions", "failed"],
+      "properties": {
+        "valid": {"type": "integer", "minimum": 0},
+        "invalid_domain": {"type": "integer", "minimum": 0},
+        "exceptions": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "discovery", "validation", "generator_ids", "observer_ids",
+        "exception_policy", "truncated"
+      ],
+      "properties": {
+        "discovery": {"$ref": "#/$defs/counts"},
+        "validation": {"$ref": "#/$defs/counts"},
+        "generator_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "observer_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "exception_policy": {"enum": ["common_domain", "same_exception"]},
+        "truncated": {"type": "boolean"},
+        "counterexample": {"$ref": "#/$defs/counterexample"},
+        "proof": {"$ref": "#/$defs/proof"}
+      }
+    },
+    "counterexample": {
+      "type": "object", "additionalProperties": false,
+      "required": ["recipe", "replay_id"],
+      "properties": {
+        "recipe": {"type": "object"},
+        "replay_id": {"type": "string", "minLength": 1},
+        "lhs_outcome": {"type": "object"},
+        "rhs_outcome": {"type": "object"}
+      }
+    },
+    "proof": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verifier", "version", "scope", "assumptions", "artifact_digest"],
+      "properties": {
+        "verifier": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "scope": {"type": "string", "minLength": 1},
+        "assumptions": {"type": "array", "items": {"type": "string"}},
+        "artifact_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "text", "equation", "verdict", "evidence"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "text": {"type": "string", "minLength": 1},
+        "equation": {"$ref": "#/$defs/equation"},
+        "verdict": {"enum": ["REFUTED", "CANDIDATE", "VALIDATED", "PROVED", "ERROR"]},
+        "evidence": {"$ref": "#/$defs/evidence"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"verdict": {"const": "REFUTED"}}},
+          "then": {"properties": {"evidence": {"required": ["counterexample"]}}}
+        },
+        {
+          "if": {"properties": {"verdict": {"const": "PROVED"}}},
+          "then": {"properties": {"evidence": {"required": ["proof"]}}}
+        }
+      ]
+    },
+    "diagnostic": {
+      "type": "object", "additionalProperties": false,
+      "required": ["severity", "code", "message"],
+      "properties": {
+        "severity": {"enum": ["info", "warning", "error"]},
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "path": {"type": "string"}
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+schema_version = 1
+language = "python"
+
+[target]
+module_roots = ["/dig/src"]
+
+[[types]]
+id = "stack"
+python_type = "axioms.fixtures:Stack"
+from_recipe = "axioms.fixtures:stack_from_recipe"
+snapshot = "axioms.fixtures:stack_snapshot"
+opaque = true
+finite_values = [[], [0], [1, 2], [1, 1]]
+
+[[types]]
+id = "item"
+python_type = "builtins:int"
+finite_values = [-2, -1, 0, 1, 2]
+
+[[operations]]
+id = "push"
+binding = "axioms.fixtures:Stack.push"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = ["item"]
+return_type = "item"
+mutates = [0]
+
+[[operations]]
+id = "pop"
+binding = "axioms.fixtures:Stack.pop"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = []
+return_type = "item"
+mutates = [0]
+
+[[operations]]
+id = "peek"
+binding = "axioms.fixtures:Stack.peek"
+kind = "instance_method"
+receiver_type = "stack"
+parameter_types = []
+return_type = "item"
+mutates = []
+pure = true
+
+[limits]
+max_call_cost = 2
+variables_per_type = 1
+discovery_tests = 10
+validation_tests = 10
+minimum_valid_samples = 5

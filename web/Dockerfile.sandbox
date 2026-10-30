@@ -1,6 +1,6 @@
 FROM --platform=linux/amd64 debian:bookworm-slim
 
-RUN apt update -y && apt install -y build-essential libc6 git software-properties-common wget && rm -rf /var/lib/apt/lists/*
+RUN apt update -y && apt install -y build-essential libc6 git software-properties-common wget openjdk-17-jdk-headless && rm -rf /var/lib/apt/lists/*
 
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash ./Miniconda3-latest-Linux-x86_64.sh -b && \

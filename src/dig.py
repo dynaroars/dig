@@ -46,6 +46,7 @@ if __name__ == "__main__":
     g_io = aparser.add_argument_group("output & serialization")
     g_bench = aparser.add_argument_group("benchmarking")
     g_dbg = aparser.add_argument_group("debugging & diagnostics")
+    g_axiom = aparser.add_argument_group("API axiom analysis")
 
     # one positive selector replaces the seven -no<type> flags (which still
     # work as hidden aliases below, so existing scripts/UI keep functioning)
@@ -59,6 +60,7 @@ if __name__ == "__main__":
     ag = aparser.add_argument
     ag(
         "inp",
+        nargs="?",
         help=(
             "input file (.c, trace_text_file) "
             "for invariant generation or result directory for analysis"
@@ -76,6 +78,23 @@ if __name__ == "__main__":
     )
 
     ag("--seed", "-seed", type=float, help="use this seed")
+
+    ax = g_axiom.add_argument
+    ax("--axioms", type=str, metavar="MANIFEST", help="run API axiom analysis from TOML")
+    ax("--max-call-cost", type=int)
+    ax("--variables-per-type", type=int)
+    ax("--max-terms-per-type", type=int)
+    ax("--discovery-tests", type=int)
+    ax("--validation-tests", type=int)
+    ax("--minimum-valid-samples", type=int)
+    ax("--python-executable", default=sys.executable)
+    ax("--java", default="java", help="Java executable for a Java axiom target")
+    ax("--javac", default="javac", help="Java compiler for the checked-in worker")
+    ax("--worker-timeout", type=float)
+    ax("--verifier", choices=("none", "finite", "smt-model"), default="none")
+    ax("--replay-counterexample", type=str, metavar="RESULT_JSON")
+    ax("--finding", type=str, help="finding ID to replay (default: first counterexample)")
+    ax("--json-output", type=str, metavar="FILE")
 
     ag = g_mode.add_argument
     ag(
@@ -285,19 +304,26 @@ if __name__ == "__main__":
         if value is not None and value < 1:
             aparser.error(f"--{name} must be positive")
 
+    if args.axioms and args.inp:
+        aparser.error("positional input and --axioms are mutually exclusive")
+    if not args.axioms and not args.inp:
+        aparser.error("a positional input or --axioms MANIFEST is required")
 
     # Validate every path-taking flag up front (before any work, and not via
     # asserts that -O strips) so bad paths fail fast with a clear message.
     def _check_paths(args):
         # input paths that must already be a readable file
         for flag, val in (("-readsstates", args.readsstates),
-                          ("-test_tracefile", args.test_tracefile)):
+                          ("-test_tracefile", args.test_tracefile),
+                          ("--axioms", args.axioms),
+                          ("--replay-counterexample", args.replay_counterexample)):
             if val and not Path(val).is_file():
                 raise FileNotFoundError(f"{flag} '{val}' is not an existing file")
         # output file paths: parent dir must exist, and it can't be a directory
         for flag, val in (("-writeresults", args.writeresults),
                           ("-writevtraces", args.writevtraces),
-                          ("-writesstates", args.writesstates)):
+                          ("-writesstates", args.writesstates),
+                          ("--json-output", args.json_output)):
             if val:
                 p = Path(val)
                 if p.is_dir():
@@ -314,6 +340,11 @@ if __name__ == "__main__":
                     f"{flag} '{val}' is not an existing directory")
 
     _check_paths(args)
+
+    if args.axioms:
+        from axioms.cli import run_from_args
+
+        raise SystemExit(run_from_args(args))
 
     # validate -types up front so a bad name is a clean CLI error (all modes)
     if args.types:

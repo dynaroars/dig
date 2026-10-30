@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "analysis_kind": "axioms",
+  "run_id": "java-stack-golden-v1",
+  "language": "java",
+  "target_fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "seeds": {
+    "root": 42,
+    "discovery": 13679457532755275413,
+    "validation": 2949826092126892291,
+    "shrinking": 5139283748462763858,
+    "mutation": 6349198060258255764
+  },
+  "limits": {
+    "max_call_cost": 3,
+    "variables_per_type": 2,
+    "max_terms_per_type": 1000,
+    "max_candidates": 10000,
+    "discovery_tests": 100,
+    "validation_tests": 1000,
+    "minimum_valid_samples": 20,
+    "case_timeout_ms": 1000,
+    "batch_timeout_ms": 30000,
+    "worker_memory_mib": 512,
+    "output_limit_bytes": 65536
+  },
+  "findings": [
+    {
+      "id": "axiom-0001",
+      "text": "pop(push(stack_0, item_0)) == item_0",
+      "equation": {
+        "lhs": {
+          "kind": "call",
+          "operation_id": "pop",
+          "projection": {"kind": "return"},
+          "type_id": "item",
+          "children": [
+            {
+              "kind": "call",
+              "operation_id": "push",
+              "projection": {"kind": "post_state", "input_index": 0},
+              "type_id": "stack",
+              "children": [
+                {"kind": "variable", "type_id": "stack", "index": 0},
+                {"kind": "variable", "type_id": "item", "index": 0}
+              ]
+            }
+          ]
+        },
+        "rhs": {"kind": "variable", "type_id": "item", "index": 0}
+      },
+      "verdict": "VALIDATED",
+      "evidence": {
+        "discovery": {"valid": 100, "invalid_domain": 0, "exceptions": 0, "failed": 0},
+        "validation": {"valid": 1000, "invalid_domain": 0, "exceptions": 0, "failed": 0},
+        "generator_ids": ["builtin:stack-v1", "small-int-v1"],
+        "observer_ids": ["builtin:collection-v1"],
+        "exception_policy": "common_domain",
+        "truncated": false
+      }
+    }
+  ],
+  "diagnostics": []
+}

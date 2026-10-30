@@ -99,6 +99,11 @@ def _symex_example_files() -> dict[str, Path]:
         return {}
     return {f"symex_{p.stem}": p for p in sorted(SYMEX_DIR.glob("*.c"))}
 
+
+def _axiom_example_files() -> dict[str, Path]:
+    """Administrator-reviewed manifests available to hosted axiom jobs."""
+    return {f"axiom_{p.stem}": p for p in sorted(EXAMPLES_DIR.glob("*-axioms.toml"))}
+
 def _example_files() -> dict[str, Path]:
     """id -> path for every servable example (globbed, so no path traversal)."""
     files = {}
@@ -159,6 +164,7 @@ def _worker(job_id: str):
             job["status"] = res["status"]
             job["runtime"] = res.get("runtime")
             job["locations"] = res.get("locations", [])
+            job["axiom_result"] = res.get("axiom_result")
             job["raw_output"] = res.get("raw_output", "")
             job["error"] = res.get("error")
             job["finished"] = time.time()
@@ -189,8 +195,10 @@ def run_job():
 
     if not code:
         return jsonify({"error": "No code or trace provided"}), 400
-    if tool not in ("dig", "symex"):
+    if tool not in ("dig", "symex", "axioms"):
         return jsonify({"error": f"Unknown tool: {tool}"}), 400
+    if tool == "axioms" and input_type != "toml":
+        return jsonify({"error": "Axiom jobs require input_type 'toml'"}), 400
 
     job_id = str(uuid.uuid4())[:8]
     job = {
@@ -204,6 +212,7 @@ def run_job():
         "result": None,
         "runtime": None,
         "locations": [],
+        "axiom_result": None,
         "raw_output": "",
         "error": None,
     }
@@ -240,6 +249,8 @@ def status(job_id: str):
     elif job["status"] in ("completed", "timeout", "error"):
         response["runtime"] = job["runtime"]
         response["locations"] = job["locations"]
+        if job.get("axiom_result") is not None:
+            response["axiom_result"] = job["axiom_result"]
         response["raw_output"] = job["raw_output"]
         response["error"] = job["error"]
 
@@ -259,7 +270,19 @@ def cancel(job_id: str):
 @app.route("/api/examples", methods=["GET"])
 def list_examples():
     examples = []
-    if request.args.get("tool", "dig").lower() == "symex":
+    requested_tool = request.args.get("tool", "dig").lower()
+    if requested_tool == "axioms":
+        for ex_id, path in _axiom_example_files().items():
+            examples.append({
+                "id": ex_id,
+                "name": path.stem,
+                "type": "toml",
+                "group": "API axiom manifests",
+                "description": "Allowlisted deterministic API axiom example.",
+                "file": path.name,
+            })
+        return jsonify({"examples": examples})
+    if requested_tool == "symex":
         for ex_id, path in _symex_example_files().items():
             stem = path.stem
             examples.append({
@@ -294,6 +317,8 @@ def list_examples():
 def get_example(example_id: str):
     if example_id.startswith("symex_"):
         file_path = _symex_example_files().get(example_id)
+    elif example_id.startswith("axiom_"):
+        file_path = _axiom_example_files().get(example_id)
     else:
         file_path = _example_files().get(example_id)
     if file_path and file_path.exists():
