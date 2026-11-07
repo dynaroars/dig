@@ -21,19 +21,29 @@ UNIT_DIR="${HOME}/.config/systemd/user"
 CLOUDFLARED="${HOME}/.local/bin/cloudflared"
 PY="${ROOT}/.venv/bin/python"
 
+STEP="startup"
 fail() { echo "ERROR: $*" >&2; exit 1; }
+on_exit() {
+  local rc=$?
+  # Report failed deploys to GitHub (emails the maintainer); skip Ctrl-C.
+  if (( rc != 0 && rc != 130 )); then
+    "${ROOT}/web/notify.sh" "dig.roars.dev deploy FAILED" \
+      "web/deploy.sh exited ${rc} during: ${STEP}" || true
+  fi
+}
+trap on_exit EXIT
 
 command -v docker >/dev/null || fail "docker is not installed."
 docker info >/dev/null 2>&1 || fail "cannot talk to docker (is ${USER} in the docker group?)"
 
-echo "[1/5] Python environment (${ROOT}/.venv)"
+STEP="[1/5] Python environment"; echo "[1/5] Python environment (${ROOT}/.venv)"
 [[ -x "${PY}" ]] || python3 -m venv "${ROOT}/.venv"
 "${PY}" -m pip install -q -r "${ROOT}/web/requirements.txt"
 
-echo "[2/5] Building dig-sandbox image"
+STEP="[2/5] Building dig-sandbox image"; echo "[2/5] Building dig-sandbox image"
 docker build -q -f "${ROOT}/web/Dockerfile.sandbox" -t dig-sandbox:latest "${ROOT}"
 
-echo "[3/5] cloudflared"
+STEP="[3/5] cloudflared"; echo "[3/5] cloudflared"
 if [[ ! -x "${CLOUDFLARED}" ]]; then
   mkdir -p "$(dirname "${CLOUDFLARED}")"
   curl -fsSL -o "${CLOUDFLARED}" \
@@ -51,7 +61,7 @@ if ! grep -q '^TUNNEL_TOKEN=.' "${ENV_FILE}"; then
   unset token
 fi
 
-echo "[4/5] systemd user services"
+STEP="[4/5] systemd user services"; echo "[4/5] systemd user services"
 mkdir -p "${UNIT_DIR}"
 cat > "${UNIT_DIR}/dig-web.service" <<UNIT
 [Unit]
@@ -88,8 +98,30 @@ RestartSec=5
 WantedBy=default.target
 UNIT
 
+cat > "${UNIT_DIR}/dig-healthcheck.service" <<UNIT
+[Unit]
+Description=Health check for dig.roars.dev (alerts via GitHub)
+
+[Service]
+Type=oneshot
+ExecStart=${ROOT}/web/healthcheck.sh
+UNIT
+
+cat > "${UNIT_DIR}/dig-healthcheck.timer" <<UNIT
+[Unit]
+Description=Check dig.roars.dev every 5 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+UNIT
+
 systemctl --user daemon-reload
 systemctl --user enable dig-web.service dig-cloudflared.service >/dev/null
+systemctl --user enable --now dig-healthcheck.timer >/dev/null
 systemctl --user restart dig-web.service dig-cloudflared.service
 
 # Keep user services running after logout and across reboots.
@@ -98,7 +130,7 @@ if [[ "$(loginctl show-user "${USER}" -p Linger --value 2>/dev/null)" != yes ]];
     || echo "NOTE: run 'sudo loginctl enable-linger ${USER}' so the site survives logout/reboot."
 fi
 
-echo "[5/5] Health check"
+STEP="[5/5] Health check"; echo "[5/5] Health check"
 for _ in {1..20}; do
   curl -fsS http://127.0.0.1:5001/api/health >/dev/null 2>&1 && break
   sleep 1

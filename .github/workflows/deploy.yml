@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check deploy script syntax
-        run: bash -n web/deploy.sh
+        run: for f in web/deploy.sh web/healthcheck.sh web/notify.sh; do bash -n "$f"; done
 
       - name: Compile backend Python
         run: python -m py_compile web/server.py web/docker_runner.py

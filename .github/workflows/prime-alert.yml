@@ -1,0 +1,32 @@
+name: Prime alert
+
+# Triggered from Prime by web/notify.sh (deploy failures, health-check outages).
+# This run fails on purpose so GitHub emails the user who triggered it.
+on:
+  repository_dispatch:
+    types: [prime-alert]
+
+permissions: {}
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ${{ github.event.client_payload.title }}
+        env:
+          TITLE: ${{ github.event.client_payload.title }}
+          REASON: ${{ github.event.client_payload.reason }}
+          HOST: ${{ github.event.client_payload.host }}
+          WHEN: ${{ github.event.client_payload.time }}
+        run: |
+          {
+            echo "## ${TITLE}"
+            echo
+            echo "- host: ${HOST}"
+            echo "- time: ${WHEN}"
+            echo "- reason: ${REASON}"
+            echo
+            echo 'Investigate on Prime: `journalctl --user -u dig-web -n 100`'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=${TITLE}::${REASON}"
+          exit 1
