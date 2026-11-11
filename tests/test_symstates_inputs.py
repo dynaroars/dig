@@ -1,5 +1,6 @@
 """Counterexample inputs refer to entry values, including unobserved inputs."""
 import json
+import logging
 from pathlib import Path
 import sys
 
@@ -65,3 +66,53 @@ def test_entry_namespace_survives_state_serialization(tmp_path, monkeypatch):
         assert next(iter(inputs)).vs == (5,)
         after, _ = loaded.check(DInvs.mk_false_invs(["vtrace"]), inputs)
         assert after == {}
+
+
+def test_violated_vassert_is_reported(tmp_path, monkeypatch, caplog):
+    """The symbolic run already decides every vassert and carries a failing
+    input; DIG used to discard that. A violation must reach the user, with the
+    source location and the counterexample."""
+    source = tmp_path / "bad.c"
+    source.write_text(
+        "#include <stdlib.h>\n"
+        "void vassume(int b){}\n"
+        "void vassert(int b){}\n"
+        "void vtrace(int x){}\n"
+        "int mainQ(int x){\n"
+        "    vassume(x >= 0);\n"
+        "    vtrace(x);\n"
+        "    vassert(x > 0);\n"   # fails for x == 0
+        "    return x;\n"
+        "}\n")
+    inputs = Symbs([Symb("x", "I")])
+    states = SymStates(inputs, DSymbs({"vtrace": Symbs([Symb("x", "I")])}))
+    monkeypatch.setattr(settings, "SE_MAX_DEPTH", 2)
+    with caplog.at_level(logging.DEBUG, logger="data.symstates"):
+        states.compute(SymStatesMakerC, source, "mainQ", "bad", tmp_path)
+
+    violations = [r.message for r in caplog.records if "is violated" in r.message]
+    assert violations, caplog.text
+    assert "bad.c:8" in violations[0], violations      # the real source line
+    assert "x=0" in violations[0], violations          # the failing input
+
+
+def test_valid_vassert_is_not_reported(tmp_path, monkeypatch, caplog):
+    source = tmp_path / "good.c"
+    source.write_text(
+        "#include <stdlib.h>\n"
+        "void vassume(int b){}\n"
+        "void vassert(int b){}\n"
+        "void vtrace(int x){}\n"
+        "int mainQ(int x){\n"
+        "    vassume(x >= 1);\n"
+        "    vtrace(x);\n"
+        "    vassert(x > 0);\n"
+        "    return x;\n"
+        "}\n")
+    inputs = Symbs([Symb("x", "I")])
+    states = SymStates(inputs, DSymbs({"vtrace": Symbs([Symb("x", "I")])}))
+    monkeypatch.setattr(settings, "SE_MAX_DEPTH", 2)
+    with caplog.at_level(logging.DEBUG, logger="data.symstates"):
+        states.compute(SymStatesMakerC, source, "mainQ", "good", tmp_path)
+
+    assert not [r for r in caplog.records if "violated" in r.message], caplog.text

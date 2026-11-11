@@ -2,6 +2,9 @@
 
 ## symex_c unit tests + benchmark (fast, no DIG run)
 
+`test_symstates_inputs.py` covers counterexample inputs and the reporting of
+`vassert` checks the symbolic run finds violated.
+
 `test_symex_c.py` unit-tests the Python symbolic execution engine
 (`src/data/symex_c.py`) in isolation: each test writes a tiny C program to a
 tmp dir, runs `CSymEx`, and checks the resulting `(loc, pc, slocal)` z3
@@ -24,6 +27,7 @@ merging (`merge_states=True`: if/else diamonds → one If-valued state,
 (zero-init, helper writes persist), signed-overflow checking
 (`check_overflow=True`), houdini invariant pruning + C-syntax invariant
 parsing (`parse_c_expr`, CLI `--prove`/`--check-inv`/`--houdini`),
+source coords surviving stripped `#include` lines,
 k-induction with `k > 1` (2-inductive alternation invariants), termination
 proofs via ranking functions (`prove_termination`, CLI `--terminates` +
 `--assume`), witness traces on violations (branch decisions with source
@@ -71,6 +75,26 @@ python tests/bench_symex.py --repeat 3              # determinism check
 python tests/bench_symex.py --save                  # record baseline
 python tests/bench_symex.py --check                 # diff vs baseline
                                                     # (nonzero exit on change)
+```
+
+## Random input generation (fast, no DIG run)
+
+`test_rand_inps.py` drives `Prog.gen_rand_inps` directly on tiny C programs:
+precondition extraction and caching, narrow/point/sparse/parity/nonlinear
+preconditions, assumptions that are unsatisfiable, undecidable, unsupported or
+only partly extractable, the bounded solver top-up and its call cap, honest
+shortfall/exhaustion reporting, input diversity, determinism per seed, and —
+importantly — that a program without a usable precondition generates exactly
+the inputs it did before.
+
+`test_nontermination.py` covers the other half: inputs the program never
+finishes on. A run killed at `settings.C.RUN_TIMEOUT` must be reported, with
+the diverging loop and a witness input when `prove_any_nontermination` finds
+one and as a suspicion otherwise, each input named once, and nothing at all
+(not even a proof attempt) for programs that terminate.
+
+```sh
+pytest tests/test_rand_inps.py tests/test_nontermination.py   # ~20s
 ```
 
 ## Benchmark regression tests (full DIG, slow)

@@ -718,6 +718,28 @@ class TestTruthiness:
 
 # ───────────────────────────────────────────────────── vassert ──────
 
+class TestSourceCoords:
+    def test_coords_survive_stripped_includes(self, tmp_path):
+        """#includes are blanked, not removed, so a finding's coord names the
+        line the reader sees in the file."""
+        f = tmp_path / "coords.c"
+        text = ("#include <stdio.h>\n"
+                "#include <stdlib.h>\n"
+                + HEADER +
+                "int mainQ(int x){\n"
+                "    vassert(x > 0);\n"
+                "    vtrace1(x, x, x, x);\n"
+                "    return x;\n"
+                "}\n")
+        f.write_text(text)
+        expected = next(i for i, line in enumerate(text.splitlines(), 1)
+                        if "vassert" in line and "void" not in line)
+        eng = CSymEx(f, 4)
+        eng.run()
+        assert eng.assert_results
+        assert eng.assert_results[0].coord.endswith(f"coords.c:{expected}:5")
+
+
 class TestVassert:
     def test_valid_assert(self, tmp_path):
         eng, _ = symex(tmp_path, """
@@ -1045,6 +1067,134 @@ class TestPostRunAPIs:
         status, cex = eng.check_inv("vtrace1", X("q") >= 1)  # false: q can be 0
         assert status == "violated"
         assert cex  # concrete assignment falsifying the claim
+
+    def precond(self, tmp_path, src):
+        """(constraint, complete) from a program; _parse() is enough."""
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + src)
+        eng = CSymEx(f, 2)
+        eng._parse()
+        return eng, eng.input_precondition()
+
+    def test_input_precondition_conjoins_top_level_vassumes(self, tmp_path):
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int x, int y){
+                vassume(x >= 1);
+                vassume(y >= 1);
+                vtrace1(x, y, x, y);
+                return x;
+            }
+        """)
+        assert complete is True
+        assert implied(pre, z3.BoolVal(True), z3.And(z3.Int("x") >= 1,
+                                                     z3.Int("y") >= 1))
+        assert not satisfiable(pre, z3.Int("x") == 0)
+
+    def test_input_precondition_handles_modulo_and_nonlinear(self, tmp_path):
+        # fermat1's precondition: nonlinear, plus C-truncating modulo
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int A, int R){
+                vassume((R-1)*(R-1) < A);
+                vassume(A % 2 == 1);
+                vtrace1(A, R, A, R);
+                return A;
+            }
+        """)
+        assert complete is True
+        for A, R, expected in ((7, 3, True), (7, 4, False), (8, 3, False),
+                               (-7, 1, False)):
+            fixed = z3.simplify(z3.substitute(
+                pre, (z3.Int("A"), z3.IntVal(A)), (z3.Int("R"), z3.IntVal(R))))
+            assert z3.is_true(fixed) is expected, (A, R, fixed)
+
+    def test_input_precondition_ignores_nested_vassume(self, tmp_path):
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int x){
+                vassume(x >= 1);
+                if (x > 10) { vassume(x < 100); }
+                vtrace1(x, x, x, x);
+                return x;
+            }
+        """)
+        # the nested one does not constrain the entry value, so it is skipped
+        assert complete is False
+        assert satisfiable(pre, z3.Int("x") == 500)
+
+    def test_input_precondition_stops_at_first_other_statement(self, tmp_path):
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int x){
+                vassume(x >= 1);
+                x = x + 100;
+                vassume(x >= 200);
+                vtrace1(x, x, x, x);
+                return x;
+            }
+        """)
+        # the second vassume talks about a mutated x, not the input
+        assert complete is False
+        assert satisfiable(pre, z3.Int("x") == 1)
+
+    def test_input_precondition_skips_non_parameter_and_non_int(self, tmp_path):
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int g;
+            int mainQ(int x, double d){
+                vassume(g == 0);
+                vassume(d > 0.5);
+                vassume(x >= 1);
+                vtrace1(x, x, x, x);
+                return x;
+            }
+        """)
+        assert complete is False          # the global and the double are skipped
+        assert implied(pre, z3.BoolVal(True), z3.Int("x") >= 1)
+
+    def test_input_precondition_none_without_vassume(self, tmp_path):
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int x){ vtrace1(x, x, x, x); return x; }
+        """)
+        assert pre is None and complete is True
+
+    def test_input_precondition_stops_at_declaration_that_moves_an_input(self, tmp_path):
+        """A declaration's initializer can move a parameter, so a vassume after
+        it is not a condition on the input's entry value."""
+        for init in ("int t = x++;", "int t = (x = 100);", "int t = helper(&x);"):
+            eng, (pre, complete) = self.precond(tmp_path, """
+                int helper(int *p){ return 0; }
+                int mainQ(int x){
+                    %s
+                    vassume(x >= 10);
+                    vtrace1(x, x, x, x);
+                    return x;
+                }
+            """ % init)
+            assert pre is None, init
+            assert complete is False, init
+
+    def test_input_precondition_keeps_harmless_declarations(self, tmp_path):
+        """A declaration that cannot move an input must not stop extraction."""
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int x){
+                vassume(x >= 5);
+                int t = 3;
+                int u = t + 1;
+                vassume(x <= 7);
+                vtrace1(x, t, u, x);
+                return x;
+            }
+        """)
+        assert complete is True
+        assert implied(pre, z3.BoolVal(True), z3.And(z3.Int("x") >= 5, z3.Int("x") <= 7))
+
+    def test_input_precondition_ignores_vassert(self, tmp_path):
+        """An assertion is a property to check, not an assumption."""
+        eng, (pre, complete) = self.precond(tmp_path, """
+            int mainQ(int x){
+                vassert(x >= 1);
+                vtrace1(x, x, x, x);
+                return x;
+            }
+        """)
+        assert pre is None
 
 
 # ─────────────────────────────────────────────────── arrays ─────────
@@ -1642,6 +1792,34 @@ class TestNontermination:
         status, cex = eng.prove_nontermination()
         assert status == "diverges"
         assert int(cex["x"]) >= 1   # a genuinely diverging input
+
+    def test_prove_any_nontermination_finds_the_diverging_loop(self, tmp_path):
+        # the first loop terminates, so the search must go on to the second
+        f = tmp_path / "two_loops.c"
+        f.write_text(HEADER + """
+            int mainQ(int x, int y){
+                int c = 0;
+                while (c < 2) { c = c + 1; }
+                while (x > 0) { y = 1 - y; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        eng = CSymEx(f, 8)
+        status, cex, loop = eng.prove_any_nontermination()
+        assert status == "diverges"
+        assert loop == 1          # the second loop is the diverging one
+        assert int(cex["x"]) >= 1
+
+    def test_prove_any_nontermination_unknown_when_all_loops_terminate(self, tmp_path):
+        eng = self.engine(tmp_path, HEADER + """
+            int mainQ(int x, int y){
+                while (y < x) { y = y + 1; }
+                vtrace1(x, y, x, y);
+                return 0;
+            }
+        """)
+        assert eng.prove_any_nontermination() == ("unknown", None, None)
 
     def test_lasso_state_repetition(self, tmp_path):
         # x is rewritten to itself; the state repeats exactly whenever

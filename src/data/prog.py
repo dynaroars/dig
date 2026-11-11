@@ -8,12 +8,14 @@ import re
 import shlex
 import itertools
 import random
+from functools import lru_cache
 from pathlib import Path
 import pdb
 from collections import namedtuple
 import subprocess
 
 import sympy
+import z3
 
 import settings
 from helpers.miscs import MP
@@ -118,6 +120,51 @@ class Symbs(tuple):
 class DSymbs(dict):
     pass
 
+
+@lru_cache(maxsize=16)
+def _precondition_of(text: str, filename: str) -> tuple:
+    """
+    (constraint, complete) for a C source: the vassume precondition over
+    mainQ's inputs, as z3, cached on the source text (cf.
+    infer.source_hints._candidates). Any failure to obtain one is reported as
+    "no precondition", which leaves input generation exactly as it was.
+    """
+    del text  # only part of the cache key, so an edited source re-extracts
+    try:
+        from data.symex_c import CSymEx
+        engine = CSymEx(Path(filename), 1)
+        engine._parse()
+        return engine.input_precondition()
+    except Exception as ex:
+        mlog.debug(f"no input precondition for '{filename}': {ex}")
+        return None, False
+
+
+@lru_cache(maxsize=16)
+def _nontermination_of(text: str, filename: str) -> tuple:
+    """
+    (loop index, witness inputs) for a loop of mainQ that provably diverges,
+    else (None, None). Cached, and only ever consulted once a run has actually
+    exhausted its time budget, so programs that terminate pay nothing. A
+    (None, None) result means no witness was found, not that the program
+    terminates.
+    """
+    del text  # only part of the cache key, so an edited source re-checks
+    if not settings.NONTERM_PROOF_DEPTH:
+        return None, None
+    try:
+        from data.symex_c import CSymEx
+        # the proof explores from the loop head itself, so run() is not needed;
+        # the shallow depth and the feasibility work budget keep it quick
+        engine = CSymEx(Path(filename), settings.NONTERM_PROOF_DEPTH,
+                        solver_rlimit=settings.FEASIBILITY_SOLVER_RLIMIT)
+        status, cex, loop = engine.prove_any_nontermination()
+        return (loop, cex) if status == "diverges" else (None, None)
+    except Exception as ex:
+        mlog.debug(f"no nontermination proof for '{filename}': {ex}")
+        return None, None
+
+
 class Prog:
     @beartype
     def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs,
@@ -128,6 +175,9 @@ class Prog:
         self._cache = {}  # inp -> traces (str)
         self.execution_outcomes = {}
         self.source = source
+        # blocked in later calls, so asking again yields new values
+        self._solver_found = set()
+        self._reported_timeouts = set()
 
     @beartype
     @property
@@ -149,6 +199,14 @@ class Prog:
 
     @beartype
     def gen_rand_inps(self, n_needed: int = 1) -> set[tuple]:
+        """
+        Random inputs for the program, guided by its vassume precondition when
+        one can be extracted: a candidate the precondition provably rejects is
+        dropped before it costs a process execution, and when the sampling
+        windows rarely (or never) hit the admissible set, a bounded solver
+        phase supplies the rest. A program without a usable precondition takes
+        exactly the path it always did.
+        """
         assert n_needed >= 1, n_needed
         try:
             valid_ranges = self._valid_ranges
@@ -157,19 +215,160 @@ class Prog:
             valid_ranges, inps = self._get_valid_inp_ranges()
             self._valid_ranges = valid_ranges
 
+        constraint, complete = self.precondition
+        n_rejected = n_draws = 0
+        # tested once per pass, so one pass may overshoot it; range
+        # validation's own draws are not counted here
+        budget = settings.INP_ATTEMPT_FACTOR * n_needed
+
         while len(inps) < n_needed:
             old_siz = len(inps)
+            n_rejected_pass = 0
             # iterate in a canonical order so RNG is consumed deterministically:
             # set iteration order is not stable across processes (it forks via
             # _get_traces_mp), which otherwise makes generated inps vary run-to-run.
             for inp_range in sorted(valid_ranges):
-                myinp = self._get_inp_from_range(inp_range)
+                # an admissible input per window per pass, so what a pass
+                # contributes does not depend on how much of the window the
+                # precondition rules out
+                myinp, drawn = self._draw_admissible(inp_range)
+                n_draws += drawn
+                if myinp is None:
+                    n_rejected_pass += drawn
+                    continue
+                n_rejected_pass += drawn - 1
                 inps.add(myinp)
 
-            if len(inps) == old_siz:
+            n_rejected += n_rejected_pass
+            # nothing added *and* nothing rejected is the original stopping
+            # condition; a rejection means the window is still live
+            if len(inps) == old_siz and not n_rejected_pass:
                 mlog.debug(f"can't gen new rand inps (current {len(inps)})")
                 break
+            if constraint is not None and n_draws >= budget:
+                break
+
+        status, n_calls = "ok", 0
+        if constraint is not None and len(inps) < n_needed:
+            extra, status, n_calls = self._solver_sample(
+                n_needed - len(inps), inps, constraint)
+            inps |= extra
+            if not inps and status == "exhausted":
+                # handed out by an earlier call; returning nothing would make
+                # the caller give up on random inputs altogether
+                inps = set(self._solver_found)
+
+        if constraint is not None:
+            self._log_rand_inps(n_needed, len(inps), n_rejected, n_draws,
+                                status, n_calls, complete)
         return inps
+
+    @property
+    def precondition(self) -> tuple:
+        """
+        (constraint, complete): the program's vassume precondition over the
+        inputs, as a z3 expression, or (None, _) when there is no source, the
+        source cannot be parsed, or no condition is usable. `complete` is
+        False when the constraint is weaker than the real precondition (see
+        CSymEx.input_precondition), in which case it may only rule inputs out.
+        """
+        try:
+            return self._precondition
+        except AttributeError:
+            self._precondition = (None, False)
+            if self.source is not None:
+                try:
+                    self._precondition = _precondition_of(
+                        self.source.read_text(), str(self.source))
+                except OSError as ex:
+                    mlog.debug(f"cannot read '{self.source}': {ex}")
+            return self._precondition
+
+    @property
+    def nontermination(self) -> tuple:
+        """
+        (loop index, witness inputs) for a provably diverging loop of mainQ,
+        else (None, None) — which says nothing about termination.
+        """
+        try:
+            return self._nontermination
+        except AttributeError:
+            self._nontermination = (None, None)
+            if self.source is not None:
+                try:
+                    self._nontermination = _nontermination_of(
+                        self.source.read_text(), str(self.source))
+                except OSError as ex:
+                    mlog.debug(f"cannot read '{self.source}': {ex}")
+            return self._nontermination
+
+    def _report_nontermination(self) -> None:
+        """
+        Tell the user about inputs the program did not finish on. Their traces
+        are already discarded, so without this the run looks merely unlucky.
+        Each input is reported once, and the proof is only attempted when a
+        run has actually timed out.
+        """
+        timed_out = sorted(inp.vs for inp, outcome
+                           in self.execution_outcomes.items()
+                           if outcome == "timeout")
+        fresh = [inp for inp in timed_out if inp not in self._reported_timeouts]
+        if not fresh:
+            return
+        self._reported_timeouts.update(fresh)
+
+        src = self.source.name if self.source else "?"
+        names = self.inp_decls.names
+
+        def show(inp):
+            return "(" + ", ".join(f"{n}={v}" for n, v in zip(names, inp)) + ")"
+
+        shown = ", ".join(map(show, fresh[:settings.NONTERM_REPORT_MAX]))
+        if len(fresh) > settings.NONTERM_REPORT_MAX:
+            shown += f", ... (+{len(fresh) - settings.NONTERM_REPORT_MAX} more)"
+        loop, witness = self.nontermination
+        if loop is not None:
+            cex = "(" + ", ".join(f"{n}={v}" for n, v in witness.items()) + ")"
+            mlog.error(
+                f"{src}: loop #{loop} does not terminate -- proved to diverge "
+                f"on input {cex}. {len(timed_out)} input(s) hit the "
+                f"{settings.C.RUN_TIMEOUT}s run budget and contribute no "
+                f"traces: {shown}")
+        else:
+            mlog.warning(
+                f"{src}: {len(fresh)} input(s) did not finish within "
+                f"{settings.C.RUN_TIMEOUT}s and contribute no traces ({shown}); "
+                f"the program may not terminate on them")
+
+    def _admits(self, inp: tuple):
+        """
+        Three-valued test of a candidate against the precondition:
+        True (satisfies it), False (violates it) or None (cannot tell, e.g. a
+        division by a candidate 0 -- z3 leaves that uninterpreted).
+
+        Only a False verdict is acted on. None, and conditions that could not
+        be translated at all, are never read as "satisfied": running the
+        program stays the oracle for every candidate that is kept, so an
+        input is never claimed admissible on the strength of this check.
+        """
+        constraint, _ = self.precondition
+        if constraint is None:
+            return None
+        subs = [(z3.Int(name), z3.IntVal(v))
+                for name, v in zip(self.inp_decls.names, inp)
+                if isinstance(v, int)]
+        if not subs:
+            return None
+        try:
+            simplified = z3.simplify(z3.substitute(constraint, *subs))
+        except z3.Z3Exception as ex:
+            mlog.debug(f"cannot evaluate assumptions on {inp}: {ex}")
+            return None
+        if z3.is_true(simplified):
+            return True
+        if z3.is_false(simplified):
+            return False
+        return None
 
     # PRIVATE METHODS
     @beartype
@@ -188,7 +387,7 @@ class Prog:
         except subprocess.TimeoutExpired:
             # the program did not terminate within the budget on this input
             # (e.g. an infinite loop); skip it rather than hang forever.
-            mlog.warning(
+            mlog.debug(
                 f"run timed out after {settings.C.RUN_TIMEOUT}s, no traces: {cmd}")
             self.execution_outcomes[inp] = "timeout"
             return []
@@ -225,6 +424,7 @@ class Prog:
             self._cache[inp] = traces
             self.execution_outcomes[inp] = outcome
 
+        self._report_nontermination()
         return {inp: self._cache[inp] for inp in inps}
 
     def _get_valid_inp_ranges(self):
@@ -232,12 +432,32 @@ class Prog:
 
         dr = {}  # Inp => range
         di = {}  # Inp => inp
-        inp_ranges = self._get_inp_ranges(len(self.inp_decls))
-        for inp_range in inp_ranges:
-            inp = self._get_inp_from_range(inp_range)
+        inp_ranges = list(self._get_inp_ranges(len(self.inp_decls)))
+        live = []
+
+        def record(inp_range, inp):
             my_inp = data.traces.Inp(self.inp_decls.names, inp)
             dr[my_inp] = inp_range
             di[my_inp] = inp
+
+        for inp_range in inp_ranges:
+            inp, _ = self._draw_admissible(inp_range)
+            if inp is None:
+                mlog.debug(f"inp range {inp_range} excluded by assumptions")
+                continue
+            live.append(inp_range)
+            record(inp_range, inp)
+
+        # The windows spread the sample, so a precondition that rules most of
+        # them out must not shrink it. Without a precondition nothing is
+        # excluded and this loop does not run, leaving the draws untouched.
+        for i in range(len(inp_ranges) - len(live)):
+            if not live:
+                break
+            inp_range = live[i % len(live)]
+            inp, _ = self._draw_admissible(inp_range)
+            if inp is not None:
+                record(inp_range, inp)
 
         my_inps = data.traces.Inps(di.keys())
         mytraces = self._get_traces_mp(my_inps)
@@ -255,6 +475,196 @@ class Prog:
     @classmethod
     def _get_inp_from_range(cls, inp_range):
         return tuple(random.randrange(ir[0], ir[1]) for ir in inp_range)
+
+    def _draw_admissible(self, inp_range) -> tuple:
+        """
+        (input, n_draws) for `inp_range`: an input the precondition does not
+        reject, or (None, n) if every attempt was rejected.
+
+        Without a precondition this is one _get_inp_from_range draw, so
+        generation is unchanged. With one, a bounded number of re-draws keeps
+        a window that is only partly admissible contributing an input per
+        pass, instead of that window's share of the sample being lost.
+        """
+        inp = self._get_inp_from_range(inp_range)
+        if self.precondition[0] is None or self._admits(inp) is not False:
+            return inp, 1
+        for n in range(2, settings.INP_PROBE_REDRAWS + 2):
+            inp = self._get_inp_from_range(inp_range)
+            if self._admits(inp) is not False:
+                return inp, n
+        return None, settings.INP_PROBE_REDRAWS + 1
+
+    def _solver_sample(self, k: int, found, constraint) -> tuple:
+        """
+        Ask z3 for up to `k` further inputs satisfying `constraint`, in at most
+        2*k + settings.INP_SOLVER_CALL_SLACK + 1 calls (the cap is tested once
+        per sample and a sample may spend two) under the "feasibility" policy,
+        whose work budget keeps the outcome independent of machine load.
+
+        Returns (inps, status, n_calls), status one of: "ok", "budget",
+        "unsolvable" (the constraint mentions no input of this program),
+        "unsat", "exhausted", "outside"/"outside-<reason>" (nothing within
+        -inpMaxV satisfies it, so the whole C int range was searched) or
+        "unknown". The last three carry claims, so: "unsat" comes from one
+        dedicated check, never from a window, bound or blocking clause;
+        "exhausted" only when the assumptions constrain *every* input, since a
+        free input always admits more tuples; and "unknown" concludes nothing.
+
+        Diversity, which equality fitting needs, comes from solving inside a
+        randomly placed window per sample and blocking what is already in hand.
+        Inputs the precondition never mentions keep coming from the sampling
+        windows, since model completion would pin all of them to 0.
+        """
+        from data.symex_c import INT_MIN, INT_MAX
+
+        names = self.inp_decls.names
+        mentioned = {str(v) for v in Z3.get_vars(constraint)}
+        solve_for = [i for i, name in enumerate(names) if name in mentioned]
+        if not solve_for:
+            return set(), "unsolvable", 0
+
+        free = [i for i in range(len(names)) if i not in set(solve_for)]
+        maxv = settings.INP_MAX_V
+        cap = 2 * k + settings.INP_SOLVER_CALL_SLACK
+        blocked = set(found) | self._solver_found
+        out: set = set()
+        calls = 0
+
+        def check(extra):
+            nonlocal calls
+            calls += 1
+            solver = Z3.create_solver(maximize=False)
+            solver.add(constraint, *extra)
+            res = solver.check()
+            return res, (solver.model() if res == z3.sat else None)
+
+        def blocking():
+            return [z3.Not(z3.And([z3.Int(names[i]) == int(inp[i])
+                                   for i in solve_for]))
+                    for inp in (blocked | out)]
+
+        def sample(lo, hi):
+            bounds = [c for i in solve_for
+                      for c in (z3.Int(names[i]) >= lo, z3.Int(names[i]) <= hi)]
+            while len(out) < k and calls < cap:
+                target = [random.randrange(0, maxv + 1) for _ in solve_for]
+                half = 1 + random.randrange(0, max(1, maxv // 4))
+                window = [c for i, t in zip(solve_for, target)
+                          for c in (z3.Int(names[i]) >= t - half,
+                                    z3.Int(names[i]) <= t + half)]
+                res, model = check(bounds + window + blocking())
+                if res == z3.unsat:
+                    # the window missed: retry without it before concluding
+                    res, model = check(bounds + blocking())
+                if res == z3.unknown:
+                    return "unknown"
+                if res == z3.unsat:
+                    if free:
+                        # out of assignments for the constrained inputs, but
+                        # the free ones still admit new tuples
+                        return "values"
+                    return "exhausted" if (out or blocked) else "outside"
+                out.add(self._inp_from_model(model, solve_for))
+            return "ok" if len(out) >= k else "budget"
+
+        with Z3.use_policy(settings.solver_policy("feasibility")):
+            res, _ = check([])
+            if res == z3.unsat:
+                return set(), "unsat", calls
+            if res == z3.unknown:
+                return set(), "unknown", calls
+
+            status = sample(0, maxv)
+            if status == "outside":
+                # satisfiable, but not inside -inpMaxV: look beyond it, and
+                # keep that in the status whatever ends the wider search
+                relaxed = sample(INT_MIN, INT_MAX)
+                status = ("outside" if relaxed in ("ok", "budget")
+                          else f"outside-{relaxed}")
+        if status == "values":
+            status = self._fill_free(out, blocked, k, solve_for, free)
+
+        self._solver_found |= out
+        return out, status, calls
+
+    def _fill_free(self, out, blocked, k, solve_for, free) -> str:
+        """
+        Top up `out` once the solver has no further assignment for the inputs
+        the precondition constrains: reuse an assignment already known to be
+        admissible and draw fresh values for the free inputs. Bounded by
+        settings.INP_ATTEMPT_FACTOR draws per input still wanted, and every
+        candidate still goes through the precondition check.
+        """
+        known = sorted({tuple(inp[i] for i in solve_for) for inp in (out | blocked)
+                        if self._admits(inp) is not False})
+        if not known:
+            return "budget"
+        attempts, cap = 0, settings.INP_ATTEMPT_FACTOR * max(1, k - len(out))
+        while len(out) < k and attempts < cap:
+            attempts += 1
+            base = known[random.randrange(len(known))]
+            cand = [0] * len(self.inp_decls.names)
+            for pos, i in enumerate(solve_for):
+                cand[i] = base[pos]
+            for i in free:
+                cand[i] = random.randrange(0, settings.INP_MAX_V)
+            myinp = tuple(cand)
+            if (myinp not in out and myinp not in blocked
+                    and self._admits(myinp) is not False):
+                out.add(myinp)
+        return "ok" if len(out) >= k else "budget"
+
+    def _inp_from_model(self, model, solve_for):
+        """
+        Read one candidate input off a model: inputs the precondition
+        constrains come from the model, the rest stay random -- model
+        completion would pin every unconstrained input to 0, which costs the
+        trace diversity the inference needs.
+        """
+        chosen = set(solve_for)
+        return tuple(
+            model.eval(z3.Int(name), model_completion=True).as_long()
+            if i in chosen else random.randrange(0, settings.INP_MAX_V)
+            for i, name in enumerate(self.inp_decls.names))
+
+    def _log_rand_inps(self, n_needed, n_got, n_rejected, n_draws,
+                       status, n_calls, complete):
+        """One line per generation call, so a shortfall is never silent."""
+        src = self.source.name if self.source else "?"
+        what = "the assumptions" if complete else "the assumptions extracted"
+        detail = (f"{n_draws} draws, {n_rejected} rejected by assumptions"
+                  + (f", {n_calls} solver call{'s' if n_calls > 1 else ''}"
+                     if n_calls else ""))
+        if status == "unsat":
+            # a weaker constraint being unsatisfiable means the real
+            # precondition is too, so this holds even if extraction was partial
+            mlog.error(f"{src}: {what} are unsatisfiable, so no input can "
+                       f"produce traces ({detail})")
+        elif status.startswith("outside"):
+            why = {"outside-exhausted": "; no further input satisfies them at all",
+                   "outside-unknown": "; the solver then gave up",
+                   "outside-values": ""}.get(status, "")
+            mlog.warning(f"{src}: no input within -inpMaxV {settings.INP_MAX_V} "
+                         f"satisfies {what}; sampled beyond it, got {n_got} of "
+                         f"{n_needed} inps{why} ({detail})")
+        elif status == "exhausted":
+            mlog.info(f"{src}: no further input satisfies {what} within "
+                      f"-inpMaxV {settings.INP_MAX_V}, got {n_got} of "
+                      f"{n_needed} inps ({detail})")
+        elif status == "unknown":
+            mlog.warning(f"{src}: solver gave up while sampling inputs, got "
+                         f"{n_got} of {n_needed} inps ({detail})")
+        elif status == "unsolvable":
+            mlog.warning(f"{src}: {what} constrain no input of this program, so "
+                         f"only the sampling windows apply; got {n_got} of "
+                         f"{n_needed} inps ({detail})")
+        elif n_got < n_needed:
+            mlog.warning(f"{src}: generated {n_got} of {n_needed} inps, "
+                         f"could not find more within the search budget "
+                         f"({detail})")
+        else:
+            mlog.debug(f"{src}: generated {n_got} inps ({detail})")
 
     @classmethod
     def _get_inp_ranges(cls, n_inps):

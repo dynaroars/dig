@@ -299,13 +299,32 @@ LLM-free and reusable on its own.
 | Mode | How to trigger | What happens |
 |---|---|---|
 | **Symbolic states** (default) | `dig.py prog.c` | Build z3 symbolic states; eqts via CEGIR, ieqs/min-max via SMT optimization, recurrences statically. Results are largely **proved**. |
-| **Pure dynamic** | `dig.py prog.c -noss` | Compile + run the instrumented program on `N_RAND_INPS` random inputs; mine traces only. No proofs; recurrence/symbolic checks are skipped. |
+| **Pure dynamic** | `dig.py prog.c -noss` | Compile + run the instrumented program on `N_RAND_INPS` random inputs, guided by the `vassume` precondition (§3.1); mine traces only. No proofs; recurrence/symbolic checks are skipped. |
 | **Trace file** | `dig.py traces.csv` | Read a semicolon-separated CSV of concrete values; run the trace-only miners (eqt null-space, oct/min-max bounds from data, congruences, arrays). No source, no proofs. |
 | **LLM-assisted** | `dig.py prog.c -llm` | An LLM proposes invariants; DIG **verifies** them soundly with symbolic states + z3 (plus a k-induction houdini pass, §2.7) in a CEGIR loop (`-llm_rounds`, `-llm_no_traces`, `-nollmhoudini`). Requires `ANTHROPIC_API_KEY`. |
 
 Safety: before compiling/running a C file (dynamic or `-noss` mode), a static
 scan rejects programs calling dangerous functions (`system`, `fork`, `open`,
-…); each run is killed after `C.RUN_TIMEOUT` seconds.
+…); each run is killed after `C.RUN_TIMEOUT` seconds, and the inputs that hit
+that budget are reported — as an error naming the diverging loop and a witness
+input when the symbolic engine can prove non-termination, otherwise as a
+warning that the program may not terminate on them (`NONTERM_PROOF_DEPTH`).
+A `vassert` the symbolic run finds violated is reported too, with its source
+location and a failing input — that verdict is produced by the same exploration
+that builds the symbolic states, so nothing extra is run to obtain it.
+
+### 3.1 Random inputs and the `vassume` precondition
+
+Random input generation reads `mainQ`'s entry `vassume` conditions (translated
+to z3 by `CSymEx.input_precondition`) and skips candidates they refute, instead
+of paying a process execution to find out. A shortfall is topped up by a
+bounded solver search (`INP_ATTEMPT_FACTOR`, `INP_SOLVER_CALL_SLACK`), and a
+sampling window the precondition rules out is replaced rather than dropped
+(`INP_PROBE_REDRAWS`), so the sample does not shrink with the admissible
+region. A candidate is rejected only when the extracted constraint refutes it —
+conditions the evaluator cannot translate are never read as satisfied, so
+running the program stays the oracle. Programs without a usable precondition
+generate exactly the inputs they did before.
 
 ---
 

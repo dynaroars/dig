@@ -122,6 +122,37 @@ def _coerce(a: z3.ExprRef, b: z3.ExprRef) -> tuple[z3.ExprRef, z3.ExprRef]:
     return a, b
 
 
+def _walk(node):
+    """Yield a pycparser node and every node below it."""
+    yield node
+    for _, child in node.children():
+        yield from _walk(child)
+
+
+def _call_name(node) -> str | None:
+    """Name of a called function if `node` is a plain call, else None."""
+    if isinstance(node, c_ast.FuncCall) and isinstance(node.name, c_ast.ID):
+        return node.name.name
+    return None
+
+
+def _may_write(node) -> bool:
+    """
+    True if evaluating `node` might change a variable: it contains an
+    assignment, an increment/decrement, a call, or takes an address (which a
+    callee could write through). Used to tell a harmless declaration
+    (`int t = 3;`) from one that moves a parameter (`int t = x++;`).
+    """
+    for n in _walk(node):
+        if isinstance(n, c_ast.Assignment):
+            return True
+        if isinstance(n, c_ast.UnaryOp) and n.op in ("p++", "++", "p--", "--", "&"):
+            return True
+        if isinstance(n, c_ast.FuncCall):
+            return True
+    return False
+
+
 def _type_name(node) -> str | None:
     """Innermost C type name of a Decl/Typename node, e.g. 'int' or 'double'."""
     t = getattr(node, "type", None)
@@ -389,6 +420,87 @@ class CSymEx:
         """
         reached = {rec.loc for rec in self.records}
         return sorted(loc for loc in self.vtrace_params if loc not in reached)
+
+    def input_precondition(self) -> tuple[z3.ExprRef | None, bool]:
+        """
+        mainQ's entry precondition over its int inputs, as (constraint,
+        complete), or (None, complete) when no condition was usable. Needs
+        only _parse(), not run().
+
+        `constraint` conjoins the vassume(cond) calls that are top-level
+        statements of mainQ, come before any other statement, and mention only
+        int mainQ parameters — the conditions that constrain the inputs' entry
+        values. Anything else (nested in a loop or branch, after another
+        statement or after a declaration that may move an input, over a
+        global/non-int, or using an expression this evaluator rejects) is
+        skipped and makes `complete` False.
+
+        A False `complete` means the constraint is *weaker* than the real
+        precondition, which implies it: it can still rule an input out, and its
+        unsatisfiability still implies the real one's, but satisfying it claims
+        nothing and must never be read as "this input is admissible".
+
+        vassert is not consulted: an assertion is a property to check, not an
+        assumption about the inputs.
+        """
+        body = self.func_bodies.get("mainQ")
+        if body is None:
+            return None, False
+
+        int_params = {n for n, t in self.mainq_params if t == "int"}
+        conds, complete, n_seen = [], True, 0
+        # evaluating a condition is not executing program code (cf.
+        # parse_c_expr), so the opt-in checks stay off for it
+        checks = self.check_safety, self.check_overflow
+        self.check_safety = self.check_overflow = False
+        try:
+            for stmt in (body.block_items or []):
+                if isinstance(stmt, c_ast.Decl):
+                    # an initializer may move an input (`int t = x++;`), making
+                    # every later vassume a condition on a *changed* value
+                    if stmt.init is not None and _may_write(stmt.init):
+                        break
+                    continue
+                if _call_name(stmt) != "vassume":
+                    break             # stop at the first other statement
+                n_seen += 1
+                args = stmt.args.exprs if stmt.args else []
+                if len(args) != 1:
+                    complete = False
+                    continue
+                cond = args[0]
+                names = {n.name for n in _walk(cond) if isinstance(n, c_ast.ID)}
+                if not names <= int_params or any(
+                        _call_name(n) for n in _walk(cond)):
+                    complete = False  # not an entry-only condition on ints
+                    continue
+                try:
+                    conds.append(_as_bool(self._eval_expr(cond, SymState())))
+                except NotImplementedError:
+                    complete = False  # unsupported: skipped, never assumed
+        finally:
+            self.check_safety, self.check_overflow = checks
+
+        if n_seen != sum(_call_name(n) == "vassume" for n in _walk(body)):
+            complete = False          # a vassume elsewhere in the function
+        if not conds:
+            return None, complete
+        return (conds[0] if len(conds) == 1 else z3.And(conds)), complete
+
+    def prove_any_nontermination(self) -> tuple[str, dict[str, str] | None, int | None]:
+        """
+        The first loop of mainQ this engine can prove diverges, as (status,
+        witness inputs, loop index). ("unknown", None, None) means no witness
+        was found — never that the program terminates (see
+        prove_nontermination for what the two proof engines cover).
+        """
+        if not self.func_bodies:
+            self._parse()
+        for i in range(len(_find_loops(self.func_bodies["mainQ"]))):
+            status, cex = self.prove_nontermination(loop=i)
+            if status == "diverges":
+                return status, cex, i
+        return "unknown", None, None
 
     def parse_c_expr(self, text: str, as_bool: bool = True) -> z3.ExprRef:
         """
@@ -2374,8 +2486,11 @@ def _strip_comments(src: str) -> str:
 
 
 def _strip_includes(src: str) -> str:
-    """Remove #include lines so pycparser doesn't need system headers."""
-    lines = [l for l in src.splitlines() if not l.strip().startswith("#include")]
+    """Blank out #include lines so pycparser doesn't need system headers.
+    Blanked, not removed, so later lines keep their numbers and a finding's
+    coord names the real source line."""
+    lines = ["" if l.strip().startswith("#include") else l
+             for l in src.splitlines()]
     return "\n".join(lines)
 
 
