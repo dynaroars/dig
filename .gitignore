@@ -149,5 +149,18 @@ node_modules/
 dist/
 .DS_Store
 
+# Read-only, unlicensed historical checkout used only for the axiom port inventory.
+# Production code and tests must never import it; it is intentionally not distributed.
+/algebraicaxioms/
 
 
+
+# Core dumps from crashing instrumented programs
+core.[0-9]*
+
+# Local artifacts
+benchmark/results/
+rust/**/target/
+paper/.auctex-auto/
+paper/*.pdf
+web/.claude/

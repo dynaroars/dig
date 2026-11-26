@@ -1,0 +1,1297 @@
+{
+  "nla/cohencu": {
+    "source": "benchmark/c/nla/cohencu.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "x-n**3 == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "y-3*n**2-3*n-1 == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "z-6*n-6 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/prod4br": {
+    "source": "benchmark/c/nla/prod4br.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "q+a*b*p-x*y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "nla/prodbin": {
+    "source": "benchmark/c/nla/prodbin.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "z+x*y-a*b == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "z-a*b == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/lcm1": {
+    "source": "benchmark/c/nla/lcm1.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "x*u+y*v-a*b == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "x*u+y*v-a*b == 0"
+      },
+      {
+        "location": "vtrace3",
+        "expression": "x*u+y*v-a*b == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/lcm2": {
+    "source": "benchmark/c/nla/lcm2.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "x*u+y*v-2*a*b == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/egcd": {
+    "source": "benchmark/c/nla/egcd.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "b-x*q-y*s == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "p*s-r*q-1 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/egcd2": {
+    "source": "benchmark/c/nla/egcd2.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "b-x*q-y*s == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "b-x*q-y*s == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "a-k*b-c == 0"
+      },
+      {
+        "location": "vtrace3",
+        "expression": "a-x*p-y*r == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/egcd3": {
+    "source": "benchmark/c/nla/egcd3.c",
+    "targets": [
+      {
+        "location": "vtraces1",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtraces1",
+        "expression": "b-x*q-y*s == 0"
+      },
+      {
+        "location": "vtraces2",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtraces2",
+        "expression": "b-x*q-y*s == 0"
+      },
+      {
+        "location": "vtraces2",
+        "expression": "a-k*b-c == 0"
+      },
+      {
+        "location": "vtraces3",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtraces3",
+        "expression": "b-x*q-y*s == 0"
+      },
+      {
+        "location": "vtraces3",
+        "expression": "a-k*b-c == 0"
+      },
+      {
+        "location": "vtraces3",
+        "expression": "v-b*d == 0"
+      },
+      {
+        "location": "vtraces4",
+        "expression": "a-x*p-y*r == 0"
+      },
+      {
+        "location": "vtraces4",
+        "expression": "b-x*q-y*s == 0"
+      }
+    ],
+    "depth": 6,
+    "maxdeg": 2
+  },
+  "nla/fermat1": {
+    "source": "benchmark/c/nla/fermat1.c",
+    "targets": [
+      {
+        "location": "vtraces1",
+        "expression": "4*(A+r)-u**2+v**2+2*u-2*v == 0"
+      },
+      {
+        "location": "vtraces2",
+        "expression": "4*(A+r)-u**2+v**2+2*u-2*v == 0"
+      },
+      {
+        "location": "vtraces3",
+        "expression": "4*(A+r)-u**2+v**2+2*u-2*v == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/fermat2": {
+    "source": "benchmark/c/nla/fermat2.c",
+    "targets": [
+      {
+        "location": "vtraces1",
+        "expression": "4*(A+r)-u**2+v**2+2*u-2*v == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/knuth": {
+    "source": "benchmark/c/nla/knuth.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "d**2*q-2*q*d-4*r*d+4*k*d+8*r-8*n == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "k*t-t**2 == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "(d-a)*(k-t) == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "d**2*q-2*q*d-4*r*d+4*k*d+8*r-8*n == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "k*t-t**2 == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "(d-a)*(k-t) == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "nla/bresenham": {
+    "source": "benchmark/c/nla/bresenham.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "2*Y*x-2*X*y-X+2*Y-v == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/freire1": {
+    "source": "benchmark/c/nla/freire1.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "2*x+r**2-r-a == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/freire1_int": {
+    "source": "benchmark/c/nla/freire1_int.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "2*x+r**2-r-a == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/11.dig": {
+    "source": "benchmark/c/hola/11.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "j == 2*x"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/30.dig": {
+    "source": "benchmark/c/hola/30.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "c >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/24.dig": {
+    "source": "benchmark/c/hola/24.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "k >= i"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1,
+    "inpMaxV": 30
+  },
+  "complexity/cav09_fig1a": {
+    "source": "benchmark/c/complexity/cav09_fig1a.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "m*tCtr - tCtr*tCtr - 100*m + 200*tCtr - 10000 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/cav09_fig1d": {
+    "source": "benchmark/c/complexity/cav09_fig1d.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "m*tCtr - tCtr*tCtr - 100*m + 200*tCtr - 10000 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/04.dig": {
+    "source": "benchmark/bad-programs/04.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "y > 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "nla/cohendiv": {
+    "source": "benchmark/c/nla/cohendiv.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "x-q*y-r == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "b-y*a == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "x-q*y-r == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "b-y*a == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/dijkstra": {
+    "source": "benchmark/c/nla/dijkstra.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "p == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "r-n == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "p**2+r*q-n*q == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/divbin": {
+    "source": "benchmark/c/nla/divbin.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "q == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "r-A == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "A-q*b-r == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/freire2": {
+    "source": "benchmark/c/nla/freire2.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "4*r**3-6*r**2+3*r+4*x-4*a-1 == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "4*s-12*r**2-1 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "nla/geo1": {
+    "source": "benchmark/c/nla/geo1.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "x*z-x-y+1 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/geo2": {
+    "source": "benchmark/c/nla/geo2.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "1+x*z-x-z*y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/geo3": {
+    "source": "benchmark/c/nla/geo3.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "z*x-x+a-a*z*y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "nla/hard": {
+    "source": "benchmark/c/nla/hard.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "q == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "r-A == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "d-B*p == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "A-q*B-r == 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "d-B*p == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/mannadiv": {
+    "source": "benchmark/c/nla/mannadiv.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "q*y+a+b-x == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/ps2": {
+    "source": "benchmark/c/nla/ps2.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "2*x-y**2-y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "nla/ps3": {
+    "source": "benchmark/c/nla/ps3.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "6*x-2*y**3-3*y**2-y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "nla/ps4": {
+    "source": "benchmark/c/nla/ps4.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "4*x-y**4-2*y**3-y**2 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 4
+  },
+  "nla/ps5": {
+    "source": "benchmark/c/nla/ps5.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "30*x-6*y**5-15*y**4-10*y**3+y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 5
+  },
+  "nla/ps6": {
+    "source": "benchmark/c/nla/ps6.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "12*x-2*y**6-6*y**5-5*y**4+y**2 == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 6
+  },
+  "nla/sqrt1": {
+    "source": "benchmark/c/nla/sqrt1.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "t-2*a-1 == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "s-(a+1)**2 == 0"
+      },
+      {
+        "location": "vtrace1",
+        "expression": "a*a <= n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2,
+    "iterms": 3
+  },
+  "hola/01.dig": {
+    "source": "benchmark/c/hola/01.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "y >= 1"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/02.dig": {
+    "source": "benchmark/c/hola/02.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == y"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/03.dig": {
+    "source": "benchmark/c/hola/03.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "i >= 1"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/05.dig": {
+    "source": "benchmark/c/hola/05.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "j >= i"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "hola/06.dig": {
+    "source": "benchmark/c/hola/06.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == y"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/07.dig": {
+    "source": "benchmark/c/hola/07.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "a+b == 3*n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/08.dig": {
+    "source": "benchmark/c/hola/08.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x < 4 or y > 2"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/09.dig": {
+    "source": "benchmark/c/hola/09.dig.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "k >= 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "k >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/10.dig": {
+    "source": "benchmark/c/hola/10.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == y"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/12.dig": {
+    "source": "benchmark/c/hola/12.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "y <= 4"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/13.dig": {
+    "source": "benchmark/c/hola/13.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "k == 0 or j == 2*k+2"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/14.dig": {
+    "source": "benchmark/c/hola/14.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "a >= -m"
+      },
+      {
+        "location": "vtrace",
+        "expression": "a <= m"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/15.dig": {
+    "source": "benchmark/c/hola/15.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "k >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/16.dig": {
+    "source": "benchmark/c/hola/16.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "i != j or y == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/17.dig": {
+    "source": "benchmark/c/hola/17.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "k >= n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "hola/18.dig": {
+    "source": "benchmark/c/hola/18.dig.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "flag == 0 or j == 100"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/19.dig": {
+    "source": "benchmark/c/hola/19.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "y == n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/20.dig": {
+    "source": "benchmark/c/hola/20.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x+y == k"
+      },
+      {
+        "location": "vtrace",
+        "expression": "n <= 0 or (m >= 0 and m < n)"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/21.dig": {
+    "source": "benchmark/c/hola/21.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "k > n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/22.dig": {
+    "source": "benchmark/c/hola/22.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == y"
+      },
+      {
+        "location": "vtrace",
+        "expression": "y == z"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/23.dig": {
+    "source": "benchmark/c/hola/23.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "s >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/25.dig": {
+    "source": "benchmark/c/hola/25.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "i >= j"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/26.dig": {
+    "source": "benchmark/c/hola/26.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == y"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/27.dig": {
+    "source": "benchmark/c/hola/27.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "k >= 1"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/28.dig": {
+    "source": "benchmark/c/hola/28.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "y == n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/29.dig": {
+    "source": "benchmark/c/hola/29.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "a+c == b+d"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/31.dig": {
+    "source": "benchmark/c/hola/31.dig.c",
+    "targets": [
+      {
+        "location": "vtrace1",
+        "expression": "j >= 0"
+      },
+      {
+        "location": "vtrace2",
+        "expression": "n+j+5 > i"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/32.dig": {
+    "source": "benchmark/c/hola/32.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "i == j"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/33.dig": {
+    "source": "benchmark/c/hola/33.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "i == j"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/34.dig": {
+    "source": "benchmark/c/hola/34.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == 2*y"
+      }
+    ],
+    "depth": 12,
+    "maxdeg": 2,
+    "inpMaxV": 30
+  },
+  "hola/35.dig": {
+    "source": "benchmark/c/hola/35.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/36.dig": {
+    "source": "benchmark/c/hola/36.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "w >= z"
+      },
+      {
+        "location": "vtrace",
+        "expression": "a == b"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/37.dig": {
+    "source": "benchmark/c/hola/37.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "m >= 0"
+      },
+      {
+        "location": "vtrace",
+        "expression": "m < n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/38.dig": {
+    "source": "benchmark/c/hola/38.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == 2*y"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/39.dig": {
+    "source": "benchmark/c/hola/39.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "glob3_dc >= 0"
+      },
+      {
+        "location": "vtrace",
+        "expression": "glob3_dc < MAXPATHLEN+1"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/40.dig": {
+    "source": "benchmark/c/hola/40.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "a == b"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/41.dig": {
+    "source": "benchmark/c/hola/41.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "z > 2*n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "hola/43.dig": {
+    "source": "benchmark/c/hola/43.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "y >= t"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/44.dig": {
+    "source": "benchmark/c/hola/44.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "j == i"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/45.dig": {
+    "source": "benchmark/c/hola/45.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x == y"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "hola/46.dig": {
+    "source": "benchmark/c/hola/46.dig.c",
+    "targets": [
+      {
+        "location": "vtrace",
+        "expression": "x <= 1"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "complexity/cav09_fig2d": {
+    "source": "benchmark/c/complexity/cav09_fig2d.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr == m*n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/cav09_fig3a": {
+    "source": "benchmark/c/complexity/cav09_fig3a.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-n) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= n"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/cav09_fig5b": {
+    "source": "benchmark/c/complexity/cav09_fig5b.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "y*y-a*a-2*x+y-a == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr == y-a"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "x >= n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/pldi09_ex6": {
+    "source": "benchmark/c/complexity/pldi09_ex6.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "(tCtr-n)*(tCtr-n-m)*(tCtr-n-2*m) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= n"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr <= n+2*m"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "complexity/pldi09_fig2": {
+    "source": "benchmark/c/complexity/pldi09_fig2.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-M-P-1)*(tCtr-(M+1)*N+M*P) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "N*(tCtr-M-P-1)*(tCtr-(M+1)*N+M*P) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= N"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 4
+  },
+  "complexity/pldi09_fig4_1": {
+    "source": "benchmark/c/complexity/pldi09_fig4_1.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr == n+1"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 1
+  },
+  "complexity/pldi09_fig4_2": {
+    "source": "benchmark/c/complexity/pldi09_fig4_2.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "m*n-m*tCtr+n-y == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "x == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "y >= 1"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "y <= m"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/pldi09_fig4_3": {
+    "source": "benchmark/c/complexity/pldi09_fig4_3.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr == (m+1)*n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/pldi09_fig4_5": {
+    "source": "benchmark/c/complexity/pldi09_fig4_5.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "m*m-m*n+n*tCtr-tCtr*tCtr == 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/popl09_fig2_1": {
+    "source": "benchmark/c/complexity/popl09_fig2_1.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-n+a)*(tCtr-m-n+a+b) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "complexity/popl09_fig2_2": {
+    "source": "benchmark/c/complexity/popl09_fig2_2.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-n+a)*(tCtr-2*n+a+b) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "complexity/popl09_fig3_4": {
+    "source": "benchmark/c/complexity/popl09_fig3_4.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-n)*(tCtr-m) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= n"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= m"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "complexity/popl09_fig4_1": {
+    "source": "benchmark/c/complexity/popl09_fig4_1.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-n-m) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= n"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/popl09_fig4_2": {
+    "source": "benchmark/c/complexity/popl09_fig4_2.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr*(tCtr-n+a)*(tCtr-m-n+a+b) == 0"
+      },
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr >= 0"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 3
+  },
+  "complexity/popl09_fig4_3": {
+    "source": "benchmark/c/complexity/popl09_fig4_3.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr == (m+1)*n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  },
+  "complexity/popl09_fig4_4": {
+    "source": "benchmark/c/complexity/popl09_fig4_4.c",
+    "targets": [
+      {
+        "location": "vtrace_post",
+        "expression": "tCtr == (m+1)*n"
+      }
+    ],
+    "depth": 4,
+    "maxdeg": 2
+  }
+}

@@ -1,0 +1,1214 @@
+{
+  "counts": {
+    "hola": [
+      7,
+      49
+    ],
+    "nla": [
+      21,
+      143
+    ],
+    "NLA-mosaic": [
+      10,
+      47
+    ],
+    "complexity": [
+      14,
+      97
+    ]
+  },
+  "programs": [
+    {
+      "program": "01.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 4.6918792724609375,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "02.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 0.7466011047363281,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "03.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 4.064575672149658,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "07.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 2.160175085067749,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "08.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 3.6934850215911865,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "15.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 2.223212242126465,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "20.dig",
+      "suite": "hola",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 8.867329359054565,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "program": "ariths",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 2.3656234741210938,
+      "eqts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "program": "binomial",
+      "suite": "NLA-mosaic",
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        5
+      ],
+      "seconds_median": 28.08434557914734,
+      "eqts": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "bresenham",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 28.834330320358276,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "cav09_fig2d",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 1.6455700397491455,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "cav09_fig3a",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 1.9698936939239502,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "cav09_fig5b",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 14.068460464477539,
+      "eqts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "program": "chebyshev",
+      "suite": "NLA-mosaic",
+      "runs": 5,
+      "seeds": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 11.247105598449707,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "chebyshev_pair",
+      "suite": "NLA-mosaic",
+      "runs": 6,
+      "seeds": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 6.764053225517273,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "cohendiv",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 20.910281896591187,
+      "eqts": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "program": "continued_fraction_sign",
+      "suite": "NLA-mosaic",
+      "runs": 6,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 27.276280641555786,
+      "eqts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "program": "dijkstra",
+      "suite": "nla",
+      "runs": 4,
+      "seeds": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "seconds_median": 27.76927351951599,
+      "eqts": [
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "program": "divbin",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 10.901347875595093,
+      "eqts": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "program": "egcd",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 72.77922320365906,
+      "eqts": [
+        3,
+        3,
+        3,
+        3,
+        4,
+        4,
+        3
+      ]
+    },
+    {
+      "program": "fibonacci",
+      "suite": "NLA-mosaic",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 3.883019208908081,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "fibonacci_sign",
+      "suite": "NLA-mosaic",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 4.552063703536987,
+      "eqts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "program": "freire1",
+      "suite": "nla",
+      "runs": 6,
+      "seeds": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 2.2849271297454834,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "freire1_int",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 20.093578100204468,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "freire2",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 4.239478349685669,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "geo1",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 8.113746166229248,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "geo2",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 11.922783374786377,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "hard",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 18.693060874938965,
+      "eqts": [
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "program": "isqrt",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 2.879829168319702,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "mannadiv",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 16.694844722747803,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "markov",
+      "suite": "NLA-mosaic",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 14.699556112289429,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "nagata",
+      "suite": "NLA-mosaic",
+      "runs": 1,
+      "seeds": [
+        2
+      ],
+      "seconds_median": 25.012572288513184,
+      "eqts": [
+        0
+      ]
+    },
+    {
+      "program": "pell",
+      "suite": "NLA-mosaic",
+      "runs": 1,
+      "seeds": [
+        2
+      ],
+      "seconds_median": 3.0501933097839355,
+      "eqts": [
+        0
+      ]
+    },
+    {
+      "program": "pldi09_ex6",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 11.651665210723877,
+      "eqts": [
+        1,
+        2,
+        2,
+        1,
+        2,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "pldi09_fig4_1",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 1.7769203186035156,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "pldi09_fig4_2",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 26.181926250457764,
+      "eqts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "program": "pldi09_fig4_3",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 7.062957048416138,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "pldi09_fig4_5",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 15.826879978179932,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "popl09_fig2_1",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 12.244186878204346,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "popl09_fig2_2",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 17.05489182472229,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "popl09_fig3_4",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 17.183024644851685,
+      "eqts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "program": "popl09_fig4_1",
+      "suite": "complexity",
+      "runs": 6,
+      "seeds": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 3.995571494102478,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "popl09_fig4_3",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 26.453637838363647,
+      "eqts": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "program": "popl09_fig4_4",
+      "suite": "complexity",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 4.669410705566406,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "ps1",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 3.5554447174072266,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "ps2",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 1.4554774761199951,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "ps3",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 5.796602010726929,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "ps4",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 7.103926658630371,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "ps5",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 10.021834135055542,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "ps6",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 14.479562997817993,
+      "eqts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "program": "sqrt1",
+      "suite": "nla",
+      "runs": 7,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "seconds_median": 25.27544116973877,
+      "eqts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "program": "welford",
+      "suite": "NLA-mosaic",
+      "runs": 4,
+      "seeds": [
+        0,
+        1,
+        4,
+        5
+      ],
+      "seconds_median": 16.690524578094482,
+      "eqts": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

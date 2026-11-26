@@ -3,7 +3,7 @@ FROM --platform=linux/amd64 debian:trixie
 
 #install general setup tools
 RUN apt update -y
-RUN apt install -y build-essential libc6 git emacs-nox wget
+RUN apt install -y build-essential libc6 git emacs-nox wget openjdk-21-jdk-headless
 
 # Install miniconda & sympy & z3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh

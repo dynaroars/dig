@@ -1,3 +1,23 @@
+/*
+ * Purpose: Search increasing trial divisors using updated remainders and four conditional branches.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   internal_loop: d**2*q-2*q*d-4*r*d+4*k*d+8*r-8*n == 0.
+ *   internal_loop: k*t-t**2 == 0.
+ *   internal_loop: (d-a)*(k-t) == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: The code attributes the algorithm to Knuth. Use n >= 0, a > 2 for the divisor-search
+ * interpretation; only a > 2 is enforced. The helper computes floor(sqrt(n)). Exact book section
+ * for this C implementation has not been established. Archived fail variant: no active trace
+ * calls in freire1, freire2, or ps1; knuth calls sqrt from libm. Some archived drivers lack
+ * stdlib.h for atoi.
+ */
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h> 

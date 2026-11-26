@@ -2226,3 +2226,147 @@ class TestOutputContract:
         f.write_text(HEADER + "int mainQ(int x, int y){ vtrace1(x,y,x,y); return 0; }")
         eng = CSymEx(f, 3, solver_rlimit=1_000)
         assert eng.run()  # tiny rlimit: unknown feasibility keeps paths (optimistic)
+
+    def test_concrete_loop_unrolls_to_completion(self, tmp_path):
+        _, res = symex(tmp_path, """
+            int mainQ(void){
+                int i = 0;
+                int c = 0;
+                while (i < 100) {
+                    c = c + 2;
+                    i = i + 1;
+                }
+                vtrace1(c, i, c, i);
+                return 0;
+            }
+        """, depth=4)
+        assert len(res) == 1
+        loc, pc, slocal = res[0]
+        assert loc == "vtrace1"
+        assert implied(pc, slocal, X("a") == 200)
+        assert implied(pc, slocal, X("b") == 100)
+
+
+# ─────────────────────────────────────────── depth-binned exploration ──
+
+class TestDepthBinning:
+    """run_by_depth() explores once and bins records by depth_reached; each
+    bin must equal what a run capped at that depth adds over shallower runs,
+    with or without a work budget."""
+
+    PROGRAMS = {
+        "halving": """
+int mainQ(int a, int b){
+    vassume(a >= 0); vassume(b >= 0);
+    int x = a, y = b, z = 0;
+    while (1) {
+        vtrace1(a, b, y, z);
+        if (!(y != 0)) break;
+        if (y % 2 == 1) { z = z + x; y = y - 1; }
+        x = 2 * x; y = y / 2;
+    }
+    vtrace2(a, b, x, z);
+    return z;
+}
+""",
+        "nested": """
+int mainQ(int n, int m){
+    vassume(n >= 0); vassume(m >= 0);
+    int i = 0, s = 0;
+    while (i < n) {
+        int j = 0;
+        while (j < m) { s = s + 1; j = j + 1; vtrace1(n, m, i, s); }
+        i = i + 1;
+    }
+    vtrace2(n, m, i, s);
+    return s;
+}
+""",
+        "sequential_and_call": """
+int count(int k){
+    int c = 0;
+    while (c < k) { c = c + 1; }
+    return c;
+}
+int mainQ(int n, int m){
+    vassume(n >= 0); vassume(m >= 0);
+    int i = 0;
+    while (i < n) { i = i + 1; }
+    vtrace1(n, m, i, 0);
+    int r = count(m);
+    vtrace2(n, m, i, r);
+    return r;
+}
+""",
+    }
+
+    @staticmethod
+    def keys(records) -> set:
+        return {(loc, z3.simplify(z3.And(pc, sl)).sexpr())
+                for loc, pc, sl in records}
+
+    def per_depth_bins(self, f: Path, lo: int, hi: int) -> dict[int, set]:
+        seen, bins = set(), {}
+        for d in range(lo, hi + 1):
+            new = self.keys(CSymEx(f, d).run()) - seen
+            if new:
+                bins[d] = new
+            seen |= new
+        return bins
+
+    def binned(self, eng: CSymEx) -> dict[int, set]:
+        seen, bins = set(), {}
+        for d, recs in sorted(eng.run_by_depth().items()):
+            new = self.keys(recs) - seen
+            if new:
+                bins[d] = new
+            seen |= new
+        return bins
+
+    @pytest.mark.parametrize("name", sorted(PROGRAMS))
+    def test_matches_per_depth_runs(self, tmp_path, name):
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + self.PROGRAMS[name])
+        eng = CSymEx(f, 7, min_depth=2)
+        got = self.binned(eng)
+        assert not eng.budget_exhausted and eng.max_depth == 7
+        assert got == self.per_depth_bins(f, 2, 7)
+
+    @pytest.mark.parametrize("name", sorted(PROGRAMS))
+    def test_budget_keeps_completed_depths(self, tmp_path, name):
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + self.PROGRAMS[name])
+        eng = CSymEx(f, 12, work_budget=20, min_depth=2)
+        got = self.binned(eng)
+        assert eng.budget_exhausted
+        assert 2 <= eng.max_depth < 12
+        assert max(got) <= eng.max_depth
+        assert got == self.per_depth_bins(f, 2, eng.max_depth)
+
+    def test_unspent_budget_changes_nothing(self, tmp_path):
+        f = tmp_path / "prog.c"
+        f.write_text(HEADER + self.PROGRAMS["nested"])
+        free = CSymEx(f, 6, min_depth=2)
+        free_bins = self.binned(free)
+        capped = CSymEx(f, 6, work_budget=free.loop_iters + 1, min_depth=2)
+        assert self.binned(capped) == free_bins
+        assert not capped.budget_exhausted and capped.max_depth == 6
+
+
+def test_depth_bins_include_entailed_guard_tails(tmp_path):
+    """A run capped at d finishes an entailed-guard loop concretely; the
+    single binned run must reproduce that post-state for every cap d."""
+    f = tmp_path / "prog.c"
+    f.write_text(HEADER + """
+int mainQ(int m){
+    int x = 0, y = 0, t = 0;
+    while (x < 100 && y < m) { y++; t++; }
+    while (x < 100 && y >= m) { x++; t++; }
+    vtrace1(m, x, y, t);
+    return 0;
+}
+""")
+    tb = TestDepthBinning()
+    eng = CSymEx(f, 6, min_depth=2)
+    assert tb.binned(eng) == tb.per_depth_bins(f, 2, 6)
+    assert sorted(CSymEx(f, 6, min_depth=2).run_by_depth()) == [2, 3, 4, 5, 6]

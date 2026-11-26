@@ -720,8 +720,11 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         # directly, so it runs in-process (no multiprocessing): z3 ASTs can't be
         # pickled across forked workers, and avoiding that boundary is the whole
         # point of returning z3 instead of serializing to text and re-parsing.
-        wrs = [(depth, ss) for depth in tasks
-               if (ss := self.get_symstates(depth))]
+        wrs = (self.get_symstates_by_depth(mind, maxd)
+               if settings.SE_INCREMENTAL else None)
+        if wrs is None:
+            wrs = [(depth, ss) for depth in tasks
+                   if (ss := self.get_symstates(depth))]
 
         if not wrs:
             mlog.fatal("symbolic execution cannot obtain symstates, unreachable locs?"
@@ -739,6 +742,15 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_symstates(self, depth: int) -> None | list:
         pass
+
+    @beartype
+    def get_symstates_by_depth(self, mindepth: int,
+                               maxdepth: int) -> None | list:
+        """
+        [(depth, symstates new at depth)] from a single exploration, or
+        None if the backend cannot do this (compute() then runs each depth).
+        """
+        return None
 
     @beartype
     @classmethod
@@ -839,3 +851,34 @@ class SymStatesMakerC(SymStatesMaker):
         if results:
             mlog.debug(f"got {len(results)} symstates at depth {depth}")
         return results or None
+
+    @beartype
+    def get_symstates_by_depth(self, mindepth: int,
+                               maxdepth: int) -> None | list:
+        from data.symex_c import CSymEx
+        budget = settings.SE_WORK_BUDGET
+        try:
+            engine = CSymEx(self.filename, maxdepth,
+                            solver_rlimit=settings.SOLVER_RLIMIT,
+                            work_budget=budget, min_depth=mindepth)
+            bins = engine.run_by_depth()
+        except Exception as ex:
+            mlog.error(f"python symex failed (depth {mindepth}..{maxdepth}): "
+                       f"{ex}; falling back to per-depth runs")
+            return None
+        completed = engine.max_depth
+        if engine.budget_exhausted:
+            mlog.warning(f"symbolic execution budget ({budget} loop iterations) "
+                         f"spent: using depths {mindepth}..{completed} "
+                         f"of {maxdepth}")
+        self.exploration_info = {
+            "incremental": True,
+            "max_depth": maxdepth,
+            "completed_depth": completed,
+            "work_budget": budget,
+            "loop_iterations": engine.loop_iters,
+            "budget_exhausted": engine.budget_exhausted,
+            "truncated": engine._incomplete,
+            "records": {d: len(bins[d]) for d in sorted(bins)},
+        }
+        return [(d, bins[d]) for d in sorted(bins)]

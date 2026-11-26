@@ -1,3 +1,20 @@
+/*
+ * Purpose: Compute extended GCD with subtraction and track Bezout coefficients.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: a-x*p-y*r == 0.
+ *   vtrace1: b-x*q-y*s == 0.
+ *   vtrace1: p*s-r*q-1 == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: x >= 1, y >= 1. Exit has a=b=gcd(x,y). The determinant remains +1 for
+ * these subtraction updates.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

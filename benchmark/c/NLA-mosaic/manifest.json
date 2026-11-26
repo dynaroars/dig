@@ -1,0 +1,316 @@
+{
+  "description": "NLA-mosaic: mathematical algorithms with nonlinear invariants",
+  "programs": [
+    {
+      "name": "pell",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          10
+        ]
+      ],
+      "expected": [
+        "x**2-2*y**2-1"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Generate successive positive Pell-equation solutions by multiplication by 3+2*sqrt(2).",
+      "source": "Keith Conrad, Pell's Equation I, section 4, New Solutions from Old Solutions. https://kconrad.math.uconn.edu/blurbs/ugradnumthy/pelleqn1.pdf",
+      "notes": "Initialize (x,y)=(1,0). All updates use the old state."
+    },
+    {
+      "name": "fibonacci",
+      "degree": 4,
+      "input_ranges": [
+        [
+          0,
+          30
+        ]
+      ],
+      "expected": [
+        "(a**2+a*b-b**2)**2-1"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Generate consecutive Fibonacci numbers, exposing Cassini's alternating determinant.",
+      "source": "Polar documentation, Fibonacci loop and quartic invariant. https://github.com/probing-lab/polar#introduction",
+      "notes": "Initialize (a,b)=(0,1). The quadratic a^2+a*b-b^2 alternates signs; its square is constant."
+    },
+    {
+      "name": "fibonacci_sign",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          30
+        ]
+      ],
+      "expected": [
+        "a**2+a*b-b**2-sign"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Generate consecutive Fibonacci numbers and explicitly track Cassini's sign.",
+      "source": "Polar documentation, Fibonacci loop and quartic invariant; this sign-variable variant is our adaptation. https://github.com/probing-lab/polar#introduction",
+      "notes": "Initialize (a,b,sign)=(0,1,-1); negate sign each iteration. Also sign^2=1."
+    },
+    {
+      "name": "markov",
+      "degree": 3,
+      "input_ranges": [
+        [
+          0,
+          12
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "expected": [
+        "x**2+y**2+z**2-3*x*y*z"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Walk the Markov-triple tree by alternating two mutation/permutation branches.",
+      "source": "(Un)Solvable Loop Analysis, Formal Methods in System Design (2024), Example 39, markov-triples-toggle. https://doi.org/10.1007/s10703-024-00455-0",
+      "notes": "Our adaptation accepts four valid initial triples and either starting branch. A coordinate guard stops growth before C updates overflow."
+    },
+    {
+      "name": "fibonacci_trace",
+      "degree": 3,
+      "input_ranges": [
+        [
+          0,
+          5
+        ],
+        [
+          -2,
+          2
+        ],
+        [
+          -2,
+          2
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "expected": [
+        "x**2+y**2+z**2-2*x*y*z-constant"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Iterate the Fibonacci trace map (x,y,z) -> (y,z,2*y*z-x).",
+      "source": "(Un)Solvable Loop Analysis (2024), Example 36, fib1. https://doi.org/10.1007/s10703-024-00455-0",
+      "notes": "Our adaptation accepts bounded initial coordinates and stores their initial conserved polynomial as constant."
+    },
+    {
+      "name": "berggren",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          6560
+        ]
+      ],
+      "expected": [
+        "a**2+b**2-c**2"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Generate Pythagorean triples by following the three Berggren matrix branches.",
+      "source": "Keith Conrad, Pythagorean Descent, equation (1.1). https://kconrad.math.uconn.edu/blurbs/linmultialg/descentPythag.pdf",
+      "notes": "Start at (3,4,5). Our input path encodes branch choices as base-3 digits; each branch uses old-state temporaries."
+    },
+    {
+      "name": "continued_fraction",
+      "degree": 4,
+      "input_ranges": [
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          6560
+        ]
+      ],
+      "expected": [
+        "(p*s-r*q)**2-1"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Compute continued-fraction convergents with changing partial quotients.",
+      "source": "F. Al-Faisal, Elementary Number Theory, Proposition 30.7. https://math.uwaterloo.ca/~f2alfais/notes/pm340-notes.pdf",
+      "notes": "Start (p,r,q,s)=(1,0,0,1). Our path digits select partial quotients 1,2,3. p*s-r*q alternates +1/-1."
+    },
+    {
+      "name": "continued_fraction_sign",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          6560
+        ]
+      ],
+      "expected": [
+        "p*s-r*q-sign"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Compute continued-fraction convergents and explicitly track their determinant sign.",
+      "source": "F. Al-Faisal, Elementary Number Theory, Proposition 30.7. https://math.uwaterloo.ca/~f2alfais/notes/pm340-notes.pdf",
+      "notes": "Start (p,r,q,s,sign)=(1,0,0,1,1). Our path digits select partial quotients 1,2,3. Also sign^2=1."
+    },
+    {
+      "name": "chebyshev",
+      "degree": 3,
+      "input_ranges": [
+        [
+          0,
+          8
+        ],
+        [
+          -3,
+          3
+        ]
+      ],
+      "expected": [
+        "a**2+b**2-2*t*a*b-1+t**2"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Evaluate consecutive first-kind Chebyshev polynomials by their three-term recurrence.",
+      "source": "NIST Digital Library of Mathematical Functions, sections 18.5 and 18.9. https://dlmf.nist.gov/18.5 ; https://dlmf.nist.gov/18.9",
+      "notes": "Start (a,b)=(1,t). t is an immutable input, so the conserved relation has degree 3. The displayed identity is derived from the recurrence."
+    },
+    {
+      "name": "chebyshev_pair",
+      "degree": 4,
+      "input_ranges": [
+        [
+          0,
+          8
+        ],
+        [
+          -3,
+          3
+        ]
+      ],
+      "expected": [
+        "T**2-(t**2-1)*U**2-1"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Evaluate first-kind T_n(t) together with second-kind U_(n-1)(t).",
+      "source": "NIST Digital Library of Mathematical Functions, section 18.5. https://dlmf.nist.gov/18.5",
+      "notes": "Start (T,U)=(1,0), interpreting U_-1=0. t is an immutable input, so the conserved relation has degree 4. Our paired update and identity are derived from the definitions."
+    },
+    {
+      "name": "nagata",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          6
+        ],
+        [
+          -2,
+          2
+        ],
+        [
+          -2,
+          2
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "expected": [
+        "x*z+y**2-constant"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Iterate the Nagata polynomial automorphism, whose expanded x update has degree 5.",
+      "source": "(Un)Solvable Loop Analysis (2024), Example 43, nagata. https://doi.org/10.1007/s10703-024-00455-0",
+      "notes": "Our adaptation accepts bounded initial coordinates and stores x0*z0+y0^2 as constant. z is unchanged, but z0 is not part of vtrace1."
+    },
+    {
+      "name": "binomial",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          20
+        ]
+      ],
+      "expected": [
+        "k*c-(N-k+1)*prev"
+      ],
+      "arithmetic": "bounded C integers",
+      "purpose": "Compute a row of binomial coefficients using the multiplicative recurrence.",
+      "source": "NIST Digital Library of Mathematical Functions, equation 26.3.6. https://dlmf.nist.gov/26.3#E6",
+      "notes": "Start (k,c,prev)=(0,1,0). c=binomial(N,k); prev holds the preceding coefficient. Division is exact on reachable states and follows multiplication."
+    },
+    {
+      "name": "welford",
+      "degree": 2,
+      "input_ranges": [
+        [
+          0,
+          12
+        ],
+        [
+          -5,
+          5
+        ],
+        [
+          -5,
+          5
+        ]
+      ],
+      "expected": [
+        "n*mean-sum",
+        "n*M2-n*sumsq+sum**2"
+      ],
+      "arithmetic": "exact-real specification; C doubles round",
+      "purpose": "Compute an online mean and corrected sum of squared deviations (M2).",
+      "source": "B. P. Welford, Note on a Method for Calculating Corrected Sums of Squares and Products, Technometrics 4(3), 419-420 (1962). https://doi.org/10.1080/00401706.1962.10490022",
+      "notes": "Our deterministic sample stream uses base, step, and n. Auxiliary sum and sumsq expose prefix statistics. The identities hold over exact reals; ordinary C doubles can produce nonzero rounding residuals. M2 is an unnormalized sum; sample variance is M2/(n-1) for n>1."
+    },
+    {
+      "name": "symplectic_euler",
+      "degree": 3,
+      "input_ranges": [
+        [
+          0,
+          8
+        ],
+        [
+          -5,
+          5
+        ],
+        [
+          -5,
+          5
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "expected": [
+        "p**2+q**2-h*p*q-energy"
+      ],
+      "arithmetic": "exact dyadic C doubles within input bounds",
+      "purpose": "Advance a harmonic oscillator using momentum-first symplectic Euler steps.",
+      "source": "E. Hairer and G. Vilmart, Computing the Long Term Evolution of the Solar System with Geometric Numerical Integrators, section 3. https://www.unige.ch/~vilmart/snapshots-2017-009.pdf",
+      "notes": "Our momentum-first ordering uses the negative cross term; its sign/coefficient were derived and checked independently. energy stores the initial modified energy. Steps are 1/4,1/2,3/4; bounded dyadic runs preserve the observed values exactly."
+    }
+  ]
+}

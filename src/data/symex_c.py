@@ -167,6 +167,12 @@ class SymState:
     env: dict[str, z3.ExprRef] = field(default_factory=dict)
     pc: list[z3.ExprRef] = field(default_factory=list)
     loop_depth: int = 0
+    # deepest loop_depth reached by any frame on this path so far; a run
+    # capped at depth d would have produced this path's records iff
+    # depth_reached <= d (loop_depth itself resets inside inlined callees)
+    depth_reached: int = 0
+    # per-path depth cap below max_depth (see _exec_while's tail forks)
+    cap: int | None = None
     concrete_steps: int = 0
     exit: Exit = Exit.NORMAL
     ret: z3.ExprRef | None = None   # return value (used by call inlining)
@@ -188,7 +194,9 @@ class SymState:
         return replace(self, exit=reason)
 
     def inc_loop(self) -> SymState:
-        return replace(self, loop_depth=self.loop_depth + 1)
+        d = self.loop_depth + 1
+        return replace(self, loop_depth=d,
+                       depth_reached=max(self.depth_reached, d))
 
     def inc_concrete_step(self) -> SymState:
         return replace(self, concrete_steps=self.concrete_steps + 1)
@@ -205,6 +213,7 @@ class PathRecord:
     param_names: list[str]
     env_snapshot: dict[str, z3.ExprRef]
     pc_snapshot: list[z3.ExprRef]
+    depth: int = 0   # SymState.depth_reached when recorded
 
 
 @dataclass
@@ -246,9 +255,21 @@ class CSymEx:
                  solver_rlimit: int | None = None,
                  check_safety: bool = False,
                  check_overflow: bool = False,
-                 merge_states: bool = False) -> None:
+                 merge_states: bool = False,
+                 work_budget: int | None = None,
+                 min_depth: int = 1) -> None:
         self.filename = filename
         self.max_depth = max_depth
+        # Deterministic exploration budget, counted in symbolic loop
+        # iterations entered. Once spent, max_depth drops to the depth of the
+        # current frontier: records whose depth_reached is at most the new
+        # cap remain exactly those a run at that depth would produce, and
+        # deeper partial records are discarded by run_by_depth().
+        self.work_budget = work_budget
+        self.min_depth = min_depth
+        self.loop_iters = 0
+        self.budget_exhausted = False
+        self._bin_by_depth = False   # set by run_by_depth()
         # auto safety checks (division by zero, array bounds); off by default
         # so DIG-facing symstates and timing are untouched
         self.check_safety = check_safety
@@ -315,6 +336,29 @@ class CSymEx:
         init_state = self._make_init_state()
         self._exec_compound(self.func_bodies["mainQ"], [init_state])
         return self._z3_records()
+
+    def run_by_depth(self) -> dict[int, list[tuple[str, z3.BoolRef, z3.BoolRef]]]:
+        """
+        Execute once to max_depth (or until work_budget is spent) and group
+        the records by the depth at which they first appear: the result at
+        key d holds the records a run capped at d would add over shallower
+        runs (depths below min_depth fold into min_depth). Keys never exceed
+        the completed depth, self.max_depth after the run.
+        """
+        self._parse()
+        init_state = self._make_init_state()
+        self._bin_by_depth = True
+        try:
+            self._exec_compound(self.func_bodies["mainQ"], [init_state])
+        finally:
+            self._bin_by_depth = False
+        out: dict[int, list] = {}
+        for rec in self.records:
+            if rec.depth > self.max_depth:
+                continue
+            if (t := self._z3_record(rec)) is not None:
+                out.setdefault(max(rec.depth, self.min_depth), []).append(t)
+        return out
 
     def gen_inputs(self) -> list[tuple[str, dict[str, str]]]:
         """
@@ -1730,6 +1774,7 @@ class CSymEx:
                         return None
                 env[k] = z3.If(cond, vt, ve)
         return replace(parent, env=env,
+                       depth_reached=max(t.depth_reached, e.depth_reached),
                        trace=parent.trace + ("(merged if/else)",))
 
     def _exec_while(self,
@@ -1765,13 +1810,17 @@ class CSymEx:
             current_states = worklist
             worklist = []
             continuing: list[SymState] = []
+            retest: list[SymState] = []   # tail forks, back at the guard
 
             for state in current_states:
+                self._check_budget(state)
+                at_guard = state
                 if cond_is_true:
-                    if state.loop_depth >= self.max_depth:
+                    if state.loop_depth >= self._cap(state):
                         self._incomplete = True
                         continue
                     # while(1): only break exits
+                    self.loop_iters += 1
                     body_states = self._exec_compound(
                         node.stmt,
                         [state.inc_loop().with_trace(
@@ -1796,7 +1845,7 @@ class CSymEx:
                     # path condition introduces no new symbolic choice. Let
                     # deterministic tails (e.g. a fixed 100-step loop after
                     # exiting a symbolic loop) reach their postcondition.
-                    if (state.loop_depth >= self.max_depth
+                    if (state.loop_depth >= self._cap(state)
                             and not z3.is_true(s_cond)
                             and not z3.is_false(s_cond)
                             and any(z3.is_int_value(state.env.get(name, z3.Int(name)))
@@ -1817,9 +1866,10 @@ class CSymEx:
                         # so a symbolic if inside while(x < 100) cannot evade
                         # the depth cap for thousands of iterations.
                         if len(body_states) > 1:
-                            if state.loop_depth >= self.max_depth:
+                            if state.loop_depth >= self._cap(state):
                                 self._incomplete = True
                                 continue
+                            self.loop_iters += 1
                             body_states = [
                                 s.inc_loop() if s.loop_depth == state.loop_depth else s
                                 for s in body_states
@@ -1840,7 +1890,7 @@ class CSymEx:
                         result.append(exit_s)
                     else:
                         # Symbolic condition
-                        if state.loop_depth >= self.max_depth:
+                        if state.loop_depth >= self._cap(state):
                             # Depth exhausted: treat loop as terminated
                             self._incomplete = True
                             exit_s = state.add_constraint(
@@ -1849,6 +1899,18 @@ class CSymEx:
                             if self._feasible(exit_s):
                                 result.append(exit_s)
                             continue
+
+                        # A run capped at this depth would finish the loop
+                        # via the entailed-guard shortcut above; fork that
+                        # tail so run_by_depth() bins match per-depth runs.
+                        if (self._bin_by_depth and at_guard.cap is None
+                                and self.min_depth <= state.loop_depth
+                                == state.depth_reached < self.max_depth
+                                and any(z3.is_int_value(state.env.get(name, z3.Int(name)))
+                                        for name in concrete_counters)
+                                and self._entailed(state, cond)):
+                            retest.append(replace(at_guard,
+                                                  cap=state.loop_depth))
 
                         # Exit branch (condition false)
                         exit_s = state.add_constraint(z3.Not(cond)).with_trace(
@@ -1860,6 +1922,7 @@ class CSymEx:
                         enter_s = state.add_constraint(cond).inc_loop().with_trace(
                             f"{node.coord} loop-iter {state.loop_depth + 1}")
                         if self._feasible(enter_s):
+                            self.loop_iters += 1
                             body_states = self._exec_compound(node.stmt, [enter_s])
                             for s in body_states:
                                 if s.exit == Exit.BREAK:
@@ -1876,9 +1939,23 @@ class CSymEx:
             if next_stmt is not None and continuing:
                 continuing = self._exec_stmt(next_stmt, continuing)
 
-            worklist = continuing
+            worklist = continuing + retest
 
         return result
+
+    def _cap(self, state: SymState) -> int:
+        return (self.max_depth if state.cap is None
+                else min(self.max_depth, state.cap))
+
+    def _check_budget(self, state: SymState) -> None:
+        """Once work_budget loop iterations are spent, stop deepening: cap
+        every frame at the depth this frontier state has reached."""
+        if (self.work_budget is None or self.budget_exhausted
+                or self.loop_iters < self.work_budget):
+            return
+        self.budget_exhausted = True
+        self.max_depth = min(self.max_depth,
+                             max(self.min_depth, state.depth_reached))
 
     def _exec_dowhile(self,
                       node: c_ast.DoWhile,
@@ -1893,6 +1970,7 @@ class CSymEx:
         result: list[SymState] = []
         continuing: list[SymState] = []
         for state in states:
+            self.loop_iters += 1
             first = self._exec_compound(
                 body, [state.inc_loop().with_trace(
                     f"{node.coord} loop-iter {state.loop_depth + 1}")])
@@ -2017,6 +2095,7 @@ class CSymEx:
                     param_names=params,
                     env_snapshot=vals,
                     pc_snapshot=list(state.pc),
+                    depth=state.depth_reached,
                 ))
             return states
 
@@ -2338,28 +2417,30 @@ class CSymEx:
         unconstrained); slocal is the conjunction of `var == expr` equalities
         over the variables in the vtrace param list.
         """
-        out = []
-        for rec in self.records:
-            eqs = []
-            for name in rec.param_names:
-                v = rec.env_snapshot.get(name)
-                # vtrace params must be numeric scalars (array-valued args
-                # have no scalar symstate var to equate)
-                if v is None or not isinstance(v, z3.ArithRef):
-                    continue
-                # the symstate var must match the value's sort (Real for doubles)
-                var = z3.Real(name) if _is_real(v) else z3.Int(name)
-                eqs.append(var == v)
-            if not eqs:
+        return [t for rec in self.records
+                if (t := self._z3_record(rec)) is not None]
+
+    @staticmethod
+    def _z3_record(rec: PathRecord) -> tuple[str, z3.BoolRef, z3.BoolRef] | None:
+        eqs = []
+        for name in rec.param_names:
+            v = rec.env_snapshot.get(name)
+            # vtrace params must be numeric scalars (array-valued args
+            # have no scalar symstate var to equate)
+            if v is None or not isinstance(v, z3.ArithRef):
                 continue
-            # Leave pc/slocal unsimplified: PathCond.expr and PCs.myexpr already
-            # z3.simplify at the right granularity, and an eager per-record
-            # simplify here produces a form z3 solves much slower downstream
-            # (~4x in the eqt check phase on cohendiv).
-            slocal = z3.And(eqs)
-            pc = z3.And(rec.pc_snapshot)   # z3.And([]) is True
-            out.append((rec.loc, pc, slocal))
-        return out
+            # the symstate var must match the value's sort (Real for doubles)
+            var = z3.Real(name) if _is_real(v) else z3.Int(name)
+            eqs.append(var == v)
+        if not eqs:
+            return None
+        # Leave pc/slocal unsimplified: PathCond.expr and PCs.myexpr already
+        # z3.simplify at the right granularity, and an eager per-record
+        # simplify here produces a form z3 solves much slower downstream
+        # (~4x in the eqt check phase on cohendiv).
+        slocal = z3.And(eqs)
+        pc = z3.And(rec.pc_snapshot)   # z3.And([]) is True
+        return (rec.loc, pc, slocal)
 
 
 # ─────────────────────────────────────────────── utilities ──────────

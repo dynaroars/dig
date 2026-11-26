@@ -1,0 +1,666 @@
+{
+  "configuration": {
+    "seed": 42,
+    "timeout_seconds": 120.0,
+    "jobs": 2,
+    "types": "eqt",
+    "kapur": false,
+    "dynamic": false,
+    "input_max": null,
+    "trace_mode": true,
+    "python": "3.14.7 (main, Sep 13 2026, 08:30:29) [GCC 16.2.0]",
+    "platform": "linux"
+  },
+  "validation": {
+    "pell": {
+      "input_cases": 11,
+      "trace_rows": 66,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "fibonacci": {
+      "input_cases": 31,
+      "trace_rows": 496,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "fibonacci_sign": {
+      "input_cases": 31,
+      "trace_rows": 496,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "markov": {
+      "input_cases": 49,
+      "trace_rows": 208,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "fibonacci_trace": {
+      "input_cases": 209,
+      "trace_rows": 955,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "berggren": {
+      "input_cases": 75,
+      "trace_rows": 465,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "continued_fraction": {
+      "input_cases": 75,
+      "trace_rows": 465,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "continued_fraction_sign": {
+      "input_cases": 75,
+      "trace_rows": 465,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "chebyshev": {
+      "input_cases": 30,
+      "trace_rows": 136,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "chebyshev_pair": {
+      "input_cases": 30,
+      "trace_rows": 136,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "nagata": {
+      "input_cases": 210,
+      "trace_rows": 1145,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "binomial": {
+      "input_cases": 21,
+      "trace_rows": 231,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    },
+    "welford": {
+      "input_cases": 67,
+      "trace_rows": 453,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        60,
+        79
+      ],
+      "max_absolute_residual": [
+        7.105427357601002e-15,
+        3.410605131648481e-13
+      ]
+    },
+    "symplectic_euler": {
+      "input_cases": 121,
+      "trace_rows": 609,
+      "ubsan": "passed",
+      "nonzero_residual_rows": [
+        0
+      ],
+      "max_absolute_residual": [
+        0.0
+      ]
+    }
+  },
+  "runs": [
+    {
+      "name": "berggren",
+      "status": "ok",
+      "elapsed_seconds": 5.41,
+      "degree": 2,
+      "expected": [
+        "a**2+b**2-c**2"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-a**2 - b**2 + c**2"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/berggren.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "berggren.log"
+    },
+    {
+      "name": "binomial",
+      "status": "ok",
+      "elapsed_seconds": 3.323,
+      "degree": 2,
+      "expected": [
+        "k*c-(N-k+1)*prev"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-N*prev + c*k + k*prev - prev"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/binomial.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "binomial.log"
+    },
+    {
+      "name": "chebyshev",
+      "status": "ok",
+      "elapsed_seconds": 4.244,
+      "degree": 3,
+      "expected": [
+        "a**2+b**2-2*t*a*b-1+t**2"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-a**2 + 2*a*b*t - b**2 - t**2 + 1"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/chebyshev.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "chebyshev.log"
+    },
+    {
+      "name": "chebyshev_pair",
+      "status": "ok",
+      "elapsed_seconds": 4.2,
+      "degree": 4,
+      "expected": [
+        "T**2-(t**2-1)*U**2-1"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-T**2 + U**2*t**2 - U**2 + 1"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/chebyshev_pair.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "4",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "chebyshev_pair.log"
+    },
+    {
+      "name": "continued_fraction",
+      "status": "ok",
+      "elapsed_seconds": 15.091,
+      "degree": 4,
+      "expected": [
+        "(p*s-r*q)**2-1"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "p**2*s**2 - 2*p*q*r*s + q**2*r**2 - 1"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/continued_fraction.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "4",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "continued_fraction.log"
+    },
+    {
+      "name": "continued_fraction_sign",
+      "status": "ok",
+      "elapsed_seconds": 5.014,
+      "degree": 2,
+      "expected": [
+        "p*s-r*q-sign"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "sign**2 - 1",
+        "-p*s + q*r + sign"
+      ],
+      "invariant_count": 2,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/continued_fraction_sign.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "continued_fraction_sign.log"
+    },
+    {
+      "name": "fibonacci",
+      "status": "ok",
+      "elapsed_seconds": 4.09,
+      "degree": 4,
+      "expected": [
+        "(a**2+a*b-b**2)**2-1"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "a**4 + 2*a**3*b - a**2*b**2 - 2*a*b**3 + b**4 - 1"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/fibonacci.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "4",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "fibonacci.log"
+    },
+    {
+      "name": "fibonacci_sign",
+      "status": "ok",
+      "elapsed_seconds": 4.276,
+      "degree": 2,
+      "expected": [
+        "a**2+a*b-b**2-sign"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "sign**2 - 1",
+        "-a**2 - a*b + b**2 + sign"
+      ],
+      "invariant_count": 2,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/fibonacci_sign.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "fibonacci_sign.log"
+    },
+    {
+      "name": "fibonacci_trace",
+      "status": "ok",
+      "elapsed_seconds": 7.137,
+      "degree": 3,
+      "expected": [
+        "x**2+y**2+z**2-2*x*y*z-constant"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "constant - x**2 + 2*x*y*z - y**2 - z**2"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/fibonacci_trace.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "fibonacci_trace.log"
+    },
+    {
+      "name": "markov",
+      "status": "ok",
+      "elapsed_seconds": 3.463,
+      "degree": 3,
+      "expected": [
+        "x**2+y**2+z**2-3*x*y*z"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-x**2 + 3*x*y*z - y**2 - z**2"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/markov.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "markov.log"
+    },
+    {
+      "name": "nagata",
+      "status": "ok",
+      "elapsed_seconds": 3.456,
+      "degree": 2,
+      "expected": [
+        "x*z+y**2-constant"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-constant + x*z + y**2"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/nagata.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "nagata.log"
+    },
+    {
+      "name": "pell",
+      "status": "ok",
+      "elapsed_seconds": 4.48,
+      "degree": 2,
+      "expected": [
+        "x**2-2*y**2-1"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-x**2 + 2*y**2 + 1"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/pell.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "pell.log"
+    },
+    {
+      "name": "symplectic_euler",
+      "status": "ok",
+      "elapsed_seconds": 8.794,
+      "degree": 3,
+      "expected": [
+        "p**2+q**2-h*p*q-energy"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "energy + h*p*q - p**2 - q**2"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/symplectic_euler.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "symplectic_euler.log"
+    },
+    {
+      "name": "welford",
+      "status": "no_summary",
+      "elapsed_seconds": 4.785,
+      "degree": 2,
+      "expected": [
+        "n*mean-sum",
+        "n*M2-n*sumsq+sum**2"
+      ],
+      "expected_found": [
+        false,
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/results/traces/welford.csv",
+        "-types",
+        "eqt",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3"
+      ],
+      "log": "welford.log"
+    }
+  ]
+}

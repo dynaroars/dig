@@ -1,0 +1,478 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[letterpaper,margin=0.82in,columnsep=0.25in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\usepackage{enumitem}
+
+\setlist{nosep,leftmargin=*}
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{1em}
+\setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+
+\definecolor{codegray}{rgb}{0.96,0.96,0.96}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codegray},
+  frame=single,
+  framerule=0.2pt,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  xleftmargin=2pt,
+  xrightmargin=2pt,
+  aboveskip=4pt,
+  belowskip=4pt
+}
+
+\newcommand{\tool}{\textsc{MiniSym}}
+\newcommand{\MiniC}{\textsc{MiniC}}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\llbracket}{\mathopen{[\![}}
+\newcommand{\rrbracket}{\mathclose{]\!]}}
+
+\title{\tool: A Small Verified Symbolic Executor\\for a C-Like Language in Lean 4}
+\author{Anonymous Author(s)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Symbolic execution engines are compact in concept but subtle in their treatment
+of stores, branch conditions, and exceptional outcomes.  A tool that merely
+enumerates plausible formulas provides little assurance that its paths cover the
+behaviors of the source semantics.  We present \tool, a small executable symbolic
+executor implemented and proved sound in Lean~4.  Its verified core targets a
+imperative language with integer expressions, assignments, bounded
+\code{while} loops, conditionals, sequencing, and assertions.  Assertions are first-class results:
+the concrete and symbolic semantics distinguish normal termination from failure
+and retain the store at the assertion site.  The central mechanized theorem says
+that every concrete execution from a represented state is covered by a generated
+symbolic result under the same input valuation, with the same result tag and an
+equivalent store.  An unverified C-like parser and command-line interface make
+the core directly executable on small \code{.c} files while maintaining an
+explicit trust boundary.  The 1,114-line Lean artifact builds without proof holes,
+contains executable regression examples, and keeps feasibility checking outside
+the trusted executor.  \tool is intended as a research seed for certified
+pruning, solver integration, and richer program semantics rather than as a
+production C analyzer.
+\end{abstract}
+
+\section{Introduction}
+
+Symbolic execution replaces concrete inputs with symbolic terms and accumulates
+formulas describing the decisions made along each path~\cite{king1976}.  Modern
+systems demonstrate that the technique can drive testing and program analysis at
+substantial scale~\cite{klee,rosette}.  Their engineering challenges, however,
+can obscure a basic semantic question: does the symbolic executor cover every
+behavior admitted by the concrete language, including assertion failure?
+
+This question is especially relevant for a research prototype.  Adding a parser,
+solver, simplifier, and search heuristics before fixing the semantic contract can
+make the trusted base difficult to identify.  \tool instead starts with a small
+executable model in Lean~4~\cite{lean4}.  The concrete semantics, symbolic domain,
+executor, and soundness proof are ordinary Lean definitions checked by the
+kernel.  Solver interaction is deliberately absent from the theorem.
+
+The contributions of this artifact are:
+
+\begin{itemize}
+  \item an executable concrete and symbolic semantics for an imperative core
+        with fuel-bounded loops over mathematical integers;
+  \item explicit, tag-sensitive modeling of normal and assertion-failure
+        outcomes, including terminal failure through sequencing;
+  \item a mechanized forward-soundness theorem connecting every concrete run to
+        a generated symbolic path under the same valuation; and
+  \item a usable, regression-tested C-like frontend and CLI whose unverified
+        status is clearly separated from the verified AST-level core.
+\end{itemize}
+
+The scope is intentionally modest.  \tool does not implement ISO C, unbounded
+loop reasoning, machine overflow, memory, solver-driven pruning, or a performance-oriented search
+strategy.  Its purpose is to make the definitions and proof obligations of
+symbolic execution small enough to inspect and extend.
+
+\section{Tool Overview}
+
+Figure~\ref{fig:pipeline} shows the architecture.  A handwritten lexer and
+recursive-descent parser translate a restricted C-like surface language to the
+\MiniC{} AST.  From that point, the concrete evaluator and symbolic executor are
+defined over the same syntax.  Interpretation under a valuation connects
+symbolic terms to concrete integers.  The dashed frontend boundary is important:
+the main theorem begins at the AST and is not a parser-correctness theorem.
+
+\begin{figure}[t]
+\centering
+\small
+\setlength{\fboxsep}{4pt}
+\begin{tabular}{c}
+\fbox{C-like text \quad $\xrightarrow{\text{unverified parser}}$ \quad \MiniC{} AST}\\[3pt]
+$\swarrow$ \hspace{48mm} $\searrow$\\[-2pt]
+\fbox{\code{exec}: concrete result}
+\hspace{3mm}
+\fbox{\code{symExec}: result list}\\[3pt]
+$\phantom{xxx}\underbrace{\hspace{57mm}}_{\text{Matches / ResultMatches under valuation }\nu}$\\[-3pt]
+\multicolumn{1}{r}{\scriptsize future feasibility pruning $\dashrightarrow$}
+\end{tabular}
+\caption{Architecture and trust boundary.  Feasibility is downstream of the
+verified executor and is not assumed by soundness.}
+\label{fig:pipeline}
+\end{figure}
+
+The following accepted input illustrates the interface:
+
+\begin{lstlisting}[language=C]
+int x = input;
+if (x > 0) {
+  int y = x + 1;
+  assert(y != 0);
+} else {
+  int y = x - 1;
+  assert(y != 0);
+}
+\end{lstlisting}
+
+Running \code{lake exe minisym examples/demo.c} parses the file, symbolically
+executes it from the canonical input state, and prints selected symbolic-store
+bindings with each path condition.  The example produces four raw results: each
+control-flow branch reaches an assertion, and each assertion emits a normal and
+a potential-failure result.  The word ``potential'' matters: without a
+feasibility proof, a failure path need not correspond to an actual input.
+The option \code{--fuel N} overrides the default loop bound.
+
+The parser accepts initialized \code{int} declarations, assignments, blocks,
+mandatory \code{if}/\code{else}, \code{assert}, comments, addition and
+subtraction, six comparisons, negation, conjunction, disjunction, and
+\code{while} loops.  It lowers
+\code{!=} to negated equality and reverses operands for \code{>} and \code{>=}.
+An initialized declaration is only assignment syntax; there are no types,
+scopes, or shadowing rules.  Uninitialized declarations and unsupported syntax
+such as \code{for} are rejected with line and column diagnostics.
+
+\section{Executable Semantics}
+
+\subsection{Core Language and Concrete Execution}
+
+Arithmetic expressions are constants, variables, addition, and subtraction.
+Boolean expressions contain equality, strict and non-strict order, negation,
+conjunction, and disjunction.  Statements are \code{skip}, assignment,
+sequencing, conditional choice, bounded \code{while}, and assertion.  Execution
+is total because a natural-number fuel parameter bounds recursive loop unrolling.
+
+A concrete store is a total function
+$\sigma : \mathsf{String}\rightarrow\mathbb{Z}$.  Thus reading a variable always
+returns the value supplied by the incoming store; the model has no notion of an
+uninitialized read.  Functions $\llbracket e\rrbracket_\sigma$ and
+$\llbracket b\rrbracket_\sigma$ evaluate expressions to an integer and a Boolean.
+Execution has the type
+\[
+ \mathsf{exec}:\mathsf{Stmt}\rightarrow\mathsf{State}
+                  \rightarrow\mathsf{ExecResult},
+\]
+where a result is $\mathsf{normal}(\sigma')$,
+$\mathsf{assertionFailure}(\sigma_f)$, or
+$\mathsf{fuelExhausted}(\sigma_e)$.  An assertion checks its Boolean
+expression and retains the current store in either result.  Failure is terminal:
+if the first component of a sequence fails, the second is not evaluated.  This
+explicit failure store is essential for stating correspondence at the failure
+point.  A false loop guard exits normally.  A true guard with positive fuel
+executes one body iteration and continues with decremented fuel; a true guard at
+zero fuel returns \code{fuelExhausted}.  Nested loops receive the current budget,
+so the parameter is not a global bound on the sum of all iterations.
+
+\subsection{Symbolic Domain}
+
+Symbolic arithmetic terms form a separate AST with integer constants, named
+inputs, addition, and subtraction.  Likewise, path conditions use an explicit
+\code{SymBool} syntax rather than Lean propositions.  This representation can be
+printed, traversed, normalized, or eventually translated to SMT-LIB without
+changing the core semantics.
+
+A valuation $\nu:\mathsf{String}\rightarrow\mathbb{Z}$ interprets named inputs.
+The functions $\mathcal I_E(\nu,t)$ and $\mathcal I_B(\nu,\phi)$ interpret
+symbolic terms and formulas.  A symbolic state
+$S=\langle\mu,\pi\rangle$ contains a total symbolic store
+$\mu:\mathsf{String}\rightarrow\mathsf{SymExpr}$ and a path condition $\pi$.
+Initially,
+\[
+  \mu_0(x)=\mathsf{input}(x), \qquad \pi_0=\mathsf{true}.
+\]
+Functional stores simplify pointwise proofs.  Since functions have no useful
+default textual representation, the output layer takes a finite list of variable
+names and creates a readable snapshot; this layer is not involved in soundness.
+
+\subsection{Symbolic Execution and Assertions}
+
+The executor returns all unpruned outcomes under an explicit bound:
+\begin{align*}
+ \mathsf{symExecFuel}:\;&\mathbb{N}\rightarrow\mathsf{Stmt}\rightarrow\mathsf{SymState}\\[-2pt]
+ &\rightarrow\mathsf{List}\;\mathsf{SymResult}.
+\end{align*}
+Assignment symbolically evaluates the right-hand side and updates $\mu$.
+Sequencing maps its second statement over normal results but preserves a failure
+as a singleton, matching concrete short-circuiting.  For a guard $b$, let
+$\widehat b$ be its symbolic evaluation.  A conditional appends the results of
+the two executions
+\[
+ (s_t,\langle\mu,\pi\land\widehat b\rangle),\qquad
+ (s_f,\langle\mu,\pi\land\neg\widehat b\rangle).
+\]
+An assertion emits exactly two tagged states:
+\[
+ \begin{array}{ll}
+ \mathsf{normal}             & \langle\mu,\pi\land\widehat b\rangle,\\
+ \mathsf{assertionFailure}   & \langle\mu,\pi\land\neg\widehat b\rangle.
+ \end{array}
+\]
+At zero loop fuel, the false-guard path remains normal and the true-guard path is
+tagged \code{fuelExhausted}; at positive fuel, the true path executes the body
+and continues with decremented fuel.  Default wrappers use a bound of eight.
+The executor does not ask whether either formula is satisfiable.  This choice
+keeps external solvers out of the trusted argument and permits a direct proof,
+at the cost of infeasible results and exponential path growth.
+
+\section{Mechanized Soundness}
+
+\subsection{Representation Relations}
+
+The central invariant says when a symbolic state denotes a concrete state under
+a valuation:
+\begin{align*}
+&\mathsf{Matches}(\nu,\sigma,\langle\mu,\pi\rangle) \;\triangleq\\
+&\quad \mathcal I_B(\nu,\pi)=\mathsf{true}
+ \ \land\ \forall x.\;\sigma(x)=\mathcal I_E(\nu,\mu(x)).
+\end{align*}
+Both conjuncts are substantive: the valuation must satisfy the path condition,
+and the interpreted symbolic store must agree pointwise with the concrete store.
+The lemma \code{initial_matches} proves
+$\mathsf{Matches}(\nu,\nu,S_0)$ for every valuation, making the premise of the
+main theorem explicitly inhabited.
+
+Structural induction establishes exact expression agreement:
+\[
+ \mathsf{Matches}(\nu,\sigma,S)\Rightarrow
+ \llbracket e\rrbracket_\sigma =
+ \mathcal I_E(\nu,\mathsf{symEvalExpr}(S.\mu,e)),
+\]
+and analogously for Boolean truth values.  These results yield three preservation
+lemmas: assignment updates concrete and symbolic stores in lockstep; a concretely
+true guard satisfies $\pi\land\widehat b$; and a concretely false guard satisfies
+$\pi\land\neg\widehat b$.
+
+Store agreement alone would allow an incorrect symbolic outcome tag to witness a
+concrete result.  \tool therefore defines \code{ResultMatches} with only two
+constructor-aligned rules for normal termination, assertion failure, and fuel
+exhaustion.  Writing $M$ for \code{Matches} and $RM$ for
+\code{ResultMatches}, they are:
+\[
+ \frac{M(\nu,\sigma,S)}
+      {RM(\nu,\mathsf{normal}(\sigma),\mathsf{normal}(S))}
+\]
+\[
+ \frac{M(\nu,\sigma,S)}
+      {RM(\nu,\mathsf{failure}(\sigma),\mathsf{failure}(S))}.
+\]
+Consequently, a concrete assertion failure cannot be represented by a symbolic
+normal result, or conversely.
+
+\subsection{Main Theorem}
+
+The exact Lean theorem is:
+
+\begin{lstlisting}
+theorem symExecFuel_sound (fuel : Nat)
+    (statement : Stmt)
+    {valuation : Valuation} {state : State}
+    {symbolic : SymState}
+    (h : Matches valuation state symbolic) :
+    exists result,
+      result `elem` symExecFuel fuel statement symbolic /\
+      ResultMatches valuation
+        (execFuel fuel statement state) result
+\end{lstlisting}
+
+The listing uses ASCII approximations for Lean's existential, membership, and
+conjunction notation.  Formally, the theorem states
+\begin{align*}
+ &\mathsf{Matches}(\nu,\sigma,S)\Rightarrow\\[-2pt]
+ &\quad\exists R\in\mathsf{symExecFuel}(k,s,S).\\[-2pt]
+ &\qquad \mathsf{ResultMatches}(\nu,\mathsf{execFuel}(k,s,\sigma),R).
+\end{align*}
+For a fixed valuation and a represented input-state pair, the unique concrete
+outcome is therefore covered by at least one generated symbolic result under the
+same valuation.  The witness has the same normal/failure/exhaustion tag, its path condition
+is satisfied, and its interpreted store equals the concrete final or
+failure-point store for every variable.
+
+The proof uses outer induction on fuel and inner induction on $s$, generalizing
+both states.  The \code{skip} case
+uses the unchanged state, and assignment uses update preservation.  In a
+sequence, the first induction hypothesis yields a matching symbolic result.  A
+normal intermediate result feeds the second induction hypothesis; list
+membership follows through \code{flatMap}.  A failing intermediate result is
+preserved without executing the suffix.  A conditional case-splits on concrete
+guard evaluation, strengthens the matching relation using the appropriate path
+lemma, and embeds the branch witness in the corresponding side of list append.
+The assertion cases select the emitted normal or failure result according to the
+concrete Boolean value.  A loop case considers a false exit, zero-fuel
+exhaustion, and a positive-fuel iteration.  A normal body result invokes the
+outer induction hypothesis at the predecessor; assertion failure or nested fuel
+exhaustion is propagated with its matching tag.  The theorem
+\code{symExec_sound} remains as the default-fuel specialization.
+
+This is a forward simulation or concrete-run coverage result.  It does not claim
+that every emitted path is feasible, that every potential failure is realizable,
+or that a solver is complete.  These exclusions are strengths of the stated
+trust boundary rather than hidden assumptions.
+
+\section{Artifact Validation}
+
+Table~\ref{tab:examples} summarizes executable regression programs.  The
+straight-line example checks nested symbolic substitution.  A conditional emits
+the guard and its negation.  The nested example deliberately retains the
+contradictory condition $10<\mathit{input}\land\mathit{input}<5$.  Separately, a
+Lean theorem proves the corresponding integer contradiction using \code{omega};
+this is a feasibility demonstration, not an integrated pruning pass.  The
+assertion example checks that two control paths become four results, exactly two
+of which carry the failure tag.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Executable semantic regressions.}
+\label{tab:examples}
+\begin{tabular}{@{}lccp{2.9cm}@{}}
+\toprule
+Scenario & Paths & Fail. & Checked behavior\\
+\midrule
+Straight line & 1 & 0 & symbolic assignment/substitution\\
+Conditional & 2 & 0 & guard and negated guard\\
+Nested branch & 3 & 0 & infeasible path retained\\
+Assertion & 4 & 2 & tag and path-condition split\\
+Bounded loop & 5 & 0 & four exits plus one exhaustion\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The parser suite contains four accepted structural cases covering arithmetic
+associativity, Boolean precedence and grouping, nearest-\code{if} association,
+comments, declarations, and assertions.  Five negative guards check rejection of
+an uninitialized declaration, a loop, a chained comparison, trailing input, and
+an unterminated comment.  These are frontend regressions, not a proof of parser
+correctness.
+
+The artifact pins \code{leanprover/lean4:v4.32.2}.  Reproduction requires:
+\begin{lstlisting}[language=bash]
+lake build
+lake exe minisym examples/demo.c
+lake exe minisym --fuel 3 examples/loop.c x
+lake exe minisym examples/demo.c x y input
+\end{lstlisting}
+The default build checks the library, executable examples, parser guards,
+soundness proofs, and CLI (18 build jobs in our environment).  The project has
+1,114 lines of Lean: 683 lines for syntax, the two semantics, executor, and
+soundness; 235 for the parser; and the remainder for examples, tests, and CLI.
+A source scan finds no \code{sorry}, \code{axiom}, \code{admit}, or \code{unsafe}
+in Lean files.  These measurements establish artifact consistency, not runtime
+scalability; no performance claim is made.
+
+\section{Discussion and Research Directions}
+
+\paragraph{Limitations.}
+The verified language omits unbounded loop semantics, procedures, multiplication, arrays, heap
+memory, pointers, bounded integers, overflow, and undefined behavior.  The
+surface parser is C-like rather than C: declarations have no binding semantics,
+\code{else} is mandatory, and the theorem begins only after parsing.  Functional
+stores require users to select names for printing.  Without simplification or
+feasibility pruning, the result set grows exponentially and contains false-positive
+failure paths.
+
+\paragraph{Certified feasibility.}
+The explicit \code{SymBool} AST gives a clean next step: define a pruning
+interface that removes a path only when accompanied by a Lean proof that its
+interpretation is false.  Lean's \code{omega} tactic can already discharge some
+linear-integer contradictions.  For larger formulas, an SMT translation could
+remain outside the executor, with solver answers accepted only after certificate
+checking.  Thus optimization need not enlarge the semantic trusted base.
+
+\paragraph{Richer intermediate languages.}
+An SSA transformation could reduce functional-store complexity and simplify SMT
+output, provided it comes with a semantics-preservation theorem.  Beyond that,
+finite-width arithmetic, memory regions, aliasing, and pointer provenance are
+necessary before claiming C or LLVM semantics.  The present proof decomposition
+also suggests a reusable abstraction: expression interpretation, store update,
+branch strengthening, and constructor-sensitive result matching can potentially
+be factored once for multiple frontends.
+
+\section{Related Work}
+
+King's formulation established symbolic execution as program execution over
+symbolic values and path constraints~\cite{king1976}.  KLEE demonstrates a mature
+engineering point in the design space, operating on LLVM programs and using
+constraint solving to generate high-coverage tests~\cite{klee}.  Rosette embeds
+solver-aided execution in a host language and supports the construction of
+domain-specific tools~\cite{rosette}.  \tool does not seek feature or performance
+parity with either system.  Its contribution is a small Lean artifact in which
+the executor and its concrete-to-symbolic coverage theorem can be read together.
+
+Lean~4 combines an interactive theorem prover with an efficient functional
+language and extensible tooling~\cite{lean4}, allowing the semantics, executable
+engine, examples, and proofs to inhabit one project.  In contrast to a verified
+compiler such as CompCert~\cite{compcert}, \tool currently verifies neither a
+translation from ISO C nor a low-level target.  The comparison highlights the
+next major proof obligation: a richer frontend must be related formally to the
+verified core rather than merely parsed into it.
+
+\section{Conclusion}
+
+\tool demonstrates that a useful symbolic-execution seed can be both executable
+and accompanied by a non-vacuous semantic theorem.  The development makes path
+conditions explicit, treats assertion failure as a genuine outcome, preserves
+the same valuation and store interpretation throughout execution, and keeps
+solver trust out of the core.  Its C-like CLI supports experimentation today;
+its sharply stated limitations identify proof-producing pruning, certified solver
+integration, SSA, and memory semantics as concrete next steps.
+
+\clearpage
+\begin{thebibliography}{9}
+
+\bibitem{king1976}
+James C. King.
+Symbolic execution and program testing.
+\emph{Communications of the ACM}, 19(7):385--394, 1976.
+
+\bibitem{klee}
+Cristian Cadar, Daniel Dunbar, and Dawson Engler.
+KLEE: Unassisted and automatic generation of high-coverage tests for complex
+systems programs.
+In \emph{Proc. 8th USENIX Symposium on Operating Systems Design and
+Implementation (OSDI)}, 2008.
+
+\bibitem{rosette}
+Emina Torlak and Rastislav Bodik.
+A lightweight symbolic virtual machine for solver-aided host languages.
+In \emph{Proc. ACM SIGPLAN Conference on Programming Language Design and
+Implementation (PLDI)}, 2014.
+
+\bibitem{lean4}
+Leonardo de Moura and Sebastian Ullrich.
+The Lean 4 theorem prover and programming language.
+In \emph{Proc. 28th International Conference on Automated Deduction (CADE)},
+pages 625--635, 2021.
+
+\bibitem{compcert}
+Xavier Leroy.
+Formal verification of a realistic compiler.
+\emph{Communications of the ACM}, 52(7):107--115, 2009.
+
+\end{thebibliography}
+
+\end{document}

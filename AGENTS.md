@@ -17,6 +17,10 @@
 This is an explicit user requirement recorded on 2026-10-06. It applies to all
 benchmark experiments, reruns, diagnostics, and campaigns in this repository.
 
+- For the uniform baseline campaign, do not enable DIG's static `recurrence`
+  type. Recurrence-like equalities may be considered only when discovered by
+  the trace-based inference engines; keep their trace evidence with the results.
+
 ## TSE recovery priorities
 
 - The user asked to recover the benchmarks solved in the TSE paper.
@@ -36,3 +40,8 @@ benchmark experiments, reruns, diagnostics, and campaigns in this repository.
 - Keep candidate discovery separate from confirmed target recovery. Degree and
   complexity are useful signals, while semantic target checks provide stronger
   evidence. Do not automatically overwrite the golden baseline with new output.
+
+## Paper comments
+
+- In `paper/paper.tex`, a paragraph ending with `\tvn{done}` is marked complete
+  by the author. Do not edit that paragraph.

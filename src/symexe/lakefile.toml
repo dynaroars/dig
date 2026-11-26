@@ -1,0 +1,10 @@
+name = "MiniSym"
+version = "0.1.0"
+defaultTargets = ["MiniSym", "minisym"]
+
+[[lean_lib]]
+name = "MiniSym"
+
+[[lean_exe]]
+name = "minisym"
+root = "Main"

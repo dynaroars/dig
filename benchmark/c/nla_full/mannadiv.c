@@ -1,3 +1,21 @@
+/*
+ * Purpose: Compute quotient by consuming one dividend unit at a time and cycling a remainder
+ * counter.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Primary benchmark collection: https://github.com/dynaroars/dig. No original
+ * publication for this exact C variant has been verified.
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: q*y+a+b-x == 0.
+ *   vtrace2: q*y+a-x == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: x >= 0, y >= 1. At loop heads 0 <= a < y, b >= 0; exit b=0 gives
+ * x=q*y+a. Original publication for this exact C variant is not established; the filename alone
+ * is not an attribution.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 

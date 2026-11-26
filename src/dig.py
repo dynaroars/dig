@@ -101,9 +101,11 @@ if __name__ == "__main__":
         "--llm",
         "-llm",
         action="store_true",
-        help="use an LLM (claude) to propose invariants, verified soundly by "
-             "DIG's symbolic states + z3 (requires ANTHROPIC_API_KEY)",
+        help="use an LLM to propose invariants, checked by DIG's symbolic states + z3",
     )
+    ag("--llm_provider", "-llm_provider", choices=("anthropic", "gemini", "groq"),
+       default="anthropic", help="LLM backend (default: anthropic)")
+    ag("--llm_model", "-llm_model", help="model ID (defaults depend on provider)")
 
     ag(
         "--llm_rounds",
@@ -138,6 +140,12 @@ if __name__ == "__main__":
     ag("--se_maxdepth", "-se_maxdepth",
        type=int,
        help="depthlimit of symbolic execution",
+       )
+
+    ag("--se_budget", "-se_budget",
+       type=int,
+       help="symbolic loop iterations to explore before deepening stops "
+            "(0 = unlimited)",
        )
 
     ag("--iupper", "-iupper", type=int, help="max upperbound val for ieqs")
@@ -303,6 +311,8 @@ if __name__ == "__main__":
         value = getattr(args, name, None)
         if value is not None and value < 1:
             aparser.error(f"--{name} must be positive")
+    if args.se_budget is not None and args.se_budget < 0:
+        aparser.error("--se_budget must be nonnegative")
 
     if args.axioms and args.inp:
         aparser.error("positional input and --axioms are mutually exclusive")
@@ -386,7 +396,9 @@ if __name__ == "__main__":
 
             dinvs, time_d = llm_infer.run(inp, seed=seed,
                                           max_rounds=args.llm_rounds,
-                                          no_traces=args.llm_no_traces)
+                                          no_traces=args.llm_no_traces,
+                                          provider=args.llm_provider,
+                                          model=args.llm_model)
             llm_infer.report(inp.stem, dinvs, time_d, seed)
         else:
             if inp.suffix == ".c":

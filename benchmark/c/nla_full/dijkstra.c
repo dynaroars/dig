@@ -1,3 +1,22 @@
+/*
+ * Purpose: Compute floor(sqrt(n)) by scanning powers of four and choosing square-root digits.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: Rodriguez-Carbonell and Kapur, ISSAC 2004, section 6: dijkstra; reference [7] is E. W.
+ * Dijkstra, A Discipline of Programming (1976).
+ * https://www.cs.unm.edu/~kapur/mypapers/issac04enric.pdf
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   vtrace1: p == 0.
+ *   vtrace1: r-n == 0.
+ *   vtrace2: p**2+r*q-n*q == 0.
+ *   vtrace3: p**2+r-n == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: Encoded domain: n >= 0. First phase ends with q the least power of four greater than n.
+ * At exit p^2 <= n < (p+1)^2.
+ */
 #include <stdio.h>
 #include <stdlib.h> 
 
@@ -19,7 +38,7 @@ int mainQ(int n){
 	q=4*q;
 	//assert(   n >= 0   &&   p == 0   &&   r==n );
     }
-    //q = 4^n
+    // q is the least power of four greater than n.
      
     while (1){
 	vtrace2(r, p, n, q, h);	

@@ -46,6 +46,15 @@ N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
 SE_DEPTH_NOCHANGES_MAX = 3
 SE_MAX_DEPTH = 8  # max symbolic-execution depth; override with --se_maxdepth
+# Explore once to SE_MAX_DEPTH and bin states by depth, instead of rerunning
+# every depth from scratch (same per-depth symstates, roughly half the work).
+SE_INCREMENTAL = True
+# Symbolic loop iterations to explore before deepening stops at the current
+# frontier depth; None = unlimited. Override with --se_budget (0 = unlimited).
+# At depth 16 the NLA/HOLA/complexity programs use at most 1920, except
+# prodbin, prod4br, lcm2, egcd and wensley, whose paths double per depth.
+# The budget applies to SE_INCREMENTAL exploration only.
+SE_WORK_BUDGET = 4000
 # Deterministic z3 work-unit budget, plus a safety timeout for native arithmetic.
 # The work budget is independent of CPU contention; timeout fallbacks can
 # affect optional results and are recorded separately in benchmark settings.
@@ -297,6 +306,12 @@ def setup(settings, args):
             settings.SE_MAX_DEPTH = args.se_maxdepth
         else:
             opts.extend(["-se_maxdepth", str(args.se_maxdepth)])
+
+    if getattr(args, "se_budget", None) is not None and args.se_budget >= 0:
+        if settings:
+            settings.SE_WORK_BUDGET = args.se_budget or None
+        else:
+            opts.extend(["-se_budget", str(args.se_budget)])
 
     if not settings and getattr(args, "maxdeg", None) is not None:
         opts.extend(["-maxdeg", str(args.maxdeg)])

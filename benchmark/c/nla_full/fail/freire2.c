@@ -1,3 +1,21 @@
+/*
+ * Purpose: Approximate an integer cube root by subtracting successively updated quadratic offsets.
+ *
+ * Provenance: existing DIG NLA C benchmark collection:
+ *   https://github.com/dynaroars/dig
+ * Sources: P. Freire, SQRT, Part I, Cube Root section.
+ * https://www.pedrofreire.com/sqrt/sqrt1.en.html
+ *
+ * Expected invariants (mathematical notation; ** means exponent):
+ *   internal_loop: 4*r**3-6*r**2+3*r+4*x-4*a-1 == 0.
+ *   internal_loop: 4*s-12*r**2-1 == 0.
+ * These relations are derived from this file's initialization and updates.
+ * They assume mathematical integers / exact reals and no signed overflow.
+ * Notes: For root interpretation use positive integer a; this adaptation initializes r=1 even
+ * when a=0. Specification uses exact reals; the C type differs in the archived fail variant.
+ * Archived fail variant: no active trace calls in freire1, freire2, or ps1; knuth calls sqrt from
+ * libm. Some archived drivers lack stdlib.h for atoi.
+ */
 #include <stdio.h>
 #include <assert.h>
 

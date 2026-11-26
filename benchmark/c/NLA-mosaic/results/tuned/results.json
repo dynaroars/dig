@@ -1,0 +1,347 @@
+{
+  "configuration": {
+    "seed": 42,
+    "timeout_seconds": 90.0,
+    "jobs": 2,
+    "types": "eqt,recurrence",
+    "kapur": true,
+    "dynamic": false,
+    "input_max": 30,
+    "trace_mode": false,
+    "python": "3.14.7 (main, Sep 13 2026, 08:30:29) [GCC 16.2.0]",
+    "platform": "linux"
+  },
+  "validation": {},
+  "runs": [
+    {
+      "name": "berggren",
+      "status": "timeout",
+      "elapsed_seconds": 90.029,
+      "degree": 2,
+      "expected": [
+        "a**2+b**2-c**2"
+      ],
+      "expected_found": [
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": -9,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/berggren.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "berggren.log"
+    },
+    {
+      "name": "chebyshev",
+      "status": "ok",
+      "elapsed_seconds": 8.825,
+      "degree": 3,
+      "expected": [
+        "a**2+b**2-2*t*a*b-1+t**2"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-a**2 + 2*a*b*t - b**2 - t**2 + 1"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/chebyshev.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "chebyshev.log"
+    },
+    {
+      "name": "chebyshev_pair",
+      "status": "no_summary",
+      "elapsed_seconds": 7.266,
+      "degree": 4,
+      "expected": [
+        "T**2-(t**2-1)*U**2-1"
+      ],
+      "expected_found": [
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/chebyshev_pair.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "4",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "chebyshev_pair.log"
+    },
+    {
+      "name": "continued_fraction",
+      "status": "no_summary",
+      "elapsed_seconds": 6.389,
+      "degree": 4,
+      "expected": [
+        "(p*s-r*q)**2-1"
+      ],
+      "expected_found": [
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/continued_fraction.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "4",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "continued_fraction.log"
+    },
+    {
+      "name": "fibonacci_trace",
+      "status": "timeout",
+      "elapsed_seconds": 90.11,
+      "degree": 3,
+      "expected": [
+        "x**2+y**2+z**2-2*x*y*z-constant"
+      ],
+      "expected_found": [
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": -9,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/fibonacci_trace.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "fibonacci_trace.log"
+    },
+    {
+      "name": "markov",
+      "status": "no_summary",
+      "elapsed_seconds": 16.797,
+      "degree": 3,
+      "expected": [
+        "x**2+y**2+z**2-3*x*y*z"
+      ],
+      "expected_found": [
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/markov.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "markov.log"
+    },
+    {
+      "name": "nagata",
+      "status": "ok",
+      "elapsed_seconds": 64.791,
+      "degree": 2,
+      "expected": [
+        "x*z+y**2-constant"
+      ],
+      "expected_found": [
+        true
+      ],
+      "equalities": [
+        "-constant + x*z + y**2"
+      ],
+      "invariant_count": 1,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/nagata.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "nagata.log"
+    },
+    {
+      "name": "symplectic_euler",
+      "status": "no_summary",
+      "elapsed_seconds": 24.003,
+      "degree": 3,
+      "expected": [
+        "p**2+q**2-h*p*q-energy"
+      ],
+      "expected_found": [
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/symplectic_euler.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "3",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "symplectic_euler.log"
+    },
+    {
+      "name": "welford",
+      "status": "no_summary",
+      "elapsed_seconds": 8.779,
+      "degree": 2,
+      "expected": [
+        "n*mean-sum",
+        "n*M2-n*sumsq+sum**2"
+      ],
+      "expected_found": [
+        false,
+        false
+      ],
+      "equalities": [],
+      "invariant_count": 0,
+      "returncode": 0,
+      "command": [
+        "/home/tnguyen/git/projects/dig/.venv/bin/python",
+        "-O",
+        "/home/tnguyen/git/projects/dig/src/dig.py",
+        "/home/tnguyen/git/projects/dig/benchmark/c/NLA-mosaic/welford.c",
+        "-types",
+        "eqt,recurrence",
+        "-maxdeg",
+        "2",
+        "-seed",
+        "42",
+        "-nomp",
+        "-tmpdir",
+        "/tmp",
+        "-log_level",
+        "3",
+        "-dokapur",
+        "-inpMaxV",
+        "30"
+      ],
+      "log": "welford.log"
+    }
+  ]
+}

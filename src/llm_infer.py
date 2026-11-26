@@ -19,6 +19,7 @@ bearing, sound half and runs with no LLM at all (see verify()).
 """
 from __future__ import annotations
 
+import json
 import random
 import tempfile
 import time
@@ -152,7 +153,7 @@ def get_dig(cfile: Path, seed: int = 42) -> alg.DigSymStatesC:
     dig = alg.DigSymStatesC(cfile)
     dig.seed = seed
     random.seed(seed)
-    dig.tmpdir = Path(tempfile.mkdtemp(dir=settings.TMPDIR, prefix="llm_"))
+    dig.tmpdir = Path(tempfile.mkdtemp(dir=settings.TMPDIR, prefix=f"Dig_{seed}_llm_"))
     dig.tmpdir_del = dig.tmpdir / "delete_me"
     dig.tmpdir_del.mkdir()
     dig.mysrc = dig.mysrc_cls(cfile, dig.tmpdir_del)
@@ -261,26 +262,29 @@ def _format_cexs(cexs: dict) -> str:
 
 # ─────────────────────────────── LLM backend (pluggable) ─────────────
 
-def propose(c_source: str, trace_sample: str = "", cexs: str = "") -> str:
+def propose(c_source: str, trace_sample: str = "", cexs: str = "",
+            provider: str = "anthropic", model: str | None = None,
+            evidence: dict | None = None, on_request=None) -> str:
     """
     Ask the LLM for candidate invariants. Returns raw text; caller parses it.
-    Requires ANTHROPIC_API_KEY + the anthropic SDK. The verifier above runs
-    without this. `trace_sample` is optional: when empty, the model proposes
+    Anthropic requires its SDK and ANTHROPIC_API_KEY; Gemini uses the standard
+    library and GEMINI_API_KEY or ~/.GEMINI_API_KEY. The verifier above runs
+    without API access. `trace_sample` is optional: when empty, the model proposes
     from the source alone (no .exe run needed).
     """
-    import anthropic  # lazy: only needed for the LLM half
-
     prompt = f"""You are given a C function{' and sample execution traces recorded at its loop head(s)' if trace_sample else ''}.
 Propose loop invariants: numerical relations over ONLY the traced variables
-(the arguments of the vtrace* calls) that hold on every iteration. Prefer forms
-a polynomial-equation solver would miss: disjunctions, conditionals, nonlinear
-inequalities, closed forms.
+(the arguments of the vtrace* calls) that hold on every iteration.
+
+Prioritize nonlinear polynomial equalities (such as algebraic relations, products,
+powers, and polynomial equations p(x1, ..., xn) == 0), as they are the primary focus of this work.
+Also include supporting linear equalities, inequalities, disjunctions, and closed forms.
 
 Output rules (important):
 - one invariant per line, nothing else (no prose, no markdown, no numbering)
 - each line is a single Python boolean expression over the traced variable names
 - use: + - * / % **, ==, !=, <=, <, >=, >, and, or, not, parentheses
-- example lines:   a*y == b        and(r >= 0, q*y + r == x)        a == 0 or b == a*y
+- example lines:   q*y + r == x        b - y*a == 0        x - n**3 == 0        4*r**3 - 6*r**2 + 3*r + 4*x - 4*a - 1 == 0
 
 C source:
 {c_source}
@@ -290,20 +294,23 @@ C source:
     if cexs:
         prompt += f"\nThese candidates were FALSE (counterexamples); avoid them:\n{cexs}\n"
 
-    client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return msg.content[0].text
+    from llm_backend import generate
+    if evidence is not None:
+        evidence.update(prompt=prompt)
+    if on_request is not None:
+        on_request()
+    output, metadata = generate(prompt, provider, model)
+    if evidence is not None:
+        evidence.update(prompt=prompt, response=output, **metadata)
+    return output
 
 
 def run(cfile: Path, seed: float, max_rounds: int = 3,
-        no_traces: bool = False) -> tuple[infer.inv.DInvs, dict]:
+        no_traces: bool = False, provider: str = "anthropic",
+        model: str | None = None) -> tuple[infer.inv.DInvs, dict]:
     """
     Full CEGIR loop: propose -> verify -> feed counterexamples back. Needs an
-    LLM backend (propose(), which reads ANTHROPIC_API_KEY); the verifier half is
+    LLM backend (propose(), which reads provider credentials); the verifier half is
     reusable on its own. Returns (dinvs, time_d) where dinvs holds the proved
     invariants in DIG's native form. With no_traces=True the prompt uses the
     source only (the .exe is never run).
@@ -311,7 +318,20 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
     random.seed(seed)
     time_d = {}
     st = time.time()
-    dig = get_dig(cfile)
+    if max_rounds < 1:
+        raise ValueError("llm_rounds must be positive")
+    dig = get_dig(cfile, seed=seed)
+    evidence = {"provider": provider, "requested_model": model, "seed": seed,
+                "max_rounds": max_rounds, "no_traces": no_traces, "rounds": [],
+                "source": str(cfile), "source_text": Path(cfile).read_text(),
+                "symbolic_exploration": dig.symstates.exploration_info,
+                "unexplored_locations": [loc for loc in dig.inv_decls if loc not in dig.symstates],
+                "verification": "symbolic-state checks plus optional Houdini; see exploration bounds"}
+    def save_evidence():
+        pending = dig.tmpdir / "llm_evidence.json.tmp"
+        pending.write_text(json.dumps(evidence, indent=2)+"\n")
+        pending.replace(dig.tmpdir / "llm_evidence.json")
+    save_evidence()
     time_d["symbolic_states"] = time.time() - st
 
     c_source = Path(cfile).read_text()
@@ -319,12 +339,31 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
     cex_text = ""
     t_llm = t_verify = 0.0
     for rnd in range(max_rounds):
-        trace_sample = "" if no_traces else _trace_sample(dig)
+        round_evidence = {"round": rnd}
+        evidence["rounds"].append(round_evidence)
+        save_evidence()
+        trace_sample = "" if no_traces else _trace_sample(dig, evidence=round_evidence)
+        round_evidence["trace_sample"] = trace_sample
+        save_evidence()
         t = time.time()
-        text = propose(c_source, trace_sample, cex_text)
+        try:
+            text = propose(c_source, trace_sample, cex_text, provider, model,
+                           round_evidence, on_request=save_evidence)
+        except Exception as error:
+            round_evidence["api_error"] = True
+            round_evidence["error_type"] = type(error).__name__
+            if hasattr(error, "metadata"):
+                round_evidence["api_error_metadata"] = error.metadata
+            raise
+        finally:
+            round_evidence["api_elapsed_seconds"] = time.time() - t
+            save_evidence()
         t_llm += time.time() - t
 
         candidates = _parse(text, dig)
+        round_evidence["candidates"] = {
+            loc: [label for _, label in cs] for loc, cs in candidates.items()}
+        save_evidence()
         if not candidates:
             mlog.info(f"round {rnd}: LLM proposed 0 parseable candidates")
             break
@@ -353,6 +392,12 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
                 proved_by_loc.setdefault(loc, {})[inv.mystr] = to_native(inv)
         n_new = sum(len(v) for v in proved.values())
         n_cex = sum(len(labels) for labels in cexs.values())
+        round_evidence.update(
+            candidates={loc: [label for _, label in cs] for loc, cs in candidates.items()},
+            proved={loc: [inv.mystr for inv in invs] for loc, invs in proved.items()},
+            counterexamples=_format_cexs(cexs),
+        )
+        save_evidence()
         mlog.info(f"round {rnd}: {n_new} proved, {n_cex} disproved")
         if not cexs:
             break
@@ -373,6 +418,11 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
         time_d["simplify"] = time.time() - t
 
     time_d["total"] = time.time() - st
+    from analysis import Result
+    Result(cfile, seed, dinvs, data.traces.DTraces(),
+           dig.symstates.solver_stats_, time_d).save(dig.tmpdir)
+    evidence["symbolic_exploration"] = dig.symstates.exploration_info
+    save_evidence()
     return dinvs, time_d
 
 
@@ -405,11 +455,18 @@ def report(progname: str, dinvs: infer.inv.DInvs, time_d: dict,
 
 # ─────────────────────────────── helpers (parse / sample) ────────────
 
-def _trace_sample(dig, n: int = 12) -> str:
+def _trace_sample(dig, n: int = 12, evidence: dict | None = None) -> str:
     """Run a few random inputs and format concrete trace rows per location."""
     rinps = dig.prog.gen_rand_inps(n_needed=8)
     inps = data.traces.Inps().merge(rinps, dig.inp_decls.names)
     dtraces = dig.prog.get_traces(inps)
+    if evidence is not None:
+        evidence["execution_traces"] = [
+            {"input": {str(k): str(v) for k, v in zip(inp.ss, inp.vs)},
+             "raw_trace_rows": rows,
+             "outcome": dig.prog.execution_outcomes.get(inp, "unknown")}
+            for inp, rows in sorted(dig.prog._cache.items(), key=lambda item: str(item[0]))
+        ]
     lines = []
     for loc in dtraces:
         for t in list(dtraces[loc])[:n]:
@@ -421,7 +478,9 @@ def _trace_sample(dig, n: int = 12) -> str:
 def _parse(text: str, dig) -> dict[str, list[tuple[z3.BoolRef, str]]]:
     """Parse one-invariant-per-line LLM output into z3 predicates per loc."""
     out: dict[str, list] = {}
-    locs = list(dig.inv_decls)
+    # Unexplored observation sites cannot be checked; retain them as missing
+    # evidence instead of checking an empty state set or raising KeyError.
+    locs = [loc for loc in dig.inv_decls if loc in dig.symstates]
     for line in text.splitlines():
         line = line.strip()
         if not line:

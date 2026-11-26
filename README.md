@@ -20,6 +20,11 @@ DIG's numerical relations (in particular, nonlinear relations) have been used in
 - *array analysis*, finding invariant relations over array data structures such as `A[i] = B[C[2i + 3]]`, (`ICSE12`, `TOSEM13`)
 - **Benchmarks**: The DIG project also produces a large set of **NLA** [benchmark programs](https://github.com/dynaroars/dig/tree/dev/benchmark) that contain nonlinear invariants.  Many of these programs are used in the annual SV-COMP (Software verification competition), e.g., [`dig-nla`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench) and [`dig-nla-scaling`](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/nla-digbench-scaling).
 
+DIG is also gaining an API axiom analysis for typed Python and Java APIs. The current
+developer preview supports isolated finite-recipe discovery, held-out validation,
+replayable counterexamples, and explicitly scoped finite-domain verification. See the
+[API axiom guide](docs/axioms/README.md).
+
 
 <!-- <details> -->
 
@@ -406,6 +411,50 @@ disjunctions) are grouped under an `LLM:` category. Related options:
 - `-llm_rounds N` — cap the number of propose/verify (CEGIR) rounds (default `3`).
 - `-llm_no_traces` — prompt the LLM with the program source only, without running
   it to collect sample traces (the compiled program is never executed for traces).
+
+**Gemini.** Use `-llm_provider gemini` (no additional Python package needed).
+Set `GEMINI_API_KEY`, or store the key in `~/.GEMINI_API_KEY` with permissions
+`600`; DIG reads that file automatically when the environment variable is absent.
+The default Gemini model is `gemini-3.8-flash`; override with `-llm_model MODEL`.
+Use an AI Studio project on the Free tier for free-tier experiments; DIG cannot
+determine your project's billing tier. Quota errors stop the campaign without
+automatic retries or switching models/providers.
+
+**Groq.** Use `-llm_provider groq`; the default model is `qwen/qwen3.8-27b`.
+Set `GROQ_API_KEY`, or save it in `~/.GROQ_API_KEY` with permissions `600`.
+The alternate spelling `~/.GROG_API_KEY` is also accepted. Groq uses REST without
+an additional SDK. For the serial seed-0 campaign, use the runner below with
+`--llm-provider groq --exclude nla/knuth --seeds 0`. Keep your Groq account on
+the Free plan; the backend cannot determine its billing tier. API errors stop
+the campaign. Evidence includes token usage and response quota headers.
+Groq's output cap is 512 tokens to fit accounts with a separate 1000-token
+output-per-minute limit. The runner shares a rate-state file between
+serial invocations, spaces requests by at least 20 seconds, and waits for the
+reported token reset when estimated headroom is low. These waits count toward
+the per-program timeout and must be separated from inference cost when reporting
+timings. Use `benchmark/summarize_llm_campaign.py --campaigns DIR ... --out DIR`
+to preserve a multi-part campaign's summary and equality catalog without
+discarding runs made before logging or pacing changes.
+
+From the repository root, a one-program pilot is:
+
+```sh
+python3 benchmark/run_tse_recovery.py --llm-provider gemini --programs nla/cohendiv --seeds 0 --llm-rounds 3 --timeout 300
+```
+
+For the TSE C campaign across seven seeds, deferring Knuth:
+
+```sh
+python3 benchmark/run_tse_recovery.py --llm-provider gemini --exclude nla/knuth --seeds 0 1 2 3 4 5 6 --timeout 300
+```
+
+The runner is serial and retains DIG's internal parallelism. LLM campaigns default
+to a separate timestamped directory under `benchmark/results/llm/`, with run logs,
+target implication checks, saved invariants, and `llm_evidence.json` containing
+prompts, raw responses, token usage, round-level candidates/counterexamples, and
+symbolic exploration bounds. Target recovery is an implication check over the
+reported invariants; inspect verification evidence separately for program-level
+claims. Seeds control concrete sampling, not reproducibility of API responses.
 
 </details>
 

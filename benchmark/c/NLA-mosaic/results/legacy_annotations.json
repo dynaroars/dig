@@ -1,0 +1,1252 @@
+{
+  "method": "Comment-free token preservation; temporary instrumented C drivers compiled with UBSan; exact evaluation of documented expressions. Archived drivers receive stdlib.h and, where needed, temporary observation calls. This is finite testing, not a proof.",
+  "files": [
+    {
+      "file": "benchmark/c/nla/ariths.c",
+      "inputs": 21,
+      "trace_rows": 210,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-n**2 + 2*s",
+          "-2*n + 2*t - 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/bresenham.c",
+      "inputs": 90,
+      "trace_rows": 908,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-2*X*y - X + 2*Y*x + 2*Y - v"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/cohencu.c",
+      "inputs": 12,
+      "trace_rows": 90,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-n**3 + x",
+          "-3*n**2 - 3*n + y - 1",
+          "-6*n + z - 6"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/cohencu.c",
+      "inputs": 12,
+      "trace_rows": 102,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-n**3 + x",
+          "-3*n**2 - 3*n + y - 1",
+          "-6*n + z - 6"
+        ],
+        "vtrace2": [
+          "-n**3 + x",
+          "-3*n**2 - 3*n + y - 1",
+          "-6*n + z - 6"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/cohendiv.c",
+      "inputs": 140,
+      "trace_rows": 677,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-q*y - r + x",
+          "-a*y + b"
+        ],
+        "vtrace2": [
+          "-q*y - r + x",
+          "-a*y + b"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/cohendiv.c",
+      "inputs": 140,
+      "trace_rows": 817,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-q*y - r + x",
+          "-a*y + b"
+        ],
+        "vtrace2": [
+          "-q*y - r + x",
+          "-a*y + b"
+        ],
+        "vtrace3": [
+          "-q*y - r + x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/printf/cohendiv.c",
+      "inputs": 140,
+      "trace_rows": 817,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-q*y - r + x",
+          "-a*y + b"
+        ],
+        "vtrace2": [
+          "-q*y - r + x",
+          "-a*y + b"
+        ],
+        "vtrace3": [
+          "-q*y - r + x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/dijkstra.c",
+      "inputs": 101,
+      "trace_rows": 840,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "p",
+          "-n + r"
+        ],
+        "vtrace2": [
+          "-n*q + p**2 + q*r"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/dijkstra.c",
+      "inputs": 101,
+      "trace_rows": 941,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "p",
+          "-n + r"
+        ],
+        "vtrace2": [
+          "-n*q + p**2 + q*r"
+        ],
+        "vtrace3": [
+          "-n + p**2 + r"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/divbin.c",
+      "inputs": 147,
+      "trace_rows": 850,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "q",
+          "-A + r"
+        ],
+        "vtrace2": [
+          "A - b*q - r"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/divbin.c",
+      "inputs": 147,
+      "trace_rows": 976,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "q",
+          "-A + r"
+        ],
+        "vtrace2": [
+          "A - b*q - r"
+        ],
+        "vtrace3": [
+          "A - b*q - r",
+          "-B + b"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/egcd.c",
+      "inputs": 100,
+      "trace_rows": 462,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "p*s - q*r - 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/egcd.c",
+      "inputs": 100,
+      "trace_rows": 562,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "p*s - q*r - 1"
+        ],
+        "vtrace2": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "p*s - q*r - 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/egcd2.c",
+      "inputs": 100,
+      "trace_rows": 1104,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a - p*x - r*y",
+          "b - q*x - s*y"
+        ],
+        "vtrace2": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "a - b*k - c"
+        ],
+        "vtrace3": [
+          "a - p*x - r*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/egcd2.c",
+      "inputs": 100,
+      "trace_rows": 1104,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a - p*x - r*y",
+          "b - q*x - s*y"
+        ],
+        "vtrace2": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "a - b*k - c"
+        ],
+        "vtrace3": [
+          "a - p*x - r*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/egcd3.c",
+      "inputs": 100,
+      "trace_rows": 1260,
+      "locations": [
+        "vtraces1",
+        "vtraces2",
+        "vtraces3",
+        "vtraces4"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtraces1": [
+          "a - p*x - r*y",
+          "b - q*x - s*y"
+        ],
+        "vtraces2": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "a - b*k - c"
+        ],
+        "vtraces3": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "a - b*k - c",
+          "-b*d + v"
+        ],
+        "vtraces4": [
+          "a - p*x - r*y",
+          "b - q*x - s*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/egcd3.c",
+      "inputs": 100,
+      "trace_rows": 1260,
+      "locations": [
+        "vtraces1",
+        "vtraces2",
+        "vtraces3",
+        "vtraces4"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtraces1": [
+          "a - p*x - r*y",
+          "b - q*x - s*y"
+        ],
+        "vtraces2": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "a - b*k - c"
+        ],
+        "vtraces3": [
+          "a - p*x - r*y",
+          "b - q*x - s*y",
+          "a - b*k - c",
+          "-b*d + v"
+        ],
+        "vtraces4": [
+          "a - p*x - r*y",
+          "b - q*x - s*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/fermat1.c",
+      "inputs": 50,
+      "trace_rows": 2436,
+      "locations": [
+        "vtraces1",
+        "vtraces2",
+        "vtraces3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtraces1": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ],
+        "vtraces2": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ],
+        "vtraces3": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/fermat1.c",
+      "inputs": 50,
+      "trace_rows": 2486,
+      "locations": [
+        "vtraces1",
+        "vtraces2",
+        "vtraces3",
+        "vtraces4"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtraces1": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ],
+        "vtraces2": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ],
+        "vtraces3": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ],
+        "vtraces4": [
+          "4*A - u**2 + 2*u + v**2 - 2*v"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/fermat2.c",
+      "inputs": 50,
+      "trace_rows": 1077,
+      "locations": [
+        "vtraces1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtraces1": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/fermat2.c",
+      "inputs": 50,
+      "trace_rows": 1127,
+      "locations": [
+        "vtraces1",
+        "vtraces2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtraces1": [
+          "4*A + 4*r - u**2 + 2*u + v**2 - 2*v"
+        ],
+        "vtraces2": [
+          "4*A - u**2 + 2*u + v**2 - 2*v"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/freire1.c",
+      "inputs": 101,
+      "trace_rows": 771,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a + r**2 - r + 2*x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/fail/freire1.c",
+      "inputs": 101,
+      "trace_rows": 771,
+      "locations": [
+        "vtracecheck"
+      ],
+      "status": "passed",
+      "temporary_hooks": true,
+      "expressions": {
+        "vtracecheck": [
+          "-a + r**2 - r + 2*x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/freire1_int.c",
+      "inputs": 51,
+      "trace_rows": 386,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a + r**2 - r + 2*x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/freire1_int.c",
+      "inputs": 51,
+      "trace_rows": 437,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a + r**2 - r + 2*x"
+        ],
+        "vtrace2": [
+          "-a + r**2 - r + 2*x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/freire2.c",
+      "inputs": 101,
+      "trace_rows": 350,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-4*a + 4*r**3 - 6*r**2 + 3*r + 4*x - 1",
+          "-12*r**2 + 4*s - 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/fail/freire2.c",
+      "inputs": 101,
+      "trace_rows": 350,
+      "locations": [
+        "vtracecheck"
+      ],
+      "status": "passed",
+      "temporary_hooks": true,
+      "expressions": {
+        "vtracecheck": [
+          "-4*a + 4*r**3 - 6*r**2 + 3*r + 4*x - 1",
+          "-12*r**2 + 4*s - 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/geo1.c",
+      "inputs": 40,
+      "trace_rows": 180,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "x*z - x - y + 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/geo1.c",
+      "inputs": 40,
+      "trace_rows": 220,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "x*z - x - y + 1"
+        ],
+        "vtrace2": [
+          "x - y + 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/geo2.c",
+      "inputs": 40,
+      "trace_rows": 180,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "x*z - x - y*z + 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/geo2.c",
+      "inputs": 40,
+      "trace_rows": 220,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "x*z - x - y*z + 1"
+        ],
+        "vtrace2": [
+          "x*z - x - y*z + 1"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/geo3.c",
+      "inputs": 72,
+      "trace_rows": 252,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a*y*z + a + x*z - x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/geo3.c",
+      "inputs": 72,
+      "trace_rows": 324,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a*y*z + a + x*z - x"
+        ],
+        "vtrace2": [
+          "-a*y*z + a + x*z - x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/hard.c",
+      "inputs": 147,
+      "trace_rows": 850,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "q",
+          "-A + r",
+          "-B*p + d"
+        ],
+        "vtrace2": [
+          "A - B*q - r",
+          "-B*p + d"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/hard.c",
+      "inputs": 147,
+      "trace_rows": 997,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "q",
+          "-A + r",
+          "-B*p + d"
+        ],
+        "vtrace2": [
+          "A - B*q - r",
+          "-B*p + d"
+        ],
+        "vtrace3": [
+          "A - B*q - r",
+          "-B + d"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/isqrt.c",
+      "inputs": 101,
+      "trace_rows": 726,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "r**2 <= n"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/knuth.c",
+      "inputs": 707,
+      "trace_rows": 2024,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "d**2*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r",
+          "k*t - t**2",
+          "(-a + d)*(k - t)"
+        ],
+        "vtrace2": [
+          "d**2*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r",
+          "k*t - t**2",
+          "(-a + d)*(k - t)"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/fail/knuth.c",
+      "inputs": 707,
+      "trace_rows": 2024,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": true,
+      "expressions": {
+        "vtrace1": [
+          "d**2*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r",
+          "k*t - t**2",
+          "(-a + d)*(k - t)"
+        ],
+        "vtrace2": [
+          "d**2*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r",
+          "k*t - t**2",
+          "(-a + d)*(k - t)"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/knuth_nosqrt.c",
+      "inputs": 77,
+      "trace_rows": 120,
+      "locations": [
+        "vtracecheck"
+      ],
+      "status": "passed",
+      "temporary_hooks": true,
+      "expressions": {
+        "vtracecheck": [
+          "d**2*q + 4*d*k - 2*d*q - 4*d*r - 8*n + 8*r",
+          "k*t - t**2",
+          "(-a + d)*(k - t)",
+          "n - s**2"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/lcm1.c",
+      "inputs": 100,
+      "trace_rows": 846,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a*b + u*x + v*y"
+        ],
+        "vtrace2": [
+          "-a*b + u*x + v*y"
+        ],
+        "vtrace3": [
+          "-a*b + u*x + v*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/lcm1.c",
+      "inputs": 100,
+      "trace_rows": 946,
+      "locations": [
+        "vtrace1",
+        "vtrace2",
+        "vtrace3",
+        "vtrace4"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a*b + u*x + v*y"
+        ],
+        "vtrace2": [
+          "-a*b + u*x + v*y"
+        ],
+        "vtrace3": [
+          "-a*b + u*x + v*y"
+        ],
+        "vtrace4": [
+          "-a*b + u*x + v*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/lcm2.c",
+      "inputs": 100,
+      "trace_rows": 462,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-2*a*b + u*x + v*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/lcm2.c",
+      "inputs": 100,
+      "trace_rows": 562,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-2*a*b + u*x + v*y"
+        ],
+        "vtrace2": [
+          "-2*a*b + u*x + v*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/mannadiv.c",
+      "inputs": 147,
+      "trace_rows": 1617,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a + b + q*y - x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/mannadiv.c",
+      "inputs": 147,
+      "trace_rows": 1764,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a + b + q*y - x"
+        ],
+        "vtrace2": [
+          "a + q*y - x"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/prod4br.c",
+      "inputs": 100,
+      "trace_rows": 428,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a*b*p + q - x*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/prod4br.c",
+      "inputs": 100,
+      "trace_rows": 528,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "a*b*p + q - x*y"
+        ],
+        "vtrace2": [
+          "q - x*y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/prodbin.c",
+      "inputs": 121,
+      "trace_rows": 561,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a*b + x*y + z"
+        ],
+        "vtrace2": [
+          "-a*b + z"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/prodbin.c",
+      "inputs": 121,
+      "trace_rows": 561,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-a*b + x*y + z"
+        ],
+        "vtrace2": [
+          "-a*b + z"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/ps1.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "x - y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/fail/ps1.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtracecheck"
+      ],
+      "status": "passed",
+      "temporary_hooks": true,
+      "expressions": {
+        "vtracecheck": [
+          "x - y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/ps2.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "2*x - y**2 - y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/ps2.c",
+      "inputs": 31,
+      "trace_rows": 527,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "2*x - y**2 - y"
+        ],
+        "vtrace2": [
+          "2*x - y**2 - y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/ps3.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "6*x - 2*y**3 - 3*y**2 - y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/ps3.c",
+      "inputs": 31,
+      "trace_rows": 527,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "6*x - 2*y**3 - 3*y**2 - y"
+        ],
+        "vtrace2": [
+          "6*x - 2*y**3 - 3*y**2 - y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/ps4.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "4*x - y**4 - 2*y**3 - y**2"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/ps4.c",
+      "inputs": 31,
+      "trace_rows": 527,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "4*x - y**4 - 2*y**3 - y**2"
+        ],
+        "vtrace2": [
+          "4*x - y**4 - 2*y**3 - y**2"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/ps5.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "30*x - 6*y**5 - 15*y**4 - 10*y**3 + y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/ps5.c",
+      "inputs": 31,
+      "trace_rows": 527,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "30*x - 6*y**5 - 15*y**4 - 10*y**3 + y"
+        ],
+        "vtrace2": [
+          "30*x - 6*y**5 - 15*y**4 - 10*y**3 + y"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/ps6.c",
+      "inputs": 31,
+      "trace_rows": 496,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "12*x - 2*y**6 - 6*y**5 - 5*y**4 + y**2"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/ps6.c",
+      "inputs": 31,
+      "trace_rows": 527,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "12*x - 2*y**6 - 6*y**5 - 5*y**4 + y**2"
+        ],
+        "vtrace2": [
+          "12*x - 2*y**6 - 6*y**5 - 5*y**4 + y**2"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/sqrt1.c",
+      "inputs": 101,
+      "trace_rows": 726,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-2*a + t - 1",
+          "s - (a + 1)**2",
+          "a**2 <= n"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla_full/sqrt1.c",
+      "inputs": 101,
+      "trace_rows": 827,
+      "locations": [
+        "vtrace1",
+        "vtrace2"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-2*a + t - 1",
+          "s - (a + 1)**2",
+          "a**2 <= n"
+        ],
+        "vtrace2": [
+          "-2*a + t - 1",
+          "s - (a + 1)**2",
+          "a**2 <= n"
+        ]
+      }
+    },
+    {
+      "file": "benchmark/c/nla/wensley.c",
+      "inputs": 136,
+      "trace_rows": 2720,
+      "locations": [
+        "vtrace1"
+      ],
+      "status": "passed",
+      "temporary_hooks": false,
+      "expressions": {
+        "vtrace1": [
+          "-D*y + a",
+          "-D*d + 2*b"
+        ]
+      }
+    }
+  ]
+}
