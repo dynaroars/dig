@@ -33,6 +33,7 @@
   table.invs { border-collapse: collapse; margin: 0.4em 0 1em 0; }
   table.invs td, table.invs th { border: 1px solid #666; padding: 2px 8px; text-align: left; }
   .small { font-size: smaller; }
+  body.mode-csv .c-only { display: none; }
 </style>
 </head>
 <body>
@@ -75,7 +76,7 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
   <td><label for="opt-maxdeg"><tt>-maxdeg</tt></label></td><td><input type="number" id="opt-maxdeg" size="5" min="1" max="10"></td>
   <td>find nonlinear invariants up to this degree</td>
 </tr>
-<tr>
+<tr class="c-only">
   <td><label for="opt-se_maxdepth"><tt>-se_maxdepth</tt></label></td><td><input type="number" id="opt-se_maxdepth" size="5" min="1"></td>
   <td>depth limit of symbolic execution</td>
 </tr>
@@ -100,13 +101,13 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 
 <fieldset>
 <legend><b>Invariant types</b> <span class="small">(uncheck to exclude a type; builds the <tt>-types</tt> selector — all on by default)</span></legend>
-<label><input type="checkbox" id="type-eqt" name="type-eqt" autocomplete="off" checked> equalities <span class="small">(dynamic + static recurrence)</span></label><br>
+<label><input type="checkbox" id="type-eqt" name="type-eqt" autocomplete="off" checked> equalities <span class="small c-only">(dynamic + static recurrence)</span></label><br>
 <label><input type="checkbox" id="type-ieq" name="type-ieq" autocomplete="off" checked> inequalities <span class="small">(octagonal / polynomial)</span></label><br>
 <label><input type="checkbox" id="type-minmax" name="type-minmax" autocomplete="off" checked> min/max-plus</label><br>
 <label><input type="checkbox" id="type-congruence" name="type-congruence" autocomplete="off" checked> congruences</label>
 </fieldset>
 
-<fieldset>
+<fieldset class="c-only">
 <legend><b>Verification &amp; Lean 4 certification</b> <span class="small">(default: Z3 verification + Lean 4 certification)</span></legend>
 <label><input type="checkbox" id="opt-certify_lean" name="opt-certify_lean" autocomplete="off" checked> <tt>--certify-lean</tt> certify the Z3-checked invariants with Lean 4
   <span class="small">(unbounded proof, zero Z3 in TCB)</span></label><br>
@@ -117,11 +118,11 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 
 <fieldset>
 <legend><b>Other flags</b></legend>
-<label><input type="checkbox" id="opt-noss" name="opt-noss" autocomplete="off"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label><br>
+<div class="c-only"><label><input type="checkbox" id="opt-noss" name="opt-noss" autocomplete="off"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label></div>
 <label><input type="checkbox" id="opt-nomp" name="opt-nomp" autocomplete="off"> <tt>-nomp</tt> don't use multiprocessing</label>
 </fieldset>
 
-<fieldset>
+<fieldset class="c-only">
 <legend><b>LLM</b></legend>
 <label><input type="checkbox" id="opt-llm" name="opt-llm" autocomplete="off"> <tt>-llm</tt> use an LLM (Gemini) to propose invariants, verified by symbolic states + z3
   <span class="small">(server needs <tt>GEMINI_API_KEY</tt> or <tt>gemini_api</tt>)</span></label><br>
@@ -234,6 +235,7 @@ function loadExample() {
       var type = exampleTypes[id] || "c";
       var radios = document.getElementsByName("input-type");
       for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === type);
+      syncInputMode(type);
       $("example-desc").textContent = exampleDescs[id] || "";
       setStatus("Loaded example: " + id);
     }
@@ -247,27 +249,34 @@ function numOpt(id) {
   return v === "" ? null : Number(v);
 }
 
+function syncInputMode(inputType) {
+  document.body.classList.toggle("mode-csv", inputType === "csv");
+}
+
 function gatherOptions() {
+  var isC = currentInputType() === "c";
   var opts = {
     maxdeg: numOpt("opt-maxdeg"),
-    se_maxdepth: numOpt("opt-se_maxdepth"),
     seed: numOpt("opt-seed"),
-    llm_rounds: numOpt("opt-llm_rounds"),
     log_level: Number($("opt-log_level").value),
     timeout: numOpt("opt-timeout") || 120
   };
-  ["noss", "nomp", "nollmhoudini", "llm", "llm_no_traces",
-   "lean_only", "keep_unverified"].forEach(function (name) {
-    if ($("opt-" + name).checked) opts[name] = true;
-  });
-  if ($("opt-certify_lean").checked && currentInputType() === "c" &&
-      !opts.lean_only && !opts.noss) {
-    opts.certify_lean = true;
+  if ($("opt-nomp").checked) opts.nomp = true;
+  if (isC) {
+    opts.se_maxdepth = numOpt("opt-se_maxdepth");
+    opts.llm_rounds = numOpt("opt-llm_rounds");
+    ["noss", "nollmhoudini", "llm", "llm_no_traces",
+     "lean_only", "keep_unverified"].forEach(function (name) {
+      if ($("opt-" + name).checked) opts[name] = true;
+    });
+    if ($("opt-certify_lean").checked && !opts.lean_only && !opts.noss) {
+      opts.certify_lean = true;
+    }
   }
   // invariant types -> -types allowlist; omit it when all are selected (the
-  // default = every type). "equalities" covers both eqt and recurrence.
-  var typeMap = {eqt: ["eqt", "recurrence"], ieq: ["ieq"], minmax: ["minmax"],
-                 congruence: ["congruence"]};
+  // default = every type). "equalities" covers both eqt and recurrence for C.
+  var typeMap = {eqt: isC ? ["eqt", "recurrence"] : ["eqt"], ieq: ["ieq"],
+                 minmax: ["minmax"], congruence: ["congruence"]};
   var allTypes = Object.keys(typeMap);
   var checked = allTypes.filter(function (t) { return $("type-" + t).checked; });
   if (checked.length && checked.length < allTypes.length) {
@@ -383,12 +392,15 @@ function renderResults(data) {
 /* ---------- init ---------- */
 
 document.addEventListener("DOMContentLoaded", function () {
+  syncInputMode(currentInputType());
   loadExampleList();
   $("example-select").addEventListener("change", loadExample);
   var radios = document.getElementsByName("input-type");
   for (var i = 0; i < radios.length; i++) {
     radios[i].addEventListener("change", function () {
-      populateExamples(currentInputType());
+      var mode = currentInputType();
+      syncInputMode(mode);
+      populateExamples(mode);
     });
   }
   $("run-btn").addEventListener("click", runDig);
