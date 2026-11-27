@@ -262,6 +262,12 @@ def _format_cexs(cexs: dict) -> str:
 # ─────────────────────────────── LLM backend (pluggable) ─────────────
 
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+FALLBACK_GEMINI_MODELS = (
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+)
 
 
 def _gemini_api_key() -> str:
@@ -281,6 +287,30 @@ def _gemini_api_key() -> str:
     )
 
 
+def _format_api_error(err: Exception, models: list[str]) -> str:
+    """Turn a google-genai APIError into a concise, user-facing message."""
+    code = getattr(err, "code", None)
+    status = getattr(err, "status", None) or ""
+    msg = getattr(err, "message", None) or str(err)
+    tried = ", ".join(models)
+    if code == 503 or status == "UNAVAILABLE":
+        return (
+            f"LLM error: Gemini API is temporarily overloaded (503 UNAVAILABLE) "
+            f"across all tried models ({tried}). Please try again in a moment."
+        )
+    if code == 429 or status == "RESOURCE_EXHAUSTED":
+        return (
+            f"LLM error: Gemini API rate/quota limit reached (429) across "
+            f"({tried}). Please try again later."
+        )
+    if code in (401, 403):
+        return (
+            f"LLM error: Gemini API authentication/permission failed ({code}). "
+            f"Check GEMINI_API_KEY."
+        )
+    return f"LLM error: Gemini API request failed ({code or 'error'}): {msg}"
+
+
 def propose(c_source: str, trace_sample: str = "", cexs: str = "") -> str:
     """
     Ask Gemini for candidate invariants. Returns raw text; caller parses it.
@@ -289,6 +319,7 @@ def propose(c_source: str, trace_sample: str = "", cexs: str = "") -> str:
     proposes from the source alone (no .exe run needed).
     """
     from google import genai  # lazy: only needed for the LLM half
+    from google.genai import errors as genai_errors
 
     prompt = f"""You are given a C function{' and sample execution traces recorded at its loop head(s)' if trace_sample else ''}.
 Propose loop invariants: numerical relations over ONLY the traced variables
@@ -310,13 +341,30 @@ C source:
     if cexs:
         prompt += f"\nThese candidates were FALSE (counterexamples); avoid them:\n{cexs}\n"
 
-    model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
-    client = genai.Client(api_key=_gemini_api_key())
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
-    )
-    return response.text or ""
+    try:
+        api_key = _gemini_api_key()
+    except RuntimeError as err:
+        raise SystemExit(f"LLM error: {err}") from None
+
+    primary = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    models = [primary] + [m for m in FALLBACK_GEMINI_MODELS if m != primary]
+    client = genai.Client(api_key=api_key)
+    for idx, model in enumerate(models):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+            )
+            return response.text or ""
+        except genai_errors.APIError as err:
+            if err.code in (429, 500, 503, 504) and idx < len(models) - 1:
+                mlog.warning(
+                    f"Gemini model '{model}' unavailable ({err.code}); "
+                    f"retrying with '{models[idx + 1]}'"
+                )
+                continue
+            raise SystemExit(_format_api_error(err, models[:idx + 1])) from None
+    raise SystemExit("LLM error: no Gemini models available.")
 
 
 def run(cfile: Path, seed: float, max_rounds: int = 3,

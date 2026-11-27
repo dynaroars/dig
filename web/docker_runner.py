@@ -287,11 +287,16 @@ class DIGRunner:
                 proc.kill()
                 returncode = proc.wait()
 
-            return {
+            res = {
                 "status": "completed" if returncode == 0 else "error",
                 "raw_output": raw,
-                "exit_code": returncode
+                "exit_code": returncode,
             }
+            if returncode != 0:
+                lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+                if lines:
+                    res["error"] = lines[-1]
+            return res
         except Exception as e:
             return {
                 "status": "error",

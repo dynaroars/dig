@@ -386,8 +386,10 @@ function poll() {
     } else if (data.status === "cancelled") {
       finish("Cancelled.");
     } else if (data.status === "error") {
-      $("results").innerHTML = "<b>Execution error.</b> See raw output below.";
-      finish("Error: " + (data.error || "execution failed"));
+      var errMsg = data.error || "Execution failed.";
+      $("results").innerHTML = "<b>Error:</b> " + escapeHtml(errMsg) +
+        " <span class=\"small\">(see raw output below for details)</span>";
+      finish("Error: " + errMsg);
     }
   }).catch(function () { /* transient poll error; keep polling */ });
 }
