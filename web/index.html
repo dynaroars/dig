@@ -107,7 +107,9 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 </fieldset>
 
 <fieldset>
-<legend><b>Verification &amp; Lean 4 certification</b> <span class="small">(Z3 + Lean 4 certification is on by default via the checkbox next to Run DIG)</span></legend>
+<legend><b>Verification &amp; Lean 4 certification</b> <span class="small">(default: Z3 verification + Lean 4 certification)</span></legend>
+<label><input type="checkbox" id="opt-certify_lean" checked> <tt>--certify-lean</tt> certify the Z3-checked invariants with Lean 4
+  <span class="small">(unbounded proof, zero Z3 in TCB)</span></label><br>
 <label><input type="checkbox" id="opt-lean_only"> <tt>--lean-only</tt> verify candidates directly with Lean 4 instead of Z3
   <span class="small">(drops unproved candidates unless <tt>--keep-unverified</tt> is checked)</span></label><br>
 <label><input type="checkbox" id="opt-keep_unverified"> <tt>--keep-unverified</tt> with <tt>--lean-only</tt>, also show candidates Lean could not prove</label>
@@ -134,7 +136,6 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 <p>
 <button id="run-btn" type="button"><b>Run DIG</b></button>
 <button id="cancel-btn" type="button" disabled>Cancel</button>
-&nbsp; <label><input type="checkbox" id="opt-certify_lean" checked> <b>Certify with Lean 4</b> <span class="small">(<tt>--certify-lean</tt>)</span></label>
 &nbsp; <b id="status-line">Ready.</b>
 </p>
 <div id="run-plan" style="display:none; margin:0.6em 0; padding:0.6em 0.9em; border-left:3px solid #6a8; background:#f4f8f4; font-size:0.92em;"></div>
