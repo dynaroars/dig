@@ -59,6 +59,16 @@ NLA_DESCRIPTIONS = {
     "sqrt1": "Integer square root (octagonal inequalities).",
 }
 
+CSV_DESCRIPTIONS = {
+    "cohendiv": "Cohen's integer division traces across two locations (q*y + r == x, a*y == b).",
+    "pythagorean": "Pythagorean triples from Euclid's formula (a^2 + b^2 == c^2).",
+    "ps3": "Power sum of squares traces (degree 3: 6*y == 2*k^3 + 3*k^2 + k).",
+    "ps4": "Power sum of cubes traces (degree 4: 4*y == k^4 + 2*k^3 + k^2).",
+    "cohencu": "Cohen's cube traces (x == n^3, y == 3*n^2 + 3*n + 1, z == 6*n + 6, z == 0 mod 6).",
+    "minmax_bounds": "Tropical min/max-plus traces (hi == max(x, y + 3, 0), lo == min(x, y)).",
+    "congruence_oct": "Modular arithmetic & octagonal bounds (y == 1 mod 4, z == 3 mod 6, 0 <= x <= 10).",
+}
+
 SYMEX_DESCRIPTIONS = {
     "arrays": "1-D arrays as z3 arrays: reads, writes, {...} initializers.",
     "cdiv": "C division semantics: / and % truncate toward zero.",
@@ -311,6 +321,18 @@ def list_examples():
                 ),
                 "file": path.name,
             })
+    for ex_id, path in files.items():
+        if not ex_id.startswith("csv_"):
+            continue
+        stem = path.stem
+        examples.append({
+            "id": ex_id,
+            "name": stem,
+            "type": "csv",
+            "group": "CSV traces",
+            "description": CSV_DESCRIPTIONS.get(stem, "CSV execution trace example."),
+            "file": path.name,
+        })
     return jsonify({"examples": examples})
 
 @app.route("/api/example/<example_id>", methods=["GET"])

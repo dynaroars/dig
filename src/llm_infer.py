@@ -435,10 +435,22 @@ def run(cfile: Path, seed: float, max_rounds: int = 3,
             dinvs.add(loc, inv)
 
     # remove redundant/weaker invariants, exactly as a standard run does
+    dinvs_presimplify = dinvs
     if dinvs.siz:
         t = time.time()
         dinvs = dinvs.simplify()
         time_d["simplify"] = time.time() - t
+
+    dig.time_d = {}
+    dig._dinvs_presimplify = dinvs_presimplify
+    dig.use_lean = dig._use_lean()
+    if dinvs.siz:
+        if dig.use_lean:
+            dinvs = dig.verify_lean(dinvs)
+        elif settings.DO_CERTIFY_LEAN:
+            dig.certify_lean(dinvs)
+        if "certify_lean" in dig.time_d:
+            time_d["certify_lean"] = dig.time_d["certify_lean"]
 
     time_d["total"] = time.time() - st
     return dinvs, time_d

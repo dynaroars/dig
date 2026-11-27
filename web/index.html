@@ -58,9 +58,9 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 </p>
 <p>
 <b>Input type:</b>
-<label><input type="radio" name="input-type" value="c" checked> C program (annotated with <tt>vtraceX(...)</tt>)</label>
+<label><input type="radio" name="input-type" value="c" autocomplete="off" checked> C program (annotated with <tt>vtraceX(...)</tt>)</label>
 &nbsp;
-<label><input type="radio" name="input-type" value="csv"> CSV traces</label>
+<label><input type="radio" name="input-type" value="csv" autocomplete="off"> CSV traces</label>
 </p>
 <textarea id="code" spellcheck="false" wrap="off"
  placeholder="// Load an example above, or paste a C program / CSV traces here."></textarea>
@@ -163,6 +163,7 @@ function apiFetch(path, init) {
 var activeJobId = null;
 var pollTimer = null;
 var startTime = 0;
+var allExamples = [];
 var exampleTypes = {};   // id -> "c" | "csv"
 var exampleDescs = {};   // id -> description
 
@@ -182,31 +183,43 @@ function currentInputType() {
 
 /* ---------- examples ---------- */
 
+function populateExamples(inputType) {
+  var sel = $("example-select");
+  sel.innerHTML = "<option value=\"\">-- select an example --</option>";
+  var groups = {};
+  var matching = allExamples.filter(function (ex) { return ex.type === inputType; });
+  matching.forEach(function (ex) {
+    var g = ex.group || "Examples";
+    if (!groups[g]) {
+      groups[g] = document.createElement("optgroup");
+      groups[g].label = g;
+      sel.appendChild(groups[g]);
+    }
+    var opt = document.createElement("option");
+    opt.value = ex.id;
+    opt.textContent = ex.name;
+    groups[g].appendChild(opt);
+  });
+  var preferred = inputType === "csv" ? "csv_cohendiv" : "nla_cohendiv";
+  var def = matching.some(function (ex) { return ex.id === preferred; })
+            ? preferred
+            : (matching.length ? matching[0].id : "");
+  if (def) {
+    sel.value = def;
+    loadExample();
+  } else {
+    $("example-desc").textContent = "";
+  }
+}
+
 function loadExampleList() {
   apiFetch("/api/examples").then(function (r) { return r.json(); }).then(function (data) {
-    var sel = $("example-select");
-    var groups = {};
-    (data.examples || []).forEach(function (ex) {
+    allExamples = data.examples || [];
+    allExamples.forEach(function (ex) {
       exampleTypes[ex.id] = ex.type;
       exampleDescs[ex.id] = ex.description || "";
-      var g = ex.group || "Examples";
-      if (!groups[g]) {
-        groups[g] = document.createElement("optgroup");
-        groups[g].label = g;
-        sel.appendChild(groups[g]);
-      }
-      var opt = document.createElement("option");
-      opt.value = ex.id;
-      opt.textContent = ex.name;
-      groups[g].appendChild(opt);
     });
-    // default example
-    var def = exampleTypes["nla_cohendiv"] !== undefined ? "nla_cohendiv" :
-              exampleTypes["cohendiv"] !== undefined ? "cohendiv" : "";
-    if (def) {
-      sel.value = def;
-      loadExample();
-    }
+    populateExamples(currentInputType());
   }).catch(function () {
     setStatus("Could not load example list (is the backend running?).");
   });
@@ -248,7 +261,7 @@ function gatherOptions() {
     if ($("opt-" + name).checked) opts[name] = true;
   });
   if ($("opt-certify_lean").checked && currentInputType() === "c" &&
-      !opts.lean_only && !opts.noss && !opts.llm) {
+      !opts.lean_only && !opts.noss) {
     opts.certify_lean = true;
   }
   // invariant types -> -types allowlist; omit it when all are selected (the
@@ -372,6 +385,12 @@ function renderResults(data) {
 document.addEventListener("DOMContentLoaded", function () {
   loadExampleList();
   $("example-select").addEventListener("change", loadExample);
+  var radios = document.getElementsByName("input-type");
+  for (var i = 0; i < radios.length; i++) {
+    radios[i].addEventListener("change", function () {
+      populateExamples(currentInputType());
+    });
+  }
   $("run-btn").addEventListener("click", runDig);
   $("cancel-btn").addEventListener("click", cancelJob);
 });
