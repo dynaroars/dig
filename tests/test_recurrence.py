@@ -93,3 +93,35 @@ def test_recurrence_input_updating_loop_solves(tmp_path):
     _closed, results = RecurrenceInfer(write(tmp_path, TRIPCOUNT)).gen(0)
     a, b, n = sympy.symbols("a b n")
     assert proved(results) == {a - n, b - 2 * n}
+
+
+def test_recurrence_coupled_pell():
+    p = Path(__file__).resolve().parent.parent / "benchmark/c/NLA-mosaic/pell.c"
+    _closed, results = RecurrenceInfer(p).gen(0)
+    x, y = sympy.symbols("x y")
+    assert x**2 - 2 * y**2 - 1 in proved(results)
+
+
+def test_recurrence_coupled_fibonacci_and_sign():
+    root = Path(__file__).resolve().parent.parent / "benchmark/c/NLA-mosaic"
+    a, b, sign = sympy.symbols("a b sign")
+    _c1, r1 = RecurrenceInfer(root / "fibonacci.c").gen(0)
+    assert sympy.expand((a**2 + a * b - b**2) ** 2 - 1) in proved(r1)
+    _c2, r2 = RecurrenceInfer(root / "fibonacci_sign.c").gen(0)
+    assert a**2 + a * b - b**2 - sign in proved(r2)
+
+
+def test_recurrence_coupled_chebyshev_symbolic():
+    root = Path(__file__).resolve().parent.parent / "benchmark/c/NLA-mosaic"
+    a, b, t, T, U = sympy.symbols("a b t T U")
+    _c1, r1 = RecurrenceInfer(root / "chebyshev.c").gen(0)
+    assert sympy.expand(a**2 - 2 * a * b * t + b**2 + t**2 - 1) in proved(r1)
+    _c2, r2 = RecurrenceInfer(root / "chebyshev_pair.c").gen(0)
+    assert sympy.expand(T**2 - (t**2 - 1) * U**2 - 1) in proved(r2)
+
+
+def test_recurrence_coupled_jordan_berggren():
+    p = Path(__file__).resolve().parent.parent / "benchmark/c/NLA-mosaic/berggren.c"
+    results = RecurrenceInfer(p).gen_multipath(0)
+    a, b, c = sympy.symbols("a b c")
+    assert a**2 + b**2 - c**2 in proved(results)

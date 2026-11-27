@@ -136,6 +136,120 @@ def _clear_denoms(e: sympy.Expr, gens: list[sympy.Symbol]) -> sympy.Expr:
     return sympy.expand(e * mult)
 
 
+def _canon_radicals(expr: sympy.Expr) -> sympy.Expr:
+    """Expand bases of fractional powers so sqrt((t-1)*(t+1)) == sqrt(t**2-1)."""
+    return expr.replace(
+        lambda e: e.is_Pow and e.exp.is_Rational and not e.exp.is_Integer,
+        lambda e: sympy.Pow(sympy.expand(e.base), e.exp),
+    )
+
+
+def _tarjan_sccs(nodes: list[str], deps: dict[str, set[str]]) -> list[list[str]]:
+    """Strongly connected components of `nodes` in dependency-first order."""
+    index = 0
+    indices: dict[str, int] = {}
+    lowlink: dict[str, int] = {}
+    stack: list[str] = []
+    on_stack: set[str] = set()
+    sccs: list[list[str]] = []
+
+    def strongconnect(v: str) -> None:
+        nonlocal index
+        indices[v] = lowlink[v] = index
+        index += 1
+        stack.append(v)
+        on_stack.add(v)
+        for w in sorted(deps.get(v, ())):
+            if w not in indices:
+                strongconnect(w)
+                lowlink[v] = min(lowlink[v], lowlink[w])
+            elif w in on_stack:
+                lowlink[v] = min(lowlink[v], indices[w])
+        if lowlink[v] == indices[v]:
+            comp = []
+            while True:
+                w = stack.pop()
+                on_stack.remove(w)
+                comp.append(w)
+                if w == v:
+                    break
+            sccs.append(comp)
+
+    for v in nodes:
+        if v not in indices:
+            strongconnect(v)
+    return sccs
+
+
+def _expand_candidates(polys: list[sympy.Expr],
+                       updated_syms: set[sympy.Symbol]) -> list[sympy.Expr]:
+    """Clear denominators and split out irreducible factors involving updated vars.
+
+    Clearing symbolic radical denominators (e.g. sqrt(t**2 - 1) in Chebyshev)
+    can multiply the true invariant by a parameter-only factor like (t**2 - 1).
+    Proposing both irreducible factors and the square-free polynomial lets
+    houdini prove the cleanest factor while preserving composite invariants
+    like Cassini's (a**2 + a*b - b**2)**2 - 1 == 0.
+    """
+    out: list[sympy.Expr] = []
+    seen: set[str] = set()
+
+    def _add(expr: sympy.Expr) -> None:
+        if expr == 0 or not expr.free_symbols:
+            return
+        expr = _clear_denoms(expr, sorted(expr.free_symbols, key=str))
+        terms = expr.as_ordered_terms()
+        if terms and terms[0].as_coeff_Mul()[0] < 0:
+            expr = sympy.expand(-expr)
+        key = str(expr)
+        if key not in seen:
+            seen.add(key)
+            out.append(expr)
+
+    for p in polys:
+        if p == 0 or not p.free_symbols:
+            continue
+        p = _clear_denoms(p, sorted(p.free_symbols, key=str))
+        try:
+            _coeff, factors = sympy.factor_list(p)
+        except Exception:
+            _add(p)
+            continue
+        if len(factors) > 1 or any(exp > 1 for _, exp in factors):
+            sqf = sympy.Integer(1)
+            for f, _exp in factors:
+                sqf = sympy.expand(sqf * f)
+                if f.free_symbols & updated_syms:
+                    _add(f)
+            _add(sqf)
+        else:
+            _add(p)
+    return out
+
+
+def _prune_divisible(results: list[tuple[sympy.Expr, str]]
+                     ) -> list[tuple[sympy.Expr, str]]:
+    """Drop any proved polynomial that is a strict multiple of another proved one."""
+    valid = [p for p, st in results if st == "valid"]
+    if len(valid) < 2:
+        return results
+    drop: set[str] = set()
+    for p in valid:
+        for q in valid:
+            if p == q:
+                continue
+            if not (q.free_symbols <= p.free_symbols):
+                continue
+            try:
+                _quo, rem = sympy.div(p, q, domain="QQ")
+                if rem == 0:
+                    drop.add(str(p))
+                    break
+            except Exception:
+                continue
+    return [(p, st) for p, st in results if not (st == "valid" and str(p) in drop)]
+
+
 # ─────────────────────────────────────── extract the update map ──
 
 class RecurrenceInfer:
@@ -191,9 +305,31 @@ class RecurrenceInfer:
                 f"({len(loops_back)} continue paths; piecewise recurrence)")
         post_env = loops_back[0].env
 
-        init = {v: _z3_to_sympy(env0[v]) for v in variables}
-        update = {v: _z3_to_sympy(post_env[v]) for v in variables}
-        return variables, init, update
+        init, update, dropped = self._extract_poly_maps(variables, env0, post_env)
+        if not update:
+            raise ValueError(f"loop #{loop}: no polynomial variable updates")
+        kept_vars = [v for v in variables if v not in dropped]
+        return kept_vars, init, update
+
+    @staticmethod
+    def _extract_poly_maps(variables: list[str], env0: dict, post_env: dict):
+        """Translate init/update maps for variables whose updates are polynomial.
+
+        Auxiliary variables with non-polynomial updates (e.g. `path = path / 3`
+        used only to select branches) are dropped; solve() drops any variable
+        that depends on them, and houdini verifies all results on the full loop.
+        """
+        init, update, dropped = {}, {}, set()
+        for v in variables:
+            try:
+                iv = _z3_to_sympy(env0[v])
+                uv = _z3_to_sympy(post_env[v])
+            except NotImplementedError:
+                dropped.add(v)
+                continue
+            init[v] = iv
+            update[v] = uv
+        return init, update, dropped
 
     def extract_paths(self, loop: int = 0):
         """Multi-path (CRA-style) variant of extract().
@@ -239,17 +375,15 @@ class RecurrenceInfer:
         if not loops_back:
             raise ValueError(f"loop #{loop}: no continue path")
 
-        init = {v: _z3_to_sympy(env0[v]) for v in variables}
-        updates = []
+        paths = []
         for s in loops_back:
-            try:
-                upd = {v: _z3_to_sympy(s.env[v]) for v in variables}
-            except NotImplementedError:
-                continue        # this path uses div/mod/ite: not polynomial
-            updates.append(upd)
-        if not updates:
+            init, upd, dropped = self._extract_poly_maps(variables, env0, s.env)
+            kept_vars = [v for v in variables if v not in dropped]
+            if upd:
+                paths.append((kept_vars, init, upd))
+        if not paths:
             raise ValueError(f"loop #{loop}: no polynomial continue path")
-        return variables, init, updates
+        return paths
 
     # ───────────────────────────────────── solve the recurrences ──
 
@@ -281,42 +415,148 @@ class RecurrenceInfer:
         init = {v: init[v].xreplace(initsyms) for v in variables}
 
         # dependency edges v <- w (w != v, w updated) if S[w] occurs in update[v]
-        deps = {v: {w for w in upd_set if w != v
+        # Drop any updated variable whose update mentions a symbol outside S
+        # (i.e. a non-polynomial auxiliary variable dropped during extraction).
+        known_syms = set(S.values())
+        unsolvable = {v for v in updated
+                      if not (update[v].free_symbols <= known_syms)}
+        changed = True
+        while changed:
+            changed = False
+            for v in updated:
+                if v in unsolvable:
+                    continue
+                if any(S[w] in update[v].free_symbols for w in unsolvable):
+                    unsolvable.add(v)
+                    changed = True
+
+        solvable = [v for v in updated if v not in unsolvable]
+        if not solvable:
+            raise ValueError("no solvable polynomial recurrence variables")
+        solv_set = set(solvable)
+
+        deps = {v: {w for w in solv_set if w != v
                     and S[w] in update[v].free_symbols}
-                for v in updated}
+                for v in solvable}
 
-        order, seen = [], set()
+        sccs = _tarjan_sccs(solvable, deps)
+        closed: dict[str, sympy.Expr] = {}
+        for comp in sccs:
+            if len(comp) == 1:
+                v = comp[0]
+                f = sympy.Function(f"_f_{v}")
+                subs = {}
+                for w in solv_set:
+                    if w == v:
+                        subs[S[w]] = f(n - 1)
+                    elif w in closed:
+                        subs[S[w]] = closed[w].subs(n, n - 1)
+                rhs = update[v].subs(subs, simultaneous=True)
+                sol = sympy.rsolve(f(n) - rhs, f(n), {f(0): init[v]})
+                if sol is None:
+                    raise ValueError(f"rsolve failed for {v}")
+                closed[v] = sympy.expand(sol)
+            else:
+                scc_closed = self._solve_linear_scc(
+                    comp, init, update, S, closed, n)
+                closed.update(scc_closed)
+        return n, S, solvable, closed, list(initsyms.values())
 
-        def visit(v, stack):
-            if v in seen:
-                return
-            if v in stack:
-                raise ValueError(f"coupled recurrence through {v} "
-                                 "(cyclic dependency; matrix solve needed)")
-            for w in deps[v]:
-                visit(w, stack | {v})
-            seen.add(v)
-            order.append(v)
+    @staticmethod
+    def _solve_linear_scc(comp: list[str], init: dict, update: dict,
+                          S: dict[str, sympy.Symbol], closed: dict,
+                          n: sympy.Symbol) -> dict[str, sympy.Expr]:
+        """Solve a coupled affine recurrence SCC v(n+1) = A*v(n) + b via Jordan form.
 
-        for v in updated:
-            visit(v, set())
+        Supports numeric and symbolic loop-constant matrices (e.g. Pell,
+        Fibonacci, Chebyshev, Berggren), both diagonalizable and Jordan-block
+        systems. Nonlinear coupled updates (e.g. Nagata, Markov) are declined.
+        """
+        k = len(comp)
+        if k > 4:
+            raise ValueError(f"coupled recurrence SCC too large ({k} vars)")
+        comp_syms = [S[v] for v in comp]
+        comp_sym_set = set(comp_syms)
 
-        closed = {}
-        for v in order:
-            f = sympy.Function(f"_f_{v}")
-            subs = {}
-            for w in upd_set:
-                if w == v:
-                    subs[S[w]] = f(n - 1)
-                elif w in closed:
-                    subs[S[w]] = closed[w].subs(n, n - 1)
-                # else w is a not-yet/never-updated symbol: leave as-is
-            rhs = update[v].subs(subs, simultaneous=True)
-            sol = sympy.rsolve(f(n) - rhs, f(n), {f(0): init[v]})
-            if sol is None:
-                raise ValueError(f"rsolve failed for {v}")
-            closed[v] = sympy.expand(sol)
-        return n, S, updated, closed, list(initsyms.values())
+        # Substitute already-solved upstream variables
+        upstream_subs = {S[w]: closed[w].subs(n, n - 1) for w in closed}
+
+        A = sympy.zeros(k, k)
+        b = sympy.zeros(k, 1)
+        for i, v in enumerate(comp):
+            rhs = sympy.expand(update[v].subs(upstream_subs, simultaneous=True))
+            try:
+                poly = sympy.Poly(rhs, *comp_syms)
+            except sympy.PolynomialError as ex:
+                raise ValueError(f"non-polynomial coupled recurrence in {v}") from ex
+            if poly.total_degree() > 1:
+                raise ValueError(
+                    f"nonlinear coupled recurrence in {v} (degree {poly.total_degree()})")
+            rem = rhs
+            for j, sym in enumerate(comp_syms):
+                coeff = sympy.expand(poly.coeff_monomial(sym))
+                if coeff.has(n) or (coeff.free_symbols & comp_sym_set):
+                    raise ValueError(f"non-constant matrix entry for {v}")
+                A[i, j] = coeff
+                rem = sympy.expand(rem - coeff * sym)
+            if rem.has(n):
+                raise ValueError(f"n-dependent inhomogeneous term in coupled SCC ({v})")
+            b[i, 0] = rem
+
+        has_b = any(b[i, 0] != 0 for i in range(k))
+        if has_b:
+            M = sympy.zeros(k + 1, k + 1)
+            M[:k, :k] = A
+            M[:k, k] = b
+            M[k, k] = sympy.Integer(1)
+            v0 = sympy.Matrix([init[v] for v in comp] + [sympy.Integer(1)])
+        else:
+            M = A
+            v0 = sympy.Matrix([init[v] for v in comp])
+
+        try:
+            P, J = M.jordan_form()
+            P_inv = P.inv()
+        except Exception as ex:
+            raise ValueError(f"jordan_form failed on coupled SCC {comp}: {ex}") from ex
+
+        P = P.applyfunc(lambda e: _canon_radicals(sympy.simplify(e)))
+        J = J.applyfunc(lambda e: _canon_radicals(sympy.expand(e)))
+        c = (P_inv * v0).applyfunc(lambda e: _canon_radicals(sympy.simplify(e)))
+
+        # Build J^n per Jordan block without letting simplify mangle lam**n
+        m = J.rows
+        Jn = sympy.zeros(m, m)
+        i = 0
+        while i < m:
+            j = i
+            while j + 1 < m and J[j, j + 1] == 1:
+                j += 1
+            lam = J[i, i]
+            if lam == 0:
+                raise ValueError(f"singular coupled recurrence (zero eigenvalue) in {comp}")
+            for r in range(i, j + 1):
+                for col in range(r, j + 1):
+                    d = col - r
+                    if d == 0:
+                        Jn[r, col] = lam ** n
+                    else:
+                        binom_poly = sympy.Mul(*(n - t for t in range(d))) / sympy.factorial(d)
+                        Jn[r, col] = binom_poly * lam ** (n - d)
+            i = j + 1
+
+        out: dict[str, sympy.Expr] = {}
+        for idx, v in enumerate(comp):
+            acc = sympy.Integer(0)
+            for col in range(m):
+                for col2 in range(m):
+                    if Jn[col, col2] == 0:
+                        continue
+                    coeff = _canon_radicals(sympy.simplify(P[idx, col] * c[col2]))
+                    if coeff != 0:
+                        acc += coeff * Jn[col, col2]
+            out[v] = acc
+        return out
 
     # ───────────────────────────────────── eliminate the counter ──
 
@@ -340,7 +580,7 @@ class RecurrenceInfer:
             for p in sympy.preorder_traversal(closed[v]):
                 if not (p.is_Pow and p.exp.has(n)):
                     continue
-                base, exp = p.base, p.exp
+                base, exp = _canon_radicals(sympy.expand(p.base)), p.exp
                 if base.has(n):
                     raise ValueError("nested exponential (base depends on n)")
                 a, b = self._linear_in(exp, n)
@@ -356,12 +596,37 @@ class RecurrenceInfer:
         closed_r = {v: (closed[v].xreplace(rewrites) if rewrites else closed[v])
                     for v in updated}
 
-        elim = [n] + T_syms + list(initsyms)      # variables to project out
+        # Replace algebraic radicals (e.g. sqrt(2), sqrt(5), sqrt(t**2 - 1))
+        # with fresh symbols _R_i and polynomial defining equations _R_i**q - D = 0
+        # so sympy.groebner works over a pure polynomial ring.
+        rad_to_R: dict[tuple[sympy.Expr, int], sympy.Symbol] = {}
+        rad_rewrites: dict[sympy.Expr, sympy.Expr] = {}
+        for v in updated:
+            for p in sympy.preorder_traversal(closed_r[v]):
+                if p.is_Pow and p.exp.is_Rational and not p.exp.is_Integer:
+                    base = sympy.expand(p.base)
+                    q = int(p.exp.q)
+                    key = (base, q)
+                    R = rad_to_R.get(key)
+                    if R is None:
+                        R = sympy.Symbol(f"_R{len(rad_to_R)}")
+                        rad_to_R[key] = R
+                    rad_rewrites[p] = R ** int(p.exp.p)
+        if rad_rewrites:
+            closed_r = {v: closed_r[v].xreplace(rad_rewrites) for v in updated}
+
+        R_syms = list(rad_to_R.values())
+        rad_eqs = [sympy.expand(R ** q - base)
+                   for (base, q), R in rad_to_R.items()]
+
+        elim = [n] + T_syms + R_syms + list(initsyms)  # variables to project out
         # numerators of {v - closed_v}: clears both rational-function
-        # denominators (e.g. 1/(z-1)) and any T**-a from negative shifts
+        # denominators (e.g. 1/(z-1), 1/_R0) and any T**-a from negative shifts
         allsyms = set(elim) | {S[v] for v in updated}
         for v in updated:
             allsyms |= closed_r[v].free_symbols
+        for re in rad_eqs:
+            allsyms |= re.free_symbols
         gens = elim + sorted(allsyms - set(elim), key=str)
 
         # numerator of {v - closed_v}: clears rational-number coefficients
@@ -371,11 +636,12 @@ class RecurrenceInfer:
                for v in updated]
         eqs = [sympy.expand(e) for e in eqs]
         eqs += self._base_relations(base_to_T)
+        eqs += rad_eqs
 
         basis = sympy.groebner(eqs, *gens, order="lex")
         elim_set = set(elim)
         cands = [sympy.expand(g) for g in basis.exprs
-                 if not (g.free_symbols & elim_set)]   # n and all T eliminated
+                 if not (g.free_symbols & elim_set)]   # n, T, R, init eliminated
         return cands
 
     @staticmethod
@@ -392,36 +658,69 @@ class RecurrenceInfer:
 
     @staticmethod
     def _base_relations(base_to_T: dict) -> list:
-        """Multiplicative relations among numeric exponential bases.
+        """Multiplicative relations among exponential bases (numeric, algebraic,
+        and conjugate symbolic eigenvalues).
 
-        If numeric bases b_i satisfy prod b_i**e_i = 1 for integers e_i, then
-        their auxiliaries satisfy prod T_i**e_i = 1 (e.g. bases 2 and 4 give
-        T_4 = T_2**2). Found via the integer left-null space of the
-        prime-exponent matrix. Symbolic bases (geo's z) are assumed
-        multiplicatively independent, so contribute no relation.
+        Handles:
+        - `b == -1`  -> `T**2 - 1 = 0`
+        - Pairwise products `b_i * b_j == 1`  -> `T_i * T_j - 1 = 0`
+          (Pell, Chebyshev, Berggren)
+        - Pairwise products `b_i * b_j == -1` -> `T_i * T_j - T_{-1} = 0`
+          (if `-1` is also a base, e.g. fibonacci_sign) and `(T_i * T_j)**2 - 1 = 0`
+          (e.g. fibonacci)
+        - Pairwise `b_i * b_j == b_k` or `b_i == -b_j`
+        - General integer left-null space of prime exponents for positive
+          rational bases (e.g. bases 2 and 4 -> T_4 = T_2**2).
         """
-        numeric = [(sympy.Rational(b), T) for b, T in base_to_T.items()
-                   if b.is_number]
-        if len(numeric) < 2:
-            return []
-        primes: list = []
-        for b, _T in numeric:
-            for p in sympy.factorint(b):
-                if p not in primes:
-                    primes.append(p)
-        M = sympy.zeros(len(numeric), len(primes))
-        for i, (b, _T) in enumerate(numeric):
-            for p, e in sympy.factorint(b).items():
-                M[i, primes.index(p)] = e
-        rels = []
-        for vec in M.T.nullspace():                 # e with e^T M = 0
-            denom = sympy.ilcm(*[c.q for c in vec]) or 1
-            e = [int(c * denom) for c in vec]
-            pos = sympy.Mul(*[numeric[i][1] ** e[i]
-                              for i in range(len(e)) if e[i] > 0])
-            neg = sympy.Mul(*[numeric[i][1] ** (-e[i])
-                              for i in range(len(e)) if e[i] < 0])
-            rels.append(sympy.expand(pos - neg))
+        rels: list[sympy.Expr] = []
+        items = list(base_to_T.items())
+        neg_T = None
+        for b, T in items:
+            if b == -1:
+                neg_T = T
+                rels.append(sympy.expand(T ** 2 - 1))
+
+        for i in range(len(items)):
+            bi, Ti = items[i]
+            for j in range(i + 1, len(items)):
+                bj, Tj = items[j]
+                if sympy.simplify(bi + bj) == 0:
+                    if neg_T is not None:
+                        rels.append(sympy.expand(Ti - neg_T * Tj))
+                    rels.append(sympy.expand(Ti ** 2 - Tj ** 2))
+                prod = sympy.simplify(sympy.expand(bi * bj))
+                if prod == 1:
+                    rels.append(sympy.expand(Ti * Tj - 1))
+                elif prod == -1:
+                    if neg_T is not None:
+                        rels.append(sympy.expand(Ti * Tj - neg_T))
+                    else:
+                        rels.append(sympy.expand((Ti * Tj) ** 2 - 1))
+                else:
+                    for k_idx, (bk, Tk) in enumerate(items):
+                        if k_idx not in (i, j) and sympy.simplify(prod - bk) == 0:
+                            rels.append(sympy.expand(Ti * Tj - Tk))
+
+        numeric = [(sympy.Rational(b), T) for b, T in items
+                   if b.is_Rational and b > 0]
+        if len(numeric) >= 2:
+            primes: list = []
+            for b, _T in numeric:
+                for p in sympy.factorint(b):
+                    if p not in primes:
+                        primes.append(p)
+            M = sympy.zeros(len(numeric), len(primes))
+            for i, (b, _T) in enumerate(numeric):
+                for p, e in sympy.factorint(b).items():
+                    M[i, primes.index(p)] = e
+            for vec in M.T.nullspace():             # e with e^T M = 0
+                denom = sympy.ilcm(*[c.q for c in vec]) or 1
+                e = [int(c * denom) for c in vec]
+                pos = sympy.Mul(*[numeric[i][1] ** e[i]
+                                  for i in range(len(e)) if e[i] > 0])
+                neg = sympy.Mul(*[numeric[i][1] ** (-e[i])
+                                  for i in range(len(e)) if e[i] < 0])
+                rels.append(sympy.expand(pos - neg))
         return rels
 
     # ───────────────────────────────────────────── full pipeline ──
@@ -429,13 +728,8 @@ class RecurrenceInfer:
     def gen(self, loop: int = 0):
         variables, init, update = self.extract(loop)
         n, S, updated, closed, initsyms = self.solve(variables, init, update)
-        cands = []
-        for p in self.eliminate(n, S, updated, closed, initsyms):
-            if p == 0:
-                continue
-            # groebner may return rational coefficients (esp. with symbolic
-            # exponential bases); clear to an integer polynomial for z3
-            cands.append(_clear_denoms(p, sorted(p.free_symbols, key=str)))
+        raw_polys = self.eliminate(n, S, updated, closed, initsyms)
+        cands = _expand_candidates(raw_polys, {S[v] for v in updated})
 
         # Verify the whole set jointly with houdini: these equalities are
         # typically mutually (not individually) inductive -- e.g. 2x = c^2+c
@@ -447,7 +741,7 @@ class RecurrenceInfer:
         results = [(p, "valid" if str(z3.simplify(inv)) in kept_strs
                     else "not-inductive")
                    for p, inv in zip(cands, invs)]
-        return closed, results
+        return closed, _prune_divisible(results)
 
     def gen_multipath(self, loop: int = 0):
         """Multi-path pipeline for branching loops (the CRA-style extension).
@@ -463,20 +757,17 @@ class RecurrenceInfer:
         Returns a list of (poly, status) like gen()'s second element; poly == 0
         entries are dropped. Raises if there is no usable continue path.
         """
-        variables, init, updates = self.extract_paths(loop)
+        paths = self.extract_paths(loop)
 
         cands, seen = [], set()
-        for update in updates:
+        for variables, init, update in paths:
             try:
                 n, S, updated, closed, initsyms = self.solve(
                     variables, init, update)
                 polys = self.eliminate(n, S, updated, closed, initsyms)
             except (ValueError, NotImplementedError):
                 continue        # this path is not a solvable recurrence
-            for p in polys:
-                if p == 0:
-                    continue
-                p = _clear_denoms(p, sorted(p.free_symbols, key=str))
+            for p in _expand_candidates(polys, {S[v] for v in updated}):
                 key = str(sympy.expand(p))
                 if key not in seen:
                     seen.add(key)
@@ -488,9 +779,10 @@ class RecurrenceInfer:
         invs = [_sympy_to_z3(p) == 0 for p in cands]
         kept = self.engine.houdini(invs, loop=loop)
         kept_strs = {str(z3.simplify(e)) for e in kept}
-        return [(p, "valid" if str(z3.simplify(inv)) in kept_strs
-                 else "not-inductive")
-                for p, inv in zip(cands, invs)]
+        results = [(p, "valid" if str(z3.simplify(inv)) in kept_strs
+                    else "not-inductive")
+                   for p, inv in zip(cands, invs)]
+        return _prune_divisible(results)
 
 
 # ────────────────────────────────── DIG integration entry point ──
