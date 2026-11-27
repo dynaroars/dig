@@ -28,7 +28,6 @@ SYMEX_DIR = DIG_ROOT / "tests" / "symex_progs"
 CLASSIC_DIR = Path(__file__).resolve().parent
 
 NLA_DESCRIPTIONS = {
-    "ariths": "Built-in arithmetic functions (addition, multiplication).",
     "bresenham": "Bresenham line drawing algorithm.",
     "cohencu": "Cohen's cube computation (degree 3).",
     "cohendiv": "Cohen's integer division with nested loops.",
@@ -39,7 +38,6 @@ NLA_DESCRIPTIONS = {
     "egcd3": "Extended Euclidean GCD (three nested loops).",
     "fermat1": "Fermat integer factorization (nested loops).",
     "fermat2": "Fermat integer factorization (single loop).",
-    "freire1": "Freire's integer square root.",
     "freire1_int": "Freire's integer square root (integer-only version).",
     "freire2": "Freire's integer cube root (degree 3).",
     "geo1": "Geometric series sum.",
@@ -53,14 +51,12 @@ NLA_DESCRIPTIONS = {
     "mannadiv": "Manna's integer division.",
     "prod4br": "Shift-add product with four branches.",
     "prodbin": "Product by binary shift-add.",
-    "ps1": "Power sum: sum of 1s.",
     "ps2": "Power sum: sum of i (degree 2).",
     "ps3": "Power sum: sum of i^2 (degree 3).",
     "ps4": "Power sum: sum of i^3 (degree 4).",
     "ps5": "Power sum: sum of i^4 (degree 5).",
     "ps6": "Power sum: sum of i^5 (degree 6).",
     "sqrt1": "Integer square root (octagonal inequalities).",
-    "wensley": "Wensley's real division approximation.",
 }
 
 SYMEX_DESCRIPTIONS = {
@@ -164,6 +160,7 @@ def _worker(job_id: str):
             job["status"] = res["status"]
             job["runtime"] = res.get("runtime")
             job["locations"] = res.get("locations", [])
+            job["lean_cert"] = res.get("lean_cert")
             job["axiom_result"] = res.get("axiom_result")
             job["raw_output"] = res.get("raw_output", "")
             job["error"] = res.get("error")
@@ -212,6 +209,7 @@ def run_job():
         "result": None,
         "runtime": None,
         "locations": [],
+        "lean_cert": None,
         "axiom_result": None,
         "raw_output": "",
         "error": None,
@@ -249,6 +247,8 @@ def status(job_id: str):
     elif job["status"] in ("completed", "timeout", "error"):
         response["runtime"] = job["runtime"]
         response["locations"] = job["locations"]
+        if job.get("lean_cert") is not None:
+            response["lean_cert"] = job["lean_cert"]
         if job.get("axiom_result") is not None:
             response["axiom_result"] = job["axiom_result"]
         response["raw_output"] = job["raw_output"]

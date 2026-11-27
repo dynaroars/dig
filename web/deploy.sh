@@ -9,7 +9,7 @@
 #                           (route dig.roars.dev -> http://127.0.0.1:5001)
 # Secrets live in ~/.config/dig-web/env (mode 600):
 #   TUNNEL_TOKEN=...        connector token of the dig-prime tunnel
-#   ANTHROPIC_API_KEY=...   optional
+#   GEMINI_API_KEY=...      optional (for -llm mode)
 
 set -Eeuo pipefail
 

@@ -9,23 +9,23 @@ import select
 import logging
 import tomllib
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 DIG_ROOT = Path(os.environ.get("DIG_ROOT", Path(__file__).resolve().parent.parent))
 
 # dig.py options exposed to the web API, mirroring src/dig.py's argparse.
-# File-path and benchmark options (-writeresults, -readsstates, -tmpdir,
-# -benchmark_times, ...) are deliberately excluded.
+# File-path options (-writeresults, -tmpdir, ...) are deliberately excluded.
 INT_OPTS = [
-    "maxdeg", "maxterm", "nrandinps", "inpMaxV", "se_maxdepth",
-    "iupper", "ideg", "iterms", "icoefs", "llm_rounds",
+    "maxdeg", "se_maxdepth", "llm_rounds",
 ]
 BOOL_OPTS = [
-    "noss", "nomp", "dosolverstats", "llm", "llm_no_traces",
-    # advanced algorithm toggles (see ANALYSIS.md)
-    "dosymba", "norecurrencemp", "nollmhoudini",
+    "noss", "nomp", "llm", "llm_no_traces", "nollmhoudini",
+]
+# double-dash boolean flags (underscores converted to hyphens)
+DOUBLE_DASH_BOOL_OPTS = [
+    "certify_lean", "lean_only", "keep_unverified",
 ]
 # string options passed through verbatim as "-<name> <value>"
 STR_OPTS = ["types"]  # invariant-type allowlist (replaces the -no<type> flags)
@@ -51,7 +51,7 @@ AXIOM_INT_OPTS = {
 class DIGRunner:
     """Manages sandboxed execution of DIG using Docker (or direct fallback)."""
     
-    def __init__(self, use_docker: Optional[bool] = None):
+    def __init__(self, use_docker: bool | None = None):
         if use_docker is None:
             self.use_docker = os.environ.get("USE_DOCKER", "true").lower() == "true"
         else:
@@ -64,7 +64,7 @@ class DIGRunner:
         job_dir = os.environ.get("DIG_JOB_DIR")
         self.job_dir = Path(job_dir).resolve() if job_dir else None
 
-    def run(self, code: str, input_type: str = "c", options: Optional[Dict[str, Any]] = None, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, tool: str = "dig") -> Dict[str, Any]:
+    def run(self, code: str, input_type: str = "c", options: dict[str, Any] | None = None, on_output: Any | None = None, check_cancelled: Any | None = None, tool: str = "dig") -> dict[str, Any]:
         options = options or {}
         timeout = min(int(options.get("timeout", 60)), 300)
 
@@ -112,10 +112,18 @@ class DIGRunner:
                         res["status"] = "error"
                         res["error"] = f"Axiom worker did not return valid JSON: {exc}"
             else:
-                res["locations"] = self._parse_invariants(res.get("raw_output", ""))
+                raw_out = res.get("raw_output", "")
+                lean_cert = self._parse_lean_cert(raw_out)
+                res["locations"] = self._parse_invariants(raw_out, lean_cert=lean_cert)
+                if lean_cert:
+                    res["lean_cert"] = {
+                        "summary": lean_cert["summary"],
+                        "status": lean_cert["status"],
+                        "certified_count": len(lean_cert["certified"]),
+                    }
             return res
 
-    def _build_cmd_opts(self, options: Dict[str, Any]) -> list:
+    def _build_cmd_opts(self, options: dict[str, Any]) -> list:
         """Translate the web options dict into dig.py CLI arguments."""
         cmd_opts = ["-log_level", str(int(options.get("log_level", 3)))]
         if options.get("seed") not in (None, ""):
@@ -127,14 +135,15 @@ class DIGRunner:
         for name in BOOL_OPTS:
             if options.get(name):
                 cmd_opts.append(f"-{name}")
+        for name in DOUBLE_DASH_BOOL_OPTS:
+            if options.get(name):
+                cmd_opts.append("--" + name.replace("_", "-"))
         for name in STR_OPTS:
             if options.get(name):
                 cmd_opts.extend([f"-{name}", str(options[name])])
-        if options.get("uterms"):
-            cmd_opts.extend(["-uterms", str(options["uterms"])])
         return cmd_opts
 
-    def _build_symex_cmd_opts(self, options: Dict[str, Any]) -> list:
+    def _build_symex_cmd_opts(self, options: dict[str, Any]) -> list:
         """Translate the web options dict into symex_c.py CLI arguments."""
         cmd_opts = []
         for name in SYMEX_INT_OPTS:
@@ -157,7 +166,7 @@ class DIGRunner:
                 cmd_opts.extend(["--check-inv", parts[0], parts[1]])
         return cmd_opts
 
-    def _build_axiom_cmd_opts(self, options: Dict[str, Any]) -> list:
+    def _build_axiom_cmd_opts(self, options: dict[str, Any]) -> list:
         cmd_opts = ["--json-output", "-"]
         if options.get("seed") not in (None, ""):
             cmd_opts.extend(["--seed", str(int(float(options["seed"])))])
@@ -197,7 +206,7 @@ class DIGRunner:
             if not binding.startswith(prefix):
                 raise ValueError(f"operations[{index}].binding is not an installed API")
 
-    def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, **kwargs) -> Dict[str, Any]:
+    def _run_cmd_stream(self, cmd: list, timeout: int, on_output: Any | None = None, check_cancelled: Any | None = None, **kwargs) -> dict[str, Any]:
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -290,15 +299,34 @@ class DIGRunner:
                 "error": str(e)
             }
 
-    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py", input_flag: Optional[str] = None) -> Dict[str, Any]:
+    @staticmethod
+    def _gemini_api_key() -> str | None:
+        key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if key:
+            return key.strip()
+        key_file = DIG_ROOT / "gemini_api"
+        if key_file.is_file():
+            return key_file.read_text().strip() or None
+        return None
+
+    def _run_docker(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Any | None = None, check_cancelled: Any | None = None, script: str = "dig.py", input_flag: str | None = None) -> dict[str, Any]:
         container_file = f"/dig/input/{input_file.name}"
+        needs_llm_net = "-llm" in cmd_opts or "--llm" in cmd_opts
         docker_cmd = [
             "docker", "run", "--rm",
-            "--network", "none",
+            *([] if needs_llm_net else ["--network", "none"]),
             "--memory", "8g",
             "--cpuset-cpus", "0-7",
             "--pids-limit", "512",
             "-e", "PYTHONUNBUFFERED=1",
+        ]
+        if needs_llm_net:
+            api_key = self._gemini_api_key()
+            if api_key:
+                docker_cmd.extend(["-e", f"GEMINI_API_KEY={api_key}"])
+            if os.environ.get("GEMINI_MODEL"):
+                docker_cmd.extend(["-e", f"GEMINI_MODEL={os.environ['GEMINI_MODEL']}"])
+        docker_cmd += [
             # ",z" relabels the mounts for SELinux hosts; it is a no-op elsewhere
             "-v", f"{input_file.resolve()}:{container_file}:ro,z",
             "-v", f"{DIG_ROOT.resolve()}/src:/dig/src:ro,z",
@@ -311,7 +339,7 @@ class DIGRunner:
 
         return self._run_cmd_stream(docker_cmd, timeout + 5, on_output, check_cancelled=check_cancelled)
 
-    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Optional[Any] = None, check_cancelled: Optional[Any] = None, script: str = "dig.py", input_flag: Optional[str] = None) -> Dict[str, Any]:
+    def _run_direct(self, input_file: Path, cmd_opts: list, timeout: int, on_output: Any | None = None, check_cancelled: Any | None = None, script: str = "dig.py", input_flag: str | None = None) -> dict[str, Any]:
         python_exe = sys.executable
         cmd = [python_exe, "-u", "-O", str(DIG_ROOT / "src" / script)]
         cmd += [input_flag, str(input_file)] if input_flag else [str(input_file)]
@@ -329,10 +357,31 @@ class DIGRunner:
             env=env
         )
 
-    def _parse_invariants(self, output: str) -> list:
+    @staticmethod
+    def _parse_lean_cert(output: str) -> dict[str, Any] | None:
+        """Extract Lean 4 certification summary and certified (loc, text) pairs."""
+        summary = None
+        status = None
+        certified: set[tuple[str, str]] = set()
+        for line in output.splitlines():
+            s = line.strip()
+            if s.startswith("lean-cert ") and ": " in s:
+                summary = s
+                rest = s.split(": ", 1)[1]
+                status = rest.split(";", 1)[0].strip()
+            elif line.startswith("  certified ") and ": " in line:
+                body = line[len("  certified "):]
+                loc, inv_text = body.split(": ", 1)
+                certified.add((loc.strip(), inv_text.strip()))
+        if summary is None:
+            return None
+        return {"summary": summary, "status": status, "certified": certified}
+
+    def _parse_invariants(self, output: str, lean_cert: dict[str, Any] | None = None) -> list:
         """Parses output log to extract invariants grouped by vtrace location."""
         locations = []
         current_loc = None
+        cert_set = lean_cert["certified"] if lean_cert else set()
         
         lines = output.splitlines()
         for line in lines:
@@ -364,10 +413,13 @@ class DIGRunner:
                     
                     invs = [inv.strip() for inv in invs_part.split(";") if inv.strip()]
                     for inv_text in invs:
-                        current_loc["invariants"].append({
+                        entry = {
                             "text": inv_text,
                             "type": inv_type
-                        })
+                        }
+                        if (current_loc["name"], inv_text) in cert_set:
+                            entry["lean_certified"] = True
+                        current_loc["invariants"].append(entry)
                 # Handle Numbered list format: "1. a*y - b == 0"
                 elif line_s[0].isdigit() and "." in line_s[:4]:
                     inv_text = line_s.split(".", 1)[1].strip()
@@ -379,9 +431,12 @@ class DIGRunner:
                             inv_type = "minmax"
                         else:
                             inv_type = "inequality"
-                    current_loc["invariants"].append({
+                    entry = {
                         "text": inv_text,
                         "type": inv_type
-                    })
+                    }
+                    if (current_loc["name"], inv_text) in cert_set:
+                        entry["lean_certified"] = True
+                    current_loc["invariants"].append(entry)
                 
         return locations

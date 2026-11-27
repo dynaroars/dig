@@ -40,8 +40,10 @@
 <h1>DIG: Dynamic Invariant Generator</h1>
 <p>
 DIG infers program invariants — nonlinear/linear equalities, octagonal
-inequalities, congruences, and min/max-plus relations — from program code or execution traces.
+inequalities, congruences, and min/max-plus relations — from program code or execution traces,
+with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification.
 
+[<a href="symexc.html">SymEx</a>]
 [<a href="https://github.com/dynaroars/dig">GitHub</a>]
 [<a href="https://roars.dev">ROARS Lab</a>]
 </p>
@@ -74,36 +76,8 @@ inequalities, congruences, and min/max-plus relations — from program code or e
   <td>find nonlinear invariants up to this degree</td>
 </tr>
 <tr>
-  <td><label for="opt-maxterm"><tt>-maxterm</tt></label></td><td><input type="number" id="opt-maxterm" size="5" min="1"></td>
-  <td>autodegree (max number of terms)</td>
-</tr>
-<tr>
-  <td><label for="opt-ideg"><tt>-ideg</tt></label></td><td><input type="number" id="opt-ideg" size="5" min="1"></td>
-  <td>degree for inequalities (1 = linear, 2 = quadratic, ...)</td>
-</tr>
-<tr>
-  <td><label for="opt-iterms"><tt>-iterms</tt></label></td><td><input type="number" id="opt-iterms" size="5" min="1"></td>
-  <td>number of terms for inequalities (2 = octagonal)</td>
-</tr>
-<tr>
-  <td><label for="opt-icoefs"><tt>-icoefs</tt></label></td><td><input type="number" id="opt-icoefs" size="5" min="1"></td>
-  <td>coefficients for inequalities (1 = [-1,0,1], i.e., oct)</td>
-</tr>
-<tr>
-  <td><label for="opt-iupper"><tt>-iupper</tt></label></td><td><input type="number" id="opt-iupper" size="5" min="1"></td>
-  <td>max upperbound value for inequalities</td>
-</tr>
-<tr>
   <td><label for="opt-se_maxdepth"><tt>-se_maxdepth</tt></label></td><td><input type="number" id="opt-se_maxdepth" size="5" min="1"></td>
   <td>depth limit of symbolic execution</td>
-</tr>
-<tr>
-  <td><label for="opt-nrandinps"><tt>-nrandinps</tt></label></td><td><input type="number" id="opt-nrandinps" size="5" min="1"></td>
-  <td>number of random inputs (only with <tt>-noss</tt>)</td>
-</tr>
-<tr>
-  <td><label for="opt-inpMaxV"><tt>-inpMaxV</tt></label></td><td><input type="number" id="opt-inpMaxV" size="5" min="1"></td>
-  <td>max input value</td>
 </tr>
 <tr>
   <td><label for="opt-seed"><tt>-seed</tt></label></td><td><input type="number" id="opt-seed" size="8" step="any"></td>
@@ -129,32 +103,26 @@ inequalities, congruences, and min/max-plus relations — from program code or e
 <label><input type="checkbox" id="type-eqt" checked> equalities <span class="small">(dynamic + static recurrence)</span></label><br>
 <label><input type="checkbox" id="type-ieq" checked> inequalities <span class="small">(octagonal / polynomial)</span></label><br>
 <label><input type="checkbox" id="type-minmax" checked> min/max-plus</label><br>
-<label><input type="checkbox" id="type-congruence" checked> congruences</label><br>
-<label><input type="checkbox" id="type-array" checked> array relations</label>
+<label><input type="checkbox" id="type-congruence" checked> congruences</label>
+</fieldset>
+
+<fieldset>
+<legend><b>Verification &amp; Lean 4 certification</b> <span class="small">(Z3 + Lean 4 certification is on by default via the checkbox next to Run DIG)</span></legend>
+<label><input type="checkbox" id="opt-lean_only"> <tt>--lean-only</tt> verify candidates directly with Lean 4 instead of Z3
+  <span class="small">(drops unproved candidates unless <tt>--keep-unverified</tt> is checked)</span></label><br>
+<label><input type="checkbox" id="opt-keep_unverified"> <tt>--keep-unverified</tt> with <tt>--lean-only</tt>, also show candidates Lean could not prove</label>
 </fieldset>
 
 <fieldset>
 <legend><b>Other flags</b></legend>
 <label><input type="checkbox" id="opt-noss"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label><br>
-<label><input type="checkbox" id="opt-nomp"> <tt>-nomp</tt> don't use multiprocessing</label><br>
-<label><input type="checkbox" id="opt-dosolverstats"> <tt>-dosolverstats</tt> collect solver statistics</label>
+<label><input type="checkbox" id="opt-nomp"> <tt>-nomp</tt> don't use multiprocessing</label>
 </fieldset>
 
 <fieldset>
-<legend><b>Advanced algorithms</b></legend>
-<label><input type="checkbox" id="opt-dosymba"> <tt>-dosymba</tt> SYMBA simultaneous optimization for inequality/min-max bounds
-  <span class="small">(one shared solver for all terms at a location; same bounds, fewer solver calls — useful on programs with many variables)</span></label><br>
-<label><input type="checkbox" id="opt-norecurrencemp"> <tt>-norecurrencemp</tt> disable multi-path recurrence
-  <span class="small">(the multi-path extension proves closed-form equalities for <em>branching</em> loop bodies, e.g. cohendiv/fermat1; on by default)</span></label>
-</fieldset>
-
-<fieldset>
-<legend><b>Terms / LLM</b></legend>
-<label for="opt-uterms"><tt>-uterms</tt></label>
-<input type="text" id="opt-uterms" size="40" placeholder="y^2 ; x*y + 4">
-user-supplied terms, separated by <tt>;</tt><br>
-<label><input type="checkbox" id="opt-llm"> <tt>-llm</tt> use an LLM to propose invariants, verified by symbolic states + z3
-  <span class="small">(server needs <tt>ANTHROPIC_API_KEY</tt>)</span></label><br>
+<legend><b>LLM</b></legend>
+<label><input type="checkbox" id="opt-llm"> <tt>-llm</tt> use an LLM (Gemini) to propose invariants, verified by symbolic states + z3
+  <span class="small">(server needs <tt>GEMINI_API_KEY</tt> or <tt>gemini_api</tt>)</span></label><br>
 <label for="opt-llm_rounds"><tt>-llm_rounds</tt></label>
 <input type="number" id="opt-llm_rounds" size="4" min="1" placeholder="3"> max LLM propose/verify rounds<br>
 <label><input type="checkbox" id="opt-llm_no_traces"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label><br>
@@ -166,6 +134,7 @@ user-supplied terms, separated by <tt>;</tt><br>
 <p>
 <button id="run-btn" type="button"><b>Run DIG</b></button>
 <button id="cancel-btn" type="button" disabled>Cancel</button>
+&nbsp; <label><input type="checkbox" id="opt-certify_lean" checked> <b>Certify with Lean 4</b> <span class="small">(<tt>--certify-lean</tt>)</span></label>
 &nbsp; <b id="status-line">Ready.</b>
 </p>
 <div id="run-plan" style="display:none; margin:0.6em 0; padding:0.6em 0.9em; border-left:3px solid #6a8; background:#f4f8f4; font-size:0.92em;"></div>
@@ -268,28 +237,24 @@ function numOpt(id) {
 function gatherOptions() {
   var opts = {
     maxdeg: numOpt("opt-maxdeg"),
-    maxterm: numOpt("opt-maxterm"),
-    ideg: numOpt("opt-ideg"),
-    iterms: numOpt("opt-iterms"),
-    icoefs: numOpt("opt-icoefs"),
-    iupper: numOpt("opt-iupper"),
     se_maxdepth: numOpt("opt-se_maxdepth"),
-    nrandinps: numOpt("opt-nrandinps"),
-    inpMaxV: numOpt("opt-inpMaxV"),
     seed: numOpt("opt-seed"),
     llm_rounds: numOpt("opt-llm_rounds"),
     log_level: Number($("opt-log_level").value),
-    timeout: numOpt("opt-timeout") || 120,
-    uterms: $("opt-uterms").value.trim() || null
+    timeout: numOpt("opt-timeout") || 120
   };
-  ["noss", "nomp", "dosolverstats", "dosymba", "norecurrencemp",
-   "nollmhoudini", "llm", "llm_no_traces"].forEach(function (name) {
+  ["noss", "nomp", "nollmhoudini", "llm", "llm_no_traces",
+   "lean_only", "keep_unverified"].forEach(function (name) {
     if ($("opt-" + name).checked) opts[name] = true;
   });
+  if ($("opt-certify_lean").checked && currentInputType() === "c" &&
+      !opts.lean_only && !opts.noss && !opts.llm) {
+    opts.certify_lean = true;
+  }
   // invariant types -> -types allowlist; omit it when all are selected (the
   // default = every type). "equalities" covers both eqt and recurrence.
   var typeMap = {eqt: ["eqt", "recurrence"], ieq: ["ieq"], minmax: ["minmax"],
-                 congruence: ["congruence"], array: ["array"]};
+                 congruence: ["congruence"]};
   var allTypes = Object.keys(typeMap);
   var checked = allTypes.filter(function (t) { return $("type-" + t).checked; });
   if (checked.length && checked.length < allTypes.length) {
@@ -306,7 +271,7 @@ function gatherOptions() {
    actually run. Purely client-side and best-effort; mirrors alg.py's mode
    dispatch (symbolic-states vs -noss vs -llm vs trace CSV) and -types. */
 function summarizeAlgorithms(opts, inputType) {
-  var allTypes = ["eqt", "recurrence", "ieq", "minmax", "congruence", "array"];
+  var allTypes = ["eqt", "recurrence", "ieq", "minmax", "congruence"];
   var active = {};
   if (opts.types) {
     opts.types.split(",").forEach(function (t) { active[t.trim()] = true; });
@@ -315,7 +280,6 @@ function summarizeAlgorithms(opts, inputType) {
   }
 
   var proofs = (inputType === "c" && !opts.noss && !opts.llm); // symbolic states, algebraic engines
-  var symba = !!opts.dosymba;
 
   var mode, modeDesc;
   if (inputType === "csv") {
@@ -345,20 +309,19 @@ function summarizeAlgorithms(opts, inputType) {
       items.push(["Equalities (CEGIR)", "fit polynomial-equality templates and solve their null space" +
                   (proofs ? ", refining with counterexample states from the symbolic-state check" : " from traces") + "."]);
     if (active.recurrence && proofs)
-      items.push(["Recurrence equalities (static)", "solve solvable-loop recurrences to closed forms and prove them by k-induction" +
-                  (opts.norecurrencemp ? " (single-path only)" : ", incl. multi-path branching loops") + " — no program runs."]);
+      items.push(["Recurrence equalities (static)", "solve solvable-loop recurrences to closed forms and prove them by k-induction, incl. multi-path branching loops — no program runs."]);
     if (active.ieq)
-      items.push(["Inequalities (octagonal/polynomial)", (proofs ? "maximize terms over the symbolic states for exact, proved bounds" : "compute term bounds from trace data") +
-                  (symba && proofs ? ", using SYMBA shared-solver optimization" : "") + "."]);
+      items.push(["Inequalities (octagonal/polynomial)", (proofs ? "maximize terms over the symbolic states for exact, proved bounds" : "compute term bounds from trace data") + "."]);
     if (active.minmax)
-      items.push(["Min/max-plus disjunctions", (proofs ? "maximize min/max terms over the symbolic states" : "compute min/max bounds from traces") +
-                  (symba && proofs ? " (SYMBA)" : "") + "."]);
+      items.push(["Min/max-plus disjunctions", (proofs ? "maximize min/max terms over the symbolic states" : "compute min/max bounds from traces") + "."]);
     if (active.congruence)
       items.push(["Congruences", "detect arithmetic progressions (x ≡ b mod n) in the trace values."]);
-    if (active.array)
-      items.push(["Array relations", "mine nested array index relations like A[i]=B[C[k*i+c]] from traces."]);
     if (proofs)
-      items.push(["Verifier", "k-induction / houdini prove candidates; each invariant is tagged proved / candidate / unknown."]);
+      items.push(["Verifier", opts.lean_only
+                  ? "Lean 4 directly verifies candidates (unbounded, zero Z3 in TCB)" +
+                    (opts.keep_unverified ? ", keeping unverified candidates." : ".")
+                  : "Z3 symbolic-state checking + k-induction / houdini" +
+                    (opts.certify_lean ? ", followed by unbounded Lean 4 certification." : ".")]);
   }
 
   var html = "<b>About to run — " + escapeHtml(mode) + ".</b> " + escapeHtml(modeDesc);
@@ -449,17 +412,24 @@ function finish(msg) {
 
 function renderResults(data) {
   var locs = data.locations || [];
+  var html = "";
+  if (data.lean_cert && data.lean_cert.summary) {
+    html += "<p><b>Lean 4 certification:</b> <tt>" + escapeHtml(data.lean_cert.summary) + "</tt></p>";
+  }
   if (locs.length === 0) {
-    $("results").innerHTML = "<i>No invariants discovered. See raw output below.</i>";
+    $("results").innerHTML = html + "<i>No invariants discovered. See raw output below.</i>";
     return;
   }
-  var html = "";
+  var showLeanCol = !!(data.lean_cert && data.lean_cert.certified_count > 0);
   locs.forEach(function (loc) {
     html += "<h3><tt>" + escapeHtml(loc.header || loc.name) + "</tt></h3>";
-    html += "<table class=\"invs\"><tr><th>#</th><th>Invariant</th><th>Type</th></tr>";
+    html += "<table class=\"invs\"><tr><th>#</th><th>Invariant</th><th>Type</th>" +
+            (showLeanCol ? "<th>Lean 4</th>" : "") + "</tr>";
     loc.invariants.forEach(function (inv, i) {
       html += "<tr><td>" + (i + 1) + "</td><td><tt>" + escapeHtml(inv.text) +
-              "</tt></td><td>" + escapeHtml(inv.type) + "</td></tr>";
+              "</tt></td><td>" + escapeHtml(inv.type) + "</td>" +
+              (showLeanCol ? "<td>" + (inv.lean_certified ? "&#10003; certified" : "") + "</td>" : "") +
+              "</tr>";
     });
     html += "</table>";
   });

@@ -1,6 +1,11 @@
 FROM --platform=linux/amd64 debian:bookworm-slim
 
-RUN apt update -y && apt install -y build-essential libc6 git software-properties-common wget openjdk-17-jdk-headless && rm -rf /var/lib/apt/lists/*
+RUN apt update -y && apt install -y build-essential libc6 git software-properties-common wget curl openjdk-17-jdk-headless && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.35.0 && \
+    /root/.elan/bin/elan toolchain install leanprover/lean4:v4.35.0 && \
+    /root/.elan/bin/lean --version
+ENV PATH="/root/.elan/bin:${PATH}"
 
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash ./Miniconda3-latest-Linux-x86_64.sh -b && \
@@ -9,7 +14,7 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
 RUN /root/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
     /root/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
     /root/miniconda3/bin/conda install python=3.14 sympy pip -y && \
-    /root/miniconda3/bin/pip3 install z3-solver==4.16.0.0 beartype pycparser numpy
+    /root/miniconda3/bin/pip3 install z3-solver==4.16.0.0 pycparser numpy google-genai
 
 WORKDIR /
 COPY . /dig
