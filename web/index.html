@@ -108,12 +108,14 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 </fieldset>
 
 <fieldset class="c-only">
-<legend><b>Verification &amp; Lean 4 certification</b> <span class="small">(default: Z3 verification + Lean 4 certification)</span></legend>
-<label><input type="checkbox" id="opt-certify_lean" name="opt-certify_lean" autocomplete="off" checked> <tt>--certify-lean</tt> certify the Z3-checked invariants with Lean 4
-  <span class="small">(unbounded proof, zero Z3 in TCB)</span></label><br>
-<label><input type="checkbox" id="opt-lean_only" name="opt-lean_only" autocomplete="off"> <tt>--lean-only</tt> verify candidates directly with Lean 4 instead of Z3
-  <span class="small">(drops unproved candidates unless <tt>--keep-unverified</tt> is checked)</span></label><br>
-<label><input type="checkbox" id="opt-keep_unverified" name="opt-keep_unverified" autocomplete="off"> <tt>--keep-unverified</tt> with <tt>--lean-only</tt>, also show candidates Lean could not prove</label>
+<legend><b>Verification</b></legend>
+<label><input type="radio" name="verify-mode" value="z3_lean" autocomplete="off" checked> <b>Z3 + Lean 4 certification</b> <tt>--certify-lean</tt>
+  <span class="small">(default: Z3 checks candidates, then Lean 4 proves them unboundedly; zero Z3 in TCB)</span></label><br>
+<label><input type="radio" name="verify-mode" value="z3" autocomplete="off"> <b>Z3 only</b>
+  <span class="small">(bounded symbolic-state checking; faster, no Lean 4)</span></label><br>
+<label><input type="radio" name="verify-mode" value="lean_only" autocomplete="off"> <b>Lean 4 only</b> <tt>--lean-only</tt>
+  <span class="small">(verify candidates directly in Lean 4 without Z3; drops unproved candidates unless <tt>--keep-unverified</tt> is checked)</span></label><br>
+<label style="margin-left:1.5em;"><input type="checkbox" id="opt-keep_unverified" name="opt-keep_unverified" autocomplete="off" disabled> <tt>--keep-unverified</tt> also show candidates Lean could not prove</label>
 </fieldset>
 
 <fieldset>
@@ -249,6 +251,16 @@ function numOpt(id) {
   return v === "" ? null : Number(v);
 }
 
+function currentVerifyMode() {
+  var radios = document.getElementsByName("verify-mode");
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) return radios[i].value;
+  return "z3_lean";
+}
+
+function syncVerifyMode() {
+  $("opt-keep_unverified").disabled = (currentVerifyMode() !== "lean_only");
+}
+
 function syncInputMode(inputType) {
   document.body.classList.toggle("mode-csv", inputType === "csv");
 }
@@ -265,12 +277,17 @@ function gatherOptions() {
   if (isC) {
     opts.se_maxdepth = numOpt("opt-se_maxdepth");
     opts.llm_rounds = numOpt("opt-llm_rounds");
-    ["noss", "nollmhoudini", "llm", "llm_no_traces",
-     "lean_only", "keep_unverified"].forEach(function (name) {
+    ["noss", "nollmhoudini", "llm", "llm_no_traces"].forEach(function (name) {
       if ($("opt-" + name).checked) opts[name] = true;
     });
-    if ($("opt-certify_lean").checked && !opts.lean_only && !opts.noss) {
-      opts.certify_lean = true;
+    var vmode = currentVerifyMode();
+    if (!opts.noss) {
+      if (vmode === "z3_lean") {
+        opts.certify_lean = true;
+      } else if (vmode === "lean_only") {
+        opts.lean_only = true;
+        if ($("opt-keep_unverified").checked) opts.keep_unverified = true;
+      }
     }
   }
   // invariant types -> -types allowlist; omit it when all are selected (the
@@ -393,6 +410,7 @@ function renderResults(data) {
 
 document.addEventListener("DOMContentLoaded", function () {
   syncInputMode(currentInputType());
+  syncVerifyMode();
   loadExampleList();
   $("example-select").addEventListener("change", loadExample);
   var radios = document.getElementsByName("input-type");
@@ -402,6 +420,10 @@ document.addEventListener("DOMContentLoaded", function () {
       syncInputMode(mode);
       populateExamples(mode);
     });
+  }
+  var vradios = document.getElementsByName("verify-mode");
+  for (var j = 0; j < vradios.length; j++) {
+    vradios[j].addEventListener("change", syncVerifyMode);
   }
   $("run-btn").addEventListener("click", runDig);
   $("cancel-btn").addEventListener("click", cancelJob);
