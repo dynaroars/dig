@@ -1,6 +1,5 @@
 """Isolated Python target evaluator and JSON-lines worker client."""
 
-from __future__ import annotations
 
 import argparse
 from contextlib import redirect_stderr, redirect_stdout

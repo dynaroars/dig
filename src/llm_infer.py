@@ -14,11 +14,11 @@ on the LLM.
                                                |
                               cex -> new traces -> re-propose (CEGIR)
 
-The LLM backend is pluggable (Anthropic by default); the verifier is the load-
+The LLM backend is pluggable (Gemini by default); the verifier is the load-
 bearing, sound half and runs with no LLM at all (see verify()).
 """
-from __future__ import annotations
 
+import os
 import random
 import tempfile
 import time
@@ -261,14 +261,34 @@ def _format_cexs(cexs: dict) -> str:
 
 # ─────────────────────────────── LLM backend (pluggable) ─────────────
 
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+
+
+def _gemini_api_key() -> str:
+    """Resolve Gemini API key from GEMINI_API_KEY / GOOGLE_API_KEY or ./gemini_api."""
+    for env_var in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        val = os.environ.get(env_var, "").strip()
+        if val:
+            return val
+    for candidate in (Path(__file__).resolve().parent.parent / "gemini_api",
+                      Path("gemini_api")):
+        if candidate.is_file():
+            val = candidate.read_text().strip()
+            if val:
+                return val
+    raise RuntimeError(
+        "Gemini API key not found: set GEMINI_API_KEY or place key in ./gemini_api"
+    )
+
+
 def propose(c_source: str, trace_sample: str = "", cexs: str = "") -> str:
     """
-    Ask the LLM for candidate invariants. Returns raw text; caller parses it.
-    Requires ANTHROPIC_API_KEY + the anthropic SDK. The verifier above runs
-    without this. `trace_sample` is optional: when empty, the model proposes
-    from the source alone (no .exe run needed).
+    Ask Gemini for candidate invariants. Returns raw text; caller parses it.
+    Uses GEMINI_API_KEY (or ./gemini_api) + the google-genai SDK. The verifier
+    above runs without this. `trace_sample` is optional: when empty, the model
+    proposes from the source alone (no .exe run needed).
     """
-    import anthropic  # lazy: only needed for the LLM half
+    from google import genai  # lazy: only needed for the LLM half
 
     prompt = f"""You are given a C function{' and sample execution traces recorded at its loop head(s)' if trace_sample else ''}.
 Propose loop invariants: numerical relations over ONLY the traced variables
@@ -290,23 +310,23 @@ C source:
     if cexs:
         prompt += f"\nThese candidates were FALSE (counterexamples); avoid them:\n{cexs}\n"
 
-    client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
+    model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    client = genai.Client(api_key=_gemini_api_key())
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
     )
-    return msg.content[0].text
+    return response.text or ""
 
 
 def run(cfile: Path, seed: float, max_rounds: int = 3,
         no_traces: bool = False) -> tuple[infer.inv.DInvs, dict]:
     """
     Full CEGIR loop: propose -> verify -> feed counterexamples back. Needs an
-    LLM backend (propose(), which reads ANTHROPIC_API_KEY); the verifier half is
-    reusable on its own. Returns (dinvs, time_d) where dinvs holds the proved
-    invariants in DIG's native form. With no_traces=True the prompt uses the
-    source only (the .exe is never run).
+    LLM backend (propose(), which reads GEMINI_API_KEY or ./gemini_api); the
+    verifier half is reusable on its own. Returns (dinvs, time_d) where dinvs
+    holds the proved invariants in DIG's native form. With no_traces=True the
+    prompt uses the source only (the .exe is never run).
     """
     random.seed(seed)
     time_d = {}

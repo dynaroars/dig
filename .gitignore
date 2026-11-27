@@ -149,5 +149,8 @@ node_modules/
 dist/
 .DS_Store
 
+# Local API keys
+gemini_api
+
 
 

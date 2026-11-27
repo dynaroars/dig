@@ -1,6 +1,5 @@
 """Promotion of empirical findings through verifier plugins."""
 
-from __future__ import annotations
 
 from dataclasses import replace
 

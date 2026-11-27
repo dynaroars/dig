@@ -1,6 +1,5 @@
 """Sound verification of pure axioms against user-supplied logical models."""
 
-from __future__ import annotations
 
 import hashlib
 from typing import Any, Mapping

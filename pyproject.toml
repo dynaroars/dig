@@ -10,14 +10,13 @@ requires-python = ">=3.14"
 dependencies = [
     "sympy",
     "z3-solver==4.16.0.0",
-    "beartype",
     "pycparser",
     "numpy",
 ]
 
 [project.optional-dependencies]
 test = ["pytest"]
-llm = ["anthropic"]   # neuro-symbolic invariant proposal (llm_infer.py)
+llm = ["google-genai"]   # neuro-symbolic invariant proposal (llm_infer.py)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -45,7 +44,7 @@ line-length = 100
 [tool.ruff.lint]
 # Start conservative: pyflakes (F) + a subset of pycodestyle (E) errors.
 # Widen over time (e.g. add "UP" for pyupgrade once 3.14 idioms are adopted).
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "UP"]
 ignore = [
     "E501",  # line length handled by formatter, not enforced as an error
     "E741",  # ambiguous var names (l, etc.) are pervasive in this codebase

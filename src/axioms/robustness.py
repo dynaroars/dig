@@ -1,6 +1,5 @@
 """Replay-based determinism checks for target terms."""
 
-from __future__ import annotations
 
 from typing import Any, Mapping
 

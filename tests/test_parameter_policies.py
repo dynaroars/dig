@@ -31,24 +31,6 @@ def test_large_valid_trace_refutes_equality():
     assert Eqt(sympy.Eq(x - 10**12, 0)).test_single_trace(trace)
 
 
-def test_benchmark_options_roundtrip_degree_paths_and_terms():
-    args = SimpleNamespace(**{k: False for k, *_ in settings._BOOL_FLAGS},
-                           **{k: None for k, *_ in settings._STR_FLAGS},
-                           **{k: None for k, *_ in settings._INT_FLAGS},
-                           types="eqt,ieq", uterms="x**2 ; x*y+4", se_maxdepth=4,
-                           tmpdir="/tmp/with spaces", log_level=2, maxdeg=3)
-    args.writevtraces = "/tmp/traces with spaces.csv"
-    args.readsstates = "/tmp/states with spaces.json"
-    args.nomp = True
-    argv = shlex.split(settings.setup(None, args))
-    assert argv[argv.index("-maxdeg") + 1] == "3"
-    assert argv[argv.index("-uterms") + 1] == args.uterms
-    assert argv[argv.index("-tmpdir") + 1] == args.tmpdir
-    assert argv[argv.index("-readsstates") + 1] == args.readsstates
-    assert argv[argv.index("-writevtraces") + 1] == args.writevtraces
-    assert "-nomp" in argv
-
-
 @pytest.mark.parametrize("rows", [
     [[1, sympy.Rational(1, 2)], [1, sympy.Rational(1, 3)]],
     [[1, 10**9], [2, 2*10**9]],

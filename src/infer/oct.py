@@ -1,8 +1,6 @@
 import operator
-import pdb
 import sympy
 import z3
-from beartype import beartype
 
 
 import settings
@@ -13,7 +11,6 @@ from helpers.z3utils import Z3
 import infer.inv
 import infer.infer
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
@@ -21,18 +18,15 @@ class Oct(infer.inv.Inv):
     """
     Octagonal invariants c1x + c2y <= c3
     """
-    @beartype
     def __init__(self, myoct: sympy.Le, stat: infer.inv.InvStat | None = None) -> None:
         assert isinstance(myoct, sympy.Le), myoct
 
         super().__init__(myoct, stat)
 
-    @beartype
     @property
     def is_simple(self) -> bool:
         return self.inv.rhs.is_constant() and self.inv.rhs.is_zero
 
-    @beartype
     @property
     def mystr(self) -> str:
         return f"{self.inv.lhs} <= {self.inv.rhs}"
@@ -75,7 +69,6 @@ class Infer(infer.infer._Opt):
         terms.extend(infer.inv.RelTerm(term) for term in sorted(hints - existing, key=str))
         return terms
 
-    @beartype
     @staticmethod
     def to_expr(term) -> z3.ExprRef:
         return Z3.parse(str(term.term))
@@ -108,35 +101,7 @@ class Infer(infer.infer._Opt):
                     terms_.add(sum(operator.mul(*tc) for tc in ts))
             terms = terms_
 
-        if settings.UTERMS:
-            uterms = cls.my_get_terms_user(symbols, settings.UTERMS)
-            old_siz = len(terms)
-            terms.update(uterms)
-            mlog.debug(f"add {len(terms) - old_siz} new terms from user")
-
         terms = [infer.inv.RelTerm(t) for t in terms]
-        return terms
-
-    @staticmethod
-    def my_get_terms_user(symbols, uterms: set) -> set:
-        assert isinstance(uterms, set) and uterms, uterms
-        assert all(isinstance(t, str) for t in uterms), uterms
-
-        uterms = {sympy.sympify(term) for term in uterms}
-
-        if not {v for t in uterms for v in t.free_symbols}.issubset(set(symbols)):
-            raise NameError(f"{uterms} contain symbols not in {symbols}")
-        terms = set()
-        for t in uterms:
-            terms.add(t)
-            terms.add(-t)
-            ts = [t_ for v in symbols for t_ in (v+t, v-t, -v+t, -v-t)]
-            for t_ in ts:
-                if isinstance(t_, sympy.Number):
-                    mlog.warning(f"skipping {t_}")
-                else:
-                    terms.add(t_)
-
         return terms
 
     @staticmethod

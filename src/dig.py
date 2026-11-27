@@ -1,11 +1,9 @@
-import pdb
 import os
 import sys
 import datetime
 import time
 import argparse
 from pathlib import Path
-DBG = pdb.set_trace
 
 
 """
@@ -34,7 +32,7 @@ if __name__ == "__main__":
     aparser = argparse.ArgumentParser(
         "DIG",
         epilog="invariant types for -types: eqt, ieq, minmax, congruence, "
-               "array, recurrence (e.g. -types eqt,ieq). Omit to infer all.",
+               "recurrence (e.g. -types eqt,ieq). Omit to infer all.",
     )
 
     # argument groups, shown in this order by --help
@@ -42,9 +40,7 @@ if __name__ == "__main__":
         "invariant selection", "which invariant types to infer (default: all)")
     g_mode = aparser.add_argument_group("modes")
     g_tune = aparser.add_argument_group("advanced tuning")
-    g_eng = aparser.add_argument_group("advanced engines")
     g_io = aparser.add_argument_group("output & serialization")
-    g_bench = aparser.add_argument_group("benchmarking")
     g_dbg = aparser.add_argument_group("debugging & diagnostics")
     g_axiom = aparser.add_argument_group("API axiom analysis")
 
@@ -54,7 +50,7 @@ if __name__ == "__main__":
         "--types", "-types", "--only", "-only", type=str, default=None,
         metavar="T1,T2,...",
         help="comma-separated invariant types to infer; the rest are turned "
-             "off. Types: eqt, ieq, minmax, congruence, array, recurrence. "
+             "off. Types: eqt, ieq, minmax, congruence, recurrence. "
              "Default: all types.")
 
     ag = aparser.add_argument
@@ -101,8 +97,8 @@ if __name__ == "__main__":
         "--llm",
         "-llm",
         action="store_true",
-        help="use an LLM (claude) to propose invariants, verified soundly by "
-             "DIG's symbolic states + z3 (requires ANTHROPIC_API_KEY)",
+        help="use an LLM (Gemini) to propose invariants, verified soundly by "
+             "DIG's symbolic states + z3 (uses GEMINI_API_KEY or ./gemini_api)",
     )
 
     ag(
@@ -121,47 +117,40 @@ if __name__ == "__main__":
              "(does not run the compiled program)",
     )
 
+    g_cert = aparser.add_argument_group(
+        "verification (default: Z3; optional Lean 4 certification)")
+    ag = g_cert.add_argument
+    ag("--certify-lean", "-certify_lean", dest="certify_lean",
+       action="store_true",
+       help="certify the Z3-checked invariants with Lean 4 (unbounded, "
+            "zero Z3 in TCB)")
+    ag("--lean-only", dest="lean_only", action="store_true",
+       help="verify candidates directly with Lean 4 instead of Z3 "
+            "(drops unproved candidates unless --keep-unverified is set)")
+    ag("--z3-check", "-z3check", dest="z3_check", action="store_true",
+       help="check candidates with Z3 against symbolic states (default)")
+    ag("--keep-unverified", dest="keep_unverified", action="store_true",
+       help="with --lean-only: also report candidates Lean could not prove "
+            "(marked unverified) instead of dropping them")
+    ag("--lean-out", dest="lean_out", type=str, default=None, metavar="FILE",
+       help="write the final .lean certificate to FILE")
+    ag("--lean-bin", dest="lean_bin", type=str, default=None, metavar="PATH",
+       help="Lean binary (default: lean on PATH, then elan's pinned toolchain)")
+    ag("--lean-timeout", dest="lean_timeout", type=float, default=None,
+       metavar="SECS", help="timeout per Lean run (default 120)")
+    ag("--lean-max-rounds", dest="lean_max_rounds", type=int, default=None,
+       help="cap on drop-pass rounds (default 8)")
+
     ag = g_tune.add_argument
     ag("--maxdeg", "-maxdeg",
        type=int,
        default=None,
        help="find nonlinear invs up to degree")
 
-    # -maxterm: internal auto-degree cap, kept functional but hidden from --help
-    ag("--maxterm", "-maxterm", type=int, default=None, help=argparse.SUPPRESS)
-
-    ag("--nrandinps", "-nrandinps", type=int, default=None,
-       help="number of random inputs (on used with --noss)")
-
-    ag("--inpMaxV", "-inpMaxV", type=int, help="max inp value")
-
     ag("--se_maxdepth", "-se_maxdepth",
        type=int,
        help="depthlimit of symbolic execution",
        )
-
-    ag("--iupper", "-iupper", type=int, help="max upperbound val for ieqs")
-
-    ag(
-        "--ideg",
-        "-ideg",
-        type=int,
-        help="degree for ieqs (e.g., 1 = linear, 2 = quadratic, etc)",
-    )
-
-    ag(
-        "--iterms",
-        "-iterms",
-        type=int,
-        help="number of terms for ieqs, 2 is octagonal invs",
-    )
-
-    ag(
-        "--icoefs",
-        "-icoefs",
-        type=int,
-        help="coefs for ieqs, e.g., 1 means [-1,0,1], i.e., oct",
-    )
 
     ag = g_mode.add_argument
     ag(
@@ -171,37 +160,6 @@ if __name__ == "__main__":
         help="pure dynamic analysis: no symbolic states, no proofs",
     )
 
-    # invariant-type selection is via -types (see the "invariant selection"
-    # group above); the old per-type -no<type> flags have been removed.
-    ag = g_sel.add_argument
-    ag(
-        "--norecurrencemp",
-        "-norecurrencemp",
-        action="store_true",
-        help="don't extend the recurrence engine to branching (multi-path) "
-             "loop bodies (egcd/fermat/prodbin); single-path recurrences only",
-    )
-
-    ag = g_eng.add_argument
-    ag(
-        "--dokapur",
-        "-dokapur",
-        action="store_true",
-        help="also run the RC-Kapur bounded-degree ideal engine (static "
-             "equalities via the reachable-state null space; in memory of "
-             "Deepak Kapur)",
-    )
-
-    ag(
-        "--dosymba",
-        "-dosymba",
-        action="store_true",
-        help="use SYMBA simultaneous optimization for inequality/min-max "
-             "bounds (one shared solver for all terms) instead of one "
-             "z3-Optimize solve per term",
-    )
-
-    ag = g_mode.add_argument
     ag(
         "--nollmhoudini",
         "-nollmhoudini",
@@ -210,17 +168,8 @@ if __name__ == "__main__":
              "the union of LLM candidates",
     )
 
-    # NOTE: -noincrdepth/-nosimplify/-nofilter were removed; incremental depth
-    # is always on now, and DO_SIMPLIFY/DO_FILTER are constants in settings.py.
     ag = g_dbg.add_argument
     ag("--nomp", "-nomp", action="store_true", help="don't use multiprocessing")
-
-    ag(
-        "--dosolverstats",
-        "-dosolverstats",
-        action="store_true",
-        help="collect solver stats (e.g., how many sat/unsat, etc)",
-    )
 
     ag = g_io.add_argument
     ag(
@@ -237,49 +186,6 @@ if __name__ == "__main__":
         default=None,
         help="write vtraces to a csv file"
     )
-
-    ag(
-        "--writesstates",
-        "-writesstates",
-        type=str,
-        default=None,
-        help="write symbolic states to file; also stop after writing"
-    )
-
-    ag(
-        "--readsstates",
-        "-readsstates",
-        type=str,
-        default=None,
-        help="read symbolic states from a file and do inference using them"
-    )
-
-    ag(
-        "--test_tracefile",
-        "-test_tracefile",
-        type=str,
-        default=None,
-        help="tracefile to test",
-    )
-
-    ag = g_tune.add_argument
-    ag(
-        "--uterms",
-        "-uterms",
-        type=str,
-        default=None,
-        help='user-supplied terms (separated by ;), e.g., -uterms "y^2 ; xy+4"',
-    )
-
-    ag = g_bench.add_argument
-    ag(
-        "--benchmark_times",
-        "-benchmark_times",
-        type=int,
-        default=None,
-        help="run Dig this many times",
-    )
-
     ag(
         "--tmpdir",
         "-tmpdir",
@@ -288,18 +194,9 @@ if __name__ == "__main__":
         help="store invariant results in this dir",
     )
 
-    ag(
-        "--benchmark_dir",
-        "-benchmark_dir",
-        type=str,
-        default=None,
-        help="store benchmark results in this dir",
-    )
-
     args = aparser.parse_args()
 
-    for name in ("maxdeg", "maxterm", "nrandinps", "inpMaxV", "se_maxdepth",
-                 "iupper", "ideg", "iterms", "icoefs", "llm_rounds", "benchmark_times"):
+    for name in ("maxdeg", "se_maxdepth", "llm_rounds"):
         value = getattr(args, name, None)
         if value is not None and value < 1:
             aparser.error(f"--{name} must be positive")
@@ -313,16 +210,13 @@ if __name__ == "__main__":
     # asserts that -O strips) so bad paths fail fast with a clear message.
     def _check_paths(args):
         # input paths that must already be a readable file
-        for flag, val in (("-readsstates", args.readsstates),
-                          ("-test_tracefile", args.test_tracefile),
-                          ("--axioms", args.axioms),
+        for flag, val in (("--axioms", args.axioms),
                           ("--replay-counterexample", args.replay_counterexample)):
             if val and not Path(val).is_file():
                 raise FileNotFoundError(f"{flag} '{val}' is not an existing file")
         # output file paths: parent dir must exist, and it can't be a directory
         for flag, val in (("-writeresults", args.writeresults),
                           ("-writevtraces", args.writevtraces),
-                          ("-writesstates", args.writesstates),
                           ("--json-output", args.json_output)):
             if val:
                 p = Path(val)
@@ -333,11 +227,9 @@ if __name__ == "__main__":
                     raise FileNotFoundError(
                         f"{flag} dir '{p.parent}' does not exist")
         # paths that must already be a directory
-        for flag, val in (("-tmpdir", args.tmpdir),
-                          ("-benchmark_dir", args.benchmark_dir)):
-            if val and not Path(val).is_dir():
-                raise NotADirectoryError(
-                    f"{flag} '{val}' is not an existing directory")
+        if args.tmpdir and not Path(args.tmpdir).is_dir():
+            raise NotADirectoryError(
+                f"-tmpdir '{args.tmpdir}' is not an existing directory")
 
     _check_paths(args)
 
@@ -355,19 +247,12 @@ if __name__ == "__main__":
             aparser.error(str(ex))
 
     inp = Path(args.inp)
-    if args.benchmark_times:
-        from analysis import Benchmark
-
-        Benchmark(inp, args).start()
-
-    elif inp.is_dir():
+    if inp.is_dir():
         from analysis import Analysis
 
         Analysis(inp, args).start()
 
-    else:  # benchmark_times is None, input is a file: normal, single run
-        assert args.benchmark_times is None, args.benchmark_times
-
+    else:  # input is a file: normal, single run
         if not inp.is_file():
             raise FileNotFoundError(f"'{inp}' not found")
 
@@ -392,10 +277,7 @@ if __name__ == "__main__":
             if inp.suffix == ".c":
                 dig = alg.DigSymStatesC(inp)
             else:
-                # traces file(s)
-                test_tracefile = Path(args.test_tracefile) \
-                    if args.test_tracefile else None
-                dig = alg.DigTraces.mk(inp, test_tracefile)
+                dig = alg.DigTraces.mk(inp)
 
             dinvs = dig.start(seed=seed, maxdeg=args.maxdeg)
             if dinvs:

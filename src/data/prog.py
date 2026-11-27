@@ -9,7 +9,6 @@ import shlex
 import itertools
 import random
 from pathlib import Path
-import pdb
 from collections import namedtuple
 import subprocess
 
@@ -22,9 +21,7 @@ import helpers.vcommon as CM
 
 import data.traces
 
-from beartype import beartype
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
@@ -34,12 +31,10 @@ class Symb(namedtuple("Symb", ("name", "typ"))):
     e.g., (x, 'I') means x is an integer
     """
 
-    @beartype
     @property
     def is_array(self) -> bool:
         return self.typ == "array"
 
-    @beartype
     def __str__(self) -> str:
         return f"{self.typ} {self.name}"
 
@@ -83,7 +78,6 @@ class Symbs(tuple):
     def symbolic(self):
         return tuple(s.symbolic for s in self)
 
-    @beartype
     @property
     def exprs(self) -> list:
         try:
@@ -93,7 +87,6 @@ class Symbs(tuple):
             self._exprs = [s.expr for s in self]
             return self._exprs 
 
-    @beartype
     @classmethod
     def mk(cls, ls: list[str]) -> tuple:
         """
@@ -119,7 +112,6 @@ class DSymbs(dict):
     pass
 
 class Prog:
-    @beartype
     def __init__(self, exe_cmd: str, inp_decls: Symbs, inv_decls: DSymbs,
                  source: Path | None = None) -> None:
         self.exe_cmd = exe_cmd
@@ -129,14 +121,12 @@ class Prog:
         self.execution_outcomes = {}
         self.source = source
 
-    @beartype
     @property
     def locs(self): 
         return self.inv_decls.keys()
 
     # PUBLIC METHODS
     
-    @beartype
     def get_traces(self, inps: data.traces.Inps) -> data.traces.DTraces:
         """
         front end to obtain traces from inps
@@ -147,7 +137,6 @@ class Prog:
         assert all(loc in self.inv_decls for loc in traces), traces.keys()
         return traces
 
-    @beartype
     def gen_rand_inps(self, n_needed: int = 1) -> set[tuple]:
         assert n_needed >= 1, n_needed
         try:
@@ -172,7 +161,6 @@ class Prog:
         return inps
 
     # PRIVATE METHODS
-    @beartype
     def _get_traces(self, inp: data.traces.Inp) -> list[str]:
 
         inp_ = (v if isinstance(v, int) or v.is_integer() else v.n()
@@ -202,7 +190,6 @@ class Prog:
         self.execution_outcomes[inp] = "traces" if traces else f"empty:exit:{cp.returncode}"
         return traces
 
-    @beartype
     def _get_traces_mp(self, inps: data.traces.Inps) -> dict:
         """
         run program on inps and obtain traces in parallel
@@ -278,7 +265,7 @@ class Prog:
 
 
 
-class Src(metaclass=abc.ABCMeta):
+class Src(abc.ABC):
     def __init__(self, filename:Path, tmpdir:Path) -> None:
         assert filename.is_file(), filename
         assert tmpdir.is_dir(), tmpdir
@@ -331,7 +318,6 @@ class Src(metaclass=abc.ABCMeta):
         return d
 
 class C(Src):
-    @beartype
     def __init__(self, filename: Path, tmpdir: Path) -> None:
         super().__init__(filename, tmpdir)
 
@@ -353,14 +339,12 @@ class C(Src):
         self.traceexe = self.tracefile.with_suffix(".exe")
         self._compile_test(self.tracefile, self.traceexe)
 
-    @beartype
     def check(self, filename: Path, tmpdir: Path) -> tuple[Path, Path, str]:
         basename = Path(filename.name)
         funname = basename.stem
         self._compile_test(filename, tmpdir / f"{funname}.exe")
         return filename, basename, funname
 
-    @beartype
     @staticmethod
     def _safety_scan(filename: Path) -> None:
         """
@@ -389,7 +373,6 @@ class C(Src):
                 f"refusing to run '{filename}': contains potentially unsafe "
                 f"call(s): {', '.join(found)}")
 
-    @beartype
     @classmethod
     def _compile_test(cls, filename: Path, out: Path) -> None:
         cmd = settings.C.COMPILE(filename=filename, tmpfile=out)

@@ -1,9 +1,7 @@
 """
 CEGIR alg for inferring equalities
 """
-import pdb
 import sympy
-from beartype import beartype
 
 import settings
 import helpers.vcommon as CM
@@ -14,19 +12,16 @@ import data.traces
 import infer.inv
 import infer.infer
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
 class Eqt(infer.inv.Inv):
 
-    @beartype
     def __init__(self, eqt: sympy.Equality, stat: infer.inv.InvStat | None = None) -> None:
         assert eqt.rhs == 0, eqt
 
         super().__init__(eqt, stat)
 
-    @beartype
     @property
     def mystr(self) -> str:
         return f"{self.inv.lhs} == {self.inv.rhs}"
@@ -38,7 +33,6 @@ class Eqt(infer.inv.Inv):
 
 class Infer(infer.infer._Infer):
 
-    @beartype
     @classmethod
     def gen_from_traces(cls, deg: int,
                         traces: data.traces.Traces, symbols: data.prog.Symbs) -> list[Eqt]:
@@ -64,7 +58,6 @@ class Infer(infer.infer._Infer):
 
         return [Eqt(eqt) for eqt in eqts]
 
-    @beartype
     def gen(self, deg: int,
             deg_hints: dict[str, int] | None = None,
             complete: bool = False,
@@ -129,7 +122,6 @@ class Infer(infer.infer._Infer):
 
     # PRIVATE
     
-    @beartype
     @classmethod
     def _add_exprs(cls, template, 
                    n_eqts_needed: int, traces: data.traces.Traces, exprs) -> None:
@@ -140,7 +132,6 @@ class Infer(infer.infer._Infer):
             assert expr not in exprs
             exprs.add(expr)
     
-    @beartype
     def _while(self, loc: str, 
                ts: list[int | sympy.core.symbol.Symbol|sympy.core.power.Pow | sympy.core.mul.Mul], 
                uks: list[sympy.core.symbol.Symbol], 
@@ -195,7 +186,6 @@ class Infer(infer.infer._Infer):
 
         return exprs
 
-    @beartype
     def _get_init_traces(self, loc: str, deg: int,
                          dtraces: data.traces.DTraces,
                          inps: data.traces.Inps, rate: float) -> tuple[list, list[sympy.core.symbol.Symbol], set] | None:
@@ -233,7 +223,6 @@ class Infer(infer.infer._Infer):
                 
         return ts, uks, exprs
 
-    @beartype
     def _infer(self, loc: str, 
                ts: list[int | sympy.core.symbol.Symbol | sympy.core.power.Pow | sympy.core.mul.Mul], 
                uks: list[sympy.core.symbol.Symbol], 

@@ -22,7 +22,6 @@ import sympy
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from infer.recurrence import RecurrenceInfer, _clear_denoms  # noqa: E402
-from infer.kapur import KapurInfer  # noqa: E402
 
 
 # input-updating loop with NO polynomial invariant over its observed
@@ -94,15 +93,3 @@ def test_recurrence_input_updating_loop_solves(tmp_path):
     _closed, results = RecurrenceInfer(write(tmp_path, TRIPCOUNT)).gen(0)
     a, b, n = sympy.symbols("a b n")
     assert proved(results) == {a - n, b - 2 * n}
-
-
-def test_kapur_input_updating_loop_declines(tmp_path):
-    results = KapurInfer(write(tmp_path, SUMDOWN)).gen(0, deg=2)
-    assert proved(results) == set()
-
-
-def test_kapur_input_updating_loop_solves(tmp_path):
-    results = KapurInfer(write(tmp_path, TRIPCOUNT)).gen(0, deg=2)
-    a, b, n = sympy.symbols("a b n")
-    # the ideal's Groebner basis: same variety as {a - n, b - 2n}
-    assert proved(results) == {b - 2 * n, 2 * a - b}

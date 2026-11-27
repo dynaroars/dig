@@ -1,6 +1,5 @@
 """Normalized execution outcomes and default comparison semantics."""
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum

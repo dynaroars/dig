@@ -1,17 +1,14 @@
-from __future__ import annotations
 import abc
 import json
 from collections import Counter
 from collections.abc import Callable
 from enum import StrEnum
-import pdb
 import random
 import shutil
 import tempfile
 import time
 from pathlib import Path
 import sys
-from beartype import beartype
 
 
 import settings
@@ -22,16 +19,13 @@ import data.prog
 from data.symstates import SymStates, SymStatesMakerC
 from data.traces import DTraces
 
-from infer.inv import DInvs
-import infer.nested_array
+from infer.inv import DInvs, Inv
 import infer.eqt
 import infer.oct
 import infer.mp
 import infer.congruence
 import infer.recurrence
-import infer.kapur
 
-DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
@@ -43,33 +37,29 @@ class InferType(StrEnum):
     CONGRUENCE = "congruence"
 
 
-class Dig(metaclass=abc.ABCMeta):
+class Dig(abc.ABC):
     EQTS = InferType.EQTS
     IEQS = InferType.IEQS
     MINMAX = InferType.MINMAX
     CONGRUENCE = InferType.CONGRUENCE
 
-    @beartype
     def __init__(self, filename: Path) -> None:
         
         mlog.info(f"analyzing '{filename}'")
         self.filename = filename
         self.time_d = {}  # time results
 
-    @beartype        
     @abc.abstractmethod
     def start(self, seed: float, maxdeg: int | None) -> None:
         self.seed = seed
         random.seed(seed)
         mlog.debug(f"{seed=} (test {random.randint(0, 100)})")
 
-    @beartype
     def get_auto_deg(self, maxdeg: int | None) -> int:
         maxvars = max(self.inv_decls.values(), key=len)
         deg = Miscs.get_auto_deg(maxdeg, len(maxvars), settings.MAX_TERM)
         return deg
 
-    @beartype
     def sanitize(self, dinvs: DInvs, dtraces: DTraces) -> DInvs:
         if not dinvs.siz:
             return dinvs
@@ -79,16 +69,11 @@ class Dig(metaclass=abc.ABCMeta):
         st = time.time()
         dinvs = dinvs.test(dtraces)
         mlog.info(f"{msg} ({time.time() - st:.2f}s)")
+        self._dinvs_presimplify = dinvs   # helper candidates for --certify-lean
         if not dinvs.siz:
             return dinvs
 
         if settings.DO_SIMPLIFY:
-            try:
-                self.symstates.get_solver_stats()
-            except AttributeError:
-                # DigTraces does not have symbolic states
-                pass
-
             msg = f"simplify {dinvs.siz} invs"
             mlog.debug(msg)
             mlog.debug(dinvs.__str__(print_stat=False, print_first_n=20))
@@ -101,13 +86,12 @@ class Dig(metaclass=abc.ABCMeta):
         return dinvs
 
 
-class DigSymStates(Dig, metaclass=abc.ABCMeta):
-    
-    @beartype
+class DigSymStates(Dig):
+    use_lean = False   # set per run by _use_lean()
+
     def __init__(self, filename: Path) -> None:
         super().__init__(filename)
 
-    @beartype
     def start(self, seed: float, maxdeg: int | None) -> None | DInvs:
 
         if not (maxdeg is None or maxdeg >= 1):
@@ -146,11 +130,12 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 return
 
             digtraces = DigTraces(
-                self.filename, self.inv_decls, dtraces, test_dtraces=None)
+                self.filename, self.inv_decls, dtraces)
 
             dinvs = digtraces.start(self.seed, maxdeg)
 
         else:  # use symbolic states
+            self.use_lean = self._use_lean()
             st = time.time()
             self.symstates = self.get_symbolic_states()
             et = time.time() - st
@@ -177,6 +162,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                     return self._infer(self.EQTS, lambda: self._infer_eqts(maxdeg))
                 tasks.append(f)
 
+            # lean mode: bounds come from the traces collected so far (no
+            # z3 optimization over symstates), so they run after eqts
             if settings.DO_IEQS:
                 def f():
                     return self._infer(self.IEQS, self._infer_ieqs)
@@ -208,9 +195,13 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
             dinvs.merge(self._infer_trace_based(dtraces))
             dinvs.merge(self._infer_recurrence())
-            dinvs.merge(self._infer_kapur())
             dinvs = self.sanitize(dinvs, dtraces)
 
+            self.lean_report = None
+            if self.use_lean:
+                dinvs = self.verify_lean(dinvs)
+            elif settings.DO_CERTIFY_LEAN:
+                self.lean_report = self.certify_lean(dinvs)
             self.time_d["total"] = time.time() - st
             self.cleanup(dinvs, dtraces)
 
@@ -222,7 +213,77 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         mlog.debug(f"tmpdir: {self.tmpdir}")
         return dinvs
 
-    @beartype
+    def _use_lean(self) -> bool:
+        """Lean verification (default for C) or classic z3 checking."""
+        if settings.VERIFIER != "lean":
+            return False
+        from certify import LeanUnavailable, resolve_lean
+        from certify.c_to_lean import CProgram, Unsupported
+        try:
+            CProgram(self.filename)
+        except Unsupported as e:
+            mlog.warning(f"program not supported by the C-to-Lean translator "
+                         f"({e}); checking candidates with z3 instead")
+            return False
+        try:
+            resolve_lean(settings.LEAN_BIN)
+        except LeanUnavailable as e:
+            raise SystemExit(f"{e}\n(or run with --z3-check to verify "
+                             f"candidates with z3 instead of Lean)")
+        mlog.info("verifier: Lean (candidates are not checked with z3)")
+        return True
+
+    def verify_lean(self, dinvs: DInvs) -> DInvs:
+        """Keep the candidates Lean proves (stat PROVED); drop the rest unless
+        LEAN_KEEP_UNVERIFIED (then they are kept with stat UNKNOWN)."""
+        self.lean_report = rep = self.certify_lean(dinvs)
+        proved = {(c["loc"], c["text"]) for c in rep.certified}
+        kept = DInvs()
+        n_drop = 0
+        for loc in dinvs:
+            for inv in dinvs[loc]:
+                if (loc, str(inv)) in proved:
+                    inv.set_stat(Inv.PROVED)
+                    kept.add(loc, inv)
+                elif settings.LEAN_KEEP_UNVERIFIED:
+                    inv.set_stat(Inv.UNKNOWN)
+                    kept.add(loc, inv)
+                else:
+                    n_drop += 1
+        if n_drop:
+            mlog.info(f"dropped {n_drop} candidate(s) Lean could not prove "
+                      f"(--keep-unverified to keep them)")
+        return kept
+
+    def certify_lean(self, dinvs: DInvs):
+        """Lean 4 certification pass (does not change `dinvs`)."""
+        from certify import certify_c_program
+
+        st = time.time()
+        out = self.tmpdir / "certificate.lean"
+        rep = certify_c_program(self.filename, dinvs,
+                                lean_bin=settings.LEAN_BIN,
+                                timeout=settings.LEAN_TIMEOUT,
+                                max_rounds=settings.LEAN_MAX_ROUNDS,
+                                out_path=out,
+                                extra_helpers=(getattr(self, "_dinvs_presimplify", None)
+                                               if settings.LEAN_PRESIMPLIFY_HELPERS else None))
+        self.time_d["certify_lean"] = time.time() - st
+        if settings.LEAN_CERT_OUT and out.is_file():
+            try:
+                dst = Path(settings.LEAN_CERT_OUT)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.write_text(out.read_text())
+            except OSError as e:
+                mlog.warning(f"cannot write Lean certificate to {settings.LEAN_CERT_OUT}: {e}")
+        (self.tmpdir / "lean_certification.json").write_text(
+            json.dumps(rep.to_dict(), indent=2, default=str) + "\n")
+        print(rep.summary())
+        if not self.use_lean:      # report-only pass: list what Lean proved
+            for c in rep.certified:
+                print(f"  certified {c['loc']}: {c['text']}")
+        return rep
+
     def cleanup(self, dinvs: DInvs, dtraces: DTraces) -> None:
         """
         Save and analyze result
@@ -236,7 +297,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             self.seed,
             dinvs,
             dtraces,
-            self.symstates.solver_stats_,
             self.time_d,
         )
         result.save(self.tmpdir)
@@ -244,6 +304,8 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
             "symbolic_exploration": self.symstates.exploration_info,
             "concrete_execution_outcomes": dict(Counter(self.prog.execution_outcomes.values())),
             "numerical_checks": "bounded symbolic states and collected traces",
+            **({"lean_certification": self.lean_report.to_dict()}
+               if getattr(self, "lean_report", None) is not None else {}),
         }, indent=2) + "\n")
         Analysis(self.tmpdir).start()  # output stats
 
@@ -255,7 +317,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         if Path(tempfile.gettempdir()).resolve() == settings.TMPDIR.resolve():
             shutil.rmtree(self.tmpdir, ignore_errors=True)
 
-    @beartype
     def _infer(self, typ: str, _get_invs: Callable) -> tuple:
         assert typ in {self.EQTS, self.IEQS, self.MINMAX,
                        self.CONGRUENCE}, typ
@@ -272,22 +333,60 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         return typ, (dinvs, dtraces),  et
 
-    @beartype
     def _infer_eqts(self, maxdeg: int | None) -> tuple[DInvs, DTraces]:
         ceilings = {loc: Miscs.get_auto_deg(maxdeg, len(symbols), settings.MAX_TERM)
                     for loc, symbols in self.inv_decls.items()}
         initial_traces = data.traces.DTraces.parse(
             [line for lines in self.prog._cache.values() for line in lines], self.inv_decls)
-        dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog).gen(
+        self._eqt_dtraces = None
+        dinvs, dtraces = infer.eqt.Infer(self.symstates, self.prog,
+                                         check_cands=not self.use_lean).gen(
             max(ceilings.values()), getattr(self, "_deg_hints", {}),
             complete=maxdeg is not None, initial_traces=initial_traces, ceilings=ceilings)
+        self._eqt_dtraces = dtraces
         return dinvs, dtraces
 
     def _infer_ieqs(self) -> tuple[DInvs, None]:
+        if self.use_lean:
+            return self._bounds_from_traces(infer.oct.Infer), None
         return infer.oct.Infer(self.symstates, self.prog).gen(), None
 
     def _infer_minmax(self) -> tuple[DInvs, None]:
+        if self.use_lean:
+            return self._bounds_from_traces(infer.mp.Infer), None
         return infer.mp.Infer(self.symstates, self.prog).gen(), None
+
+    def _collected_traces(self) -> DTraces:
+        """Traces gathered so far (eqt inference, which also runs inputs found
+        from symbolic states); random inputs if there are none."""
+        dtraces = DTraces.mk(self.locs)
+        if getattr(self, "_eqt_dtraces", None):
+            dtraces.merge(self._eqt_dtraces)
+        cached = DTraces.parse(
+            [line for lines in self.prog._cache.values() for line in lines],
+            self.inv_decls)
+        dtraces.merge(cached)
+        if not dtraces.siz:
+            rinps = self.prog.gen_rand_inps(n_needed=settings.N_RAND_INPS)
+            inps = data.traces.Inps().merge(rinps, self.inp_decls.names)
+            if inps:
+                dtraces.merge(self.prog.get_traces(inps))
+        return dtraces
+
+    def _bounds_from_traces(self, infer_cls) -> DInvs:
+        """Octagon / min-max upper bounds observed on the traces. Unchecked
+        candidates: Lean later drops those that are not invariants."""
+        dtraces = self._collected_traces()
+        dinvs = DInvs()
+        for loc in dtraces:
+            if loc not in self.inv_decls or self.inv_decls[loc].array_only:
+                continue
+            if not dtraces[loc]:
+                continue
+            for inv in infer_cls.gen_from_traces(dtraces[loc], self.inv_decls[loc]):
+                inv.set_stat(Inv.UNKNOWN)
+                dinvs.add(loc, inv)
+        return dinvs
 
     def _infer_trace_based(self, dtraces: DTraces) -> DInvs:
         """Run trace-only inference types on dtraces."""
@@ -314,7 +413,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
 
         return result
 
-    @beartype
     def _keep_local(self, eqts: list, loc: str) -> list:
         """Drop static-engine equalities that mention variables not observed at
         `loc`. A solvable loop can carry locals (e.g. ps2's counter `c`) that
@@ -330,7 +428,6 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
                 kept.append(eqt)
         return kept
 
-    @beartype
     def _infer_recurrence(self) -> DInvs:
         """Static, recurrence-based equalities for solvable loops.
 
@@ -364,65 +461,17 @@ class DigSymStates(Dig, metaclass=abc.ABCMeta):
         self.time_d["recurrence"] = et
         return batch
 
-    @beartype
-    def _infer_kapur(self) -> DInvs:
-        """Static equalities via the Rodriguez-Carbonell & Kapur bounded-degree
-        invariant-ideal method (opt-in, -dokapur). Complementary to the
-        recurrence engine: it computes the degree-bounded polynomial invariant
-        ideal directly from the reachable-state null space, proving each
-        generator by k-induction. Loops that are not single polynomial maps are
-        skipped.
-        """
-        result = DInvs()
-        if not settings.DO_KAPUR:
-            return result
-
-        st = time.time()
-        try:
-            per_loc = infer.kapur.gen_all(self.filename)
-        except Exception as ex:
-            mlog.debug(f"kapur inference failed: {ex}")
-            per_loc = {}
-
-        batch = DInvs()
-        for loc, eqts in per_loc.items():
-            if loc in self.inv_decls and not self.inv_decls[loc].array_only:
-                for eqt in self._keep_local(eqts, loc):
-                    batch.add(loc, eqt)
-        et = time.time() - st
-        if batch.siz:
-            mlog.info(f"got {batch.siz} kapur eqts in {et:.2f}s")
-            mlog.debug(batch.__str__(print_stat=True, print_first_n=20))
-        self.time_d["kapur"] = et
-        return batch
-
-    @beartype
     def get_symbolic_states(self) -> SymStates:
         symstates = SymStates(self.inp_decls, self.inv_decls)
-
-        if settings.READ_SSTATES:
-            sstatesfile = Path(settings.READ_SSTATES)
-            symstates.vread(sstatesfile)
-            mlog.info(f"{symstates.siz} symstates read from '{sstatesfile}'")
-
-        else:
-            symstates.compute(
-                self.symstatesmaker_cls,
-                self.symexefile,
-                self.mysrc.mainQ_name,
-                self.mysrc.funname,
-                self.mysrc.symexedir,
-            )
-
-            if settings.WRITE_SSTATES:
-                sstatesfile = Path(settings.WRITE_SSTATES)
-                symstates.vwrite(sstatesfile)
-                mlog.info(f"{symstates.siz} symstates written to '{sstatesfile}'")
-                sys.exit(0)
-
+        symstates.compute(
+            self.symstatesmaker_cls,
+            self.symexefile,
+            self.mysrc.mainQ_name,
+            self.mysrc.funname,
+            self.mysrc.symexedir,
+        )
         return symstates
 
-    @beartype
     def _estimate_degrees(self, maxdeg: int | None) -> dict[str, int]:
         """
         Per-location finite-difference degree estimate from traces, used as a
@@ -478,30 +527,24 @@ class DigSymStatesC(DigSymStates):
     mysrc_cls = data.prog.C
     symstatesmaker_cls = SymStatesMakerC
 
-    @beartype
     @property
     def symexefile(self) -> Path:
         # the Python symex engine reads the original source directly
         return self.filename
 
-    @beartype
     @property
     def exe_cmd(self) -> str:
         return settings.C.C_RUN(exe=self.mysrc.traceexe)
 
 
 class DigTraces(Dig):
-    @beartype
     def __init__(self, filename: Path, inv_decls: data.prog.DSymbs,
-                 dtraces: DTraces, test_dtraces: DTraces | None) -> None:
+                 dtraces: DTraces) -> None:
         super().__init__(filename)
 
         self.inv_decls = inv_decls
         self.dtraces = dtraces
-        if test_dtraces:
-            self.test_dtraces = test_dtraces
 
-    @beartype
     def start(self, seed: float, maxdeg: int | None) -> DInvs:
         assert maxdeg is None or maxdeg >= 1, maxdeg
 
@@ -510,8 +553,7 @@ class DigTraces(Dig):
             f"got {self.dtraces.siz} traces over {len(self.dtraces)} locs")
         mlog.debug(f"{self.dtraces}")
 
-        tasks = (self._nested_arrays_tasks() +
-                 self._eqts_tasks(maxdeg) +
+        tasks = (self._eqts_tasks(maxdeg) +
                  self._ieqs_tasks() +
                  self._minmax_tasks() +
                  self._congruences_tasks())
@@ -527,22 +569,8 @@ class DigTraces(Dig):
             for inv in invs:
                 dinvs.add(loc, inv)
 
-        try:
-            new_traces = self.dtraces.merge(self.test_dtraces)
-            mlog.debug(f"added {new_traces.siz} test traces")
-        except AttributeError:
-            pass  # no test traces
-
         dinvs = self.sanitize(dinvs, self.dtraces)
         return dinvs
-
-    def _nested_arrays_tasks(self) -> list:
-        def _f(l):
-            return infer.nested_array.Infer.gen_from_traces(self.dtraces[l])
-
-        def _g(l):
-            return self.inv_decls[l].array_only
-        return self._mk_tasks(settings.DO_ARRAYS, _g,  _f)
 
     def _eqts_tasks(self, maxdeg: int | None) -> list:
         def _f(l):
@@ -587,14 +615,8 @@ class DigTraces(Dig):
         return [(loc, _f) for loc in self.dtraces if cond2(loc)]
 
     @classmethod
-    def mk(cls, tracefile: Path, test_tracefile: Path | None) -> DigTraces:
+    def mk(cls, tracefile: Path) -> DigTraces:
         assert tracefile.is_file(), tracefile
-        assert test_tracefile is None or test_tracefile.is_file()
 
         inv_decls, dtraces = DTraces.vread(tracefile)
-
-        test_dtraces = None
-        if test_tracefile:
-            _, test_dtraces = DTraces.vread(test_tracefile)
-
-        return cls(tracefile, inv_decls, dtraces, test_dtraces)
+        return cls(tracefile, inv_decls, dtraces)

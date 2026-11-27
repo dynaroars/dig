@@ -1,6 +1,5 @@
 """Exhaustive verification over explicitly finite manifest domains."""
 
-from __future__ import annotations
 
 import hashlib
 from itertools import product

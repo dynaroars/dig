@@ -1,10 +1,9 @@
 """Best-effort POSIX resource limits for untrusted target workers."""
 
-from __future__ import annotations
 
 import math
 import resource
-from typing import Callable
+from collections.abc import Callable
 
 
 def resource_limiter(*, memory_mib: int, cpu_seconds: float) -> Callable[[], None]:

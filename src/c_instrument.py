@@ -2,10 +2,7 @@ import sys
 import re
 from pycparser import c_generator, c_ast, c_parser 
 from helpers.vcommon import vwrite
-from beartype import beartype
 from pathlib import Path
-import pdb
-DBG = pdb.set_trace
 
 
 def comment_remover(text):
@@ -26,16 +23,13 @@ class AddPrintfVisitor(c_ast.NodeVisitor):
     """
     add printf() calls to vtrace definitions
     """
-    @beartype
     def __init__(self, vtrace: str) -> None:
         self.vtrace = vtrace
 
-    @beartype
     def visit_FuncDef(self, node: c_ast.Node) -> None:
         if node.decl.name.startswith(self.vtrace) and not node.body.block_items:
             self._insert_funccall(node)
 
-    @beartype
     def _insert_funccall(self, node: c_ast.FuncDef)-> None:
         myvars = [(p.name, p.type.type.names[0])
                   for p in node.decl.type.args.params]
@@ -45,7 +39,6 @@ class AddPrintfVisitor(c_ast.NodeVisitor):
 
 
 class AddPrintfInstr(AddPrintfVisitor):
-    @beartype
     def _create_new_funs(self, myname: str,
                          myvars: list[tuple[str, str]]) -> list[c_ast.FuncCall]:
         # pick the printf conversion by C type: integers as %d, real types
@@ -63,17 +56,14 @@ class AddPrintfInstr(AddPrintfVisitor):
 class ChangeVassertVisitor(c_ast.NodeVisitor):
     # change vassert call to assert or $assert calls
 
-    @beartype
     def __init__(self, fname:str, changeto:str) -> None:
         self.fname = fname
         self.changeto = changeto
         
-    @beartype
     def visit_FuncCall(self, node:c_ast.Node) -> None:
         if node.name.name == self.fname:
             self._change(node)
 
-    @beartype
     def _change(self, fd:c_ast.FuncCall) -> None:
         fd.name.name = self.changeto
 
@@ -101,14 +91,12 @@ class PrintTypeVisitor(c_ast.NodeVisitor):
             self.mainQ_params = [(p.name, p.type.type.names[0]) for p in params if p.name is not None]
 
 
-@beartype
 def gen(filename: Path, myast: c_ast.FileAST, includes: list[str]) -> None:
     generator = c_generator.CGenerator()
     instr = generator.visit(myast)
     instr = '\n'.join(includes + [instr])
     vwrite(filename, instr)
 
-@beartype    
 def instrument(filename: Path, tracefile: Path) -> list[str]:
     includes = []
     src = []

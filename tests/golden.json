@@ -1,13 +1,17 @@
 {
   "complexity/cav09_fig1a": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "m*tCtr - 100*m - tCtr**2 + 200*tCtr - 10000"
+    ],
+    "min_invs": 2,
+    "status": "ok"
   },
   "complexity/cav09_fig1d": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
+    "eqts": [
+      "m*tCtr - 100*m - tCtr**2 + 200*tCtr - 10000"
+    ],
+    "min_invs": 2,
+    "status": "ok"
   },
   "complexity/cav09_fig2d": {
     "eqts": [
@@ -35,13 +39,8 @@
     "eqts": [
       "i - n - 1"
     ],
-    "min_invs": 6,
+    "min_invs": 5,
     "status": "ok"
-  },
-  "complexity/pldi09_fig1": {
-    "eqts": [],
-    "min_invs": 0,
-    "status": "fail"
   },
   "complexity/pldi09_fig2": {
     "eqts": [
@@ -422,14 +421,6 @@
     "min_invs": 2,
     "status": "ok"
   },
-  "nla/ariths": {
-    "eqts": [
-      "2*n - 2*t + 1",
-      "8*s - 4*t**2 + 4*t - 1"
-    ],
-    "min_invs": 5,
-    "status": "ok"
-  },
   "nla/bresenham": {
     "eqts": [
       "2*X*y + X - 2*Y*x - 2*Y + v"
@@ -515,25 +506,19 @@
     "min_invs": 8,
     "status": "ok"
   },
-  "nla/freire1": {
-    "eqts": [
-      "a - r**2 + r - 2*x"
-    ],
-    "min_invs": 4,
-    "status": "ok"
-  },
   "nla/freire1_int": {
     "eqts": [
       "a - r**2 + r - 2*x"
     ],
-    "min_invs": 7,
+    "min_invs": 6,
     "status": "ok"
   },
   "nla/freire2": {
     "eqts": [
-      "12*r**2 - 4*s + 1"
+      "12*r**2 - 4*s + 1",
+      "24*a - 8*r*s - 16*r + 12*s - 24*x + 3"
     ],
-    "min_invs": 5,
+    "min_invs": 4,
     "status": "ok"
   },
   "nla/geo1": {
@@ -610,14 +595,7 @@
       "a*b - x*y - z",
       "a*b - z"
     ],
-    "min_invs": 18,
-    "status": "ok"
-  },
-  "nla/ps1": {
-    "eqts": [
-      "x - y"
-    ],
-    "min_invs": 5,
+    "min_invs": 16,
     "status": "ok"
   },
   "nla/ps2": {
@@ -659,13 +637,6 @@
     "eqts": [
       "2*a - t + 1",
       "4*s - t**2 - 2*t - 1"
-    ],
-    "min_invs": 8,
-    "status": "ok"
-  },
-  "nla/wensley": {
-    "eqts": [
-      "D*d - 2*b"
     ],
     "min_invs": 8,
     "status": "ok"

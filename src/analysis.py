@@ -1,49 +1,20 @@
 """
 Analyze Dig's results
 """
-import argparse
-import shlex
 from dataclasses import dataclass
-import pdb
 import random
-import shutil
-import sys
-import time
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 from statistics import median_low
-from typing import Any, ClassVar, NamedTuple
+from typing import Any, ClassVar
 
 import helpers.vcommon as CM
 import infer.inv
 import settings
 from helpers.miscs import Miscs
 
-# import infer.mp
-
-DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
-
-class CheckSolverCalls(NamedTuple):
-    stat: Any
-
-class CheckDepthChanges(NamedTuple):
-    prop: Any
-    v1: int | None
-    d1: int | None
-    v2: int | None
-    d2: int | None
-
-class MaxSolverCalls(NamedTuple):
-    stat: Any
-
-class MaxDepthChanges(NamedTuple):
-    prop: Any
-    v1: int | None
-    d1: int | None
-    v2: int | None
-    d2: int | None
 
 
 @dataclass(slots=True)
@@ -53,7 +24,6 @@ class Result:
     seed: float
     dinvs: Any
     dtraces: Any
-    stats: Any
     time_d: dict
 
     def __post_init__(self):
@@ -73,61 +43,11 @@ class Result:
 
 class AResult(Result):
     def __init__(self, result):
-
         super().__init__(result.filename, result.seed, result.dinvs,
-                         result.dtraces, result.stats,
-                         result.time_d)
-
-        self.check_solvercalls = [
-            s for s in self.stats if isinstance(s, CheckSolverCalls)]
-
-        self.check_depthchanges = [
-            s for s in self.stats if isinstance(s, CheckDepthChanges)]
-
-        self.max_solvercalls = [
-            s for s in self.stats if isinstance(s, MaxSolverCalls)]
-
-        self.max_depthchanges = [
-            s for s in self.stats if isinstance(s, MaxDepthChanges)]
-
-        # print(len(self.check_solvercalls), self.check_solvercalls)
+                         result.dtraces, result.time_d)
 
     def analyze(self):
         self.V, self.D, self.T, self.NL = self.analyze_dinvs(self.dinvs)
-
-        def get_change(x, y, as_str=True):
-            if as_str:
-                x = str(x)
-                y = str(y)
-            else:
-                x = -1 if x is None else x
-                y = -1 if y is None else y
-            return x, y
-
-        self.check_solvercalls_ctr = Counter(
-            str(x.stat) for x in self.check_solvercalls)
-
-        self.check_changevals_ctr = Counter(
-            get_change(x.v1, x.v2, as_str=True)
-            for x in self.check_depthchanges
-            if not isinstance(x.prop, infer.inv.FalseInv))
-
-        self.check_changedepths_ctr = Counter(
-            get_change(x.d1, x.d2, as_str=False)
-            for x in self.check_depthchanges
-            if not isinstance(x.prop, infer.inv.FalseInv))
-
-        self.max_solvercalls_ctr = Counter(
-            str(x.stat) for x in self.max_solvercalls)
-
-        self.max_changevals_ctr = Counter(
-            get_change(x.v1, x.v2, as_str=True) for x in self.max_depthchanges
-            if not isinstance(x.prop, infer.inv.FalseInv))
-
-        self.max_changedepths_ctr = Counter(
-            get_change(x.d1, x.d2, as_str=False)
-            for x in self.max_depthchanges
-            if not isinstance(x.prop, infer.inv.FalseInv))
 
     @classmethod
     def analyze_dinvs(cls, dinvs):
@@ -161,34 +81,34 @@ class AResult(Result):
         """
         import infer.mp
         import infer.congruence
-        import infer.nested_array
 
-        if isinstance(inv, infer.mp.MMP):
-            vs = inv.term.symbols
-            maxdeg = 1
-            nterms = 2
-        elif isinstance(inv, infer.congruence.Congruence):
-            vs = inv.inv.a.free_symbols
-            maxdeg = Miscs.get_max_deg(inv.inv.a)
-            nterms = len(inv.inv.a.args) or 1
-        elif isinstance(inv, infer.nested_array.NestedArray):
-            vs = set()
-            maxdeg = 0
-            nterms = 0
-        elif isinstance(inv, infer.inv.FalseInv) or getattr(inv, "inv", None) == 0:
-            vs = set()
-            maxdeg = 0
-            nterms = 0
-        else:
-            p = getattr(inv, "inv", inv)
-            if hasattr(p, "is_Relational") and p.is_Relational:
-                vs = p.free_symbols
-                maxdeg = Miscs.get_max_deg(p.lhs)
-                nterms = len(p.lhs.args) or 1
-            else:
-                vs = getattr(p, "free_symbols", set())
+        match inv:
+            case infer.mp.MMP():
+                vs = inv.term.symbols
                 maxdeg = 1
-                nterms = len(getattr(p, "args", [])) or 1
+                nterms = 2
+            case infer.congruence.Congruence():
+                vs = inv.inv.a.free_symbols
+                maxdeg = Miscs.get_max_deg(inv.inv.a)
+                nterms = len(inv.inv.a.args) or 1
+            case infer.inv.FalseInv():
+                vs = set()
+                maxdeg = 0
+                nterms = 0
+            case _ if getattr(inv, "inv", None) == 0:
+                vs = set()
+                maxdeg = 0
+                nterms = 0
+            case _:
+                p = getattr(inv, "inv", inv)
+                if hasattr(p, "is_Relational") and p.is_Relational:
+                    vs = p.free_symbols
+                    maxdeg = Miscs.get_max_deg(p.lhs)
+                    nterms = len(p.lhs.args) or 1
+                else:
+                    vs = getattr(p, "free_symbols", set())
+                    maxdeg = 1
+                    nterms = len(getattr(p, "args", [])) or 1
 
         return vs, maxdeg, nterms
 
@@ -217,28 +137,6 @@ class Results:
         invtypss = [r.dinvs.typ_ctr for r in rs]
         invtypss_str, inv_counts = self.analyze_dicts(invtypss, f, 'invs')
 
-        check_solvercallss = [r.check_solvercalls_ctr for r in rs]
-        check_solvercallss_str, _ = self.analyze_dicts(
-            check_solvercallss, f, '')
-
-        check_changedepthss = [r.check_changedepths_ctr for r in rs]
-        check_changedepthss_str, _ = self.analyze_dicts(
-            check_changedepthss, f, 'change depths')
-
-        check_changevalss = [r.check_changevals_ctr for r in rs]
-        check_changevalss_str, _ = self.analyze_dicts(
-            check_changevalss, f, 'change vals')
-
-        max_solvercallss = [r.max_solvercalls_ctr for r in rs]
-        max_solvercallss_str, _ = self.analyze_dicts(
-            max_solvercallss, f, '')
-
-        max_changedepthss = [r.max_changedepths_ctr for r in rs]
-        max_changedepthss_str, _ = self.analyze_dicts(
-            max_changedepthss, f, 'change depths')
-
-        max_changevalss = [r.max_changevals_ctr for r in rs]
-
         time_d = defaultdict(list)
         for r in rs:
             for t in r.time_d:
@@ -249,12 +147,6 @@ class Results:
               f"{invtypss_str} V {V} T {T} D {D}; NL {NL} ({D}) ;")
 
         print(f"-> time {time_s}")
-
-        if settings.DO_SOLVER_STATS:
-            print(
-                f"-> checks {check_solvercallss_str} {check_changedepthss_str} {check_changevalss_str}")
-
-            print(f"-> max {max_solvercallss_str} {max_changedepthss_str}")
 
         if nruns > 1:
             print(f"runs {nruns}")
@@ -308,141 +200,6 @@ class Results:
         s_str = ', '.join(f"{k_str}: {f(dd[k])}" for k, k_str, t in s)
         res_str = f"{label} {sum(sizs)} ({s_str})" if label else f"({s_str})"
         return res_str, computed
-
-
-class Benchmark:
-    TIMEOUT = settings.BENCHMARK_TIMEOUT
-
-    def __init__(self, inp, args):
-        assert isinstance(inp, Path), inp
-        assert isinstance(args, argparse.Namespace), args
-
-        self.inp = inp
-        self.args = args
-
-    @staticmethod
-    def valid_file(f):
-        return f.is_file() and f.suffix == '.c'
-
-    def start(self):
-        inp = self.inp
-        args = self.args
-
-        if self.valid_file(inp):
-            # benchmark single file
-            bfiles = [inp]
-            bstr = inp.stem  # CohenDiv
-        elif inp.is_dir():
-            # benchmark all files in dir
-            bfiles = sorted(f for f in inp.iterdir() if self.valid_file(f))
-            bstr = str(inp.resolve()).replace('/', '_')   # /benchmark/nla
-        else:
-            mlog.error(f"something wrong with {inp}")
-            sys.exit(1)
-        ntimes = args.benchmark_times
-
-        toruns = []
-        if args.benchmark_dir:
-            benchmark_dir = Path(args.benchmark_dir).resolve()
-            assert benchmark_dir.is_dir(), benchmark_dir
-        else:
-            import tempfile
-            prefix = f"bm_dig{ntimes}{bstr}_"
-            benchmark_dir = Path(tempfile.mkdtemp(
-                dir=settings.TMPDIR, prefix=prefix))
-
-        self.benchmark_dir = benchmark_dir
-
-        # compute which runs have to do in case there are some existing runs
-        myruns = set(range(ntimes))
-        for i, f in enumerate(bfiles):
-            bmdir = benchmark_dir / f.stem
-            if bmdir.is_dir():  # if there's some previous runs
-                succruns = self.get_success_runs(bmdir)
-                remainruns = list(myruns - succruns)
-                if not remainruns:
-                    mlog.info(f"{f} ran, results in {bmdir}")
-                else:
-                    mlog.info(
-                        f"{f} in {bmdir} needs {len(remainruns)} more runs")
-            else:
-                remainruns = list(myruns)
-
-            if remainruns:
-                toruns.append((f, bmdir, remainruns))
-
-            self.toruns = toruns
-
-        opts = settings.setup(None, args)
-        dig_py = Path(__file__).resolve().parent / "dig.py"
-        python_exe = sys.executable
-
-        import os
-        import signal
-        import subprocess
-
-        for i, (f, bdir, remainruns) in enumerate(self.toruns):
-            if not bdir.is_dir():
-                bdir.mkdir(parents=True, exist_ok=True)
-
-            for j, seed in enumerate(sorted(remainruns)):
-                mlog.info(f"## file {i+1}/{len(self.toruns)}, run {j+1}/{len(remainruns)}, "
-                          f"seed {seed}, {time.strftime('%c')}: {f.name}")
-                cmd = [python_exe, "-u", "-O", str(dig_py)]
-                if opts:
-                    cmd.extend(shlex.split(opts))
-                cmd.extend([str(f.resolve()), "-seed", str(seed), "-tmpdir", str(bdir)])
-
-                env = os.environ.copy()
-                env["PYTHONPATH"] = str(Path(__file__).resolve().parent) + (":" + env["PYTHONPATH"] if "PYTHONPATH" in env else "")
-
-                try:
-                    p = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        env=env,
-                        start_new_session=True,
-                    )
-                    try:
-                        out, _ = p.communicate(timeout=self.TIMEOUT)
-                        if out:
-                            for line in out.splitlines():
-                                if line.startswith(("* prog", "-> time", "vtrace")):
-                                    mlog.info(line)
-                    except subprocess.TimeoutExpired:
-                        try:
-                            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                        p.communicate()
-                        mlog.warning(f"Run timed out after {self.TIMEOUT}s: {f.name} (seed {seed})")
-                except Exception as ex:
-                    mlog.error(f"Something wrong running {f.name} seed {seed}:\n{ex}")
-
-        mlog.info(f"benchmark result dir: {self.benchmark_dir}")
-
-    @staticmethod
-    def get_success_runs(rundir):
-        assert rundir.is_dir(), rundir
-
-        runs = set()
-        for rd in rundir.iterdir():
-            if not rd.is_dir():
-                continue
-
-            if (rd / Result.resultfile).is_file():
-                try:
-                    runi = int(rd.stem.split('_')[1])
-                    runs.add(runi)
-                except (IndexError, ValueError):
-                    pass
-            else:
-                mlog.debug(f"deleting incomplete run {rd}")
-                shutil.rmtree(rd, ignore_errors=True)
-
-        return runs
 
 
 class Analysis:

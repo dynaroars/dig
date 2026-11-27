@@ -1,9 +1,7 @@
 import abc
-import pdb
 import sympy
 
 from time import time
-from beartype import beartype
 
 import helpers.vcommon as CM
 from helpers.miscs import Miscs, MP
@@ -15,23 +13,24 @@ import data.prog
 import data.symstates
 import infer.inv
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class _Infer(metaclass=abc.ABCMeta):
+class _Infer(abc.ABC):
     """
     Base class for inference
     """
-    @beartype
     def __init__(self, symstates: None | data.symstates.SymStates, 
-                 prog: data.prog.Prog) -> None:
+                 prog: data.prog.Prog, check_cands: bool = True) -> None:
         self.symstates = symstates
+        # False (Lean mode): z3 never proves candidates; it only searches the
+        # symbolic states for counterexamples (new inputs/traces) under a
+        # short budget. A later verifier (Lean) decides what is reported.
+        self.check_cands = check_cands
         self.inv_decls = prog.inv_decls
         self.inp_decls = prog.inp_decls
         self.prog = prog
 
-    @beartype
     @abc.abstractmethod
     def gen(self) -> infer.inv.DInvs:
         pass
@@ -45,7 +44,6 @@ class _Infer(metaclass=abc.ABCMeta):
         """
         pass
 
-    @beartype
     def get_traces(self, inps: data.traces.Inps,
                    dtraces: data.traces.DTraces) -> data.traces.DTraces:
         """
@@ -56,9 +54,16 @@ class _Infer(metaclass=abc.ABCMeta):
         new_dtraces = dtraces.merge(new_dtraces)
         return new_dtraces
 
-    @beartype
     def check(self, dinvs: infer.inv.DInvs,
               inps: None | data.traces.Inps) -> tuple[dict, infer.inv.DInvs]:
+        if not self.check_cands:
+            with Z3.use_policy(settings.solver_policy("cex_search")):
+                cexs, dinvs = self.symstates.check(dinvs, inps)
+            for loc in dinvs:
+                for inv in dinvs[loc]:
+                    if not inv.is_disproved:
+                        inv.stat = infer.inv.Inv.UNKNOWN
+            return cexs, dinvs
         if self.symstates:
             cexs, dinvs = self.symstates.check(dinvs, inps)
         else:
@@ -71,19 +76,17 @@ class _Infer(metaclass=abc.ABCMeta):
         return cexs, dinvs
 
 
-class _Opt(_Infer, metaclass=abc.ABCMeta):
+class _Opt(_Infer):
     """
     Find upperbounds of polynomials and min/max terms 
     using an SMT solver optimizer
     """
 
-    @beartype
     def __init__(self, symstates: None | data.symstates.SymStates,
                  prog:data.prog.Prog) -> None:
         # need prog because symstates could be None
         super().__init__(symstates, prog)
 
-    @beartype
     def gen(self) -> infer.inv.DInvs:
         with Z3.use_policy(settings.solver_policy("optimization")):
             return self._gen()
@@ -122,34 +125,17 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
         mlog.debug(
             f"inferring upperbounds for {n_terms} terms at {len(locs)} locs")
 
-        if settings.DO_SYMBA:
-            # SYMBA: maximize every term at a loc together with one shared
-            # solver (each model improves all objectives' bounds at once).
-            tasks = [(loc, [refs[loc][t] for t in ieqs[loc]]) for loc in ieqs]
+        tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
 
-            def f(tasks):
-                out = []
-                for loc, terms in tasks:
-                    exprs = [self.to_expr(t) for t in terms]
-                    bounds = self.symstates.maximize_many(
-                        loc, exprs, self.bound_cap())
-                    out.extend((loc, terms[i], v) for i, v in bounds.items())
-                return out
+        # computing convex hull, one solve per term
+        def f(tasks):
+            return [
+                (loc, term, self.symstates.maximize(
+                    loc, self.to_expr(term), self.bound_cap()))
+                for loc, term in tasks
+            ]
 
-            wrs = MP.run_mp(
-                "optimizing upperbound (symba)", tasks, f, settings.DO_MP)
-        else:
-            tasks = [(loc, refs[loc][t]) for loc in ieqs for t in ieqs[loc]]
-
-            # computing convex hull, one z3-Optimize solve per term
-            def f(tasks):
-                return [
-                    (loc, term, self.symstates.maximize(
-                        loc, self.to_expr(term), self.bound_cap()))
-                    for loc, term in tasks
-                ]
-
-            wrs = MP.run_mp("optimizing upperbound", tasks, f, settings.DO_MP)
+        wrs = MP.run_mp("optimizing upperbound", tasks, f, settings.DO_MP)
 
         dinvs = infer.inv.DInvs()
         for loc, term, v in wrs:
@@ -165,7 +151,6 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
     def bound_cap(cls):
         raise NotImplementedError
 
-    @beartype
     def get_terms(self,
                   symbols:tuple[sympy.core.symbol.Symbol, ...]) -> list:
 
@@ -202,7 +187,6 @@ class _Opt(_Infer, metaclass=abc.ABCMeta):
     def get_excludes(terms, inps) -> set:
         pass
 
-    @beartype
     @classmethod
     def gen_from_traces(cls, 
                         traces: data.traces.Traces,

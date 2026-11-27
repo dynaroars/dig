@@ -1,6 +1,5 @@
 """Deterministic type-aware shrinking for encoded recipes."""
 
-from __future__ import annotations
 
 from copy import deepcopy
 from typing import Any, Iterator, Mapping

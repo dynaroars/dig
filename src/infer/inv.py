@@ -1,17 +1,14 @@
-from __future__ import annotations
 import abc
 from collections import Counter
 from collections.abc import Iterable
-from enum import Enum
+from enum import StrEnum
 import functools
 from time import time
-import pdb
 import operator
 from typing import NamedTuple
 
 import sympy
 import z3
-from beartype import beartype
 
 from helpers.miscs import Miscs, MP
 from helpers.z3utils import Z3
@@ -20,26 +17,21 @@ import settings
 import data.traces
 
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
-class InvStat(str, Enum):
+class InvStat(StrEnum):
     PROVED = "p"
     DISPROVED = "d"
     UNKNOWN = "u"
 
-    def __str__(self) -> str:
-        return self.value
 
-
-class Inv(metaclass=abc.ABCMeta):
+class Inv(abc.ABC):
 
     PROVED = InvStat.PROVED
     DISPROVED = InvStat.DISPROVED
     UNKNOWN = InvStat.UNKNOWN
 
-    @beartype
     def __init__(self, inv: int | tuple | str | sympy.Equality | sympy.Le, stat = None) -> None:
         """
         stat = None means never been checked
@@ -98,7 +90,6 @@ class Inv(metaclass=abc.ABCMeta):
     def reset_stat(self) -> None:
         self._stat = None
 
-    @beartype
     def test(self, traces: data.traces.Traces):
         return all(self.test_single_trace(trace) for trace in traces)
 
@@ -130,7 +121,6 @@ class Inv(metaclass=abc.ABCMeta):
             mlog.debug(f"{self}: failed test")
             return False
 
-    @beartype
     @property
     def expr(self) -> z3.ExprRef:
         """
@@ -155,7 +145,6 @@ class FalseInv(Inv):
             s = f"{s} {self.stat}"
         return s
 
-    @beartype
     @property
     def expr(self) -> z3.ExprRef:
         return Z3.zFalse
@@ -212,7 +201,6 @@ class Invs(set):
         assert all(isinstance(inv, Inv) for inv in invs), invs
         super().__init__(invs)
 
-    @beartype
     def __contains__(self, inv:Inv) -> bool:
         return super().__contains__(inv)
 
@@ -224,7 +212,6 @@ class Invs(set):
     def cinvs(self) -> CInvs:
         return CInvs(self)
 
-    @beartype
     def add(self, inv:Inv) -> bool:
 
         not_in = inv not in self
@@ -468,7 +455,6 @@ class DInvs(dict):
     {loc -> Invs}, Invs is a set
     """
 
-    @beartype
     def __setitem__(self, loc, invs):
         assert isinstance(loc, str) and loc, loc
         assert isinstance(invs, Invs), invs
@@ -579,7 +565,6 @@ class DInvs(dict):
         Miscs.show_removed("simplify", self.siz, dinvs.siz, time() - st)
         return dinvs
 
-    @beartype
     @classmethod
     def mk_false_invs(cls, locs) -> 'DInvs':
         dinvs = cls()
@@ -587,7 +572,6 @@ class DInvs(dict):
             dinvs.add(loc, FalseInv.mk())
         return dinvs
 
-    @beartype
     @classmethod
     def mk(cls, loc:str, invs:Invs) -> 'DInvs':
         new_invs = cls()

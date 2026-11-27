@@ -1,6 +1,5 @@
 """Deterministic canonical alias-pattern generation."""
 
-from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 

@@ -1,9 +1,7 @@
-from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
 import ast
-import pdb
 import operator
 import functools
 from contextlib import contextmanager
@@ -12,7 +10,6 @@ import z3
 import helpers.vcommon as CM
 import settings
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 # Pin z3's internal RNGs globally for reproducibility: when a hard query hits
@@ -48,30 +45,6 @@ class Z3:
     def set_real_vars(cls, names) -> None:
         cls.REAL_VARS = set(names)
         cls._parse_str.cache_clear()  # sort of a name may have changed
-
-    @classmethod
-    def _process_fs(cls: type[Z3],
-                    fs: list[z3.ExprRef | None],
-                    and_or_f: Callable[[list[z3.ExprRef]], Any]) -> z3.ExprRef | None:
-
-        assert (isinstance(fs, list) and
-                all(isinstance(f, z3.ExprRef) or f is None for f in fs)), fs
-
-        filtered: list[z3.ExprRef] = [f for f in fs if f is not None]
-        if not filtered:
-            return None
-        if len(filtered) == 1:
-            return filtered[0]
-
-        return and_or_f(filtered)
-
-    @classmethod
-    def _and(cls: type[Z3], fs: list[z3.ExprRef | None]) -> z3.ExprRef | None:
-        return cls._process_fs(fs, z3.And)
-
-    @classmethod
-    def _or(cls: type[Z3], fs: list[z3.ExprRef | None]) -> z3.ExprRef | None:
-        return cls._process_fs(fs, z3.Or)
 
     @classmethod
     def is_var(cls: type[Z3], v: Any) -> bool:
@@ -168,6 +141,14 @@ class Z3:
         solver.add(f)
         models = []
         i = 0
+        try:
+            return cls._get_models(solver, k, models, i)
+        except z3.Z3Exception as ex:   # e.g. b'canceled' on timeout/interrupt
+            mlog.debug(f"solver gave up ({ex}); treating as unknown")
+            return None, z3.unknown
+
+    @classmethod
+    def _get_models(cls, solver, k, models, i):
         while solver.check() == z3.sat and i < k:
             i += 1
             m = solver.model()
@@ -398,18 +379,3 @@ class Z3:
         # normalization) instead of ctx-solver-simplify which is solver-backed and
         # can take seconds per call.
         return z3.simplify(f)
-
-    @staticmethod
-    def to_smt2_str(f: z3.ExprRef, status: str = "unknown", name: str = "benchmark", logic: str = "") -> str:
-        v = (z3.Ast * 0)()
-        s = z3.Z3_benchmark_to_smtlib_string(
-            f.ctx_ref(), name, logic, status, "", 0, v, f.as_ast()
-        )
-        return s
-
-    @classmethod
-    def from_smt2_str(cls: type[Z3], s: str) -> z3.ExprRef:
-        assertions = z3.parse_smt2_string(s)
-        expr = cls.zTrue if not assertions else assertions[0]
-        assert z3.is_expr(expr), expr
-        return expr

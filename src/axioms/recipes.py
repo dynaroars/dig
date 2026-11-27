@@ -1,6 +1,5 @@
 """Deterministic construction recipes for finite manifest values."""
 
-from __future__ import annotations
 
 from itertools import product
 import random

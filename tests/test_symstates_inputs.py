@@ -45,23 +45,3 @@ def test_exclusion_blocks_entry_value_after_mutation(tmp_path, monkeypatch):
     assert next(iter(inputs)).vs == (5,)
     after, _ = states.check(DInvs.mk_false_invs(["vtrace"]), inputs)
     assert after == {}
-
-
-def test_entry_namespace_survives_state_serialization(tmp_path, monkeypatch):
-    states = make_states(tmp_path, monkeypatch, "int x",
-                         "vassume(x == 5); x++; vtrace(x);")
-    saved = tmp_path / "states.json"
-    states.vwrite(saved)
-    # Exercise both new metadata and the legacy C format.
-    for legacy in (False, True):
-        if legacy:
-            data = json.loads(saved.read_text())
-            del data["input_symbols"]
-            saved.write_text(json.dumps(data))
-        loaded = SymStates(states.inp_decls, states.inv_decls)
-        loaded.vread(saved)
-        cexs, _ = loaded.check(DInvs.mk_false_invs(["vtrace"]), None)
-        inputs = generated_inputs(loaded, cexs)
-        assert next(iter(inputs)).vs == (5,)
-        after, _ = loaded.check(DInvs.mk_false_invs(["vtrace"]), inputs)
-        assert after == {}

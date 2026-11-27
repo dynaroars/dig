@@ -20,6 +20,7 @@ int mainQ(int x, int y){
 	b=y;
 	  
 	while (1){
+	    // assert(r>=2*y*a && b==y*a && x==q*y+r && r>=0);
 	    vtrace2(q, r, a, b, x, y);
 	    if(!(r >= 2*b))
 		break;

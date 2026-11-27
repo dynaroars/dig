@@ -1,6 +1,5 @@
 """Parent-side lifecycle for the long-lived JVM axiom worker."""
 
-from __future__ import annotations
 
 import json
 import os

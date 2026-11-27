@@ -27,7 +27,6 @@ Run standalone:
     python -m infer.recurrence ../benchmark/c/nla/ps2.c [--loop N] [--depth N]
 """
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -519,7 +518,7 @@ def _loop_head_vtrace(node: c_ast.Node) -> str | None:
     return found[0] if found else None
 
 
-def gen_all(filename: Path, depth: int = 5, multipath: bool | None = None):
+def gen_all(filename: Path, depth: int = 5, multipath: bool = True):
     """Proved equality invariants per loop-head vtrace location, as DIG Eqt
     objects: {loc: [Eqt, ...]}.
 
@@ -530,16 +529,12 @@ def gen_all(filename: Path, depth: int = 5, multipath: bool | None = None):
     already been proved by unbounded k-induction (houdini), so it is marked
     PROVED and needs no trace checking.
 
-    When ``multipath`` is on (defaults to settings.DO_RECURRENCE_MP), loops the
-    single-path engine declines (branching bodies: egcd/fermat/prodbin) are
-    retried with the multi-path pipeline before falling back to the dynamic
-    engine.
+    When ``multipath`` is on (default True), loops the single-path engine
+    declines (branching bodies: egcd/fermat/prodbin) are retried with the
+    multi-path pipeline before falling back to the dynamic engine.
     """
     import infer.eqt
     import infer.inv
-
-    if multipath is None:
-        multipath = settings.DO_RECURRENCE_MP
 
     probe = CSymEx(filename, depth)
     probe._parse()

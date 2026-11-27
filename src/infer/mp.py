@@ -1,5 +1,3 @@
-from __future__ import annotations
-import pdb
 import itertools
 import functools
 from typing import NamedTuple
@@ -15,7 +13,6 @@ import data.traces
 import infer.inv
 import infer.infer
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 

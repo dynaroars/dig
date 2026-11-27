@@ -1,8 +1,6 @@
-import pdb
 from functools import reduce
 from math import gcd
 from typing import NamedTuple
-from beartype import beartype
 
 import sympy
 import z3
@@ -16,7 +14,6 @@ import data.prog
 import data.traces
 
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
@@ -31,12 +28,10 @@ class MyCongruence(NamedTuple):
     b: int
     n: int
 
-    @beartype
     def __str__(self) -> str:
         s = f"{self.a} === {self.b} (mod {self.n})"
         return s
 
-    @beartype
     @property
     def expr(self) -> z3.ExprRef:
         """
@@ -47,7 +42,6 @@ class MyCongruence(NamedTuple):
         c = Z3.parse(str(self.n))
         return a % c == b
 
-    @beartype
     def _eval(self, trace: data.traces.Trace) -> bool:
         v = int(self.a.xreplace(trace.mydict))
         b = (v % self.n) == self.b
@@ -56,18 +50,15 @@ class MyCongruence(NamedTuple):
 
 class Congruence(infer.inv.Inv):
     
-    @beartype
     def __init__(self, mycongruence, stat=None) -> None:
         assert isinstance(mycongruence, MyCongruence), mycongruence
 
         super().__init__(mycongruence, stat)
 
-    @beartype
     @classmethod
     def mk(cls, term, b, n) -> infer.inv.Inv:
         return cls(MyCongruence(term, b, n))
 
-    @beartype
     @property
     def mystr(self) -> str:
         return str(self.inv)

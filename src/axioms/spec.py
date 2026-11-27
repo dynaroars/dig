@@ -4,7 +4,6 @@ This module intentionally does not import or inspect the target API. A malformed
 manifest must fail before target-controlled code can run.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path

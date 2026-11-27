@@ -1,10 +1,8 @@
-import pdb
 import shlex
 from dataclasses import dataclass, asdict
 from functools import partial
 from pathlib import Path
 
-DBG = pdb.set_trace
 
 TMPDIR = Path("/var/tmp/")
 LOGGER_LEVEL = 3
@@ -17,30 +15,34 @@ DO_SS = True  # use symbolic states to check results
 DO_EQTS = True  # support equalities
 DO_IEQS = True  # support (octagonal) inequalities
 DO_CONGRUENCES = True  # support congruence relations
-DO_ARRAYS = True  # support array relations
 DO_MINMAXPLUS = True  # support minmax-plus inequalities
 DO_RECURRENCE = True  # static (recurrence-based) equalities for solvable loops
-# Multi-path (CRA-style) extension of the recurrence engine: handle branching
-# loop bodies (egcd/fermat/prodbin) by pooling per-path closed-form candidates
-# and keeping the subset that is jointly inductive over the real loop (houdini).
-# Only fires on loops the single-path engine declines, so it is purely additive.
-DO_RECURRENCE_MP = True
-DO_KAPUR = False  # RC-Kapur bounded-degree ideal equalities (opt-in; -dokapur)
-# SYMBA (Li et al., POPL'14): maximize all inequality/min-max terms at a
-# location simultaneously with one shared SMT solver (each model improves every
-# objective's bound at once) instead of one z3-Optimize solve per term. Same
-# exact bounds, fewer solver calls. Opt-in (-dosymba); overlaps the default
-# per-term optimizer, so off by default like -dokapur.
-DO_SYMBA = False
 # Houdini pass over the union of LLM-proposed candidates (llm mode only): prove
 # the largest jointly/k-inductive subset unboundedly, catching mutually
 # inductive sets the per-candidate bounded check misses. Additive to verify().
 DO_LLM_HOUDINI = True
-DO_SOLVER_STATS = False  # collect solver usage stats
 WRITE_VTRACES = None  # write vtraces to csv
-WRITE_SSTATES = None  # write symbolic states to a json file
-READ_SSTATES = None  # read symbolic states from a json file
-BENCHMARK_TIMEOUT = 15 * 60  # mins
+
+# Lean 4 certification of C invariants (src/certify, LEAN_CERTIFICATION_PLAN.md)
+DO_CERTIFY_LEAN = False  # extra Lean 4 certification pass over Z3-checked invariants
+# How candidate invariants are verified:
+#   "z3":   (default) classic DIG: z3 checks candidates against symbolic states
+#           (combine with --certify-lean for unbounded Lean 4 proofs)
+#   "lean": (--lean-only) candidates are not checked with z3; Lean proves them
+#           and unproved ones are dropped
+VERIFIER = "z3"
+LEAN_KEEP_UNVERIFIED = False  # lean mode: also report invs Lean couldn't prove
+# Lean mode: z3 only *searches for counterexamples* (new inputs/traces) to
+# candidates, under a short budget; unsat/unknown decide nothing (Lean does).
+CEX_SEARCH_SOLVER_TIMEOUT_MS = 300
+CEX_SEARCH_SOLVER_RLIMIT = 1_000_000
+LEAN_BIN = None        # explicit lean binary; default: lean on PATH, then elan
+LEAN_TIMEOUT = 120.0   # seconds per Lean run (one drop-pass round)
+LEAN_MAX_ROUNDS = 8    # drop-pass round cap; hitting it means "not certified"
+LEAN_CERT_OUT = None   # copy the final .lean certificate here
+# also use DIG's pre-simplify invariants as (never reported) loop-head helpers;
+# off by default: the extra conjuncts make large certificates much slower
+LEAN_PRESIMPLIFY_HELPERS = False
 
 N_RAND_INPS = 100  # number of random inputs, only used when DO_SS is False
 INP_MAX_V = 300
@@ -76,6 +78,7 @@ def solver_policy(phase="checking"):
         "optimization": (OPT_SOLVER_RLIMIT, OPT_SOLVER_TIMEOUT_MS),
         "simplification": (SIMPLIFY_SOLVER_RLIMIT, SIMPLIFY_SOLVER_TIMEOUT_MS),
         "feasibility": (FEASIBILITY_SOLVER_RLIMIT, FEASIBILITY_SOLVER_TIMEOUT_MS),
+        "cex_search": (CEX_SEARCH_SOLVER_RLIMIT, CEX_SEARCH_SOLVER_TIMEOUT_MS),
     }
     return SolverPolicy(*values[phase])
 
@@ -86,7 +89,8 @@ def effective_settings():
               if name.isupper() and not name.startswith("_")
               and isinstance(value, (str, int, float, bool, type(None)))}
     result["solver_policies"] = {phase: asdict(solver_policy(phase)) for phase in
-                                 ("checking", "optimization", "simplification", "feasibility")}
+                                 ("checking", "optimization", "simplification",
+                                  "feasibility", "cex_search")}
     return result
 EQT_RATE = 1.5
 # Groebner-basis reduction (Miscs.reduce_eqts) can hang on degree-2/many-var
@@ -98,10 +102,9 @@ MAX_TERM = 200
 
 TRACE_MULTIPLIER = 5
 INP_RANGE_V = 4  # use more inp ranges when # of inputs is <= this
-UTERMS = None  # terms that the user's interested in, e.g., "y^2 xy"
 SOURCE_TEMPLATES = True  # automatic hints; explicit template controls opt out
 
-# Iequalities
+# Inequalities
 IUPPER = 50  # t <= iupper
 IUPPER_MMP = 1  # for min/max ieqs
 # Cap on the # of operands inside a min/max-plus term, i.e. max(y1,..,yk).
@@ -117,10 +120,6 @@ ICOEFS = 1  # from -ICOEFS to ICOEFS, e.g., -1,0,1
 # the chance of a spurious shared divisor is ~1/2^SE_MAX_D(nvals-1), so a flat
 # minimum suffices (large moduli are self-protecting).
 CONGRUENCE_MIN_NVALS = 5
-
-# options for full specs analysis
-CTR_VAR = "Ct"  # counter variable contains this string
-POST_LOC = "post"  # vtraceX_post  indicates postconditions
 
 # Program Paths
 TRACE_DIR = "traces"
@@ -172,13 +171,12 @@ _TYPE_ALIASES = {
     "ieq": "DO_IEQS", "ieqs": "DO_IEQS", "oct": "DO_IEQS",
     "minmax": "DO_MINMAXPLUS", "mmp": "DO_MINMAXPLUS", "minmaxplus": "DO_MINMAXPLUS",
     "congruence": "DO_CONGRUENCES", "cong": "DO_CONGRUENCES", "congruences": "DO_CONGRUENCES",
-    "array": "DO_ARRAYS", "arrays": "DO_ARRAYS",
     "recurrence": "DO_RECURRENCE", "rec": "DO_RECURRENCE",
 }
 # every type governed by -types (all turned off before the allowlist re-enables)
 _TYPE_SETTINGS = (
     "DO_EQTS", "DO_IEQS", "DO_MINMAXPLUS",
-    "DO_CONGRUENCES", "DO_ARRAYS", "DO_RECURRENCE",
+    "DO_CONGRUENCES", "DO_RECURRENCE",
 )
 
 
@@ -197,125 +195,57 @@ def _parse_types(spec):
 
 
 # store_true flags: when present, force the named DO_* setting to a fixed value.
-# The "no..." flags disable a feature (set False); -dosolverstats enables one.
 _BOOL_FLAGS = (
     # (arg_attr, setting_attr, cli_flag, value_when_present)
-    # invariant-type selection is via -types (see _TYPE_SETTINGS); the old
-    # per-type -no<type> flags were removed. -norecurrence maps to a type too
-    # (recurrence), so it lives in -types now, not here.
     ("noss", "DO_SS", "-noss", False),
     ("nomp", "DO_MP", "-nomp", False),
-    ("norecurrencemp", "DO_RECURRENCE_MP", "-norecurrencemp", False),
-    ("dokapur", "DO_KAPUR", "-dokapur", True),
-    ("dosymba", "DO_SYMBA", "-dosymba", True),
     ("nollmhoudini", "DO_LLM_HOUDINI", "-nollmhoudini", False),
-    ("dosolverstats", "DO_SOLVER_STATS", "-dosolverstats", True),
+    ("certify_lean", "DO_CERTIFY_LEAN", "--certify-lean", True),
+    ("z3_check", "VERIFIER", "--z3-check", "z3"),
+    ("lean_only", "VERIFIER", "--lean-only", "lean"),
+    ("keep_unverified", "LEAN_KEEP_UNVERIFIED", "--keep-unverified", True),
 )
 
-# String options: apply and serialize the value verbatim, including spaces.
+# String options: apply verbatim.
 _STR_FLAGS = (
     # (arg_attr, setting_attr, cli_flag)
     ("writevtraces", "WRITE_VTRACES", "-writevtraces"),
-    ("writesstates", "WRITE_SSTATES", "-writesstates"),
-    ("readsstates", "READ_SSTATES", "-readsstates"),
-)
-
-# Int options: applied when given and >= 1; reconstructed as "-flag <value>".
-_INT_FLAGS = (
-    # (arg_attr, setting_attr, cli_flag)
-    ("inpMaxV", "INP_MAX_V", "-inpMaxV"),
-    ("iupper", "IUPPER", "-iupper"),
-    ("ideg", "IDEG", "-ideg"),
-    ("iterms", "ITERMS", "-iterms"),
-    ("icoefs", "ICOEFS", "-icoefs"),
-    ("maxterm", "MAX_TERM", "-maxterm"),
-    ("nrandinps", "N_RAND_INPS", "-nrandinps"),
+    ("lean_bin", "LEAN_BIN", "--lean-bin"),
+    ("lean_out", "LEAN_CERT_OUT", "--lean-out"),
 )
 
 
 def setup(settings, args):
-    """
-    Apply command-line ``args`` to the global ``settings`` module.
-
-    Two modes:
-    - ``settings`` truthy: mutate the settings module in place and return a
-      configured logger.
-    - ``settings`` falsy (None): collect the equivalent CLI flags and return
-      them as a string, used to re-invoke dig.py as a benchmark subprocess.
-    """
+    """Apply command-line ``args`` to the global ``settings`` module."""
     import helpers.vcommon
 
-    opts = []
-    if settings:
-        settings.SOURCE_TEMPLATES = not any(
-            getattr(args, name, None) is not None for name in ("ideg", "iterms", "icoefs"))
-
-    # -types/-only: apply before the -no<type> flags so an explicit -no<type>
-    # (or a hidden alias) can still further disable a type the allowlist enabled.
     types_spec = getattr(args, "types", None)
     if types_spec:
-        enabled = _parse_types(types_spec)   # raises ValueError on a bad name
-        if settings:
-            for set_attr in _TYPE_SETTINGS:
-                setattr(settings, set_attr, set_attr in enabled)
-        else:
-            opts.extend(["-types", types_spec])
+        enabled = _parse_types(types_spec)
+        for set_attr in _TYPE_SETTINGS:
+            setattr(settings, set_attr, set_attr in enabled)
 
-    for arg_attr, set_attr, flag, value in _BOOL_FLAGS:
-        if getattr(args, arg_attr):
-            if settings:
-                setattr(settings, set_attr, value)
-            else:
-                opts.append(flag)
+    for arg_attr, set_attr, _flag, value in _BOOL_FLAGS:
+        if getattr(args, arg_attr, False):
+            setattr(settings, set_attr, value)
 
-    for arg_attr, set_attr, flag in _STR_FLAGS:
-        val = getattr(args, arg_attr)
+    for arg_attr, set_attr, _flag in _STR_FLAGS:
+        val = getattr(args, arg_attr, None)
         if val:
-            if settings:
-                setattr(settings, set_attr, val)
-            else:
-                opts.extend([flag, str(val)])
+            setattr(settings, set_attr, val)
 
-    for arg_attr, set_attr, flag in _INT_FLAGS:
-        val = getattr(args, arg_attr)
-        if val is not None:
-            if val < 1:
-                raise ValueError(f"{flag} must be positive")
-            if settings:
-                setattr(settings, set_attr, val)
-            else:
-                opts.extend([flag, str(val)])
-
-    if args.uterms:
-        if settings:
-            settings.UTERMS = set(args.uterms.split(';'))
-        else:
-            opts.extend(["-uterms", args.uterms])
+    if getattr(args, "lean_timeout", None):
+        settings.LEAN_TIMEOUT = float(args.lean_timeout)
+    if getattr(args, "lean_max_rounds", None):
+        settings.LEAN_MAX_ROUNDS = int(args.lean_max_rounds)
 
     if args.se_maxdepth is not None and args.se_maxdepth >= 1:
-        if settings:
-            settings.SE_MAX_DEPTH = args.se_maxdepth
-        else:
-            opts.extend(["-se_maxdepth", str(args.se_maxdepth)])
-
-    if not settings and getattr(args, "maxdeg", None) is not None:
-        opts.extend(["-maxdeg", str(args.maxdeg)])
-    if not settings:
-        for name in ("writeresults", "test_tracefile"):
-            if value := getattr(args, name, None):
-                opts.extend(["-" + name, str(value)])
+        settings.SE_MAX_DEPTH = args.se_maxdepth
 
     if args.tmpdir:
-        if settings:
-            settings.TMPDIR = Path(args.tmpdir)
-            assert settings.TMPDIR.is_dir()
-        else:
-            opts.extend(["-tmpdir", str(args.tmpdir)])
+        settings.TMPDIR = Path(args.tmpdir)
+        assert settings.TMPDIR.is_dir()
 
-    if settings:
-        settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
-        mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
-        return mlog
-    else:
-        opts.extend(["-log_level", str(args.log_level)])
-        return shlex.join(opts)
+    settings.LOGGER_LEVEL = helpers.vcommon.getLogLevel(args.log_level)
+    mlog = helpers.vcommon.getLogger(__name__, settings.LOGGER_LEVEL)
+    return mlog

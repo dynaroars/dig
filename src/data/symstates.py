@@ -4,14 +4,9 @@ Symbolic States
 import functools
 import sys
 import abc
-import pdb
-from multiprocessing import Queue
 from pathlib import Path
-from queue import Empty
 
-import json
 import z3
-from beartype import beartype
 
 from typing import NamedTuple
 import settings
@@ -21,9 +16,7 @@ from helpers.z3utils import Z3
 import data.prog
 import data.traces
 import infer.inv
-import analysis
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 
@@ -32,7 +25,6 @@ class PathCond(NamedTuple):
     pc: z3.ExprRef
     slocal: z3.ExprRef
 
-    @beartype
     def __str__(self) -> str:
         return f"loc: {self.loc}\npc: {self.pc}\nslocal: {self.slocal}"
 
@@ -47,16 +39,13 @@ class PathCondC(PathCond):
 
 class PCs(set):  #{PathConds}
 
-    @beartype
-    def __init__(self, loc:str, depth:int, read_from_file:bool = False) -> None:
+    def __init__(self, loc:str, depth:int) -> None:
         assert depth >= 1, depth
         
         super().__init__()
         self.loc = loc
         self.depth = depth
-        self._read_from_file = read_from_file  # if read from file then will not contain PathConds, just _expr
 
-    @beartype
     def add(self, pc:PathCond):
         super().add(pc)
 
@@ -68,40 +57,29 @@ class PCs(set):  #{PathConds}
     def mypc(self) -> z3.ExprRef:
         return Z3.simplify(z3.Or([p.pc for p in self]))
 
-    @beartype
-    def vread(self, expr: str) -> None:
-        self.__dict__['myexpr'] = Z3.from_smt2_str(expr)    
-    
 
 class SymStatesDepth(dict):  # depth -> PCs
 
-    @beartype
     @property
     def siz(self) -> int:
-        return sum(1 if x._read_from_file else len(x) for x in self.values())
+        return sum(len(x) for x in self.values())
 
           
 class SymStates(dict):
     # loc -> SymStatesDepth
 
-    @beartype
     def __init__(self, inp_decls: data.prog.Symbs , inv_decls: data.prog.DSymbs) -> None:
         self.inp_decls = inp_decls
         self.inv_decls = inv_decls
         self.inp_exprs = inp_decls.exprs
-
-        self.solver_stats = Queue() if settings.DO_SOLVER_STATS else None
-        self.solver_stats_ = []  # periodically save solver_stats results here
         self.exploration_info = {}
 
         super().__init__()
 
-    @beartype
     @property
     def siz(self) -> int:
         return sum(symstatesdepth.siz for symstatesdepth in self.values())
 
-    @beartype
     def compute(self, symstatesmaker_cls,
                 filename: Path, mainQName: str, funname: str, tmpdir:Path) -> None:
         symstatesmaker = symstatesmaker_cls(
@@ -117,56 +95,6 @@ class SymStates(dict):
         for loc in ss:
             self[loc] = SymStatesDepth(ss[loc])
 
-    @beartype
-    def vwrite(self, sstatesfile: Path) -> None:
-        """
-        write symbolic states to a file
-        """
-        inps = [inp.name for inp in self.inp_decls]
-        ss = {}
-        for loc in self:
-            if loc not in ss and self[loc]: 
-                ss[loc] = {}
-            for depth in self[loc]:
-                ss[loc][depth] = Z3.to_smt2_str(self[loc][depth].myexpr)
-        data = {
-            "inps": inps,
-            "input_symbols": list(map(str, self.inp_exprs)),
-            "exploration": self.exploration_info,
-            "ss": ss
-        }
-        jdata = json.dumps(data)
-        sstatesfile.write_text(jdata)
-
-    @beartype
-    def vread(self, sstatesfile: Path) -> None:
-        """
-        (re)create symbolic states from a file
-        """
-        assert sstatesfile.is_file(), sstatesfile
-        
-        data = json.loads(sstatesfile.read_text())
-        self.exploration_info = data.get("exploration", {})
-        ss = data["ss"]
-
-        for loc in ss:
-            self[loc] = SymStatesDepth()
-            for depth in ss[loc]:
-                depth_ = int(depth)
-                self[loc][depth_] = PCs(loc, depth_, read_from_file=True)
-                self[loc][depth_].vread(ss[loc][depth])
-        names = data.get("input_symbols")
-        if names is None:
-            # Older C snapshots did not record their X_* entry namespace.
-            variables = {str(v) for depths in self.values() for paths in depths.values()
-                         for v in Z3.get_vars(paths.myexpr)}
-            prefix = "X_" if any("X_"+s.name in variables for s in self.inp_decls) else ""
-            names = [prefix+s.name for s in self.inp_decls]
-        if len(names) != len(self.inp_decls):
-            raise ValueError("symbolic-state input symbols do not match input declarations")
-        self.inp_exprs = [z3.Const(name, s.expr.sort()) for name, s in zip(names, self.inp_decls)]
-
-    @beartype
     def check(self, dinvs: infer.inv.DInvs, 
               inps: None | data.traces.Inps
               ) -> tuple[dict, infer.inv.DInvs]:
@@ -207,7 +135,6 @@ class SymStates(dict):
 
         return merge(mCexs), mdinvs
 
-    @beartype
     def mcheck_d(self, loc: str,
                  inv: None | infer.inv.Inv | z3.ExprRef,
                  inps: None | data.traces.Inps,
@@ -229,7 +156,6 @@ class SymStates(dict):
             self[loc], inv, inv_expr, inps, ncexs)
         return cexs, is_succ
     
-    @beartype
     def mcheck_depth(self, ssd: SymStatesDepth,
                      inv:infer.inv.Inv | None,
                      inv_expr: None | z3.BoolRef,
@@ -239,7 +165,7 @@ class SymStates(dict):
 
         def f(depth):
             ss = ssd[depth]
-            if inv_expr is not None and not ss._read_from_file:
+            if inv_expr is not None:
                 # Substitute concrete symbolic snapshots before asking SMT
                 # to prove a polynomial identity. Expansion can certify the
                 # equality directly, including quotient/remainder identities
@@ -261,24 +187,16 @@ class SymStates(dict):
                 if counterexample_paths:
                     cexs, is_succ, stat = self.mcheck(z3.Or(counterexample_paths),
                                                      None, inps, ncexs)
-                    self.put_solver_stats(analysis.CheckSolverCalls(stat))
                     return cexs, is_succ, stat
             ##ss = ss.mypc if inv_expr is None else ss.myexpr
             ss = ss.myexpr
             cexs, is_succ, stat = self.mcheck(ss, inv_expr, inps, ncexs)
-            self.put_solver_stats(analysis.CheckSolverCalls(stat))
             return cexs, is_succ, stat
 
         depths = sorted(ssd.keys())
         depth_idx = 0
 
         cexs, is_succ, stat = f(depths[depth_idx])
-        if stat != z3.unsat:  # if disprove (sat) or unknown first time
-            self.put_solver_stats(
-                analysis.CheckDepthChanges(
-                    str(inv), None, None, stat, depths[depth_idx]
-                )
-            )
 
         nochanges = 0
         while (
@@ -297,10 +215,6 @@ class SymStates(dict):
                     f"check depth diff {inv_expr}: "
                     f"{stat} @depth {mydepth}, {stat_} @depth {mydepth_}"
                 )
-                self.put_solver_stats(
-                    analysis.CheckDepthChanges(
-                        str(inv), stat, mydepth, stat_, mydepth_)
-                )
             else:
                 nochanges += 1
 
@@ -309,7 +223,6 @@ class SymStates(dict):
 
         return cexs, is_succ
 
-    @beartype
     def mcheck(self, symstates_expr: z3.ExprRef,
                expr: None | z3.ExprRef,
                inps: None | data.traces.Inps,
@@ -339,7 +252,6 @@ class SymStates(dict):
         cexs, is_succ = Z3.extract(models, int)
         return cexs, is_succ, stat
 
-    @beartype
     def maximize(self, loc:str, term_expr:z3.ExprRef, iupper: int) -> int | None:
         """
         maximize value of term using symstates
@@ -350,152 +262,11 @@ class SymStates(dict):
         v, stat = self.mmaximize_depth(loc, self[loc], term_expr, iupper)
         return v
 
-    @beartype
-    def maximize_many(self, loc: str, term_exprs: list,
-                      iupper: int) -> dict[int, int]:
-        """
-        SYMBA simultaneous optimization (Li, Albarghouthi, Gurfinkel, Chechik,
-        POPL'14). Maximize *all* `term_exprs` at `loc` together with a single
-        shared SMT solver instead of one z3-Optimize solve per term: every
-        satisfying model updates the lower bound of every objective at once, and
-        an unsat certificate proves the current bounds are the exact maxima.
-        This is the drop-in replacement for calling maximize() once per term.
-
-        Returns {i: exact_max} for terms (by index into `term_exprs`) whose max
-        lies in [-iupper, iupper]. Terms over the cap, non-integer optima, and
-        solver-unknown terms are omitted -- the same accept/reject policy as
-        maximize()/_solve_max().
-
-        The exact max at each unroll depth is computed (shared-model) and a term
-        whose bound keeps changing as the depth grows is dropped, exactly like
-        mmaximize_depth() -- so a depth-sensitive bound (an artifact of bounded
-        unrolling, not a real invariant) is not reported. The shared-model win
-        applies within each depth.
-        """
-        assert iupper >= 1, iupper
-        ssd = self[loc]
-
-        depths = sorted(ssd.keys())
-        n = len(term_exprs)
-        maxv: dict[int, int] = {}          # i -> current best bound
-        changes: dict[int, int] = {i: 0 for i in range(n)}
-        nochanges: dict[int, int] = {i: 0 for i in range(n)}
-        started: set[int] = set()
-        stopped: set[int] = set()          # term hit its own depth stop rule
-
-        for di, d in enumerate(depths):
-            if len(stopped) == n:
-                break
-            ss = self.get_symstates_at_depth(ssd, depth=d)
-            cur, _ = self._symba(ss, term_exprs, iupper,
-                                 skip={i for i in range(n) if i in stopped})
-            for i in range(n):
-                if i in stopped:
-                    continue
-                v = cur.get(i)             # exact max<=iupper at depth<=d, or None
-                # bound is monotone in depth; never let it drop
-                if v is not None and i in maxv and v < maxv[i]:
-                    v = maxv[i]
-                if i not in started:
-                    if v is not None:
-                        maxv[i] = v
-                        started.add(i)
-                    continue
-                if di == 0:
-                    continue
-                old = maxv.get(i)
-                if v != old:
-                    # a change (including going over-cap: v is None) -> unstable
-                    changes[i] += 1
-                    nochanges[i] = 0
-                    if v is None:
-                        stopped.add(i)     # over cap at deeper depth: drop
-                        maxv.pop(i, None)
-                    else:
-                        maxv[i] = v
-                else:
-                    nochanges[i] += 1
-                if (changes[i] > settings.SE_DEPTH_NOCHANGES_MAX
-                        or nochanges[i] > settings.SE_DEPTH_NOCHANGES_MAX):
-                    stopped.add(i)
-
-        return {i: v for i, v in maxv.items()
-                if changes[i] < settings.SE_DEPTH_NOCHANGES_MAX
-                and -iupper <= v <= iupper}
-
-    @beartype
-    def _symba(self, ss: z3.ExprRef, term_exprs: list, iupper: int,
-               skip: set | None = None) -> tuple[dict[int, int], z3.CheckSatResult]:
-        """
-        One SYMBA pass over a fixed formula `ss`: return {i: exact_max} for the
-        terms whose max is in [-iupper, iupper], sharing models across all
-        objectives. `skip` names indices to ignore (already finalized).
-        """
-        skip = skip or set()
-        solver = Z3.create_solver(maximize=False)
-        solver.add(ss)
-        if solver.check() != z3.sat:
-            return {}, z3.unsat
-
-        model = solver.model()
-        bounds: dict[int, int] = {}
-        active: set[int] = set()
-        for i, term in enumerate(term_exprs):
-            if i in skip:
-                continue
-            v = self._model_int(model, term)
-            if v is None:              # non-integer optimum: reject like _solve_max
-                continue
-            bounds[i] = v
-            if v <= iupper:            # keep even if v < -iupper: max may climb up
-                active.add(i)          # v > iupper => max already over cap: reject
-
-        converged: dict[int, int] = {}
-        last = z3.sat
-        while active:
-            # z3 int literals coerce to each term's sort automatically
-            disj = z3.Or([term_exprs[i] > bounds[i] for i in active])
-            last = solver.check(disj)
-            if last == z3.unsat:       # nothing beats these -> exact maxima
-                converged.update({i: bounds[i] for i in active})
-                break
-            if last == z3.unknown:
-                break                  # can't certify the rest; drop them
-            model = solver.model()
-            improved = False
-            for i in list(active):
-                v = self._model_int(model, term_exprs[i])
-                if v is None:
-                    active.discard(i)          # became non-integer, reject
-                    continue
-                if v > bounds[i]:
-                    bounds[i] = v
-                    improved = True
-                if bounds[i] > iupper:
-                    active.discard(i)          # max exceeds cap -> reject
-            if not improved:
-                break                  # avoid spinning on non-integer progress
-
-        return ({i: b for i, b in converged.items() if -iupper <= b <= iupper},
-                last)
-
-    @beartype
-    @staticmethod
-    def _model_int(model: z3.ModelRef, term_expr: z3.ExprRef) -> int | None:
-        """Integer value of term_expr in model, or None if non-integer
-        (rational/real optimum, which the maximize path rejects)."""
-        val = model.eval(term_expr, model_completion=True)
-        if z3.is_int_value(val):
-            return val.as_long()
-        return None
-
-    @beartype
     def mmaximize_depth(self, loc: str, ssd:SymStatesDepth ,
                         term_expr: z3.ExprRef,
                         iupper: int) -> tuple[int | None, z3.CheckSatResult]:
 
 
-        @beartype
         def f(depth: int):
             # reuse one Optimize per (loc, depth) with the symbolic state
             # asserted once; each term just pushes its objective and pops.
@@ -507,19 +278,12 @@ class SymStates(dict):
                 maxv, stat = self._solve_max(opt, term_expr, iupper)
             finally:
                 opt.pop()
-            self.put_solver_stats(analysis.MaxSolverCalls(stat))
             return maxv, stat
 
         depths = sorted(ssd.keys())
         depth_idx = 0
 
         maxv, stat = f(depths[depth_idx])
-        if maxv is not None:  # if changed
-            self.put_solver_stats(
-                analysis.MaxDepthChanges(
-                    str(term_expr), None, None, maxv, depths[depth_idx]
-                )
-            )
         nochanges = 0
         changes = 0
         while (
@@ -538,10 +302,6 @@ class SymStates(dict):
             if maxv_ != maxv:
                 nochanges = 0
                 changes += 1
-                # if (max_ is int and maxv is int) then maxv_ > maxv
-                # assert(not(isinstance(maxv_, int) and isinstance(maxv, int))
-                # or (maxv_ > maxv)), (maxv_, maxv)
-
                 mydepth_ = depths[depth_idx_]
                 mydepth = depths[depth_idx]
                 mlog.debug(
@@ -549,14 +309,8 @@ class SymStates(dict):
                     f"{maxv} {stat} @depth {mydepth}, "
                     f"{maxv_} {stat_} @depth {mydepth_}"
                 )
-                self.put_solver_stats(
-                    analysis.MaxDepthChanges(
-                        str(term_expr), maxv, mydepth, maxv_, mydepth_
-                    )
-                )
             else:
                 nochanges += 1
-                # changes = 0 # yes, this is intentional
 
             depth_idx = depth_idx_
             maxv, stat = maxv_, stat_
@@ -567,7 +321,6 @@ class SymStates(dict):
 
         return maxv, stat
 
-    @beartype
     @staticmethod
     def _solve_max(opt: z3.Solver, term_expr: z3.ExprRef,
                    iupper: int) -> tuple[int | None, z3.CheckSatResult]:
@@ -608,7 +361,6 @@ class SymStates(dict):
         stat = query(term_expr > lower)
         return (lower, z3.sat) if stat == z3.unsat else (None, stat)
 
-    @beartype
     def _get_max_opt(self, loc: str, depth: int,
                      ssd: SymStatesDepth) -> z3.Solver:
         """
@@ -627,7 +379,6 @@ class SymStates(dict):
         return opt
 
     # helpers
-    @beartype
     @classmethod
     def get_symstates_at_depth(cls, ssd: SymStatesDepth, 
                         depth: None | int=None) -> z3.ExprRef:
@@ -645,7 +396,6 @@ class SymStates(dict):
 
             return z3.Or(ss)
 
-    @beartype
     def get_inp_constrs(self, inps: None | data.traces.Inps) -> None | z3.ExprRef:
         cstrs = []
         if isinstance(inps, data.traces.Inps) and inps:
@@ -660,28 +410,11 @@ class SymStates(dict):
         else:
             return z3.And(cstrs)
 
-    def put_solver_stats(self, e):
-        if self.solver_stats is not None:
-            self.solver_stats.put(e, block=True)
 
-    def get_solver_stats(self):
-        if self.solver_stats is not None:
-            while True:
-                try:
-                    stat = self.solver_stats.get(block=False)
-                    self.solver_stats_.append(stat)
-                except Empty:
-                    break
-                except Exception:
-                    mlog.exception(f"get_solver_stats() error")
-                    break
-
-
-class SymStatesMaker(metaclass=abc.ABCMeta):
+class SymStatesMaker(abc.ABC):
 
     input_prefix = ""
 
-    @beartype
     def __init__(self, 
                  filename: Path, 
                  mainQName: str, 
@@ -701,7 +434,6 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
     def maxdepth(self) -> int:
         return settings.SE_MAX_DEPTH
 
-    @beartype
     def compute(self) -> dict:
         """
         Run symbolic execution to obtain symbolic states
@@ -735,12 +467,10 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
                            f"{len(symstates[loc][depth])} uniq symstates")
         return symstates
 
-    @beartype
     @abc.abstractmethod
     def get_symstates(self, depth: int) -> None | list:
         pass
 
-    @beartype
     @classmethod
     def merge(cls, depthss: list, pc_cls) -> dict:
         """
@@ -797,7 +527,6 @@ class SymStatesMaker(metaclass=abc.ABCMeta):
         return symstates
 
 
-@beartype
 def merge(ds) -> dict:
     newD = {}
     for d in ds:
@@ -822,7 +551,6 @@ class SymStatesMakerC(SymStatesMaker):
     # Python symex explores paths incrementally — a lower starting depth is fine.
     mindepth = 2
 
-    @beartype
     def get_symstates(self, depth: int) -> None | list:
         assert depth >= 1, depth
         from data.symex_c import CSymEx

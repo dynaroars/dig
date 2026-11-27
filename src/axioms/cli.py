@@ -1,6 +1,5 @@
 """CLI adapter kept separate from DIG's numerical argument machinery."""
 
-from __future__ import annotations
 
 import json
 from pathlib import Path

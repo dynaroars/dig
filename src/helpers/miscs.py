@@ -3,12 +3,10 @@ To run doctest
 $ ~/miniconda3/bin/python3 -m doctest -v helpers/miscs.py 
 """
 
-from __future__ import annotations
 from collections.abc import Iterable, Callable
 from collections import defaultdict
 import ast
 import os
-import pdb
 import random
 import sys
 import itertools
@@ -25,10 +23,8 @@ from sympy.solvers.solveset import linsolve
 import helpers.vcommon as CM
 import settings
 
-from beartype import beartype
-from beartype.typing import Any
+from typing import Any
                              
-DBG = pdb.set_trace
 
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
@@ -39,12 +35,10 @@ class _GroebnerTimeout(Exception):
 
 class Miscs:
 
-    @beartype
     @staticmethod
     def is_expr(x: Any) -> bool:
         return isinstance(x, sympy.Expr)
 
-    @beartype
     @classmethod
     def get_vars(cls, props) -> list[sympy.Symbol]:
         """
@@ -63,7 +57,6 @@ class Miscs:
         vs = (v for p in props for v in p.free_symbols)
         return [v for v in sorted(set(vs), key=str) if isinstance(v, sympy.Symbol)]
 
-    @beartype
     @staticmethod
     def str2list(s: str) -> tuple:
         # Trace values are literals (e.g. "[1, 2, 3]"); literal_eval parses
@@ -96,14 +89,12 @@ class Miscs:
         """
         return sympy.Rational(s)
 
-    @beartype    
     @staticmethod
     def create_uks(ts: list[Any], prefix: str = "uk") -> list[sympy.Symbol]:
         uks = [sympy.Symbol(f"{prefix}_{i}") for i in range(len(ts))]
         assert not set(ts).intersection(set(uks)), "name conflict"
         return uks
 
-    @beartype
     @classmethod
     def init_terms(cls, vs: tuple[str,...], deg: int, 
                    rate: float) -> tuple[list[Any], list[sympy.Symbol], int]:
@@ -118,7 +109,6 @@ class Miscs:
         n_eqts_needed = int(rate * len(uks))
         return terms, uks, n_eqts_needed
 
-    @beartype    
     @staticmethod
     def get_terms(symbols: list[sympy.Symbol], deg: int) -> list:
         """
@@ -141,7 +131,6 @@ class Miscs:
         terms = [sympy.prod(c) for c in combs]
         return terms
 
-    @beartype
     @classmethod
     def get_max_deg(cls, p: int | sympy.Expr) -> int:
         """
@@ -168,7 +157,6 @@ class Miscs:
                 mlog.warning(f"cannot handle {p} of type {type(p)}")
                 return 0
 
-    @beartype    
     @classmethod
     def get_deg(cls, nvs: int, nts: int, max_deg: int = 7) -> int:
         """
@@ -195,7 +183,6 @@ class Miscs:
                 return d
         return max_deg
 
-    @beartype
     @classmethod
     def get_auto_deg(cls, maxdeg: None | int, nvars: int, maxterm: int) -> int:
         if maxdeg:
@@ -269,7 +256,6 @@ class Miscs:
         mx = max(per_var.values()) if per_var else None
         return per_var, mx
 
-    @beartype
     @staticmethod
     def get_terms_fixed_coefs(ss, subset_siz: int, icoef: int,
                               do_create_terms:bool=True) -> set:
@@ -305,7 +291,6 @@ class Miscs:
         return set(rs)
 
 
-    @beartype
     @classmethod
     def reduce_eqts(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr | sympy.Rel]:
         """
@@ -373,7 +358,6 @@ class Miscs:
             signal.setitimer(signal.ITIMER_REAL, 0)
             signal.signal(signal.SIGALRM, old)
 
-    @beartype
     @staticmethod
     def elim_denom(p: sympy.Expr | sympy.Rel) -> sympy.Expr | sympy.Rel:
         """
@@ -400,7 +384,6 @@ class Miscs:
             return p
         return p * sympy.lcm(denoms)
 
-    @beartype
     @classmethod
     def get_coefs(cls, p: sympy.Expr | sympy.Rel) -> list[sympy.core.numbers.Integer]:
         """
@@ -414,7 +397,6 @@ class Miscs:
         p = p.lhs if p.is_Equality else p
         return list(p.as_coefficients_dict().values())
 
-    @beartype
     @classmethod
     def remove_ugly(cls, ps: list[sympy.Expr | sympy.Rel]) -> list[sympy.Expr |  sympy.Rel]:
 
@@ -436,7 +418,6 @@ class Miscs:
 
         return ps_
 
-    @beartype
     @classmethod
     def refine(cls, eqts: list[sympy.Expr | sympy.Rel],
                do_reduce: bool = True,
@@ -576,7 +557,6 @@ class Miscs:
         except (TypeError, ValueError, AttributeError):
             return None
 
-    @beartype
     @classmethod
     def solve_eqts(cls, eqts: list[sympy.Expr | sympy.Rel],
                    terms: list[Any], uks: list[sympy.Symbol],
@@ -629,7 +609,6 @@ class Miscs:
         # invariant and has no lhs/rhs (the old Freire seed-3 crash).
         return [eqt for eqt in relations if isinstance(eqt, sympy.Equality)]
 
-    @beartype
     @classmethod
     def instantiate_template(cls, terms:list, uks:list, vs:list) -> list:
         """
@@ -663,7 +642,6 @@ class Miscs:
                 for i, uk in enumerate(uk_vs)]
         return sols
 
-    @beartype
     @staticmethod
     def show_removed(s: str, orig_siz: int, new_siz: int, 
                      elapsed_time: float) -> None:
@@ -674,7 +652,6 @@ class Miscs:
             f"in {elapsed_time:.2f}s (orig {orig_siz}, new {new_siz})"
         )
 
-    @beartype
     @staticmethod
     def simplify_idxs(ordered_idxs: list[int], 
                       imply_f: Callable[[set[int], int], bool]) -> list[int]:
@@ -695,29 +672,6 @@ class Miscs:
                 results = others
 
         return sorted(results)
-
-    @staticmethod
-    def create_dict(l: list[tuple[Any, Any]]) -> dict[Any, Any]:
-        """
-        given a list of set of type [(k1,v1),..,(kn,vn)]
-        generates a dict where keys are k's and values are [v's]
-        e.g.,
-
-        >>> Miscs.create_dict([('a',1),['b',2],('a',3),('c',4),('b',10)])
-        {'a': [1, 3], 'b': [2, 10], 'c': [4]}
-        """
-        d: defaultdict = defaultdict(list)
-        for k, v in l:
-            d[k].append(v)
-        return dict(d)
-
-    @beartype
-    @staticmethod
-    def merge_dict(l: list[dict[Any, Any]]) -> dict[Any, Any]:
-        result: dict = {}
-        for d in l:
-            result |= d
-        return result
 
 
 # Module-level state for fork-based workers.
@@ -776,7 +730,6 @@ class MP:
     # rlimit budget keeps solver results independent of CPU contention.
     N_BATCHES = 12
 
-    @beartype
     @staticmethod
     def get_workload(tasks: list[Any], n_batches: int) -> list[list[Any]]:
         """

@@ -1,11 +1,8 @@
-from __future__ import annotations
 import csv
-import pdb
 from pathlib import Path
 from collections.abc import Iterable
 from typing import NamedTuple
 import sympy
-from beartype import beartype
 import z3
 
 import helpers.vcommon as CM
@@ -15,7 +12,6 @@ import data.prog
 import settings
 
 
-DBG = pdb.set_trace
 mlog = CM.getLogger(__name__, settings.LOGGER_LEVEL)
 
 class SymbsVals(NamedTuple):
@@ -24,16 +20,13 @@ class SymbsVals(NamedTuple):
     """ "
     ((x, y), (3, 4))
     """
-    @beartype
     @classmethod
     def mk(cls, ss: tuple, vs: tuple) -> SymbsVals:
         return cls(ss, vs)
 
-    @beartype
     def __str__(self) -> str:
         return ",".join(f"{s}={v}" for s, v in zip(self.ss, self.vs))
 
-    @beartype
     def mk_expr(self, ss) -> z3.ExprRef:
         # create z3 expression
         assert len(ss) == len(self.vs), (ss, self.vs)
@@ -46,15 +39,12 @@ class SymbsVals(NamedTuple):
 
 class SymbsValsSet(set):
     
-    @beartype
     def __init__(self, myset=()) -> None:
         super().__init__(myset)
 
-    @beartype
     def __contains__(self, t: SymbsVals) -> bool:
         return super().__contains__(t)
 
-    @beartype
     def add(self, t: SymbsVals) -> None:
         return super().add(t)
 
@@ -125,7 +115,6 @@ class Trace(SymbsVals):
 
 class Traces(SymbsValsSet):
 
-    @beartype
     def __str__(self, printDetails: bool=False) -> str:
         if printDetails:
             return ", ".join(map(str, sorted(self)))
@@ -156,12 +145,10 @@ class Traces(SymbsValsSet):
         cexs = Traces(cexs)
         return cexs
     
-    @beartype
     @property
     def mydicts(self) -> Iterable[dict]:
         return (trace.mydict for trace in self)
 
-    @beartype
     def instantiate(self, template, ntraces: int | None):  # -> set[z3.ExprRef]:
         assert Miscs.is_expr(template), template
         assert ntraces is None or ntraces >= 1, ntraces
@@ -209,18 +196,15 @@ class DTraces(dict):
     """
     {loc: Traces}
     """
-    @beartype
     @property
     def siz(self) -> int:
         return sum(map(len, self.values()))
 
-    @beartype
     def __str__(self, printDetails:bool=False) -> str:
         return "\n".join(
             f"{loc}: {traces.__str__(printDetails)}" for loc, traces in self.items()
         )
     
-    @beartype
     def add(self, loc: str, trace: Trace) -> bool:
         if loc not in self:
             self[loc] = Traces()
@@ -249,7 +233,6 @@ class DTraces(dict):
         assert locs
         return cls({loc: Traces() for loc in locs})
 
-    @beartype
     @staticmethod
     def parse(traces, inv_decls) -> DTraces:
         """
@@ -282,7 +265,6 @@ class DTraces(dict):
         return dtraces
 
 
-    @beartype
     def vwrite(self, inv_decls, tracefile: Path) -> None:
         """
         write traces to tracefile
@@ -308,7 +290,6 @@ class DTraces(dict):
 
         tracefile.write_text("\n".join(ss))
 
-    @beartype
     @classmethod
     def vread(cls, tracefile: Path):
         """

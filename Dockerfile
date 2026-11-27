@@ -14,7 +14,7 @@ RUN /root/miniconda3/bin/conda tos accept --override-channels --channel https://
 RUN /root/miniconda3/bin/conda install python=3.14 sympy pip -y
 # z3-solver is pinned: invariant counts (ieq/congruence bounds) are z3-version
 # sensitive, and tests/golden.json is generated against this exact version.
-RUN /root/miniconda3/bin/pip3 install z3-solver==4.16.0.0 beartype pycparser numpy
+RUN /root/miniconda3/bin/pip3 install z3-solver==4.16.0.0 pycparser numpy
 # anthropic is only needed for the optional LLM mode (dig.py -llm); harmless otherwise
 RUN /root/miniconda3/bin/pip3 install anthropic
 RUN rm -rf ./Miniconda3-latest-Linux-x86_64.sh

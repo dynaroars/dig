@@ -1,6 +1,5 @@
 """Observational signatures and candidate extraction."""
 
-from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass

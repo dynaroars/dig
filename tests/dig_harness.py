@@ -62,6 +62,7 @@ def canon_eqt(s: str) -> str:
 
 
 def run_dig(cfile: Path, seed: int = 42, timeout: int = 180) -> dict:
+    # golden baselines were produced by classic z3 checking
     cmd = [sys.executable, "-O", "dig.py", str(cfile.resolve()), "-seed", str(seed)]
     # start_new_session so DIG's forked multiprocessing workers share a process
     # group we can kill wholesale on timeout — otherwise a timed-out run orphans

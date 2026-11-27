@@ -1,6 +1,5 @@
 """Equation replay and greedy deterministic counterexample minimization."""
 
-from __future__ import annotations
 
 from typing import Any, Mapping
 

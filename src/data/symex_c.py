@@ -71,7 +71,6 @@ Standalone: this file has no DIG dependencies — copy it anywhere and run
 and pycparser installed (Python 3.10+).
 """
 
-from __future__ import annotations
 
 import operator as op_module
 from dataclasses import dataclass, field, replace

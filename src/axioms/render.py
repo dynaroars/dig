@@ -1,6 +1,5 @@
 """Human and stable JSON rendering for axiom runs."""
 
-from __future__ import annotations
 
 import json
 
