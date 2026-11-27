@@ -100,35 +100,35 @@ with Z3 symbolic verification and optional unbounded <b>Lean 4</b> certification
 
 <fieldset>
 <legend><b>Invariant types</b> <span class="small">(uncheck to exclude a type; builds the <tt>-types</tt> selector — all on by default)</span></legend>
-<label><input type="checkbox" id="type-eqt" checked> equalities <span class="small">(dynamic + static recurrence)</span></label><br>
-<label><input type="checkbox" id="type-ieq" checked> inequalities <span class="small">(octagonal / polynomial)</span></label><br>
-<label><input type="checkbox" id="type-minmax" checked> min/max-plus</label><br>
-<label><input type="checkbox" id="type-congruence" checked> congruences</label>
+<label><input type="checkbox" id="type-eqt" name="type-eqt" autocomplete="off" checked> equalities <span class="small">(dynamic + static recurrence)</span></label><br>
+<label><input type="checkbox" id="type-ieq" name="type-ieq" autocomplete="off" checked> inequalities <span class="small">(octagonal / polynomial)</span></label><br>
+<label><input type="checkbox" id="type-minmax" name="type-minmax" autocomplete="off" checked> min/max-plus</label><br>
+<label><input type="checkbox" id="type-congruence" name="type-congruence" autocomplete="off" checked> congruences</label>
 </fieldset>
 
 <fieldset>
 <legend><b>Verification &amp; Lean 4 certification</b> <span class="small">(default: Z3 verification + Lean 4 certification)</span></legend>
-<label><input type="checkbox" id="opt-certify_lean" checked> <tt>--certify-lean</tt> certify the Z3-checked invariants with Lean 4
+<label><input type="checkbox" id="opt-certify_lean" name="opt-certify_lean" autocomplete="off" checked> <tt>--certify-lean</tt> certify the Z3-checked invariants with Lean 4
   <span class="small">(unbounded proof, zero Z3 in TCB)</span></label><br>
-<label><input type="checkbox" id="opt-lean_only"> <tt>--lean-only</tt> verify candidates directly with Lean 4 instead of Z3
+<label><input type="checkbox" id="opt-lean_only" name="opt-lean_only" autocomplete="off"> <tt>--lean-only</tt> verify candidates directly with Lean 4 instead of Z3
   <span class="small">(drops unproved candidates unless <tt>--keep-unverified</tt> is checked)</span></label><br>
-<label><input type="checkbox" id="opt-keep_unverified"> <tt>--keep-unverified</tt> with <tt>--lean-only</tt>, also show candidates Lean could not prove</label>
+<label><input type="checkbox" id="opt-keep_unverified" name="opt-keep_unverified" autocomplete="off"> <tt>--keep-unverified</tt> with <tt>--lean-only</tt>, also show candidates Lean could not prove</label>
 </fieldset>
 
 <fieldset>
 <legend><b>Other flags</b></legend>
-<label><input type="checkbox" id="opt-noss"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label><br>
-<label><input type="checkbox" id="opt-nomp"> <tt>-nomp</tt> don't use multiprocessing</label>
+<label><input type="checkbox" id="opt-noss" name="opt-noss" autocomplete="off"> <tt>-noss</tt> don't use symbolic states (dynamic analysis only)</label><br>
+<label><input type="checkbox" id="opt-nomp" name="opt-nomp" autocomplete="off"> <tt>-nomp</tt> don't use multiprocessing</label>
 </fieldset>
 
 <fieldset>
 <legend><b>LLM</b></legend>
-<label><input type="checkbox" id="opt-llm"> <tt>-llm</tt> use an LLM (Gemini) to propose invariants, verified by symbolic states + z3
+<label><input type="checkbox" id="opt-llm" name="opt-llm" autocomplete="off"> <tt>-llm</tt> use an LLM (Gemini) to propose invariants, verified by symbolic states + z3
   <span class="small">(server needs <tt>GEMINI_API_KEY</tt> or <tt>gemini_api</tt>)</span></label><br>
 <label for="opt-llm_rounds"><tt>-llm_rounds</tt></label>
-<input type="number" id="opt-llm_rounds" size="4" min="1" placeholder="3"> max LLM propose/verify rounds<br>
-<label><input type="checkbox" id="opt-llm_no_traces"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label><br>
-<label><input type="checkbox" id="opt-nollmhoudini"> <tt>-nollmhoudini</tt> disable the extra k-induction (houdini) pass over LLM candidates
+<input type="number" id="opt-llm_rounds" name="opt-llm_rounds" autocomplete="off" size="4" min="1" placeholder="3"> max LLM propose/verify rounds<br>
+<label><input type="checkbox" id="opt-llm_no_traces" name="opt-llm_no_traces" autocomplete="off"> <tt>-llm_no_traces</tt> LLM prompt with source only, no concrete traces</label><br>
+<label><input type="checkbox" id="opt-nollmhoudini" name="opt-nollmhoudini" autocomplete="off"> <tt>-nollmhoudini</tt> disable the extra k-induction (houdini) pass over LLM candidates
   <span class="small">(the pass proves mutually-inductive candidate sets unboundedly; on by default in <tt>-llm</tt> mode)</span></label>
 </fieldset>
 </details>
